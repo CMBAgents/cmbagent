@@ -1,9 +1,5 @@
-# cmbagent
+include LICENSE
+include README.md
 
-Multi-agent system for cosmological data analysis
 
-To install do:
 
-```python
-pip install -e .
-```
