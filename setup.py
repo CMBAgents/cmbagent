@@ -23,15 +23,21 @@ setup(
                       "wheel", 
                       "numpy>=1.19.0", 
                       "Cython>=0.29.21", 
-                      "tensorflow==2.13.0", 
-                      "tensorflow-probability==0.21.0", 
-                      "cosmopower", 
-                      "mcfit",
                       "classy",
                       "camb",
                       "cobaya",
                       "getdist",
                       "openai>=1.37.0",
                       "pyautogen[retrievechat]"],
+
+    extras_require={
+        "dev": [
+                "tensorflow==2.13.0", 
+                "tensorflow-probability==0.21.0", 
+                "cosmopower", 
+                "mcfit",
+            ],
+    },
+    
     test_suite='tests',
 )
