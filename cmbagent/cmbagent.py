@@ -68,10 +68,70 @@ class CMBAgent(object):
         self.executor = executor_agent(llm_config=llm_config) 
 
 
+        # the administrator (us humans)
+        self.admin = autogen.UserProxyAgent(
+            name="admin",
+            system_message="""A human admin. 
+            Interact with the planner to discuss the plan. Plan execution needs to be approved by this admin.
+            You dont' perform any task other than approving, calling next agent, or requesting a modification to the plan. 
+            """,
+            code_execution_config=False,
+        )
 
 
 
+        allowed_transitions = {
+            self.admin: [self.executor.agent, 
+                    self.planner.agent, 
+                    self.planck.agent, 
+                    self.act.agent, 
+                    self.getdist.agent, 
+                    self.classy_sz.agent, 
+                    self.engineer.agent, 
+                    self.cobaya.agent, 
+                    self.classy.agent],
 
+            self.planner.agent: [self.admin],
+            self.engineer.agent: [self.admin],
+            self.executor.agent: [self.admin],
+
+            self.planck.agent: [self.admin], 
+            self.act.agent: [self.admin],
+            self.getdist.agent: [self.admin,self.engineer.agent],
+            self.cobaya.agent:  [self.admin,self.engineer.agent],
+            self.classy_sz.agent: [self.admin,self.engineer.agent],
+            self.classy.agent: [self.admin,self.engineer.agent],
+        }
+
+
+        self.groupchat = autogen.GroupChat(
+            
+            agents=[self.admin, 
+                    self.planner.agent,
+                    self.engineer.agent, 
+                    self.classy_sz.agent, 
+                    self.classy.agent, 
+                    self.cobaya.agent, 
+                    self.planck.agent,
+                    self.getdist.agent,
+                    self.act.agent, 
+                    self.executor.agent], 
+
+            allowed_or_disallowed_speaker_transitions=allowed_transitions,
+            speaker_transitions_type="allowed",
+            messages=[], 
+            speaker_selection_method = "auto",
+            max_round=5
+        )
+
+        self.manager = autogen.GroupChatManager(groupchat=self.groupchat, 
+                                                llm_config=llm_config)
+        
+        for agent in self.groupchat.agents:
+            agent.reset()   
+
+    def solve(self, task = None):
+        self.session = self.admin.initiate_chat(self.manager, message = task)
 
     def hello_cmbagent(self):
         return "Hello from cmbagent!"
