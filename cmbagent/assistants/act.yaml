@@ -17,3 +17,5 @@ description: |
   A retrieval agent that carefully collects specific information from documents, papers, and codes related to ACT. 
   This agent does not write, suggest or run code. This agent does not write, suggest plan.
 
+allowed_transitions:
+  - admin 

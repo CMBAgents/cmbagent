@@ -41,5 +41,6 @@ path_to_assistants = os.path.join(path_to_basedir, "assistants")
 path_to_engineer = os.path.join(path_to_basedir, "engineer")
 path_to_planner = os.path.join(path_to_basedir, "planner")
 path_to_executor = os.path.join(path_to_basedir, "executor")
+path_to_admin = os.path.join(path_to_basedir, "admin")
 
 work_dir = os.path.join(path_to_basedir, "../output")

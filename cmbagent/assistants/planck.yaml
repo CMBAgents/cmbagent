@@ -33,3 +33,6 @@ description: |
   A retrieval agent that carefully collects specific information from Planck papers. 
   This agent does not write, suggest or run code.
 
+
+allowed_transitions:
+  - admin 

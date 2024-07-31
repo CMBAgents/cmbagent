@@ -1,0 +1,22 @@
+name: "admin"
+
+instructions: |
+    A human admin. 
+    Interact with the planner to discuss the plan. Plan execution needs to be approved by this admin.
+    You dont' perform any task other than approving, calling next agent, or requesting a modification to the plan. 
+
+
+code_execution_config: False
+
+
+allowed_transitions:
+  - planner
+  - engineer
+  - executor
+  - act_agent
+  - planck_agent
+  - getdist_agent
+  - cobaya_agent
+  - classy_agent
+  - classy_sz_agent
+

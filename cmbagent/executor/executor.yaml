@@ -15,3 +15,7 @@ description: |
 
 timeout: 3600
 
+
+allowed_transitions:
+  - admin 
+

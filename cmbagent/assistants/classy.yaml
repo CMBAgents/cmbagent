@@ -12,3 +12,6 @@ description: |
   A retrieval agent that suggests codes to help engineer run classy. 
   This agent does not write, suggest or run code. This agent does not write, suggest plan.
 
+allowed_transitions:
+  - admin 
+  - engineer

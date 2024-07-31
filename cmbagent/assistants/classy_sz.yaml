@@ -16,3 +16,7 @@ assistant_config:
 description: |
   A retrieval agent that suggests codes to help engineer with classy_sz. 
   This agent does not write, suggest or run code. This agent does not write, nor suggest a plan.
+
+allowed_transitions:
+  - admin 
+  - engineer

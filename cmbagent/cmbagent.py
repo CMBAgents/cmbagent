@@ -1,6 +1,8 @@
 
 from .utils import *
 from .assistants.classy_sz import classy_sz_agent
+
+
 from .assistants.classy import classy_agent
 from .assistants.camb import camb_agent
 from .assistants.cobaya import cobaya_agent
@@ -12,6 +14,8 @@ from .assistants.planck import planck_agent
 from cmbagent.engineer.engineer import engineer_agent
 from cmbagent.planner.planner import planner_agent
 from cmbagent.executor.executor import executor_agent
+
+from cmbagent.admin.admin import admin_agent
 
 
 
@@ -30,11 +34,12 @@ class CMBAgent(object):
         self.work_dir = work_dir
         
         logger.info(f"Autogen version: {autogen.__version__}")
-        # print(f"Autogen version: {autogen.__version__}")
 
 
         gpt4o_config = config_list_from_json(f"{path_to_apis}/oai_gpt4o.json")
+
         if gpt4o_api_key is not None:
+        
             gpt4o_config[0]['api_key'] = gpt4o_api_key
 
 
@@ -69,75 +74,51 @@ class CMBAgent(object):
 
 
         # the administrator (us humans)
-        self.admin = autogen.UserProxyAgent(
-            name="admin",
-            system_message="""A human admin. 
-            Interact with the planner to discuss the plan. Plan execution needs to be approved by this admin.
-            You dont' perform any task other than approving, calling next agent, or requesting a modification to the plan. 
-            """,
-            code_execution_config=False,
-        )
+        self.admin = admin_agent()
 
+        # all agents 
+        self.agents = [self.admin, 
+                       self.planner, 
+                       self.engineer, 
+                       self.executor, 
+                       self.act, 
+                       self.planck, 
+                       self.getdist, 
+                       self.cobaya, 
+                       self.classy, 
+                       self.classy_sz]
 
-
-        allowed_transitions = {
-            self.admin: [self.executor.agent, 
-                    self.planner.agent, 
-                    self.planck.agent, 
-                    self.act.agent, 
-                    self.getdist.agent, 
-                    self.classy_sz.agent, 
-                    self.engineer.agent, 
-                    self.cobaya.agent, 
-                    self.classy.agent],
-
-            self.planner.agent: [self.admin],
-            self.engineer.agent: [self.admin],
-            self.executor.agent: [self.admin],
-
-            self.planck.agent: [self.admin], 
-            self.act.agent: [self.admin],
-            self.getdist.agent: [self.admin,self.engineer.agent],
-            self.cobaya.agent:  [self.admin,self.engineer.agent],
-            self.classy_sz.agent: [self.admin,self.engineer.agent],
-            self.classy.agent: [self.admin,self.engineer.agent],
-        }
+        self.allowed_transitions = self.get_allowed_transitions()
 
 
         self.groupchat = autogen.GroupChat(
-            
-            agents=[self.admin, 
-                    self.planner.agent,
-                    self.engineer.agent, 
-                    self.classy_sz.agent, 
-                    self.classy.agent, 
-                    self.cobaya.agent, 
-                    self.planck.agent,
-                    self.getdist.agent,
-                    self.act.agent, 
-                    self.executor.agent], 
-
-            allowed_or_disallowed_speaker_transitions=allowed_transitions,
-            speaker_transitions_type="allowed",
-            messages=[], 
-            speaker_selection_method = "auto",
-            max_round=5
-        )
+                                agents=[agent.agent for agent in self.agents], 
+                                allowed_or_disallowed_speaker_transitions=self.allowed_transitions,
+                                speaker_transitions_type="allowed",
+                                messages=[], 
+                                speaker_selection_method = "auto",
+                                max_round=5)
 
         self.manager = autogen.GroupChatManager(groupchat=self.groupchat, 
                                                 llm_config=llm_config)
         
         for agent in self.groupchat.agents:
+
             agent.reset()   
 
     def solve(self, task = None):
-        self.session = self.admin.initiate_chat(self.manager, message = task)
+
+        self.session = self.admin.agent.initiate_chat(self.manager, 
+                                                      message = task)
 
 
     def restore_session(self):
+        
         previous_state = f"{self.groupchat.messages}"
+        
         # Convert string to Python dictionary
         dict_representation = ast.literal_eval(previous_state)
+
         # Convert dictionary to JSON string
         json_string = json.dumps(dict_representation)
 
@@ -146,13 +127,48 @@ class CMBAgent(object):
 
         # Resume the chat using the last agent and message
         self.session = last_agent.initiate_chat(recipient=self.manager, 
-                                          message=last_message, 
-                                          clear_history=False)
+                                                message=last_message, 
+                                                clear_history=False)
 
         
+    def get_agent_from_name(self,name):
+
+        for agent in self.agents: 
+        
+            if agent.info['name'] == name:
+        
+                return agent.agent
+        
+        print(f"get_agent_from_name: agent {name} not found") 
+        
+        sys.exit()   
+
+    
+    def get_allowed_transitions(self):
+        
+        allowed_transitions = {}
+
+        for agent in self.agents: 
+
+            transition_list = []
+            
+            for name in agent.info['allowed_transitions']:
+            
+                transition_list.append(self.get_agent_from_name(name))
+        
+            allowed_transitions[agent.agent] = transition_list
+
+        return allowed_transitions
     
 
+    def show_allowed_transitions(self):
+
+        for agent, transitions in self.allowed_transitions.items():
+
+            print(f"{agent.name} -> {', '.join([t.name for t in transitions])}")
+
     def hello_cmbagent(self):
+
         return "Hello from cmbagent!"
 
 
