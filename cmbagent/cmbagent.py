@@ -34,6 +34,8 @@ class CMBAgent(object):
         self.kwargs = kwargs
 
         self.work_dir = work_dir
+
+        self.path_to_assistants = path_to_assistants
         
         logger.info(f"Autogen version: {autogen.__version__}")
 
@@ -43,6 +45,8 @@ class CMBAgent(object):
         if gpt4o_api_key is not None:
         
             gpt4o_config[0]['api_key'] = gpt4o_api_key
+
+        self.oai_api_key = gpt4o_config[0]['api_key']
 
 
         logger.info(f"Path to APIs: {path_to_apis}")
