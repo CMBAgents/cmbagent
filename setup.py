@@ -23,7 +23,6 @@ setup(
                       "wheel", 
                       "numpy>=1.19.0", 
                       "Cython>=0.29.21", 
-                      "classy",
                       "camb",
                       "cobaya",
                       "getdist",
@@ -31,6 +30,7 @@ setup(
 
     extras_require={
         "dev": [
+                "classy",
                 "tensorflow==2.13.0", 
                 "tensorflow-probability==0.21.0", 
                 "cosmopower", 
