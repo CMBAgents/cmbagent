@@ -24,11 +24,13 @@ from cmbagent.admin.admin import admin_agent
 logger = logging.getLogger(__name__)
 
 class CMBAgent(object):
+
     def __init__(self, 
                  cache_seed=42, 
                  temperature=0,
                  timeout=1200,
                  gpt4o_api_key=None,
+                 make_vector_stores=False,
                  **kwargs):
         
         self.kwargs = kwargs
@@ -61,6 +63,7 @@ class CMBAgent(object):
         logger.info("LLM Configuration:")
 
         for key, value in llm_config.items():
+
             logger.info(f"{key}: {value}")
 
 
@@ -92,6 +95,7 @@ class CMBAgent(object):
                        self.planck, 
                        self.getdist, 
                        self.cobaya, 
+                       self.camb, 
                        self.classy, 
                        self.classy_sz]
         

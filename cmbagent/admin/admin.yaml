@@ -17,6 +17,8 @@ allowed_transitions:
   - planck_agent
   - getdist_agent
   - cobaya_agent
+  - camb_agent
   - classy_agent
   - classy_sz_agent
+
 
