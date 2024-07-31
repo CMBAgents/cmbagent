@@ -1,0 +1,17 @@
+name: "camb_agent"
+
+instructions: |
+  You never suggest a plan.
+
+assistant_config:
+  assistant_id: asst_WZjBrCx7pfeILbUxnBydB9UM
+  tools:
+    - type: retrieval
+
+description: |
+  A retrieval agent that suggests codes to help engineer run camb. 
+  This agent does not write, suggest or run code. This agent does not write, suggest plan.
+
+
+
+

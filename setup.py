@@ -29,6 +29,8 @@ setup(
                       "mcfit",
                       "classy",
                       "camb",
+                      "cobaya",
+                      "getdist",
                       "openai",
                       "pyautogen[retrievechat]"],
     test_suite='tests',
