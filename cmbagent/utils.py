@@ -18,7 +18,8 @@ from autogen import UserProxyAgent, config_list_from_json
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
 
-from cmbagent.yaml import yaml_load_file, yaml_load
+from cobaya.yaml import yaml_load_file, yaml_load
+
 
 import logging
 
