@@ -2,6 +2,8 @@
 import os
 import json
 import ast
+import requests
+from openai import OpenAI
 
 from pprint import pprint
 

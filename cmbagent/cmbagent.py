@@ -101,6 +101,9 @@ class CMBAgent(object):
         
 
         ## here we should ask if we need to update vector stores 
+        if make_vector_stores:
+
+            self.push_vector_stores()
 
 
         # then we set the agents
@@ -188,6 +191,136 @@ class CMBAgent(object):
         for agent, transitions in self.allowed_transitions.items():
 
             print(f"{agent.name} -> {', '.join([t.name for t in transitions])}")
+
+
+
+    def push_vector_stores(self):
+
+        client = OpenAI(api_key = self.oai_api_key) 
+
+        # 1. identify rag agents and set store names 
+
+        store_names = []
+        rag_agents = []
+
+        for agent in self.agents:
+            
+            if 'assistant_config' in agent.info:
+
+                if 'file_search' in agent.info['assistant_config']['tool_resources'][0].keys():
+                    
+                    print(agent.info['name'])
+                    
+                    print(agent.info['assistant_config']['assistant_id'])
+                    
+                    print(agent.info['assistant_config']['tool_resources'][0]['file_search'][0])
+                    
+                    store_names.append(f"{agent.info['name']}_store")
+                    
+                    rag_agents.append(agent)
+        
+
+        # 2. collect all vector stores 
+
+        # Set the headers for authentication
+        headers = {
+            "Authorization": f"Bearer {self.oai_api_key}",
+            "OpenAI-Beta": "assistants=v2"
+        }
+
+        # Define the URL endpoint for listing vector stores
+        url = "https://api.openai.com/v1/vector_stores"
+
+        # Send a GET request to list vector stores
+        response = requests.get(url, headers=headers)
+
+        # Check if the request was successful
+        if response.status_code == 200:
+            
+            vector_stores = response.json()
+
+        else:
+            
+            print("Failed to retrieve vector stores:", response.status_code, response.text)
+
+
+        # 3. delete old vector stores if they exist and write new ones
+
+        # Find all vector stores by name and collect their IDs
+        for vector_store_name,rag_agent in zip(store_names,rag_agents):
+            
+            print('dealing with: ',vector_store_name)
+            
+            matching_vector_store_ids = [
+                store['id'] for store in vector_stores['data'] if store['name'] == vector_store_name
+            ]
+
+            if matching_vector_store_ids:
+                
+                print(f"Vector store IDs for '{vector_store_name}':", matching_vector_store_ids)
+
+                for vector_store_id in matching_vector_store_ids:
+                
+                    # Define the URL endpoint for deleting a vector store by ID
+                    delete_url = f"https://api.openai.com/v1/vector_stores/{vector_store_id}"
+
+                    # Send a DELETE request to delete the vector store
+                    delete_response = requests.delete(delete_url, headers=headers)
+
+                    # Check if the request was successful
+                    if delete_response.status_code == 200:
+                    
+                        print(f"Vector store with ID '{vector_store_id}' deleted successfully.")
+                    
+                    else:
+                        
+                        print("Failed to delete vector store:", delete_response.status_code, delete_response.text)
+                        
+            else:
+                
+                print(f"No vector stores found with the name '{vector_store_name}'.")
+                
+            # Create a vector store called "planck_store"
+            vector_store = client.beta.vector_stores.create(name=vector_store_name)
+            
+            
+            # Initialize a list to hold the file paths
+            file_paths = []
+            
+            assistant_data = self.path_to_assistants + '/data/' + vector_store_name.removesuffix('_agent_store')
+
+            # Walk through the directory
+            for root, dirs, files in os.walk(assistant_data):
+                
+                for file in files:
+                    
+                    print(file)
+                    
+                    # Get the absolute path of each file
+                    file_paths.append(os.path.join(root, file))
+                    
+            # Ready the files for upload to OpenAI
+
+            file_streams = [open(path, "rb") for path in file_paths]
+
+            # Use the upload and poll SDK helper to upload the files, add them to the vector store,
+            # and poll the status of the file batch for completion.
+            file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+                    vector_store_id=vector_store.id, 
+                    files=file_streams
+                    )
+
+            # You can print the status and the file counts of the batch to see the result of this operation.
+            print(file_batch.status)
+            print(file_batch.file_counts)
+            
+            rag_agent.info['assistant_config']['tool_resources'][0]['file_search'][0]['vector_store_ids'] = vector_store.id
+            
+            print('created new vector store with id: ',vector_store.id)
+            print('\n')
+
+
+
 
     def hello_cmbagent(self):
 
