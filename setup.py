@@ -31,7 +31,7 @@ setup(
                       "camb",
                       "cobaya",
                       "getdist",
-                      "openai",
+                      "openai>=1.37.0",
                       "pyautogen[retrievechat]"],
     test_suite='tests',
 )
