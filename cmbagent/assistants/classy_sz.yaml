@@ -12,6 +12,9 @@ assistant_config:
   assistant_id: asst_bNyGym2OZT6rti9dzde3PrAs
   tools:
     - type: retrieval
+  tool_resources:
+    - file_search: 
+        - vector_store_ids: vs_vsrcfiSBneY7J4WqobSPM9HF
 
 description: |
   A retrieval agent that suggests codes to help engineer with classy_sz. 

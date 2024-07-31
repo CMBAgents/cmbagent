@@ -82,6 +82,7 @@ class CMBAgent(object):
         # the administrator (us humans)
         self.admin = admin_agent()
 
+
         # all agents 
         self.agents = [self.admin, 
                        self.planner, 
@@ -93,8 +94,19 @@ class CMBAgent(object):
                        self.cobaya, 
                        self.classy, 
                        self.classy_sz]
+        
+
+        ## here we should ask if we need to update vector stores 
+
+
+        # then we set the agents
+        for agent in self.agents:
+
+            agent.set_agent()
+
 
         self.allowed_transitions = self.get_allowed_transitions()
+
 
 
         self.groupchat = autogen.GroupChat(

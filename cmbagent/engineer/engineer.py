@@ -8,6 +8,7 @@ class engineer_agent(object):
                  **kwargs):
         
         self.kwargs = kwargs
+        self.llm_config = llm_config
 
         input_file = os.path.join(path_to_engineer, "engineer.yaml")
         self.info = yaml_load_file(input_file)
@@ -18,13 +19,15 @@ class engineer_agent(object):
             logger.info(f"{key}: {value}")
 
 
+
+
+    def set_agent(self):
+
         self.agent = AssistantAgent(
             name= self.info["name"],
             system_message= self.info["instructions"],
             description=self.info["description"],
-            llm_config=llm_config,
+            llm_config=self.llm_config,
         )
-
-
 
 

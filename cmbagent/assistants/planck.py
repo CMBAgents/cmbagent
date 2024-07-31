@@ -3,6 +3,7 @@ from cmbagent.utils import *
 logger = logging.getLogger(__name__)
 
 class planck_agent(object):
+
     def __init__(self, 
                  llm_config=None,
                  **kwargs):
@@ -10,20 +11,26 @@ class planck_agent(object):
         self.kwargs = kwargs
 
         input_file = os.path.join(path_to_assistants, "planck.yaml")
+
         self.info = yaml_load_file(input_file)
         
         logger.info("Loaded assistant info:")
 
         for key, value in self.info.items():
+
             logger.info(f"{key}: {value}")
 
+        self.llm_config = llm_config
 
+
+    def set_agent(self):
+        
         self.agent = GPTAssistantAgent(
             name= self.info["name"],
             instructions= self.info["instructions"],
             description=self.info["description"],
             assistant_config=self.info["assistant_config"],
-            llm_config=llm_config,
+            llm_config=self.llm_config,
         )
 
 
