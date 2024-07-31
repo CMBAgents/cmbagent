@@ -133,6 +133,25 @@ class CMBAgent(object):
     def solve(self, task = None):
         self.session = self.admin.initiate_chat(self.manager, message = task)
 
+
+    def restore_session(self):
+        previous_state = f"{self.groupchat.messages}"
+        # Convert string to Python dictionary
+        dict_representation = ast.literal_eval(previous_state)
+        # Convert dictionary to JSON string
+        json_string = json.dumps(dict_representation)
+
+        # Prepare the group chat for resuming
+        last_agent, last_message = self.manager.resume(messages=json_string)
+
+        # Resume the chat using the last agent and message
+        self.session = last_agent.initiate_chat(recipient=self.manager, 
+                                          message=last_message, 
+                                          clear_history=False)
+
+        
+    
+
     def hello_cmbagent(self):
         return "Hello from cmbagent!"
 
