@@ -27,7 +27,6 @@ setup(
                       "camb",
                       "cobaya",
                       "getdist",
-                      "openai>=1.37.0",
                       "pyautogen[retrievechat]"],
 
     extras_require={
@@ -38,6 +37,6 @@ setup(
                 "mcfit",
             ],
     },
-    
+
     test_suite='tests',
 )
