@@ -122,7 +122,7 @@ class CMBAgent(object):
                                 speaker_transitions_type="allowed",
                                 messages=[], 
                                 speaker_selection_method = "auto",
-                                max_round=5)
+                                max_round=50)
 
         self.manager = autogen.GroupChatManager(groupchat=self.groupchat, 
                                                 llm_config=llm_config)
