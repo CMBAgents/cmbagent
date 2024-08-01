@@ -1,34 +1,22 @@
 from cmbagent.utils import *
 
+from cmbagent.assistants.base_agent import BaseAgent
+
 logger = logging.getLogger(__name__)
 
-class classy_sz_agent(object):
+class ClassySzAgent(BaseAgent):
 
-    def __init__(self, 
-                 llm_config=None,
-                 **kwargs):
-        
-        self.kwargs = kwargs
+    def __init__(self, llm_config=None, **kwargs):
 
-        self.llm_config = llm_config
+        agent_id = os.path.splitext(os.path.abspath(__file__))[0]
 
-        input_file = os.path.join(path_to_assistants, "classy_sz.yaml")
-
-        self.info = yaml_load_file(input_file)
-        
-        logger.info("Loaded assistant info:")
-
-        for key, value in self.info.items():
-
-            logger.info(f"{key}: {value}")
+        super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
 
 
-    def set_agent(self):
 
-        self.agent = GPTAssistantAgent(
-            name= self.info["name"],
-            instructions= self.info["instructions"],
-            description=self.info["description"],
-            assistant_config=self.info["assistant_config"],
-            llm_config=self.llm_config,
-        )
+    def set_agent(self, additional_param=None):
+
+        super().set_agent()
+
+        if additional_param:
+            self.agent.additional_param = additional_param

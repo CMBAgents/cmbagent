@@ -1,21 +1,20 @@
 
 from .utils import *
-from .assistants.classy_sz import classy_sz_agent
 
+from .assistants.classy_sz import ClassySzAgent
+from .assistants.classy import ClassyAgent
+from .assistants.camb import CambAgent
+from .assistants.cobaya import CobayaAgent
+from .assistants.getdist import GetdistAgent
 
-from .assistants.classy import classy_agent
-from .assistants.camb import camb_agent
-from .assistants.cobaya import cobaya_agent
-from .assistants.getdist import getdist_agent
+from .assistants.act import ActAgent
+from .assistants.planck import PlanckAgent
 
-from .assistants.act import act_agent
-from .assistants.planck import planck_agent
+from cmbagent.engineer.engineer import EngineerAgent
+from cmbagent.planner.planner import PlannerAgent
+from cmbagent.executor.executor import ExecutorAgent
 
-from cmbagent.engineer.engineer import engineer_agent
-from cmbagent.planner.planner import planner_agent
-from cmbagent.executor.executor import executor_agent
-
-from cmbagent.admin.admin import admin_agent
+from cmbagent.admin.admin import AdminAgent
 
 
 
@@ -23,15 +22,47 @@ from cmbagent.admin.admin import admin_agent
 
 logger = logging.getLogger(__name__)
 
-class CMBAgent(object):
+class CMBAgent:
 
     def __init__(self, 
                  cache_seed=42, 
                  temperature=0,
                  timeout=1200,
-                 gpt4o_api_key=None,
+                 max_round=50,
+                 gpt4o_api_key=None, ### llm_api_kay 
                  make_vector_stores=False,
                  **kwargs):
+        """
+        Initialize the CMBAgent.
+
+        Args:
+            cache_seed (int, optional): Seed for caching. Defaults to 42.
+            temperature (float, optional): Temperature for LLM sampling. Defaults to 0.
+            timeout (int, optional): Timeout for LLM requests in seconds. Defaults to 1200.
+            max_round (int, optional): Maximum number of conversation rounds. Defaults to 50. If too small, the conversation stops. 
+            gpt4o_api_key (str, optional): API key for GPT-4. If None, uses the key from the config file.
+            make_vector_stores (bool, optional): Whether to create vector stores. Defaults to False.
+            **kwargs: Additional keyword arguments.
+
+        Attributes:
+            kwargs (dict): Additional keyword arguments.
+            work_dir (str): Working directory for output.
+            path_to_assistants (str): Path to the assistants directory.
+            oai_api_key (str): OpenAI API key.
+            classy_sz (classy_sz_agent): Agent for Class_sz operations.
+            classy (classy_agent): Agent for Class operations.
+            camb (camb_agent): Agent for CAMB operations.
+            cobaya (cobaya_agent): Agent for Cobaya operations.
+            getdist (getdist_agent): Agent for GetDist operations.
+            act (act_agent): Agent for ACT operations.
+            planck (planck_agent): Agent for Planck operations.
+            engineer (engineer_agent): Agent for engineering tasks.
+            planner (planner_agent): Agent for planning tasks.
+            executor (executor_agent): Agent for executing tasks.
+
+        Note:
+            This class initializes various agents and configurations for cosmological data analysis.
+        """
         
         self.kwargs = kwargs
 
@@ -42,7 +73,7 @@ class CMBAgent(object):
         logger.info(f"Autogen version: {autogen.__version__}")
 
 
-        gpt4o_config = config_list_from_json(f"{path_to_apis}/oai_gpt4o.json")
+        gpt4o_config = config_list_from_json(f"{path_to_apis}/oai_gpt4o.json") ### pass as parameter 
 
         if gpt4o_api_key is not None:
         
@@ -67,23 +98,29 @@ class CMBAgent(object):
             logger.info(f"{key}: {value}")
 
 
-        self.classy_sz = classy_sz_agent(llm_config=llm_config)
-        self.classy = classy_agent(llm_config=llm_config)
-        self.camb = camb_agent(llm_config=llm_config)
-        self.cobaya = cobaya_agent(llm_config=llm_config)
-        self.getdist = getdist_agent(llm_config=llm_config)
+        ### instantiate agents -- can be probably done in one line 
+        ### remove instances here unless needed. 
+
+        ### RAG agents, they are user specific. 
+
+        self.classy_sz = ClassySzAgent(llm_config=llm_config)
+        self.classy = ClassyAgent(llm_config=llm_config)
+        self.camb = CambAgent(llm_config=llm_config)
+        self.cobaya = CobayaAgent(llm_config=llm_config)
+        self.getdist = GetdistAgent(llm_config=llm_config)
         
-        self.act = act_agent(llm_config=llm_config)
-        self.planck = planck_agent(llm_config=llm_config)
+        self.act = ActAgent(llm_config=llm_config)
+        self.planck = PlanckAgent(llm_config=llm_config)
 
 
-        self.engineer = engineer_agent(llm_config=llm_config)
-        self.planner = planner_agent(llm_config=llm_config)
-        self.executor = executor_agent(llm_config=llm_config) 
+        ### by default are always here 
+        self.engineer = EngineerAgent(llm_config=llm_config)
+        self.planner = PlannerAgent(llm_config=llm_config)
+        self.executor = ExecutorAgent(llm_config=llm_config) 
 
 
         # the administrator (us humans)
-        self.admin = admin_agent()
+        self.admin = AdminAgent()
 
 
         # all agents 
@@ -122,7 +159,7 @@ class CMBAgent(object):
                                 speaker_transitions_type="allowed",
                                 messages=[], 
                                 speaker_selection_method = "auto",
-                                max_round=5)
+                                max_round=max_round)
 
         self.manager = autogen.GroupChatManager(groupchat=self.groupchat, 
                                                 llm_config=llm_config)
@@ -133,8 +170,8 @@ class CMBAgent(object):
 
     def solve(self, task = None):
 
-        self.session = self.admin.agent.initiate_chat(self.manager, 
-                                                      message = task)
+        self.session = self.admin.agent.initiate_chat(self.manager,message = task)
+        
 
 
     def restore_session(self):
@@ -157,6 +194,7 @@ class CMBAgent(object):
 
         
     def get_agent_from_name(self,name):
+
 
         for agent in self.agents: 
         

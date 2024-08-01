@@ -1,24 +1,15 @@
 from cmbagent.utils import *
+from cmbagent.assistants.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-class engineer_agent(object):
-    def __init__(self, 
-                 llm_config=None,
-                 **kwargs):
-        
-        self.kwargs = kwargs
-        self.llm_config = llm_config
+class EngineerAgent(BaseAgent):
 
-        input_file = os.path.join(path_to_engineer, "engineer.yaml")
-        self.info = yaml_load_file(input_file)
-        
-        logger.info("Loaded assistant info:")
+    def __init__(self, llm_config=None, **kwargs):
 
-        for key, value in self.info.items():
-            logger.info(f"{key}: {value}")
+        agent_id = os.path.splitext(os.path.abspath(__file__))[0]
 
-
+        super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
 
 
     def set_agent(self):
