@@ -1,8 +1,8 @@
 # How to deal with $\sigma_8$ and $A_s$ in cobaya?
 
-We can not set both $\sigma_8$ and $A_s$ or $ln10^{10}A_s$ since $\sigma_8$ can be derived from $A_s$ or $ln10^{10}A_s$ and vice-versa
+We can not set both $\sigma_8$ and $A_s$ or $ln10^{10}A_s$ since $\sigma_8$ can be derived from $A_s$ or $ln10^{10}A_s$ and vice-versa.
 
-If we need to vary $A_s$ or $ln10^{10}A_s$ we can folow the following set-up in the `params` block of the yaml file:
+If we need to vary $A_s$ or $ln10^{10}A_s$ we can follow the following set-up in the `params` block of the yaml file:
 
 ```yaml
 

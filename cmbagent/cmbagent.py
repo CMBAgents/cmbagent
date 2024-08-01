@@ -1,4 +1,6 @@
 
+import sys
+
 from .utils import *
 from .assistants.classy_sz import classy_sz_agent
 
@@ -30,7 +32,7 @@ class CMBAgent(object):
                  temperature=0,
                  timeout=1200,
                  gpt4o_api_key=None,
-                 make_vector_stores=False,
+                 make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores
                  **kwargs):
         
         self.kwargs = kwargs
@@ -101,9 +103,9 @@ class CMBAgent(object):
         
 
         ## here we should ask if we need to update vector stores 
-        if make_vector_stores:
+        if make_vector_stores != False:
 
-            self.push_vector_stores()
+            self.push_vector_stores(make_vector_stores)
 
 
         # then we set the agents
@@ -194,7 +196,7 @@ class CMBAgent(object):
 
 
 
-    def push_vector_stores(self):
+    def push_vector_stores(self, make_vector_stores):
 
         client = OpenAI(api_key = self.oai_api_key) 
 
@@ -204,6 +206,9 @@ class CMBAgent(object):
         rag_agents = []
 
         for agent in self.agents:
+
+            if type(make_vector_stores) == list and agent.agent.name not in make_vector_stores:
+                continue
             
             if 'assistant_config' in agent.info:
 
