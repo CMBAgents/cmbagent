@@ -207,7 +207,8 @@ class CMBAgent(object):
 
         for agent in self.agents:
 
-            if type(make_vector_stores) == list and agent.info['name'] not in make_vector_stores:
+
+            if type(make_vector_stores) == list and agent.info['name'] not in make_vector_stores and agent.info['name'].replace('_agent', '') not in make_vector_stores:
                 continue
             
             if 'assistant_config' in agent.info:
