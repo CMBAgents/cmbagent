@@ -1,6 +1,6 @@
 # Setting up a yaml parameter file for cobaya mcmc mode
 
-Here is the structure of the yaml file when we are asked about evaluating a likelihood at some parameter values.
+Here is the structure of the yaml file when we are asked about determining posterior distributions using a likelihood. If one is simply evaluating a likelihood at some parameter values, they should not use MCMC. Instead, they should use `evaluate`.
 
 ```yaml
 theory:
