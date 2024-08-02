@@ -1,7 +1,5 @@
-from cmbagent.utils import *
+import os
 from cmbagent.assistants.base_agent import BaseAgent
-
-logger = logging.getLogger(__name__)
 
 class AdminAgent(BaseAgent):
     
@@ -14,12 +12,7 @@ class AdminAgent(BaseAgent):
 
     def set_agent(self):
 
-        self.agent = autogen.UserProxyAgent(
-            name= self.info["name"],
-            system_message= self.info["instructions"],
-            code_execution_config=self.info["code_execution_config"],
-        )
-
+        super().set_admin_agent()
 
 
 

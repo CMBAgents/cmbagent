@@ -1,8 +1,5 @@
 # cmbagent/utils.py
 import os
-import json
-import ast
-import requests
 from openai import OpenAI
 
 from pprint import pprint
@@ -13,12 +10,8 @@ import autogen
 from autogen import AssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
-
-
-
 from autogen import UserProxyAgent, config_list_from_json
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
-
 
 from cobaya.yaml import yaml_load_file, yaml_load
 
@@ -31,7 +24,7 @@ import logging
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
-logger = logging.getLogger(__name__)
+
 
 
 

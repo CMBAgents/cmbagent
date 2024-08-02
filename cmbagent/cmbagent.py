@@ -1,5 +1,12 @@
-from .utils import *
-
+import os 
+import logging
+import importlib
+import autogen
+import requests
+import ast
+import json
+import sys 
+from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image
 
 imported_rag_agents = {}
 for filename in os.listdir(path_to_assistants):
@@ -20,7 +27,7 @@ from cmbagent.executor.executor import ExecutorAgent
 from cmbagent.admin.admin import AdminAgent
 
 
-logger = logging.getLogger(__name__)
+
 
 class CMBAgent:
 
@@ -31,7 +38,9 @@ class CMBAgent:
                  temperature=0,
                  timeout=1200,
                  max_round=50,
-                 gpt4o_api_key=None, ### llm_api_kay 
+                 platform='oai',
+                 model='gpt4o',
+                 llm_api_key=None,
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
                  agent_list = None,
                  verbose = False,
@@ -44,7 +53,7 @@ class CMBAgent:
             temperature (float, optional): Temperature for LLM sampling. Defaults to 0.
             timeout (int, optional): Timeout for LLM requests in seconds. Defaults to 1200.
             max_round (int, optional): Maximum number of conversation rounds. Defaults to 50. If too small, the conversation stops. 
-            gpt4o_api_key (str, optional): API key for GPT-4. If None, uses the key from the config file.
+            llm_api_key (str, optional): API key for LLM. If None, uses the key from the config file.
             make_vector_stores (bool or list of strings, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb']. 
             agent_list (list of strings, optional): List of agents to include in the conversation. Defaults to all agents.
             **kwargs: Additional keyword arguments.
@@ -53,14 +62,7 @@ class CMBAgent:
             kwargs (dict): Additional keyword arguments.
             work_dir (str): Working directory for output.
             path_to_assistants (str): Path to the assistants directory.
-            oai_api_key (str): OpenAI API key.
-            classy_sz (classy_sz_agent): Agent for Class_sz operations.
-            classy (classy_agent): Agent for Class operations.
-            camb (camb_agent): Agent for CAMB operations.
-            cobaya (cobaya_agent): Agent for Cobaya operations.
-            getdist (getdist_agent): Agent for GetDist operations.
-            act (act_agent): Agent for ACT operations.
-            planck (planck_agent): Agent for Planck operations.
+            llm_api_key (str): OpenAI API key.
             engineer (engineer_agent): Agent for engineering tasks.
             planner (planner_agent): Agent for planning tasks.
             executor (executor_agent): Agent for executing tasks.
@@ -71,6 +73,8 @@ class CMBAgent:
         
         self.kwargs = kwargs
 
+        self.logger = logging.getLogger(__name__)
+
         self.agent_list = agent_list
 
         self.verbose = verbose
@@ -79,32 +83,31 @@ class CMBAgent:
 
         self.path_to_assistants = path_to_assistants
         
-        logger.info(f"Autogen version: {autogen.__version__}")
+        self.logger.info(f"Autogen version: {autogen.__version__}")
 
+        llm_config = config_list_from_json(f"{path_to_apis}/{platform}_{model}.json") 
 
-        gpt4o_config = config_list_from_json(f"{path_to_apis}/oai_gpt4o.json") ### pass as parameter 
-
-        if gpt4o_api_key is not None:
+        if llm_api_key is not None:
         
-            gpt4o_config[0]['api_key'] = gpt4o_api_key
+            llm_config[0]['api_key'] = llm_api_key
 
-        self.oai_api_key = gpt4o_config[0]['api_key']
+        self.llm_api_key = llm_config[0]['api_key']
 
 
-        logger.info(f"Path to APIs: {path_to_apis}")
+        self.logger.info(f"Path to APIs: {path_to_apis}")
 
         self.llm_config = {
                         "cache_seed": cache_seed,  # change the cache_seed for different trials
                         "temperature": temperature,
-                        "config_list": gpt4o_config,
+                        "config_list": llm_config,
                         "timeout": timeout,
                     }
         
-        logger.info("LLM Configuration:")
+        self.logger.info("LLM Configuration:")
 
         for key, value in self.llm_config.items():
 
-            logger.info(f"{key}: {value}")
+            self.logger.info(f"{key}: {value}")
 
 
         self.init_agents()
@@ -218,7 +221,7 @@ class CMBAgent:
 
     def push_vector_stores(self, make_vector_stores):
 
-        client = OpenAI(api_key = self.oai_api_key) 
+        client = OpenAI(api_key = self.llm_api_key) 
 
         # 1. identify rag agents and set store names 
 
@@ -250,7 +253,7 @@ class CMBAgent:
 
         # Set the headers for authentication
         headers = {
-            "Authorization": f"Bearer {self.oai_api_key}",
+            "Authorization": f"Bearer {self.llm_api_key}",
             "OpenAI-Beta": "assistants=v2"
         }
 
@@ -305,7 +308,10 @@ class CMBAgent:
             else:
                 
                 print(f"No vector stores found with the name '{vector_store_name}'.")
-                
+            
+            print()
+            
+
             # Create a vector store called "planck_store"
             vector_store = client.beta.vector_stores.create(name=vector_store_name)
             
@@ -319,6 +325,9 @@ class CMBAgent:
             for root, dirs, files in os.walk(assistant_data):
                 
                 for file in files:
+
+                    if file == ".DS_Store":
+                        continue
                     
                     print(file)
                     

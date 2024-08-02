@@ -1,7 +1,5 @@
-from cmbagent.utils import *
+import os
 from cmbagent.assistants.base_agent import BaseAgent
-
-logger = logging.getLogger(__name__)
 
 class PlannerAgent(BaseAgent):
     
@@ -14,12 +12,7 @@ class PlannerAgent(BaseAgent):
 
     def set_agent(self):
 
-        self.agent = AssistantAgent(
-            name= self.info["name"],
-            system_message= self.info["instructions"],
-            description=self.info["description"],
-            llm_config=self.llm_config,
-        )
+        super().set_assistant_agent()
 
 
 

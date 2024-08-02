@@ -1,8 +1,7 @@
-from cmbagent.utils import *
-
+import os
 from cmbagent.assistants.base_agent import BaseAgent
 
-logger = logging.getLogger(__name__)
+
 
 class ClassyAgent(BaseAgent):
 
@@ -12,12 +11,5 @@ class ClassyAgent(BaseAgent):
 
         super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
 
-
-    def set_agent(self, additional_param=None):
-
-        super().set_agent()
-
-        if additional_param:
-            self.agent.additional_param = additional_param
 
 
