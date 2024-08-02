@@ -1,5 +1,5 @@
 import os
-from cmbagent.assistants.base_agent import BaseAgent
+from cmbagent.base_agent import BaseAgent
 
 class ExecutorAgent(BaseAgent):
     
@@ -12,7 +12,7 @@ class ExecutorAgent(BaseAgent):
 
     def set_agent(self):
 
-        super().set_coder_agent()
+        super().set_code_agent()
 
 
 

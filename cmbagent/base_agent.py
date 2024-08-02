@@ -67,7 +67,7 @@ class BaseAgent:
         )
 
 
-    def set_coder_agent(self):
+    def set_code_agent(self):
 
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")

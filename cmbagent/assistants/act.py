@@ -1,5 +1,5 @@
 import os
-from cmbagent.assistants.base_agent import BaseAgent
+from cmbagent.base_agent import BaseAgent
 
 class ActAgent(BaseAgent):
 

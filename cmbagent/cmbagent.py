@@ -10,7 +10,7 @@ from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_api
 
 imported_rag_agents = {}
 for filename in os.listdir(path_to_assistants):
-    if filename.endswith(".py") and filename != "__init__.py" and filename != "base_agent.py":
+    if filename.endswith(".py") and filename != "__init__.py":
         module_name = filename[:-3]  # Remove the .py extension
         class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
         module_path = f"cmbagent.assistants.{module_name}"
