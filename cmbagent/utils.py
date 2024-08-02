@@ -24,6 +24,9 @@ from cobaya.yaml import yaml_load_file, yaml_load
 
 from IPython.display import Image
 
+import importlib
+import sys
+
 import logging
 
 # Configure logging

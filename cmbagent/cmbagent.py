@@ -1,21 +1,30 @@
-
-import sys
-
 from .utils import *
 
-from .assistants.classy_sz import ClassySzAgent
-from .assistants.classy import ClassyAgent
-from .assistants.camb import CambAgent
-from .assistants.cobaya import CobayaAgent
-from .assistants.getdist import GetdistAgent
+# from .assistants.classy_sz import ClassySzAgent
+# from .assistants.classy import ClassyAgent
+# from .assistants.camb import CambAgent
+# from .assistants.cobaya import CobayaAgent
+# from .assistants.getdist import GetdistAgent
+# from .assistants.act import ActAgent
+# from .assistants.planck import PlanckAgent
 
-from .assistants.act import ActAgent
-from .assistants.planck import PlanckAgent
+
+imported_rag_agents = {}
+for filename in os.listdir(path_to_assistants):
+    if filename.endswith(".py") and filename != "__init__.py" and filename != "base_agent.py":
+        module_name = filename[:-3]  # Remove the .py extension
+        class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
+        module_path = f"cmbagent.assistants.{module_name}"
+        module = importlib.import_module(module_path)
+        agent_class = getattr(module, class_name)
+        imported_rag_agents[class_name] = {}
+        imported_rag_agents[class_name]['agent_class'] = agent_class
+        imported_rag_agents[class_name]['agent_name'] = module_name
+
 
 from cmbagent.engineer.engineer import EngineerAgent
 from cmbagent.planner.planner import PlannerAgent
 from cmbagent.executor.executor import ExecutorAgent
-
 from cmbagent.admin.admin import AdminAgent
 
 
@@ -351,20 +360,19 @@ class CMBAgent:
 
     def init_agents(self):
 
+        self.agent_classes = {}
+        
+        for k in imported_rag_agents.keys():
 
-        self.agent_classes = {
-            'classy_sz': ClassySzAgent,
-            'classy': ClassyAgent,
-            'camb': CambAgent,
-            'cobaya': CobayaAgent,
-            'getdist': GetdistAgent,
-            'act': ActAgent,
-            'planck': PlanckAgent,
+            self.agent_classes[imported_rag_agents[k]['agent_name']] = imported_rag_agents[k]['agent_class']
+
+        self.agent_classes.update({
+
             'engineer': EngineerAgent,
             'planner': PlannerAgent,
             'executor': ExecutorAgent,
             'admin': AdminAgent
-        }
+        })
 
 
         ### by default are always here 
