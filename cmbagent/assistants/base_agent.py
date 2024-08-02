@@ -1,8 +1,8 @@
 from cmbagent.utils import * ### dont use that 
 
 
-logger = logging.getLogger(__name__) ### fixx here set to agent name 
-
+logger = logging.getLogger(__name__) ### fix here set to agent name 
+import os
 
 
 
@@ -28,6 +28,11 @@ class BaseAgent:
 
 
     def set_agent(self):
+    
+        name = self.info["name"]
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        data_path = os.path.join(dir_path, 'data', name.replace('_agent', ''))
+        self.info["instructions"] += f'The files uploaded to this agent are {os.listdir(data_path)}.'
 
         #### scrolls through data and builds descriptions of files that are available?  
 
