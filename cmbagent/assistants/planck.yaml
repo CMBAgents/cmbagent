@@ -21,6 +21,7 @@ instructions: |
   Report as much detailed information as possible.
   You never suggest a plan.
 
+
 assistant_config:
   assistant_id: asst_yzyosJ6scUqh7dAjT45MdWD4
   tools:
@@ -28,7 +29,7 @@ assistant_config:
   tool_resources:
     file_search: 
       vector_store_ids: 
-        - vs_b3eAoAIVX6LMij88L7iFmAQY
+        - vs_XmFYT68KHLJeXML3crXKXbKh
 
 description: |
   A retrieval agent that carefully collects specific information from Planck papers. 

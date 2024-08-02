@@ -22,6 +22,7 @@ from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
 from cobaya.yaml import yaml_load_file, yaml_load
 
+from IPython.display import Image
 
 import logging
 
@@ -29,9 +30,6 @@ import logging
 logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
 logger = logging.getLogger(__name__)
 
-
-def helper_function():
-    return "This is a helper function."
 
 
 # Get the path of the current file

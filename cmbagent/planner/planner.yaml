@@ -19,6 +19,7 @@ instructions: |
   - **getdist_agent:** Suggests to engineer how to write code to plot contours and triangle plots with getdist, or collect best-fit or marginalized values after a cobaya run.
   - **classy_sz_agent:** Suggests how engineer can write code to run Classy_sz. It does not know about likelihoods.
   - **classy_agent:** Suggests how engineer can write code to run Classy. It does not know about likelihoods.
+  - **camb_agent:** Suggests how engineer can write code to run CAMB. It does not know about likelihoods.
   - **planck_agent:** Retrieves information related to Planck. It does not write, run or suggest code.
   - **act_agent:** Retrieves information related to ACT. It does not write, run or suggest code.
   - **engineer:** Writes code.
@@ -28,7 +29,7 @@ instructions: |
   **Allowed transitions between agents:**
 
   allowed_transitions = {
-    admin: [executor, planner, planck_agent, act_agent, getdist_agent, classy_sz_agent, engineer, cobaya_agent],
+    admin: [executor, planner, planck_agent, act_agent, getdist_agent, classy_sz_agent, camb_agent, engineer, cobaya_agent],
     planner: [admin],
     engineer: [admin],
     executor: [admin],
@@ -38,6 +39,7 @@ instructions: |
     cobaya_agent:  [admin,engineer],
     classy_sz_agent: [admin,engineer],
     classy_agent: [admin,engineer],
+    camb_agent: [admin,engineer],
   }
 
   **Special Requirements:**

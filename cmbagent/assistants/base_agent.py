@@ -29,6 +29,8 @@ class BaseAgent:
 
     def set_agent(self):
 
+        #### scrolls through data and builds descriptions of files that are available?  
+
         self.agent = GPTAssistantAgent(
             name= self.info["name"],
             instructions= self.info["instructions"],

@@ -35,6 +35,8 @@ class CMBAgent:
                  max_round=50,
                  gpt4o_api_key=None, ### llm_api_kay 
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores
+                 agent_list = None,
+                 verbose = False,
                  **kwargs):
         """
         Initialize the CMBAgent.
@@ -45,7 +47,8 @@ class CMBAgent:
             timeout (int, optional): Timeout for LLM requests in seconds. Defaults to 1200.
             max_round (int, optional): Maximum number of conversation rounds. Defaults to 50. If too small, the conversation stops. 
             gpt4o_api_key (str, optional): API key for GPT-4. If None, uses the key from the config file.
-            make_vector_stores (bool, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb']. 
+            make_vector_stores (bool or list of strings, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb']. 
+            agent_list (list of strings, optional): List of agents to include in the conversation. Defaults to all agents.
             **kwargs: Additional keyword arguments.
 
         Attributes:
@@ -70,6 +73,10 @@ class CMBAgent:
         
         self.kwargs = kwargs
 
+        self.agent_list = agent_list
+
+        self.verbose = verbose
+
         self.work_dir = work_dir
 
         self.path_to_assistants = path_to_assistants
@@ -88,7 +95,7 @@ class CMBAgent:
 
         logger.info(f"Path to APIs: {path_to_apis}")
 
-        llm_config = {
+        self.llm_config = {
                         "cache_seed": cache_seed,  # change the cache_seed for different trials
                         "temperature": temperature,
                         "config_list": gpt4o_config,
@@ -97,48 +104,12 @@ class CMBAgent:
         
         logger.info("LLM Configuration:")
 
-        for key, value in llm_config.items():
+        for key, value in self.llm_config.items():
 
             logger.info(f"{key}: {value}")
 
 
-        ### instantiate agents -- can be probably done in one line 
-        ### remove instances here unless needed. 
-
-        ### RAG agents, they are user specific. 
-
-        self.classy_sz = ClassySzAgent(llm_config=llm_config)
-        self.classy = ClassyAgent(llm_config=llm_config)
-        self.camb = CambAgent(llm_config=llm_config)
-        self.cobaya = CobayaAgent(llm_config=llm_config)
-        self.getdist = GetdistAgent(llm_config=llm_config)
-        
-        self.act = ActAgent(llm_config=llm_config)
-        self.planck = PlanckAgent(llm_config=llm_config)
-
-
-        ### by default are always here 
-        self.engineer = EngineerAgent(llm_config=llm_config)
-        self.planner = PlannerAgent(llm_config=llm_config)
-        self.executor = ExecutorAgent(llm_config=llm_config) 
-
-
-        # the administrator (us humans)
-        self.admin = AdminAgent()
-
-
-        # all agents 
-        self.agents = [self.admin, 
-                       self.planner, 
-                       self.engineer, 
-                       self.executor, 
-                       self.act, 
-                       self.planck, 
-                       self.getdist, 
-                       self.cobaya, 
-                       self.camb, 
-                       self.classy, 
-                       self.classy_sz]
+        self.init_agents()
         
 
         ## here we should ask if we need to update vector stores 
@@ -156,6 +127,11 @@ class CMBAgent:
         self.allowed_transitions = self.get_allowed_transitions()
 
 
+        if self.verbose:
+
+            self.show_allowed_transitions()
+
+
 
         self.groupchat = autogen.GroupChat(
                                 agents=[agent.agent for agent in self.agents], 
@@ -166,19 +142,19 @@ class CMBAgent:
                                 max_round=max_round)
 
         self.manager = autogen.GroupChatManager(groupchat=self.groupchat, 
-                                                llm_config=llm_config)
+                                                llm_config=self.llm_config)
         
         for agent in self.groupchat.agents:
 
             agent.reset()   
 
-    def solve(self, task = None):
+    def solve(self, task):
 
         self.session = self.admin.agent.initiate_chat(self.manager,message = task)
         
 
 
-    def restore_session(self):
+    def restore(self):
         
         previous_state = f"{self.groupchat.messages}"
         
@@ -198,7 +174,6 @@ class CMBAgent:
 
         
     def get_agent_from_name(self,name):
-
 
         for agent in self.agents: 
         
@@ -220,6 +195,9 @@ class CMBAgent:
             transition_list = []
             
             for name in agent.info['allowed_transitions']:
+
+                if name not in self.agent_names:
+                    continue
             
                 transition_list.append(self.get_agent_from_name(name))
         
@@ -230,9 +208,13 @@ class CMBAgent:
 
     def show_allowed_transitions(self):
 
+        print("Allowed transitions:")
+
         for agent, transitions in self.allowed_transitions.items():
 
             print(f"{agent.name} -> {', '.join([t.name for t in transitions])}")
+
+        print()
 
 
 
@@ -366,6 +348,77 @@ class CMBAgent:
             print('\n')
 
 
+
+    def init_agents(self):
+
+
+        self.agent_classes = {
+            'classy_sz': ClassySzAgent,
+            'classy': ClassyAgent,
+            'camb': CambAgent,
+            'cobaya': CobayaAgent,
+            'getdist': GetdistAgent,
+            'act': ActAgent,
+            'planck': PlanckAgent,
+            'engineer': EngineerAgent,
+            'planner': PlannerAgent,
+            'executor': ExecutorAgent,
+            'admin': AdminAgent
+        }
+
+
+        ### by default are always here 
+        self.engineer = EngineerAgent(llm_config=self.llm_config)
+        self.planner = PlannerAgent(llm_config=self.llm_config)
+        self.executor = ExecutorAgent(llm_config=self.llm_config) 
+
+        # the administrator (to interact with us humans)
+        self.admin = AdminAgent()
+
+
+        # all agents 
+        self.agents = [self.admin, 
+                       self.planner, 
+                       self.engineer, 
+                       self.executor] 
+
+        if self.agent_list is None:
+            
+            self.agent_list = list(self.agent_classes.keys())
+
+        # Drop entries from self.agent_classes that are not in self.agent_list
+        self.agent_classes = {k: v for k, v in self.agent_classes.items() if k in self.agent_list or k in ['engineer', 'planner', 'executor', 'admin']}
+
+
+        for agent_name in self.agent_list:
+
+            if agent_name in self.agent_classes and agent_name not in ['engineer', 
+                                                                       'planner', 
+                                                                       'executor', 
+                                                                       'admin']:
+                agent_class = self.agent_classes[agent_name]
+                
+                agent_instance = agent_class(llm_config=self.llm_config)
+                
+                setattr(self, agent_name, agent_instance)
+                
+                self.agents.append(agent_instance)
+
+
+        agent_keys = self.agent_classes.keys()
+
+        self.agent_names =  [f"{key}_agent" if key not in ['engineer', 'planner', 'executor', 'admin'] else key for key in agent_keys]
+        
+        if self.verbose:
+
+            print("Using following agents: ", self.agent_names)
+            print()
+
+
+
+    def show_plot(self,plot_name):
+
+        return Image(filename=self.work_dir + '/' + plot_name)
 
 
     def hello_cmbagent(self):
