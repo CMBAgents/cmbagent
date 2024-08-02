@@ -11,10 +11,11 @@ instructions: |
 assistant_config:
   assistant_id: asst_kS8DnOVW0tkp1KHIfQ0UuBtO
   tools:
-    - type: retrieval
+    - type:  file_search
   tool_resources:
-    - file_search: 
-        - vector_store_ids: vs_PJsWUbfrgY4b8qz032OFpH72
+    file_search: 
+      vector_store_ids: 
+        - vs_PJsWUbfrgY4b8qz032OFpH72
 
 
 description: |
