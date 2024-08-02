@@ -1,13 +1,5 @@
 from .utils import *
 
-# from .assistants.classy_sz import ClassySzAgent
-# from .assistants.classy import ClassyAgent
-# from .assistants.camb import CambAgent
-# from .assistants.cobaya import CobayaAgent
-# from .assistants.getdist import GetdistAgent
-# from .assistants.act import ActAgent
-# from .assistants.planck import PlanckAgent
-
 
 imported_rag_agents = {}
 for filename in os.listdir(path_to_assistants):
@@ -28,9 +20,6 @@ from cmbagent.executor.executor import ExecutorAgent
 from cmbagent.admin.admin import AdminAgent
 
 
-
-
-
 logger = logging.getLogger(__name__)
 
 class CMBAgent:
@@ -43,7 +32,7 @@ class CMBAgent:
                  timeout=1200,
                  max_round=50,
                  gpt4o_api_key=None, ### llm_api_kay 
-                 make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores
+                 make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
                  agent_list = None,
                  verbose = False,
                  **kwargs):
