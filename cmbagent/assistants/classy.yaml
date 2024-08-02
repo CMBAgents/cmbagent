@@ -6,10 +6,11 @@ instructions: |
 assistant_config:
   assistant_id: asst_WZjBrCx7pfeILbUxnBydB9UM
   tools:
-    - type: retrieval
+    - type: file_search
   tool_resources:
-    - file_search: 
-        - vector_store_ids: vs_QzdDErdg3ODcy8VkVk7uo1Xj
+    file_search: 
+      vector_store_ids: 
+        - vs_QzdDErdg3ODcy8VkVk7uo1Xj
 
 description: |
   A retrieval agent that suggests codes to help engineer run classy. 

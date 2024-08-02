@@ -20,10 +20,11 @@ instructions: |
 assistant_config:
   assistant_id: asst_kH7yoXJiTv5RC8niNnA5OiBi
   tools:
-    - type: retrieval
+    - type: file_search
   tool_resources:
-    - file_search: 
-        - vector_store_ids: vs_J8JAUTpqk70ee6YHkBxkCoAu
+    file_search: 
+      vector_store_ids: 
+        - vs_J8JAUTpqk70ee6YHkBxkCoAu
 
 description: |
   A retrieval agent that suggests codes to help engineer run cobaya. It does not write code. It does not run code. It never suggests a plan.

@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 class CMBAgent:
 
+    logging.disable(logging.CRITICAL)
+
     def __init__(self, 
                  cache_seed=42, 
                  temperature=0,
@@ -43,7 +45,7 @@ class CMBAgent:
             timeout (int, optional): Timeout for LLM requests in seconds. Defaults to 1200.
             max_round (int, optional): Maximum number of conversation rounds. Defaults to 50. If too small, the conversation stops. 
             gpt4o_api_key (str, optional): API key for GPT-4. If None, uses the key from the config file.
-            make_vector_stores (bool, optional): Whether to create vector stores. Defaults to False.
+            make_vector_stores (bool, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb']. 
             **kwargs: Additional keyword arguments.
 
         Attributes:
@@ -251,13 +253,13 @@ class CMBAgent:
             
             if 'assistant_config' in agent.info:
 
-                if 'file_search' in agent.info['assistant_config']['tool_resources'][0].keys():
+                if 'file_search' in agent.info['assistant_config']['tool_resources'].keys():
                     
                     print(agent.info['name'])
                     
-                    print(agent.info['assistant_config']['assistant_id'])
+                    # print(agent.info['assistant_config']['assistant_id'])
                     
-                    print(agent.info['assistant_config']['tool_resources'][0]['file_search'][0])
+                    print(agent.info['assistant_config']['tool_resources']['file_search'])
                     
                     store_names.append(f"{agent.info['name']}_store")
                     
@@ -358,7 +360,7 @@ class CMBAgent:
             print(file_batch.status)
             print(file_batch.file_counts)
             
-            rag_agent.info['assistant_config']['tool_resources'][0]['file_search'][0]['vector_store_ids'] = vector_store.id
+            rag_agent.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store.id]
             
             print('created new vector store with id: ',vector_store.id)
             print('\n')

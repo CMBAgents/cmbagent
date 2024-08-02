@@ -35,6 +35,8 @@ class BaseAgent:
             description=self.info["description"],
             assistant_config=self.info["assistant_config"],
             llm_config=self.llm_config,
+            overwrite_tools=True,
+            overwrite_instructions=True
         )
 
 
