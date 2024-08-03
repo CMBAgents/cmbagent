@@ -84,10 +84,10 @@ Push selected vector stores of RAG agents into the OpenAI platform:
 cmbagent = CMBAgent(make_vector_stores=['act', 'camb'])
 ```
 
-Start session with only a subset of agents:
+Start session with only a subset of RAG agents:
 
 ```python
-cmbagent = CMBAgent(agents=['act', 'camb'])
+cmbagent = CMBAgent(agents=['classy', 'planck'])
 ```
 
 Show allowed transitions:
