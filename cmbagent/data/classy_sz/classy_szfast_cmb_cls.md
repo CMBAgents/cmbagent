@@ -38,12 +38,13 @@ classy_sz = Class_sz()
 classy_sz.set(cosmo_params)
 classy_sz.set({
 'output':'tCl,lCl,pCl',
+# if TT only is needed pass: 'output': 'tCl'
 })
 classy_sz.compute_class_szfast()
 ```
 
-    CPU times: user 27.4 ms, sys: 24.2 ms, total: 51.6 ms
-    Wall time: 40.6 ms
+    CPU times: user 25.1 ms, sys: 19.1 ms, total: 44.2 ms
+    Wall time: 30.1 ms
 
 
 
@@ -148,7 +149,7 @@ fig.tight_layout()
 %timeit -n 5 classy_sz.compute_class_szfast()
 ```
 
-    25.2 ms ± 2.08 ms per loop (mean ± std. dev. of 7 runs, 5 loops each)
+    21 ms ± 575 µs per loop (mean ± std. dev. of 7 runs, 5 loops each)
 
 
 

@@ -22,7 +22,7 @@ class BaseAgent:
 
 
 
-    def set_agent(self,instructions=None, vector_store_ids=None, agent_temperature=None):
+    def set_agent(self,instructions=None, vector_store_ids=None, agent_temperature=None, agent_top_p=None):
     
         if instructions is not None:
 
@@ -36,11 +36,15 @@ class BaseAgent:
 
             self.info['assistant_config']['temperature'] = agent_temperature
 
+        if agent_top_p is not None:
+
+            self.info['assistant_config']['top_p'] = agent_top_p
+
         
         dir_path = os.path.dirname(os.path.realpath(__file__))
         data_path = os.path.join(dir_path, 'data', self.name.replace('_agent', ''))
         # List files in the data_path excluding unwanted files
-        files = [f for f in os.listdir(data_path) if not f.startswith('.')]
+        files = [f for f in os.listdir(data_path) if not (f.startswith('.') or f.endswith('.ipynb') or os.path.isdir(os.path.join(data_path, f)))]
 
         self.info["instructions"] += f'\n You have access to the following files: {files}.\n'
 
@@ -67,6 +71,9 @@ class BaseAgent:
 
     def set_assistant_agent(self,instructions=None):
 
+        if instructions is not None:
+
+            self.info["instructions"] = instructions
 
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")

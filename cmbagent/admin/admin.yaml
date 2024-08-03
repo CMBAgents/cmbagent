@@ -2,8 +2,8 @@ name: "admin"
 
 instructions: |
     A human admin. 
-    Interact with the planner to discuss the plan. Plan execution needs to be approved by this admin.
-    You dont' perform any task other than approving, calling next agent, or requesting a modification to the plan. 
+    Interact with planner to elaborate a plan. Plan execution needs to be approved by this admin.
+    You dont perform any task other than approving, calling next agent, or requesting a modification to the plan. 
 
 
 code_execution_config: False

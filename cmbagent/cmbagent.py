@@ -6,7 +6,7 @@ import requests
 import ast
 import json
 import sys 
-from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image
+from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature
 
 imported_rag_agents = {}
 for filename in os.listdir(path_to_assistants):
@@ -35,7 +35,8 @@ class CMBAgent:
 
     def __init__(self, 
                  cache_seed=42, 
-                 temperature=0,
+                 temperature=0.00001,
+                 top_p=0.05,
                  timeout=1200,
                  max_round=50,
                  platform='oai',
@@ -45,8 +46,10 @@ class CMBAgent:
                  agent_list = None,
                  verbose = False,
                  agent_instructions = None,
-                 vector_store_ids = None,
                  agent_temperature = None,
+                 agent_top_p = None,
+                 vector_store_ids = None,
+                 chunking_strategy = None,
                  **kwargs):
         """
         Initialize the CMBAgent.
@@ -78,6 +81,8 @@ class CMBAgent:
 
         self.logger = logging.getLogger(__name__)
 
+        self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin']
+
         self.agent_list = agent_list
 
         self.verbose = verbose
@@ -102,6 +107,7 @@ class CMBAgent:
         self.llm_config = {
                         "cache_seed": cache_seed,  # change the cache_seed for different trials
                         "temperature": temperature,
+                        "top_p": top_p,
                         "config_list": llm_config,
                         "timeout": timeout,
                     }
@@ -119,26 +125,45 @@ class CMBAgent:
         ## here we should ask if we need to update vector stores 
         if make_vector_stores != False:
 
-            self.push_vector_stores(make_vector_stores)
+            self.push_vector_stores(make_vector_stores, chunking_strategy)
 
 
         # then we set the agents
         for agent in self.agents:
 
             instructions = agent_instructions[agent.name] if agent_instructions and agent.name in agent_instructions else None
-            vector_ids = vector_store_ids[agent.name] if vector_store_ids and agent.name in vector_store_ids else None
-            temperature = agent_temperature[agent.name] if agent_temperature and agent.name in agent_temperature else None
-            
+
             agent_kwargs = {}
             
             if instructions is not None:
+                
                 agent_kwargs['instructions'] = instructions
             
-            if vector_ids is not None:
-                agent_kwargs['vector_store_ids'] = vector_ids
+            if agent.name not in self.non_rag_agents:
 
-            if temperature is not None:
-                agent_kwargs['agent_temperature'] = temperature
+                vector_ids = vector_store_ids[agent.name] if vector_store_ids and agent.name in vector_store_ids else None
+                temperature = agent_temperature[agent.name] if agent_temperature and agent.name in agent_temperature else None
+                top_p = agent_top_p[agent.name] if agent_top_p and agent.name in agent_top_p else None
+
+                if vector_ids is not None:
+                    
+                    agent_kwargs['vector_store_ids'] = vector_ids
+
+                if temperature is not None:
+
+                    agent_kwargs['agent_temperature'] = temperature
+
+                else:
+
+                    agent_kwargs['agent_temperature'] = default_temperature
+
+                if top_p is not None:
+                    
+                    agent_kwargs['agent_top_p'] = top_p
+
+                else:
+
+                    agent_kwargs['agent_top_p'] = default_top_p
 
             agent.set_agent(**agent_kwargs)
 
@@ -162,10 +187,13 @@ class CMBAgent:
                                 messages=[], 
                                 speaker_selection_method = "auto",
                                 max_round=max_round)
+        
+
 
         self.manager = autogen.GroupChatManager(groupchat=self.groupchat, 
                                                 llm_config=self.llm_config)
         
+
         for agent in self.groupchat.agents:
 
             agent.reset()   
@@ -240,7 +268,7 @@ class CMBAgent:
 
 
 
-    def push_vector_stores(self, make_vector_stores):
+    def push_vector_stores(self, make_vector_stores, chunking_strategy):
 
         client = OpenAI(api_key = self.llm_api_key) 
 
@@ -331,23 +359,31 @@ class CMBAgent:
                 print(f"No vector stores found with the name '{vector_store_name}'.")
             
             print()
-            
 
+            print(rag_agent.name)
+            chunking_strategy = chunking_strategy[rag_agent.name] if chunking_strategy and rag_agent.name in chunking_strategy else default_chunking_strategy
+            print(chunking_strategy)
+            print()
+
+            print('calling client.beta.vector_stores.create')
             # Create a vector store called "planck_store"
-            vector_store = client.beta.vector_stores.create(name=vector_store_name)
+            vector_store = client.beta.vector_stores.create(name=vector_store_name,
+                                                            chunking_strategy=chunking_strategy)
             
+            print('created vector store with id: ',vector_store.id)
+            print('\n')
             
             # Initialize a list to hold the file paths
             file_paths = []
             
             assistant_data = os.path.dirname(os.path.realpath(__file__)) + '/data/' + vector_store_name.removesuffix('_agent_store')
 
-            # Walk through the directory
             for root, dirs, files in os.walk(assistant_data):
-                
+                # Filter out unwanted directories like .ipynb_checkpoints
+                dirs[:] = [d for d in dirs if not d.startswith('.')]  
+    
                 for file in files:
-
-                    if file.startswith('.'):
+                    if file.startswith('.') or file.endswith('.ipynb'):
                         continue
                     
                     print(file)
@@ -372,7 +408,7 @@ class CMBAgent:
             
             rag_agent.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store.id]
             
-            print('created new vector store with id: ',vector_store.id)
+            print('uploaded assistant data to vector store with id: ',vector_store.id)
             print('\n')
 
 

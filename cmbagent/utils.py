@@ -42,3 +42,16 @@ path_to_executor = os.path.join(path_to_basedir, "executor")
 path_to_admin = os.path.join(path_to_basedir, "admin")
 
 work_dir = os.path.join(path_to_basedir, "../output")
+
+
+
+default_chunking_strategy = {
+    "type": "static",
+    "static": {
+        "max_chunk_size_tokens": 800, # reduce size to ensure better context integrity
+        "chunk_overlap_tokens": 400 # increase overlap to maintain context across chunks
+    }
+}
+
+default_top_p = 0.05
+default_temperature = 0.00001

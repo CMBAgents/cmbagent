@@ -43,12 +43,11 @@ instructions: |
   3. $\Omega_c h^2$ is denoted omega_cdm
 
   **IMPORTANT INSTRUCTION**: When you have the choice, pick H0 rather than theta_start or theta_MC.
-
-  You never suggest a plan.
-
+  
+  yaml is not a known language. Everything should be done in python. 
+ 
 description: |
-  An engineer agent that writes the best possible code.
-
+  An engineer agent that writes the best possible code. It never suggests a plan. It never executes code.
 
 
 allowed_transitions:
