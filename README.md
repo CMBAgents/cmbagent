@@ -4,9 +4,13 @@ Multi-agent system for cosmological data analysis
 
 ## Installation
 
-To install the package, run:
+To install cmbagent, follow these steps:
+
+1. Clone and install our package from the `cmbagent` repository:
 
 ```bash
+git clone https://github.com/CMBAgents/cmbagent.git
+cd cmbagent
 pip install -e .
 ```
 
@@ -16,13 +20,32 @@ For all dependencies to be installed, use:
 pip install -e .[dev]
 ```
 
-If you use the dev versioin, update OpenAI to the latest version:
+If you use the dev version, update OpenAI to the latest version:
 
 ```bash
 pip install --upgrade openai
 ```
 
 (This is due to TensorFlow compatibility issues with Cosmopower.)
+
+
+2. Clone our fork of autogen and switch to the `cmbagent` branch:
+
+If you are still inside cmbagent, go back one level:
+
+```bash
+cd ..
+```
+
+
+```bash
+git clone https://github.com/CMBAgents/autogen.git
+cd autogen
+git checkout cmbagent
+pip install -e .
+```
+
+
 
 ## Structure
 
