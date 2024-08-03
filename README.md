@@ -26,11 +26,18 @@ This is due to TensorFlow compatibility issues in Cosmopower that need to be fix
 
 ## Structure
 
-The RAG agents are defined in a generic way. The core of the code is located in [cmbagent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py), which does not reference ACT, Planck, CAMB, etc.
+RAG agents are defined in a generic way. The core of the code is located in [cmbagent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py), which does not reference ACT, Planck, CAMB, etc.
 
 To generate a RAG agent, create a `.py` and `.yaml` file and place them in the [assistants directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/assistants). Additionally, create a directory named after the agent and include associated files in the [data directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/data).
 
 Apart from the RAG agents, we have assistant agents (engineer and planner) and a code agent (executor).
+
+
+
+## Agents
+
+All agents inherit from the `BaseAgent` class. You can find the definition of `BaseAgent` in the [base_agent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/base_agent.py) file.
+
 
 ## Usage
 
