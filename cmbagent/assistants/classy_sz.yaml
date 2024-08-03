@@ -9,7 +9,7 @@ instructions: |
   You never suggest a plan.
   
 assistant_config: 
-  assistant_id: asst_bNyGym2OZT6rti9dzde3PrAs
+  assistant_id: asst_boS3GbCxk0PuOcgGfHXQ18kw
   tools:
     - type: file_search
   tool_resources:

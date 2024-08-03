@@ -38,13 +38,13 @@ classy_sz = Class_sz()
 classy_sz.set(cosmo_params)
 classy_sz.set({
 'output':'tCl,lCl,pCl',
-# if TT only is needed pass: 'output': 'tCl'
+# if TT only (i.e., temperature only) is needed pass: 'output': 'tCl'
 })
 classy_sz.compute_class_szfast()
 ```
 
-    CPU times: user 25.1 ms, sys: 19.1 ms, total: 44.2 ms
-    Wall time: 30.1 ms
+    CPU times: user 30.7 ms, sys: 28.5 ms, total: 59.2 ms
+    Wall time: 59.9 ms
 
 
 
@@ -78,10 +78,10 @@ plt.setp(ax.get_xticklabels(), fontsize=label_size)
 ax.grid( visible=True, which="both", alpha=0.2, linestyle='--')
 
 
-ax.plot(l_fast,l_to_dl(l_fast)*cl_tt_fast,ls='-.',label='class_szfast TT')
+ax.plot(l_fast,l_to_dl(l_fast)*cl_tt_fast,ls='-.',label='class_sz TT') # temperature 
 
 
-ax.plot(l_fast,l_to_dl(l_fast)*cl_ee_fast,ls='-.',c='red',label='class_szfast EE')
+ax.plot(l_fast,l_to_dl(l_fast)*cl_ee_fast,ls='-.',c='red',label='class_sz EE') # polarization 
 
 
 
@@ -104,7 +104,7 @@ ax.grid( visible=True, which="both", alpha=0.2, linestyle='--')
 
 
 
-ax.plot(l_fast,l_to_dl(l_fast)*cl_te_fast,ls='-.',label='class_szfast TE')
+ax.plot(l_fast,l_to_dl(l_fast)*cl_te_fast,ls='-.',label='class_sz TE') 
 
 
 ax.set_ylabel(r"$D_\ell^\mathrm{TE}$",size=title_size)
@@ -124,7 +124,7 @@ plt.setp(ax.get_xticklabels(), fontsize=label_size)
 ax.grid( visible=True, which="both", alpha=0.2, linestyle='--')
 
 
-ax.plot(l_fast,l_to_dl(l_fast)*cl_pp_fast*(l_fast*(l_fast+1.)),ls='-.',label='class_szfast PP')
+ax.plot(l_fast,l_to_dl(l_fast)*cl_pp_fast*(l_fast*(l_fast+1.)),ls='-.',label='class_sz PP')
 
 ax.set_ylabel(r"$[\ell(\ell+1)]^2 C_\ell^{\phi\phi}/2\pi$",size=title_size)
 ax.set_xlabel(r"$\ell$",size=title_size)

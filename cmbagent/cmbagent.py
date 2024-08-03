@@ -76,6 +76,15 @@ class CMBAgent:
         Note:
             This class initializes various agents and configurations for cosmological data analysis.
         """
+
+        if make_vector_stores and vector_store_ids:
+            for name in make_vector_stores:
+                if f'{name}_agent' in vector_store_ids:
+                    print("you can not make vector store and pass vector stor ids for any given agent")
+                    print(f"you are trying to do this for {name}_agent")
+                    print("first make vector store, then specify correct vector stor id")
+                    sys.exit()
+
         
         self.kwargs = kwargs
 
@@ -383,7 +392,9 @@ class CMBAgent:
                 dirs[:] = [d for d in dirs if not d.startswith('.')]  
     
                 for file in files:
-                    if file.startswith('.') or file.endswith('.ipynb'):
+
+                    if file.startswith('.') or file.endswith('.ipynb')  or file.endswith('.yaml') or file.endswith('.txt'):
+                    
                         continue
                     
                     print(file)
