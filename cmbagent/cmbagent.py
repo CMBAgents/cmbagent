@@ -319,7 +319,7 @@ class CMBAgent:
             # Initialize a list to hold the file paths
             file_paths = []
             
-            assistant_data = self.path_to_assistants + '/data/' + vector_store_name.removesuffix('_agent_store')
+            assistant_data = os.path.dirname(os.path.realpath(__file__)) + '/data/' + vector_store_name.removesuffix('_agent_store')
 
             # Walk through the directory
             for root, dirs, files in os.walk(assistant_data):
