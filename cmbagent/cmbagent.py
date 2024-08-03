@@ -44,6 +44,9 @@ class CMBAgent:
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
                  agent_list = None,
                  verbose = False,
+                 agent_instructions = None,
+                 vector_store_ids = None,
+                 agent_temperature = None,
                  **kwargs):
         """
         Initialize the CMBAgent.
@@ -122,7 +125,25 @@ class CMBAgent:
         # then we set the agents
         for agent in self.agents:
 
-            agent.set_agent()
+            instructions = agent_instructions[agent.name] if agent_instructions and agent.name in agent_instructions else None
+            vector_ids = vector_store_ids[agent.name] if vector_store_ids and agent.name in vector_store_ids else None
+            temperature = agent_temperature[agent.name] if agent_temperature and agent.name in agent_temperature else None
+            
+            agent_kwargs = {}
+            
+            if instructions is not None:
+                agent_kwargs['instructions'] = instructions
+            
+            if vector_ids is not None:
+                agent_kwargs['vector_store_ids'] = vector_ids
+
+            if temperature is not None:
+                agent_kwargs['agent_temperature'] = temperature
+
+            agent.set_agent(**agent_kwargs)
+
+
+
 
 
         self.allowed_transitions = self.get_allowed_transitions()
@@ -326,7 +347,7 @@ class CMBAgent:
                 
                 for file in files:
 
-                    if file == ".DS_Store":
+                    if file.startswith('.'):
                         continue
                     
                     print(file)

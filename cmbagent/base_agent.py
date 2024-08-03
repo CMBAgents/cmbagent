@@ -22,12 +22,27 @@ class BaseAgent:
 
 
 
-    def set_agent(self):
+    def set_agent(self,instructions=None, vector_store_ids=None, agent_temperature=None):
     
+        if instructions is not None:
+
+            self.info["instructions"] = instructions
+
+        if vector_store_ids is not None:
+
+            self.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store_ids]
+        
+        if agent_temperature is not None:
+
+            self.info['assistant_config']['temperature'] = agent_temperature
+
         
         dir_path = os.path.dirname(os.path.realpath(__file__))
         data_path = os.path.join(dir_path, 'data', self.name.replace('_agent', ''))
-        self.info["instructions"] += f'You have access to the following files: {os.listdir(data_path)}.\n'
+        # List files in the data_path excluding unwanted files
+        files = [f for f in os.listdir(data_path) if not f.startswith('.')]
+
+        self.info["instructions"] += f'\n You have access to the following files: {files}.\n'
 
 
         logger = logging.getLogger(self.name) 
@@ -50,7 +65,8 @@ class BaseAgent:
 
 
 
-    def set_assistant_agent(self):
+    def set_assistant_agent(self,instructions=None):
+
 
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")
@@ -67,7 +83,7 @@ class BaseAgent:
         )
 
 
-    def set_code_agent(self):
+    def set_code_agent(self,instructions=None):
 
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")
@@ -91,7 +107,7 @@ class BaseAgent:
             },
         )
 
-    def set_admin_agent(self):
+    def set_admin_agent(self,instructions=None):
 
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")
