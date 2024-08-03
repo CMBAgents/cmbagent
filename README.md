@@ -16,13 +16,13 @@ For all dependencies to be installed, use:
 pip install -e .[dev]
 ```
 
-Then, update OpenAI to the latest version:
+If you use the dev versioin, update OpenAI to the latest version:
 
 ```bash
 pip install --upgrade openai
 ```
 
-This is due to TensorFlow compatibility issues in Cosmopower that need to be fixed eventually.
+(This is due to TensorFlow compatibility issues in Cosmopower that need to be fixed eventually.)
 
 ## Structure
 
