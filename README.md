@@ -2,60 +2,96 @@
 
 Multi-agent system for cosmological data analysis
 
-
 ## Installation
+
+To install the package, run:
 
 ```bash
 pip install -e .
 ```
 
-For all dependencies to be installed:
+For all dependencies to be installed, use:
 
 ```bash
 pip install -e .[dev]
 ```
 
-Then openai needs to be updated to the latest version:
+Then, update OpenAI to the latest version:
 
 ```bash
 pip install --upgrade openai
 ```
 
-This is because of tensorflow compatibility issues in cosmopower, that needs to be fixed eventually. 
-
+This is due to TensorFlow compatibility issues in Cosmopower that need to be fixed eventually.
 
 ## Structure
 
-The rag agents are defined in a generic way.
-The core of the code is https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py
-and there, there is no reference to act, planck, camb etc.
+The RAG agents are defined in a generic way. The core of the code is located in [cmbagent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py), which does not reference ACT, Planck, CAMB, etc.
 
-All one needs to do to generate a rag agent is to make a .py and .yaml file and paste it in https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/assistants
-as well as create a directory with name of the agent and associated files inside https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/data (edited) 
+To generate a RAG agent, create a `.py` and `.yaml` file and place them in the [assistants directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/assistants). Additionally, create a directory named after the agent and include associated files in the [data directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/data).
 
-Other than the rag agents, we have assistant agents (engineer and planner) and a code agent (executor)
+Apart from the RAG agents, we have assistant agents (engineer and planner) and a code agent (executor).
 
-## Usage 
+## Usage
 
-- Instantiate with:
+Instantiate the CMBAgent with:
 
 ```python
 from cmbagent import CMBAgent
 cmbagent = CMBAgent(verbose=True)
 ```
 
-- Define a task as: 
+Define a task as:
 
 ```python
 task = """
-       Get cosmological paramater values from Planck 2018 analysis of TT,TE,EE+lowE+lensing with the Plik likelihood in LCDM. 
-       Use cobaya with classy_sz to evaluate the ACT DR6 lensing likelihood for sigma8=0.8 and Omega_m=0.31. Other parameters set to Planck 2018.  
+       Get cosmological parameter values from Planck 2018 analysis of TT,TE,EE+lowE+lensing with the Plik likelihood in LCDM. 
+       Use Cobaya with Classy_SZ to evaluate the ACT DR6 lensing likelihood for sigma8=0.8 and Omega_m=0.31. Other parameters set to Planck 2018.  
        To set Omega_m, adjust the value of omch2. 
        Give me the value of log-likelihood.
+       """
 ```
 
-- Solve the task with:
+Solve the task with:
 
 ```python
 cmbagent.solve(task)
+```
+
+If you request any output, it will be saved in the [output directory](https://github.com/CMBAgents/cmbagent/tree/main/output).
+
+Show the plot with:
+
+```python
+cmbagent.show_plot("cmb_tt_power_spectrum.png")
+```
+
+Restore session with:
+
+```python
+cmbagent.restore()
+```
+
+Push vector stores of RAG agents into the OpenAI platform:
+
+```python
+cmbagent = CMBAgent(make_vector_stores=True)
+```
+
+Push selected vector stores of RAG agents into the OpenAI platform:
+
+```python
+cmbagent = CMBAgent(make_vector_stores=['act', 'camb'])
+```
+
+Start session with only a subset of agents:
+
+```python
+cmbagent = CMBAgent(agents=['act', 'camb'])
+```
+
+Show allowed transitions:
+
+```python
+cmbagent.show_allowed_transitions()
 ```
