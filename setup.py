@@ -26,7 +26,8 @@ setup(
                       "camb",
                       "cobaya",
                       "getdist",
-                      "pyautogen[retrievechat]"],
+                      "pyautogen @ git+https://github.com/CMBAgents/autogen"
+                      ],
 
     extras_require={
         "dev": [
