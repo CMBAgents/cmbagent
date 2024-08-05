@@ -4,7 +4,7 @@ We can not set both $\sigma_8$ and $A_s$ or $ln10^{10}A_s$ since $\sigma_8$ can 
 
 If we need to vary $A_s$ or $ln10^{10}A_s$ we can follow the following set-up in the `params` block of the yaml file:
 
-```yaml
+```
 
     A_s:
       prior:
@@ -42,5 +42,5 @@ If we need to vary $\sigma_8$ we can use the following setting
         derived: true
 ```
 
-The numerical values in this document are given as examples.
+The numerical values here are given as examples.
 

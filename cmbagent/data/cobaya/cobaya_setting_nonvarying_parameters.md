@@ -2,7 +2,7 @@
 
 To set the values of parameters that are not varying in an mcmc analysis with cobaya, we adapt the `params` block of the yaml file as follows:
 
-```yaml
+```
 params:
     param1:
       prior:

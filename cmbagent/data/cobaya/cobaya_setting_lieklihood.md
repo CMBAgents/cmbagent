@@ -2,7 +2,7 @@
 
 In the  yaml file the likelihood block is generally of the form:
 
-```yaml
+```
 
 likelihood: 
 
@@ -18,11 +18,11 @@ likelihood:
 
 ```
 
-In this example we have set-up two likelihoods which depend on different parameters. If the lieklihoods are well maintained, and PYTHONPATH or other environment variables correctly set, in principle, there should be no need to specify the path or other parameters to the likelihood.
+In this example we have set-up two likelihoods which depend on different parameters. If the likelihoods are well maintained, and PYTHONPATH or other environment variables correctly set, in principle, there should be no need to specify the path or other parameters to the likelihood.
 
 Hence the likelihood may look as simple as:
 
-```yaml
+```
 
 likelihood: 
 

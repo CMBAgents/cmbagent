@@ -1,6 +1,6 @@
 When we are asked to use $ln10^{10}A_s$ in cobaya, with class or classy_sz, we need to adopt the following strategy:
 
-```yaml
+```
     A_s:
         derived: true
         latex: A_s
