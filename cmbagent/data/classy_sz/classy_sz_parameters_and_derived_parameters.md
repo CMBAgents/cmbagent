@@ -292,6 +292,46 @@ classy_sz.get_current_derived_parameters(['m_ncdm_in_eV'])
 
 
 
+# Passing $\Omega_m$
+
+In this case, we compute omega_cdm from omega_b and Omega_m to match value of Omega_m
+
+
+```python
+from classy_sz import Class as Class_sz
+
+cosmo_params = {
+'omega_cdm': 0.11,
+'omega_b': 0.023,
+'Omega_m':  0.31,
+'H0': 67.66, # use H0 because this is what is used by the emulators and to avoid any ambiguity when comparing with camb. 
+'tau_reio': 0.0561,
+'ln10^{10}A_s': 3.047,
+'n_s': 0.9665   
+}
+```
+
+
+```python
+%%time 
+classy_sz = Class_sz()
+classy_sz.set(cosmo_params)
+classy_sz.set({
+'output':'tCl,lCl,pCl',
+'skip_input': 1,
+})
+classy_sz.compute_class_szfast()
+```
+
+    CPU times: user 35.7 ms, sys: 23.6 ms, total: 59.3 ms
+    Wall time: 40 ms
+
+
+
+```python
+
+```
+
 
 ```python
 

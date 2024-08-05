@@ -32,34 +32,5 @@ The `default_flow_style=False` argument ensures the YAML is written in a human-r
 Assuming that our newly saved `example.yaml` file is a valid coabaya input yaml file we then run the following:
 
 
-### For an MCMC
-
-```python
-import subprocess
-
-def run_mcmc():
-    try:
-        result = subprocess.run(['mpirun', '-np', '4', 'coabay-run', 'example.yaml', '-f'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print("MCMC Output:", result.stdout.decode())
-    except subprocess.CalledProcessError as e:
-        print("Error running MCMC:", e.stderr.decode())
-
-run_mcmc()
-```
-
-### For the evaluate mode
-
-```python
-import subprocess
-
-def evaluate():
-    try:
-        result = subprocess.run(['coabay-run', 'example.yaml', '-f'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print("Evaluate Output:", result.stdout.decode())
-    except subprocess.CalledProcessError as e:
-        print("Error running evaluate mode:", e.stderr.decode())
-
-evaluate()
-```
 
 

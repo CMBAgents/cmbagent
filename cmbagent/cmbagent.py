@@ -7,6 +7,7 @@ import ast
 import json
 import sys 
 from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature
+from pprint import pprint
 
 imported_rag_agents = {}
 for filename in os.listdir(path_to_assistants):
@@ -79,11 +80,25 @@ class CMBAgent:
 
         if make_vector_stores and vector_store_ids:
             for name in make_vector_stores:
+                print("You can not make vector store and pass vector store ids simultaneously")
                 if f'{name}_agent' in vector_store_ids:
-                    print("you can not make vector store and pass vector stor ids for any given agent")
-                    print(f"you are trying to do this for {name}_agent")
-                    print("first make vector store, then specify correct vector stor id")
-                    sys.exit()
+                    
+                    print(f"You are trying to do this for {name}_agent")
+                print()
+                print("If you want to update vector stores, you need to do this:")
+                print("\t1. first make vector stores (and make sure you don't specify vector store ids)")
+                print("\t2. restart session (and make sure you don't specify make_vector_stores)")
+                print("\t3. pass vector stores ids in arguments of vector_store_ids in this format (example with cobaya and planck): ")
+                print("""\tvector_store_ids = {
+                        \t'cobaya_agent' : 'vs_xyz',
+                        \t'planck_agent': 'vs_abc',
+                        \t}
+                      """)
+                print("\twhere vs_xyz and vs_abc are vector store ids that were printed after step 1.")
+                print()
+                print("If you do not want to update vector stores, just pass make_vector_stores=False")
+
+                return 
 
         
         self.kwargs = kwargs
@@ -133,8 +148,12 @@ class CMBAgent:
 
         ## here we should ask if we need to update vector stores 
         if make_vector_stores != False:
-
-            self.push_vector_stores(make_vector_stores, chunking_strategy)
+            self.push_vector_stores(make_vector_stores, chunking_strategy, verbose = verbose)
+            print("vector stores updated")
+            print("restart session and pass this dictionnary to vector_store_ids argument of cmbagent: ")
+            pprint(self.vector_store_ids)
+            print("(and make sure you dont specify make_vector_stores in arguments of cmbagent).")
+            return 
 
 
         # then we set the agents
@@ -277,7 +296,7 @@ class CMBAgent:
 
 
 
-    def push_vector_stores(self, make_vector_stores, chunking_strategy):
+    def push_vector_stores(self, make_vector_stores, chunking_strategy, verbose = False):
 
         client = OpenAI(api_key = self.llm_api_key) 
 
@@ -296,11 +315,11 @@ class CMBAgent:
 
                 if 'file_search' in agent.info['assistant_config']['tool_resources'].keys():
                     
-                    print(agent.info['name'])
+                    print(f"Updating vector store for {agent.info['name']}")
                     
                     # print(agent.info['assistant_config']['assistant_id'])
                     
-                    print(agent.info['assistant_config']['tool_resources']['file_search'])
+                    # print(agent.info['assistant_config']['tool_resources']['file_search'])
                     
                     store_names.append(f"{agent.info['name']}_store")
                     
@@ -334,9 +353,10 @@ class CMBAgent:
         # 3. delete old vector stores if they exist and write new ones
 
         # Find all vector stores by name and collect their IDs
+        vector_store_ids = {}
         for vector_store_name,rag_agent in zip(store_names,rag_agents):
             
-            print('dealing with: ',vector_store_name)
+            # print('dealing with: ',vector_store_name)
             
             matching_vector_store_ids = [
                 store['id'] for store in vector_stores['data'] if store['name'] == vector_store_name
@@ -344,7 +364,7 @@ class CMBAgent:
 
             if matching_vector_store_ids:
                 
-                print(f"Vector store IDs for '{vector_store_name}':", matching_vector_store_ids)
+                # print(f"Vector store IDs for '{vector_store_name}':", matching_vector_store_ids)
 
                 for vector_store_id in matching_vector_store_ids:
                 
@@ -356,8 +376,10 @@ class CMBAgent:
 
                     # Check if the request was successful
                     if delete_response.status_code == 200:
-                    
-                        print(f"Vector store with ID '{vector_store_id}' deleted successfully.")
+                        
+                        # print(f"Vector store with ID '{vector_store_id}' deleted successfully.")
+
+                        continue
                     
                     else:
                         
@@ -367,26 +389,30 @@ class CMBAgent:
                 
                 print(f"No vector stores found with the name '{vector_store_name}'.")
             
-            print()
+            # print()
 
-            print(rag_agent.name)
+            # print(rag_agent.name)
             chunking_strategy = chunking_strategy[rag_agent.name] if chunking_strategy and rag_agent.name in chunking_strategy else default_chunking_strategy
-            print(chunking_strategy)
-            print()
+            if verbose:
+                print(f"{rag_agent.name}: chunking strategy: ")
+                pprint(chunking_strategy)
+            # print()
 
-            print('calling client.beta.vector_stores.create')
+            # print('calling client.beta.vector_stores.create')
             # Create a vector store called "planck_store"
             vector_store = client.beta.vector_stores.create(name=vector_store_name,
                                                             chunking_strategy=chunking_strategy)
             
-            print('created vector store with id: ',vector_store.id)
-            print('\n')
+            # print('created vector store with id: ',vector_store.id)
+            # print('\n')
             
             # Initialize a list to hold the file paths
             file_paths = []
             
             assistant_data = os.path.dirname(os.path.realpath(__file__)) + '/data/' + vector_store_name.removesuffix('_agent_store')
 
+
+            print("Files to upload:")
             for root, dirs, files in os.walk(assistant_data):
                 # Filter out unwanted directories like .ipynb_checkpoints
                 dirs[:] = [d for d in dirs if not d.startswith('.')]  
@@ -397,7 +423,7 @@ class CMBAgent:
                     
                         continue
                     
-                    print(file)
+                    print(f"\t - {file}")
                     
                     # Get the absolute path of each file
                     file_paths.append(os.path.join(root, file))
@@ -419,9 +445,12 @@ class CMBAgent:
             
             rag_agent.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store.id]
             
-            print('uploaded assistant data to vector store with id: ',vector_store.id)
+            print(f'{rag_agent.name}: uploaded assistant data to vector store with id: ',vector_store.id)
             print('\n')
-
+            new_vector_store_ids = {rag_agent.name : vector_store.id}
+            vector_store_ids.update(new_vector_store_ids)
+        self.vector_store_ids = vector_store_ids
+        
 
 
     def init_agents(self):
