@@ -1,6 +1,12 @@
 name: "executor"
 
 human_input_mode: "NEVER"
+          # conversable_agent.py
+          #  When "NEVER", the agent will never prompt for human input. 
+          #  Under this mode, the conversation stops
+          #  when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
+     
+
 
 max_consecutive_auto_reply: 50
 
@@ -11,7 +17,9 @@ instructions: |
 
 description: |
   An executor agent that executes the code written by the engineer and reports the result.
-  The executor does not write code. The executor runs code.
+  The executor does not write code. 
+  The executor does not suggest code.
+  The executor runs code.
 
 timeout: 3600
 

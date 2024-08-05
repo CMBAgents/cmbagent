@@ -125,3 +125,9 @@ Show allowed transitions:
 ```python
 cmbagent.show_allowed_transitions()
 ```
+
+cmbagent uses cache to speed up the process and reduce costs when asking the same questions. When developing, it can be useful to clear the cache. Do this with:
+
+```python
+cmbagent.clear_cache()
+```

@@ -27,9 +27,11 @@ assistant_config:
         - vs_J8JAUTpqk70ee6YHkBxkCoAu
 
 description: |
-  A retrieval agent that suggests codes to help engineer run cobaya. It does not write code. It does not run code. It never suggests a plan.
+  A retrieval agent that suggests codes to help engineer agent with cobaya. 
+  This agent does not write, nor suggest a plan.
+  After suggesting a code, this agent will transition to the engineer agent which will check and edit code, given <task> and <context>.
+
 
 allowed_transitions:
-  - admin 
   - engineer
 

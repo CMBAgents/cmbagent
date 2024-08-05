@@ -18,9 +18,9 @@ assistant_config:
         - vs_vsrcfiSBneY7J4WqobSPM9HF
 
 description: |
-  A retrieval agent that suggests codes to help engineer with classy_sz. 
-  This agent does not write, suggest or run code. This agent does not write, nor suggest a plan.
+  A retrieval agent that suggests codes to help engineer agent with classy_sz. 
+  This agent does not write, nor suggest a plan.
+  After suggesting a code, this agent will transition to the engineer agent which will check and edit code, given <task> and <context>.
 
 allowed_transitions:
-  - admin 
   - engineer

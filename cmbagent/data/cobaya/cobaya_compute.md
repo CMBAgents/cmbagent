@@ -1,6 +1,6 @@
 # How to run cobaya?
 
-We run cobaya from within the Bash shell using `cobaya-run` command with `-f` flag.
+We run cobaya from within python block using `cobaya-run` command with `-f` flag.
 
 The yaml file is saved via a python script `setup_yaml.py`
 

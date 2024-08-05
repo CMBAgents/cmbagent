@@ -8,6 +8,7 @@ import json
 import sys 
 from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature
 from pprint import pprint
+import autogen
 
 imported_rag_agents = {}
 for filename in os.listdir(path_to_assistants):
@@ -128,8 +129,11 @@ class CMBAgent:
 
         self.logger.info(f"Path to APIs: {path_to_apis}")
 
+
+        self.cache_seed = cache_seed
+
         self.llm_config = {
-                        "cache_seed": cache_seed,  # change the cache_seed for different trials
+                        "cache_seed": self.cache_seed,  # change the cache_seed for different trials
                         "temperature": temperature,
                         "top_p": top_p,
                         "config_list": llm_config,
@@ -522,6 +526,10 @@ class CMBAgent:
     def show_plot(self,plot_name):
 
         return Image(filename=self.work_dir + '/' + plot_name)
+    
+
+    def clear_cache(self):
+        autogen.Completion.clear_cache(self.cache_seed)
 
 
     def hello_cmbagent(self):

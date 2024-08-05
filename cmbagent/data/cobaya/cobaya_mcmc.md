@@ -2,7 +2,8 @@
 
 Here is the structure of the yaml file when we are asked about determining posterior distributions using a likelihood. If one is simply evaluating a likelihood at some parameter values, they should not use `mcmc` but `evaluate` (see cobaya_evaluate.md).
 
-```import yaml
+```python
+import yaml
 
 # Setting up a dictionary to represent the yaml structure
 config = {
