@@ -1,10 +1,9 @@
-# How to run cobaya?
+# How to make yaml configuration file for cobaya?
 
-We run cobaya from within python block using `cobaya-run` command with `-f` flag.
 
-The yaml file is saved via a python script `setup_yaml.py`
+The yaml file is saved in a pythn code block. 
 
-To save the yaml file we always use the `dump` method. Hence the python script should look like:
+To save the yaml file we always use the `dump` method. Hence the python code should look like:
 
 ```python
 import yaml

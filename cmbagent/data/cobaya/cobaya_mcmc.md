@@ -1,4 +1,4 @@
-# Setting up a yaml parameter file for cobaya mcmc mode
+# Setting up an mcmc run with cobaya
 
 Here is the structure of the yaml file when we are asked about determining posterior distributions using a likelihood. If one is simply evaluating a likelihood at some parameter values, they should not use `mcmc` but `evaluate` (see cobaya_evaluate.md).
 

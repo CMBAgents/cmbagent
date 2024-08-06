@@ -87,7 +87,7 @@ class CMBAgent:
                     print(f"You are trying to do this for {name}_agent")
                 print()
                 print("If you want to update vector stores, you need to do this:")
-                print("\t1. first make vector stores (and make sure you don't specify vector store ids)")
+                print("\t1. first make vector stores (and make sure you don't specify vector_store_ids)")
                 print("\t2. restart session (and make sure you don't specify make_vector_stores)")
                 print("\t3. pass vector stores ids in arguments of vector_store_ids in this format (example with cobaya and planck): ")
                 print("""\tvector_store_ids = {
@@ -154,8 +154,12 @@ class CMBAgent:
         if make_vector_stores != False:
             self.push_vector_stores(make_vector_stores, chunking_strategy, verbose = verbose)
             print("vector stores updated")
-            print("restart session and pass this dictionnary to vector_store_ids argument of cmbagent: ")
-            pprint(self.vector_store_ids)
+            print("restart session and paste this in the dictionnary passed as vector_store_ids argument of cmbagent: ")
+            # pprint(self.vector_store_ids)
+            print()
+            for key, value in self.vector_store_ids.items():
+                print(f"'{key}': '{value}',")
+            print()
             print("(and make sure you dont specify make_vector_stores in arguments of cmbagent).")
             return 
 

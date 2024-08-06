@@ -1,4 +1,4 @@
-# Setting up a yaml parameter file for cobaya evaluate mode
+# How to evaluate a likelihood with cobaya?
 
 Here how to structure the yaml file when we are asked about evaluating a likelihood at some parameter values.
 

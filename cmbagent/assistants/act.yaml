@@ -21,7 +21,7 @@ assistant_config:
 description: |
   A retrieval agent that carefully collects specific information from documents, papers, and codes related to ACT. 
   This agent does not write, suggest plan.
-  If this agent is asked about a code, it will suggest a code and next speaker will be the engineer agent.
+  If message contains code, next speaker will be the engineer agent.
 
 allowed_transitions:
   - admin 
