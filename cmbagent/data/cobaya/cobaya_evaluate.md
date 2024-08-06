@@ -19,57 +19,15 @@ config = {
     },
     'output': '/path/to/chains_directory/chains_root',
     'params': {
-        'param1': {
-            'prior': {
-                'min': 0.0,
-                'max': 10.0
-            },
-            'ref': {
-                'dist': 'norm',
-                'loc': 4.1267026,
-                'scale': 1.0
-            },
-            'proposal': 0.1,
-            'latex': 'param_1'
-        },
-        'param2': {
-            'prior': {
-                'min': 0.0,
-                'max': 10.0
-            },
-            'ref': {
-                'dist': 'norm',
-                'loc': 6.4,
-                'scale': 1.0
-            },
-            'proposal': 0.1,
-            'latex': 'param_2'
-        },
-        'param3': {
-            'prior': {
-                'min': 0.0,
-                'max': 10.0
-            },
-            'ref': {
-                'dist': 'norm',
-                'loc': 0.3,
-                'scale': 1.0
-            },
-            'proposal': 0.1,
-            'latex': 'param_3'
+        'param1': 0.1,
+        'param2': 2.3
         }
-    },
+    ,
     'prior': {
         'param1_prior': "lambda param1: stats.norm.logpdf(param1, loc=1.0, scale=0.013)"
     },
     'sampler': {
-        'evaluate': {
-            'override': {
-                'param1': 1.2,
-                'param2': 3.5,
-                'param3': 6.4
-            }
-        }
+        'evaluate': 
     },
     'timing': True,
     'debug': False
@@ -89,10 +47,6 @@ The main idea is to have the sampler block set to
 ```
 sampler:
     evaluate:
-        override:
-           param1 : 1.2
-           param2 : 3.5
-           param3 : 6.4
 ```
 
 Unless otherwise stated, we always specify

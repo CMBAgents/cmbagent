@@ -160,8 +160,19 @@ class CMBAgent:
             return 
 
 
+        self.set_planner_instructions()
+
+
+
+        if self.verbose:
+
+            print("Setting up agents:")
+
+
         # then we set the agents
         for agent in self.agents:
+
+            print(f"\t- {agent.name}")
 
             instructions = agent_instructions[agent.name] if agent_instructions and agent.name in agent_instructions else None
 
@@ -201,14 +212,14 @@ class CMBAgent:
 
 
 
-
-
         self.allowed_transitions = self.get_allowed_transitions()
 
 
         if self.verbose:
 
             self.show_allowed_transitions()
+
+
 
 
 
@@ -539,4 +550,51 @@ class CMBAgent:
 
 
 
+    def filter_and_combine_agent_names(self, input_list):
+        # Filter the input list to include only entries in self.agent_names
+        filtered_list = [item for item in input_list if item in self.agent_names]
+        
+        # Convert the filtered list of strings into one string
+        combined_string = ', '.join(filtered_list)
+        
+        return combined_string
 
+
+    def set_planner_instructions(self):
+        # available agents and their roles:
+        available_agents = "**Available agents and their roles:**\n"
+        for agent in self.agents:
+
+            if agent.name == 'planner':
+                continue
+
+            if 'description' in agent.info:
+
+                role = agent.info['description']
+
+            else:
+
+                role = agent.info['instructions']
+
+            available_agents += f"- *{agent.name}* : {role}\n"
+        
+
+        # collect allowed transitions 
+        all_allowed_transitions = "**Allowed transitions between agents are:**\n"
+        for agent in self.agents:
+
+            all_allowed_transitions += f"\t- {agent.name} -> {self.filter_and_combine_agent_names(agent.info['allowed_transitions'])}\n"
+
+
+        
+
+        self.planner.info['instructions'] += available_agents + '\n\n' + all_allowed_transitions
+
+
+        if self.verbose:
+            print("Planner instructions:")
+
+            print(self.planner.info['instructions'])
+
+
+        return 

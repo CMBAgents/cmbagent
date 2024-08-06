@@ -29,7 +29,7 @@ print(f'Data has been saved to {filename}')
 
 The `default_flow_style=False` argument ensures the YAML is written in a human-readable block format.
 
-Assuming that our newly saved `example.yaml` file is a valid coabaya input yaml file we then run the following:
+Assuming that our newly saved `example.yaml` file is a valid cobaya input yaml file we then run the following:
 
 
 

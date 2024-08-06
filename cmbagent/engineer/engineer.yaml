@@ -46,8 +46,11 @@ instructions: |
   
   yaml is not a known language. Everything should be done in python. 
  
-description: |
-  An engineer agent that writes the best possible code. It never suggests a plan. It never executes code.
+description: | 
+  An engineer agent that writes the best possible code. 
+  It never suggests a plan. 
+  It never executes code.
+  It checks for conflicts in the code and edits the code if necessary.
 
 
 allowed_transitions:

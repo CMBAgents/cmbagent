@@ -28,6 +28,7 @@ assistant_config:
 
 description: |
   A retrieval agent that suggests codes to help engineer agent with cobaya. 
+  It knows how to evaluate a likelihood or set-up an mcmc run. 
   This agent does not write, nor suggest a plan.
   After suggesting a code, this agent will transition to the engineer agent which will check and edit code, given <task> and <context>.
 
