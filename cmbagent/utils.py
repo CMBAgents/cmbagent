@@ -10,7 +10,7 @@ import autogen
 from autogen import AssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
-from autogen import UserProxyAgent, config_list_from_json
+from autogen import UserProxyAgent, config_list_from_json, GroupChat
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
 from cobaya.yaml import yaml_load_file, yaml_load
@@ -63,3 +63,38 @@ default_chunking_strategy = {
 
 default_top_p = 0.05
 default_temperature = 0.00001
+
+
+default_select_speaker_prompt_template = """
+Read the above conversation. Then select the next role from {agentlist} to play. Only return the role.
+Note that only planner can modify or update a plan. Only planner can report on plan status.
+executor should not be selected unless admin says "execute".
+engineer should be selected to check for conflicts. 
+engineer should be selected to check code. 
+executor should be selected to execute. 
+"""
+
+default_select_speaker_message_template = """
+You are in a role play game about cosmological data analysis. The following roles are available:
+                {roles}.
+                Read the following conversation.
+                Then select the next role from {agentlist} to play. Only return the role.
+Note that only planner can modify or update a plan. Only planner can report on plan status.
+executor should not be selected unless admin says "execute".
+engineer should be selected to check for conflicts. 
+engineer should be selected to check code. 
+executor should be selected to execute. 
+"""
+
+
+default_groupchat_intro_message = """
+We have assembled a team of agents and a human admin to answer questions and solve tasks on cosmological data analysis. 
+
+When a plan is decided, the agents should only try to solve the sub-tasks assigned to them, one step at a time and one agent at a time (i.e., one agent per step), and ask admin for feedback when they are done. 
+
+In attendance are:
+"""
+
+# TODO
+# see https://github.com/openai/openai-python/blob/da48e4cac78d1d4ac749e2aa5cfd619fde1e6c68/src/openai/types/beta/file_search_tool.py#L20
+# default_file_search_max_num_results = 20

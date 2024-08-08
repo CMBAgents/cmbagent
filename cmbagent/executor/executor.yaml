@@ -5,18 +5,22 @@ human_input_mode: "NEVER"
           #  When "NEVER", the agent will never prompt for human input. 
           #  Under this mode, the conversation stops
           #  when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
-     
+          #  "NEVER": "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks).",
+
 
 
 max_consecutive_auto_reply: 50
 
 
 instructions: |
-  You execute the code written by the engineer and report the result to admin.
-  You don't write code, you only run code. You don't suggest plan.
+  You are the executor agent in the team. 
+  You execute python code.
+  You don't write code, you only run code. 
+  You don't suggest plan.
+  You don't report the results of the evaluation.
 
 description: |
-  An executor agent that executes the code written by the engineer and reports the result.
+  An executor agent that executes python code written by the engineer.
   The executor does not write code. 
   The executor does not suggest code.
   The executor runs code.

@@ -1,7 +1,22 @@
 import os 
 import logging
 import autogen
-from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,work_dir
+from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,work_dir,GroupChat,default_groupchat_intro_message
+
+
+class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
+    """A custom proxy agent for the user with redefined default descriptions."""
+
+    # Override the default descriptions
+    DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {
+        "ALWAYS": "An attentive HUMAN user who can answer questions about the task and provide feedback.", # default for admin 
+        "TERMINATE": "A user that can run Python code and report back the execution results.",
+        "NEVER": "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks).", # default for executor 
+    }
+
+class CmbAgentGroupChat(GroupChat):
+    DEFAULT_INTRO_MSG = default_groupchat_intro_message
+
 
 class BaseAgent:
 
@@ -105,7 +120,7 @@ class BaseAgent:
             logger.info(f"{key}: {value}")
 
 
-        self.agent = UserProxyAgent(
+        self.agent = CmbAgentUserProxyAgent(
             name= self.name,
             system_message= self.info["instructions"],
             description=self.info["description"],
@@ -128,7 +143,7 @@ class BaseAgent:
 
             logger.info(f"{key}: {value}")
 
-        self.agent = autogen.UserProxyAgent(
+        self.agent = CmbAgentUserProxyAgent(
             name= self.name,
             system_message= self.info["instructions"],
             code_execution_config=self.info["code_execution_config"],

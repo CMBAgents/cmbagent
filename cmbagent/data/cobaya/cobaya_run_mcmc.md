@@ -1,6 +1,8 @@
 # Setting up an mcmc run with cobaya
 
-Here is the structure of the yaml file when we are asked about determining posterior distributions using a likelihood. If one is simply evaluating a likelihood at some parameter values, they should not use `mcmc` but `evaluate` (see cobaya_evaluate.md).
+Here is the structure the code when we are asked about running an mcmc. 
+
+First, we write a yaml file. Then we use subprocess.run to run cobaya. 
 
 ```python
 import yaml
@@ -93,39 +95,16 @@ yaml_str = yaml.dump(config, default_flow_style=False)
 # Writing the yaml string to a file
 with open('config.yaml', 'w') as file:
     file.write(yaml_str)
+    
+try:
+    subprocess.run(['mpirun','-np','4','cobaya-run', 'config.yaml', '-f'])
+except Exception as e:
+    print(f"Error running evaluate mode: {e}")
 ```
 
-The main idea is to have the `sampler` block set to
+The main idea is to have the `sampler` block set to `mcmc`.
 
-```
-  mcmc:
-    burn_in: 0
-    max_tries: 10000
-    covmat: /path/to/covmats/my_covmat.covmat
-    covmat_params: null
-    proposal_scale: 1.9
-    output_every: 60s
-    learn_every: 40d
-    learn_proposal: true
-    learn_proposal_Rminus1_max: 100.0
-    learn_proposal_Rminus1_max_early: 100.0
-    max_samples: .inf
-    Rminus1_stop: 0.01
-    Rminus1_cl_stop: 0.2
-    Rminus1_cl_level: 0.95
-    Rminus1_single_split: 4
-    measure_speeds: true
-    oversample_power: 0.4
-    oversample_thin: true
-```
-
-Unless otherwise stated, we always specify
-
-```
-timing: False
-```
-
-so we the evaluation time is not printed to avoid printing too many messages.
+Unless otherwise stated, we always specify `timing: False`.
 
 We also set `debug: False` to avoid printing out execution messages.
 

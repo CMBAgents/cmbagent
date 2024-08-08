@@ -6,9 +6,10 @@ import requests
 import ast
 import json
 import sys 
-from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature
+from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
 from pprint import pprint
 import autogen
+from .base_agent import CmbAgentGroupChat
 
 imported_rag_agents = {}
 for filename in os.listdir(path_to_assistants):
@@ -227,13 +228,19 @@ class CMBAgent:
 
 
 
-        self.groupchat = autogen.GroupChat(
+        self.groupchat = CmbAgentGroupChat(
                                 agents=[agent.agent for agent in self.agents], 
                                 allowed_or_disallowed_speaker_transitions=self.allowed_transitions,
                                 speaker_transitions_type="allowed",
                                 messages=[], 
                                 speaker_selection_method = "auto",
-                                max_round=max_round)
+                                max_round=max_round,
+                                select_speaker_auto_verbose=False,#self.verbose,
+                                send_introductions=True,
+                                admin_name="admin",
+                                select_speaker_prompt_template=default_select_speaker_prompt_template,
+                                select_speaker_message_template=default_select_speaker_message_template
+                                )
         
 
 
@@ -566,11 +573,12 @@ class CMBAgent:
 
     def set_planner_instructions(self):
         # available agents and their roles:
-        available_agents = "**Available agents and their roles:**\n"
+        available_agents = "\n\n#### Available agents and their roles\n\n"
         for agent in self.agents:
 
-            if agent.name == 'planner':
+            if agent.name in ['planner', 'engineer', 'executor', 'admin']:
                 continue
+
 
             if 'description' in agent.info:
 
@@ -584,7 +592,8 @@ class CMBAgent:
         
 
         # collect allowed transitions 
-        all_allowed_transitions = "**Allowed transitions between agents are:**\n"
+        all_allowed_transitions = "\n\n#### Allowed transitions\n\n"
+        
         for agent in self.agents:
 
             all_allowed_transitions += f"\t- {agent.name} -> {self.filter_and_combine_agent_names(agent.info['allowed_transitions'])}\n"
@@ -592,7 +601,7 @@ class CMBAgent:
 
         
 
-        self.planner.info['instructions'] += available_agents + '\n\n' + all_allowed_transitions
+        self.planner.info['instructions'] += available_agents + '\n\n' #+ all_allowed_transitions
 
 
         if self.verbose:

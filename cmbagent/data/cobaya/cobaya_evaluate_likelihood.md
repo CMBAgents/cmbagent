@@ -1,6 +1,8 @@
 # How to evaluate a likelihood with cobaya?
 
-Here how to structure the yaml file when we are asked about evaluating a likelihood at some parameter values.
+Here how to structure the code when we are asked about evaluating a likelihood at some parameter values.
+
+First, we write a yaml file. Then we use subprocess.run to run cobaya. 
 
 ```python
 import yaml
@@ -36,23 +38,30 @@ config = {
 # Serializing the dictionary to a yaml formatted string
 yaml_str = yaml.dump(config, default_flow_style=False)
 
-# Writing the yaml string to a file
+# Writing the info to a yaml file
 with open('config.yaml', 'w') as file:
     file.write(yaml_str)
+    
+# run cobaya to avaluate the likelihood
+try:
+    subprocess.run(['cobaya-run', 'config.yaml', '-f'])
+except Exception as e:
+    print(f"Error running evaluate mode: {e}")
     
 ```
 
 The main idea is to have the sampler block set to
 
 ```
-sampler:
-    evaluate:
+'sampler' :{
+    'evaluate':
+    }
 ```
 
 Unless otherwise stated, we always specify
 
 ```
-timing: true
+timing: True
 ```
 
 so we can see the evaluation time.
