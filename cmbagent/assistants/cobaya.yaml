@@ -27,7 +27,7 @@ assistant_config:
   tool_resources:
     file_search: 
       vector_store_ids: 
-        - vs_J8JAUTpqk70ee6YHkBxkCoAu
+        - vs_3LmKNwFIF8jEXsq9q1m4jUvh
 
 description: |
   This is the cobaya_agent: a retrieval agent that provides assistance with cobaya. 

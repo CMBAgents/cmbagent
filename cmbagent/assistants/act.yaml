@@ -71,7 +71,7 @@ assistant_config:
   tool_resources:
     file_search: 
       vector_store_ids: 
-        - vs_PJsWUbfrgY4b8qz032OFpH72
+        - vs_RAzxZUHk7POCLGvduFNMk6iE
 
 
 description: |

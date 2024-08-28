@@ -12,3 +12,4 @@ The theory block should be set according as
     }
 ```
 where classy_sz is called through **classy_szfast.classy_sz.classy_sz**
+
