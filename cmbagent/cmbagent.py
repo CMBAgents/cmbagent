@@ -1,11 +1,11 @@
-import os 
+import os
 import logging
 import importlib
 import autogen
 import requests
 import ast
 import json
-import sys 
+import sys
 from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
 from pprint import pprint
 import autogen
@@ -13,7 +13,7 @@ from .base_agent import CmbAgentGroupChat
 
 imported_rag_agents = {}
 for filename in os.listdir(path_to_assistants):
-    if filename.endswith(".py") and filename != "__init__.py":
+    if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
         module_name = filename[:-3]  # Remove the .py extension
         class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
         module_path = f"cmbagent.assistants.{module_name}"
@@ -36,8 +36,8 @@ class CMBAgent:
 
     logging.disable(logging.CRITICAL)
 
-    def __init__(self, 
-                 cache_seed=42, 
+    def __init__(self,
+                 cache_seed=42,
                  temperature=0.00001,
                  top_p=0.05,
                  timeout=1200,
@@ -61,9 +61,9 @@ class CMBAgent:
             cache_seed (int, optional): Seed for caching. Defaults to 42.
             temperature (float, optional): Temperature for LLM sampling. Defaults to 0.
             timeout (int, optional): Timeout for LLM requests in seconds. Defaults to 1200.
-            max_round (int, optional): Maximum number of conversation rounds. Defaults to 50. If too small, the conversation stops. 
+            max_round (int, optional): Maximum number of conversation rounds. Defaults to 50. If too small, the conversation stops.
             llm_api_key (str, optional): API key for LLM. If None, uses the key from the config file.
-            make_vector_stores (bool or list of strings, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb']. 
+            make_vector_stores (bool or list of strings, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb'].
             agent_list (list of strings, optional): List of agents to include in the conversation. Defaults to all agents.
             **kwargs: Additional keyword arguments.
 
@@ -84,7 +84,7 @@ class CMBAgent:
             for name in make_vector_stores:
                 print("You can not make vector store and pass vector store ids simultaneously")
                 if f'{name}_agent' in vector_store_ids:
-                    
+
                     print(f"You are trying to do this for {name}_agent")
                 print()
                 print("If you want to update vector stores, you need to do this:")
@@ -100,9 +100,9 @@ class CMBAgent:
                 print()
                 print("If you do not want to update vector stores, just pass make_vector_stores=False")
 
-                return 
+                return
 
-        
+
         self.kwargs = kwargs
 
         self.logger = logging.getLogger(__name__)
@@ -116,13 +116,13 @@ class CMBAgent:
         self.work_dir = work_dir
 
         self.path_to_assistants = path_to_assistants
-        
+
         self.logger.info(f"Autogen version: {autogen.__version__}")
 
-        llm_config = config_list_from_json(f"{path_to_apis}/{platform}_{model}.json") 
+        llm_config = config_list_from_json(f"{path_to_apis}/{platform}_{model}.json")
 
         if llm_api_key is not None:
-        
+
             llm_config[0]['api_key'] = llm_api_key
 
         self.llm_api_key = llm_config[0]['api_key']
@@ -140,7 +140,7 @@ class CMBAgent:
                         "config_list": llm_config,
                         "timeout": timeout,
                     }
-        
+
         self.logger.info("LLM Configuration:")
 
         for key, value in self.llm_config.items():
@@ -149,9 +149,9 @@ class CMBAgent:
 
 
         self.init_agents()
-        
 
-        ## here we should ask if we need to update vector stores 
+
+        ## here we should ask if we need to update vector stores
         if make_vector_stores != False:
             self.push_vector_stores(make_vector_stores, chunking_strategy, verbose = verbose)
             print("vector stores updated")
@@ -162,7 +162,7 @@ class CMBAgent:
                 print(f"'{key}': '{value}',")
             print()
             print("(and make sure you dont specify make_vector_stores in arguments of cmbagent).")
-            return 
+            return
 
 
         self.set_planner_instructions()
@@ -182,11 +182,11 @@ class CMBAgent:
             instructions = agent_instructions[agent.name] if agent_instructions and agent.name in agent_instructions else None
 
             agent_kwargs = {}
-            
+
             if instructions is not None:
-                
+
                 agent_kwargs['instructions'] = instructions
-            
+
             if agent.name not in self.non_rag_agents:
 
                 vector_ids = vector_store_ids[agent.name] if vector_store_ids and agent.name in vector_store_ids else None
@@ -194,7 +194,7 @@ class CMBAgent:
                 top_p = agent_top_p[agent.name] if agent_top_p and agent.name in agent_top_p else None
 
                 if vector_ids is not None:
-                    
+
                     agent_kwargs['vector_store_ids'] = vector_ids
 
                 if temperature is not None:
@@ -206,7 +206,7 @@ class CMBAgent:
                     agent_kwargs['agent_temperature'] = default_temperature
 
                 if top_p is not None:
-                    
+
                     agent_kwargs['agent_top_p'] = top_p
 
                 else:
@@ -229,10 +229,10 @@ class CMBAgent:
 
 
         self.groupchat = CmbAgentGroupChat(
-                                agents=[agent.agent for agent in self.agents], 
+                                agents=[agent.agent for agent in self.agents],
                                 allowed_or_disallowed_speaker_transitions=self.allowed_transitions,
                                 speaker_transitions_type="allowed",
-                                messages=[], 
+                                messages=[],
                                 speaker_selection_method = "auto",
                                 max_round=max_round,
                                 select_speaker_auto_verbose=False,#self.verbose,
@@ -241,27 +241,27 @@ class CMBAgent:
                                 select_speaker_prompt_template=default_select_speaker_prompt_template,
                                 select_speaker_message_template=default_select_speaker_message_template
                                 )
-        
 
 
-        self.manager = autogen.GroupChatManager(groupchat=self.groupchat, 
+
+        self.manager = autogen.GroupChatManager(groupchat=self.groupchat,
                                                 llm_config=self.llm_config)
-        
+
 
         for agent in self.groupchat.agents:
 
-            agent.reset()   
+            agent.reset()
 
     def solve(self, task):
 
         self.session = self.admin.agent.initiate_chat(self.manager,message = task)
-        
+
 
 
     def restore(self):
-        
+
         previous_state = f"{self.groupchat.messages}"
-        
+
         # Convert string to Python dictionary
         dict_representation = ast.literal_eval(previous_state)
 
@@ -272,43 +272,43 @@ class CMBAgent:
         last_agent, last_message = self.manager.resume(messages=json_string)
 
         # Resume the chat using the last agent and message
-        self.session = last_agent.initiate_chat(recipient=self.manager, 
-                                                message=last_message, 
+        self.session = last_agent.initiate_chat(recipient=self.manager,
+                                                message=last_message,
                                                 clear_history=False)
 
-        
+
     def get_agent_from_name(self,name):
 
-        for agent in self.agents: 
-        
-            if agent.info['name'] == name:
-        
-                return agent.agent
-        
-        print(f"get_agent_from_name: agent {name} not found") 
-        
-        sys.exit()   
+        for agent in self.agents:
 
-    
+            if agent.info['name'] == name:
+
+                return agent.agent
+
+        print(f"get_agent_from_name: agent {name} not found")
+
+        sys.exit()
+
+
     def get_allowed_transitions(self):
-        
+
         allowed_transitions = {}
 
-        for agent in self.agents: 
+        for agent in self.agents:
 
             transition_list = []
-            
+
             for name in agent.info['allowed_transitions']:
 
                 if name not in self.agent_names:
                     continue
-            
+
                 transition_list.append(self.get_agent_from_name(name))
-        
+
             allowed_transitions[agent.agent] = transition_list
 
         return allowed_transitions
-    
+
 
     def show_allowed_transitions(self):
 
@@ -324,9 +324,9 @@ class CMBAgent:
 
     def push_vector_stores(self, make_vector_stores, chunking_strategy, verbose = False):
 
-        client = OpenAI(api_key = self.llm_api_key) 
+        client = OpenAI(api_key = self.llm_api_key)
 
-        # 1. identify rag agents and set store names 
+        # 1. identify rag agents and set store names
 
         store_names = []
         rag_agents = []
@@ -336,23 +336,23 @@ class CMBAgent:
 
             if type(make_vector_stores) == list and agent.info['name'] not in make_vector_stores and agent.info['name'].replace('_agent', '') not in make_vector_stores:
                 continue
-            
+
             if 'assistant_config' in agent.info:
 
                 if 'file_search' in agent.info['assistant_config']['tool_resources'].keys():
-                    
-                    print(f"Updating vector store for {agent.info['name']}")
-                    
-                    # print(agent.info['assistant_config']['assistant_id'])
-                    
-                    # print(agent.info['assistant_config']['tool_resources']['file_search'])
-                    
-                    store_names.append(f"{agent.info['name']}_store")
-                    
-                    rag_agents.append(agent)
-        
 
-        # 2. collect all vector stores 
+                    print(f"Updating vector store for {agent.info['name']}")
+
+                    # print(agent.info['assistant_config']['assistant_id'])
+
+                    # print(agent.info['assistant_config']['tool_resources']['file_search'])
+
+                    store_names.append(f"{agent.info['name']}_store")
+
+                    rag_agents.append(agent)
+
+
+        # 2. collect all vector stores
 
         # Set the headers for authentication
         headers = {
@@ -368,11 +368,11 @@ class CMBAgent:
 
         # Check if the request was successful
         if response.status_code == 200:
-            
+
             vector_stores = response.json()
 
         else:
-            
+
             print("Failed to retrieve vector stores:", response.status_code, response.text)
 
 
@@ -381,19 +381,19 @@ class CMBAgent:
         # Find all vector stores by name and collect their IDs
         vector_store_ids = {}
         for vector_store_name,rag_agent in zip(store_names,rag_agents):
-            
+
             # print('dealing with: ',vector_store_name)
-            
+
             matching_vector_store_ids = [
                 store['id'] for store in vector_stores['data'] if store['name'] == vector_store_name
             ]
 
             if matching_vector_store_ids:
-                
+
                 # print(f"Vector store IDs for '{vector_store_name}':", matching_vector_store_ids)
 
                 for vector_store_id in matching_vector_store_ids:
-                
+
                     # Define the URL endpoint for deleting a vector store by ID
                     delete_url = f"https://api.openai.com/v1/vector_stores/{vector_store_id}"
 
@@ -402,19 +402,19 @@ class CMBAgent:
 
                     # Check if the request was successful
                     if delete_response.status_code == 200:
-                        
+
                         # print(f"Vector store with ID '{vector_store_id}' deleted successfully.")
 
                         continue
-                    
+
                     else:
-                        
+
                         print("Failed to delete vector store:", delete_response.status_code, delete_response.text)
-                        
+
             else:
-                
+
                 print(f"No vector stores found with the name '{vector_store_name}'.")
-            
+
             # print()
 
             # print(rag_agent.name)
@@ -428,32 +428,32 @@ class CMBAgent:
             # Create a vector store called "planck_store"
             vector_store = client.beta.vector_stores.create(name=vector_store_name,
                                                             chunking_strategy=chunking_strategy)
-            
+
             # print('created vector store with id: ',vector_store.id)
             # print('\n')
-            
+
             # Initialize a list to hold the file paths
             file_paths = []
-            
+
             assistant_data = os.path.dirname(os.path.realpath(__file__)) + '/data/' + vector_store_name.removesuffix('_agent_store')
 
 
             print("Files to upload:")
             for root, dirs, files in os.walk(assistant_data):
                 # Filter out unwanted directories like .ipynb_checkpoints
-                dirs[:] = [d for d in dirs if not d.startswith('.')]  
-    
+                dirs[:] = [d for d in dirs if not d.startswith('.')]
+
                 for file in files:
 
                     if file.startswith('.') or file.endswith('.ipynb')  or file.endswith('.yaml') or file.endswith('.txt'):
-                    
+
                         continue
-                    
+
                     print(f"\t - {file}")
-                    
+
                     # Get the absolute path of each file
                     file_paths.append(os.path.join(root, file))
-                    
+
             # Ready the files for upload to OpenAI
 
             file_streams = [open(path, "rb") for path in file_paths]
@@ -461,28 +461,28 @@ class CMBAgent:
             # Use the upload and poll SDK helper to upload the files, add them to the vector store,
             # and poll the status of the file batch for completion.
             file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
-                    vector_store_id=vector_store.id, 
+                    vector_store_id=vector_store.id,
                     files=file_streams
                     )
 
             # You can print the status and the file counts of the batch to see the result of this operation.
             print(file_batch.status)
             print(file_batch.file_counts)
-            
+
             rag_agent.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store.id]
-            
+
             print(f'{rag_agent.name}: uploaded assistant data to vector store with id: ',vector_store.id)
             print('\n')
             new_vector_store_ids = {rag_agent.name : vector_store.id}
             vector_store_ids.update(new_vector_store_ids)
         self.vector_store_ids = vector_store_ids
-        
+
 
 
     def init_agents(self):
 
         self.agent_classes = {}
-        
+
         for k in imported_rag_agents.keys():
 
             self.agent_classes[imported_rag_agents[k]['agent_name']] = imported_rag_agents[k]['agent_class']
@@ -496,23 +496,23 @@ class CMBAgent:
         })
 
 
-        ### by default are always here 
+        ### by default are always here
         self.engineer = EngineerAgent(llm_config=self.llm_config)
         self.planner = PlannerAgent(llm_config=self.llm_config)
-        self.executor = ExecutorAgent(llm_config=self.llm_config) 
+        self.executor = ExecutorAgent(llm_config=self.llm_config)
 
         # the administrator (to interact with us humans)
         self.admin = AdminAgent()
 
 
-        # all agents 
-        self.agents = [self.admin, 
-                       self.planner, 
-                       self.engineer, 
-                       self.executor] 
+        # all agents
+        self.agents = [self.admin,
+                       self.planner,
+                       self.engineer,
+                       self.executor]
 
         if self.agent_list is None:
-            
+
             self.agent_list = list(self.agent_classes.keys())
 
         # Drop entries from self.agent_classes that are not in self.agent_list
@@ -521,23 +521,23 @@ class CMBAgent:
 
         for agent_name in self.agent_list:
 
-            if agent_name in self.agent_classes and agent_name not in ['engineer', 
-                                                                       'planner', 
-                                                                       'executor', 
+            if agent_name in self.agent_classes and agent_name not in ['engineer',
+                                                                       'planner',
+                                                                       'executor',
                                                                        'admin']:
                 agent_class = self.agent_classes[agent_name]
-                
+
                 agent_instance = agent_class(llm_config=self.llm_config)
-                
+
                 setattr(self, agent_name, agent_instance)
-                
+
                 self.agents.append(agent_instance)
 
 
         agent_keys = self.agent_classes.keys()
 
         self.agent_names =  [f"{key}_agent" if key not in ['engineer', 'planner', 'executor', 'admin'] else key for key in agent_keys]
-        
+
         if self.verbose:
 
             print("Using following agents: ", self.agent_names)
@@ -548,7 +548,7 @@ class CMBAgent:
     def show_plot(self,plot_name):
 
         return Image(filename=self.work_dir + '/' + plot_name)
-    
+
 
     def clear_cache(self):
         autogen.Completion.clear_cache(self.cache_seed)
@@ -564,10 +564,10 @@ class CMBAgent:
     def filter_and_combine_agent_names(self, input_list):
         # Filter the input list to include only entries in self.agent_names
         filtered_list = [item for item in input_list if item in self.agent_names]
-        
+
         # Convert the filtered list of strings into one string
         combined_string = ', '.join(filtered_list)
-        
+
         return combined_string
 
 
@@ -589,17 +589,17 @@ class CMBAgent:
                 role = agent.info['instructions']
 
             available_agents += f"- *{agent.name}* : {role}\n"
-        
 
-        # collect allowed transitions 
+
+        # collect allowed transitions
         all_allowed_transitions = "\n\n#### Allowed transitions\n\n"
-        
+
         for agent in self.agents:
 
             all_allowed_transitions += f"\t- {agent.name} -> {self.filter_and_combine_agent_names(agent.info['allowed_transitions'])}\n"
 
 
-        
+
 
         self.planner.info['instructions'] += available_agents + '\n\n' #+ all_allowed_transitions
 
@@ -610,4 +610,4 @@ class CMBAgent:
             print(self.planner.info['instructions'])
 
 
-        return 
+        return
