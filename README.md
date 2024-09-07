@@ -64,6 +64,23 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 
 ## Usage
 
+
+Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+(paste in your bashrc or zshrc file, if possible.)
+
+You can also pass your API key to cmbagent as an argument when you instantiate it:
+
+```python
+cmbagent = CMBAgent(llm_api_key="sk-...")
+```
+
+
+
 Instantiate the CMBAgent with:
 
 ```python

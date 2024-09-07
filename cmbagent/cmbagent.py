@@ -11,6 +11,9 @@ from pprint import pprint
 import autogen
 from .base_agent import CmbAgentGroupChat
 
+# import yaml
+from ruamel.yaml import YAML
+
 imported_rag_agents = {}
 for filename in os.listdir(path_to_assistants):
     if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
@@ -36,6 +39,8 @@ class CMBAgent:
 
     logging.disable(logging.CRITICAL)
 
+
+
     def __init__(self,
                  cache_seed=42,
                  temperature=0.00001,
@@ -51,7 +56,7 @@ class CMBAgent:
                  agent_instructions = None,
                  agent_temperature = None,
                  agent_top_p = None,
-                 vector_store_ids = None,
+                #  vector_store_ids = None,
                  chunking_strategy = None,
                  **kwargs):
         """
@@ -65,6 +70,19 @@ class CMBAgent:
             llm_api_key (str, optional): API key for LLM. If None, uses the key from the config file.
             make_vector_stores (bool or list of strings, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb'].
             agent_list (list of strings, optional): List of agents to include in the conversation. Defaults to all agents.
+            chunking_strategy (dict, optional): Chunking strategy for vector stores. Defaults to None.
+            #  example:
+            #  chunking_strategy = {
+            # 'planck_agent': 
+            #     {
+            #     "type": "static",
+            #     "static": {
+            #       "max_chunk_size_tokens": 3300, # reduce size to ensure better context integrity
+            #       "chunk_overlap_tokens": 1000 # increase overlap to maintain context across chunks
+            #     }
+            # }
+            # }
+            
             **kwargs: Additional keyword arguments.
 
         Attributes:
@@ -80,30 +98,32 @@ class CMBAgent:
             This class initializes various agents and configurations for cosmological data analysis.
         """
 
-        if make_vector_stores and vector_store_ids:
-            for name in make_vector_stores:
-                print("You can not make vector store and pass vector store ids simultaneously")
-                if f'{name}_agent' in vector_store_ids:
+        # if make_vector_stores and vector_store_ids:
+        #     for name in make_vector_stores:
+        #         print("You can not make vector store and pass vector store ids simultaneously")
+        #         if f'{name}_agent' in vector_store_ids:
 
-                    print(f"You are trying to do this for {name}_agent")
-                print()
-                print("If you want to update vector stores, you need to do this:")
-                print("\t1. first make vector stores (and make sure you don't specify vector_store_ids)")
-                print("\t2. restart session (and make sure you don't specify make_vector_stores)")
-                print("\t3. pass vector stores ids in arguments of vector_store_ids in this format (example with cobaya and planck): ")
-                print("""\tvector_store_ids = {
-                        \t'cobaya_agent' : 'vs_xyz',
-                        \t'planck_agent': 'vs_abc',
-                        \t}
-                      """)
-                print("\twhere vs_xyz and vs_abc are vector store ids that were printed after step 1.")
-                print()
-                print("If you do not want to update vector stores, just pass make_vector_stores=False")
+        #             print(f"You are trying to do this for {name}_agent")
+        #         print()
+        #         print("If you want to update vector stores, you need to do this:")
+        #         print("\t1. first make vector stores (and make sure you don't specify vector_store_ids)")
+        #         print("\t2. restart session (and make sure you don't specify make_vector_stores)")
+        #         print("\t3. pass vector stores ids in arguments of vector_store_ids in this format (example with cobaya and planck): ")
+        #         print("""\tvector_store_ids = {
+        #                 \t'cobaya_agent' : 'vs_xyz',
+        #                 \t'planck_agent': 'vs_abc',
+        #                 \t}
+        #               """)
+        #         print("\twhere vs_xyz and vs_abc are vector store ids that were printed after step 1.")
+        #         print()
+        #         print("If you do not want to update vector stores, just pass make_vector_stores=False")
 
-                return
+        #         return
 
 
         self.kwargs = kwargs
+
+        self.vector_store_ids = None
 
         self.logger = logging.getLogger(__name__)
 
@@ -124,6 +144,10 @@ class CMBAgent:
         if llm_api_key is not None:
 
             llm_config[0]['api_key'] = llm_api_key
+
+        else:
+
+            llm_config[0]['api_key'] = os.getenv("OPENAI_API_KEY")
 
         self.llm_api_key = llm_config[0]['api_key']
 
@@ -151,18 +175,14 @@ class CMBAgent:
         self.init_agents()
 
 
-        ## here we should ask if we need to update vector stores
-        if make_vector_stores != False:
-            self.push_vector_stores(make_vector_stores, chunking_strategy, verbose = verbose)
-            print("vector stores updated")
-            print("restart session and paste this in the dictionnary passed as vector_store_ids argument of cmbagent: ")
-            # pprint(self.vector_store_ids)
-            print()
-            for key, value in self.vector_store_ids.items():
-                print(f"'{key}': '{value}',")
-            print()
-            print("(and make sure you dont specify make_vector_stores in arguments of cmbagent).")
-            return
+        # check if assistants exist: 
+        self.check_assistants()
+
+
+
+ 
+        self.push_vector_stores(make_vector_stores, chunking_strategy, verbose = verbose)
+
 
 
         self.set_planner_instructions()
@@ -189,8 +209,11 @@ class CMBAgent:
 
             if agent.name not in self.non_rag_agents:
 
-                vector_ids = vector_store_ids[agent.name] if vector_store_ids and agent.name in vector_store_ids else None
+
+                vector_ids = self.vector_store_ids[agent.name] if self.vector_store_ids and agent.name in self.vector_store_ids else None
+
                 temperature = agent_temperature[agent.name] if agent_temperature and agent.name in agent_temperature else None
+                
                 top_p = agent_top_p[agent.name] if agent_top_p and agent.name in agent_top_p else None
 
                 if vector_ids is not None:
@@ -213,8 +236,21 @@ class CMBAgent:
 
                     agent_kwargs['agent_top_p'] = default_top_p
 
-            agent.set_agent(**agent_kwargs)
+            
+                if agent.set_agent(**agent_kwargs) == 1:
 
+                    print(f"setting make_vector_stores=['{agent.name.rstrip('_agent')}'],")
+                    
+                    self.push_vector_stores([agent.name.rstrip('_agent')], chunking_strategy, verbose = verbose)
+
+                    agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
+
+                    agent.set_agent(**agent_kwargs) 
+                    
+
+            else:
+
+                agent.set_agent(**agent_kwargs)
 
 
         self.allowed_transitions = self.get_allowed_transitions()
@@ -323,6 +359,9 @@ class CMBAgent:
 
 
     def push_vector_stores(self, make_vector_stores, chunking_strategy, verbose = False):
+
+        if make_vector_stores == False:
+            return
 
         client = OpenAI(api_key = self.llm_api_key)
 
@@ -475,8 +514,18 @@ class CMBAgent:
             print('\n')
             new_vector_store_ids = {rag_agent.name : vector_store.id}
             vector_store_ids.update(new_vector_store_ids)
+
         self.vector_store_ids = vector_store_ids
 
+        print("vector stores updated")
+
+        for key, value in self.vector_store_ids.items():
+            print(f"'{key}': '{value}',")
+
+        # vector_store_ids = self.vector_store_ids
+
+        for agent_name, vector_id in self.vector_store_ids.items():
+            update_yaml_preserving_format(f"{path_to_assistants}/{agent_name.replace('_agent', '') }.yaml", agent_name, vector_id)
 
 
     def init_agents(self):
@@ -545,6 +594,51 @@ class CMBAgent:
 
 
 
+
+    def check_assistants(self):
+
+        client = OpenAI(api_key = self.llm_api_key)
+        available_assistants = client.beta.assistants.list(
+            order="desc",
+            limit="100",
+        )
+
+
+        # Create a list of assistant names for easy comparison
+        assistant_names = [d.name for d in available_assistants.data]
+        assistant_ids = [d.id for d in available_assistants.data]
+
+        for agent in self.agents:
+            if agent.name not in self.non_rag_agents:
+                print(f"Checking agent: {agent.name}")
+                # Check if agent name exists in the available assistants
+                if agent.name in assistant_names:
+                    print(f"Agent {agent.name} exists in available assistants")
+                    assistant_id = agent.info['assistant_config']['assistant_id']
+
+                    if assistant_id != assistant_ids[assistant_names.index(agent.name)]:
+                        print(f"-->Assistant ID from your yaml: {assistant_id}")
+                        print(f"-->Assistant ID in openai: {assistant_ids[assistant_names.index(agent.name)]}")
+                        print("-->We will use the assistant id from openai")
+                        agent.info['assistant_config']['assistant_id'] = assistant_ids[assistant_names.index(agent.name)]
+                else:
+                    print(f"Agent {agent.name} does not exist in available assistants")
+                    print(f"-->Creating assistant {agent.name}")
+
+                    new_assistant = client.beta.assistants.create(
+                        instructions=" ",
+                        name=agent.name,
+                        tools=[{"type": "file_search"}],
+                        tool_resources={"file_search": {"vector_store_ids":[]}},
+                        model=self.llm_config['config_list'][0]['model']
+                    )
+                    print(f"-->New assistant id: {new_assistant.id}")
+                    agent.info['assistant_config']['assistant_id'] = new_assistant.id
+                    print("-->assistant created")
+                    
+                print("\n")
+
+
     def show_plot(self,plot_name):
 
         return Image(filename=self.work_dir + '/' + plot_name)
@@ -611,3 +705,22 @@ class CMBAgent:
 
 
         return
+
+
+def update_yaml_preserving_format(yaml_file, agent_name, new_id):
+    yaml = YAML()
+    yaml.preserve_quotes = True  # This preserves quotes in the YAML file if they are present
+
+    # Load the YAML file while preserving formatting
+    with open(yaml_file, 'r') as file:
+        yaml_content = yaml.load(file)
+    
+    # Update the vector_store_id for the specific agent
+    if yaml_content['name'] == agent_name:
+        yaml_content['assistant_config']['tool_resources']['file_search']['vector_store_ids'][0] = new_id
+    else:
+        print(f"Agent {agent_name} not found.")
+    
+    # Write the changes back to the YAML file while preserving formatting
+    with open(yaml_file, 'w') as file:
+        yaml.dump(yaml_content, file)

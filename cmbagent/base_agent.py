@@ -2,7 +2,7 @@ import os
 import logging
 import autogen
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,work_dir,GroupChat,default_groupchat_intro_message
-
+import sys
 
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
     """A custom proxy agent for the user with redefined default descriptions."""
@@ -86,6 +86,15 @@ class BaseAgent:
             overwrite_tools=True,
             overwrite_instructions=True
         )
+
+        if self.agent._assistant_error is not None:
+
+            # print(self.agent._assistant_error)
+            if "No vector store" in self.agent._assistant_error:
+                print(f"Vector store not found for {self.name}")
+                print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
+                
+                return 1
 
 
 

@@ -67,18 +67,18 @@ instructions: |
 assistant_config:
   assistant_id: asst_yzyosJ6scUqh7dAjT45MdWD4
   tools:
-    - type: file_search
+  - type: file_search
 
   tool_resources:
-    file_search: 
-      vector_store_ids: 
-        - vs_yCcGGNcbImmhWE1UZUBdqFfH
+    file_search:
+      vector_store_ids:
+      - vs_7Z0MK1iUZco12paLKI7IhMWX
 
   temperature: 0.0001234
 
 description: |
   This is the planck_agent: a retrieval agent that provides assistance with Planck. 
-  
+
 
 allowed_transitions:
-  - admin  
+- admin

@@ -18,4 +18,3 @@ description: |
 
 allowed_transitions:
   - admin 
-  - engineer

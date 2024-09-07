@@ -47,3 +47,5 @@ cmbagent/data/classy/*.txt
 cmbagent/data/camb/*.yaml
 cmbagent/data/camb/*.txt 
 
+
+.env

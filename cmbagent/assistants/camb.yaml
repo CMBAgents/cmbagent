@@ -6,18 +6,17 @@ instructions: |
 assistant_config:
   assistant_id: asst_WZjBrCx7pfeILbUxnBydB9UM
   tools:
-    - type: file_search
+  - type: file_search
   tool_resources:
-    file_search: 
-      vector_store_ids: 
-        - vs_vsrcfiSBneY7J4WqobSPM9HF
+    file_search:
+      vector_store_ids:
+      - vs_EQC8HQPxNDxEHeu9lzwG3K45
 
 description: |
   A retrieval agent that suggests codes to help engineer run camb. 
   This agent does not write, suggest or run code. This agent does not write, suggest plan.
 
 allowed_transitions:
-  - admin 
-  - engineer
+- admin
 
 

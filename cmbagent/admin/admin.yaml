@@ -20,5 +20,6 @@ allowed_transitions:
   - camb_agent
   - classy_agent
   - classy_sz_agent
+  - cosmocnc_agent
 
 
