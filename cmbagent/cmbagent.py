@@ -82,6 +82,13 @@ class CMBAgent:
             #     }
             # }
             # }
+            # example for agent_temperature and agent_top_p:
+            # agent_temperature = {
+            # 'planck_agent': 0.000001
+            # }
+            # agent_top_p = {
+            # 'planck_agent': 0.1,
+            # }
             
             **kwargs: Additional keyword arguments.
 

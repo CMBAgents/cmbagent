@@ -72,7 +72,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_7Z0MK1iUZco12paLKI7IhMWX
+      - vs_OmsR9FUtjeFJ4oPFYaCHoIII
 
   temperature: 0.0001234
 

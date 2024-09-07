@@ -72,6 +72,7 @@ executor should not be selected unless admin says "execute".
 engineer should be selected to check for conflicts. 
 engineer should be selected to check code. 
 executor should be selected to execute. 
+planner should be the first agent to speak.
 """
 
 default_select_speaker_message_template = """
@@ -84,6 +85,7 @@ executor should not be selected unless admin says "execute".
 engineer should be selected to check for conflicts. 
 engineer should be selected to check code. 
 executor should be selected to execute. 
+planner should be the first agent to speak.
 """
 
 
