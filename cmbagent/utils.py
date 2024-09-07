@@ -8,7 +8,7 @@ from autogen.coding import LocalCommandLineCodeExecutor
 
 import autogen
 from autogen import AssistantAgent
-from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
+# from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent 
 
 from autogen import UserProxyAgent, config_list_from_json, GroupChat
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
