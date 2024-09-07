@@ -2,6 +2,19 @@
 
 Multi-agent system for cosmological data analysis
 
+Beta version: do not use unless you know what you are doing.
+
+Contributed by: 
+
+- Boris Bolliet (Cambridge)
+- Andrew Laverick (independent)
+- Inigo Zubeldia (Cambridge)
+- Kristen Surrao (Columbia)
+- Miles Cranmer (Cambridge)
+- Antony Lewis (Sussex)
+- Blake Sherwin (Cambridge)
+- Julien Lesgourgues (Aachen)
+
 ## Installation
 
 To install cmbagent, follow these steps:
