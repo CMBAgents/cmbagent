@@ -2,7 +2,7 @@
 
 Multi-agent system for cosmological data analysis
 
-Beta version: do not use unless you know what you are doing.
+**Beta version: do not use unless you know what you are doing.**
 
 Contributed by: 
 
