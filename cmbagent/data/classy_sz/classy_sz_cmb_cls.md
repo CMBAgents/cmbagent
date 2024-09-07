@@ -1,4 +1,6 @@
-# Intialize
+# How to compute and plot CMB Cl's with classy_sz
+
+## Intialize
 
 
 ```python
@@ -29,7 +31,7 @@ def l_to_dl(lp):
     return lp*(lp+1.)/2./np.pi
 ```
 
-# Compute CMB power spectra
+## Compute CMB power spectra
 
 
 ```python
@@ -58,7 +60,7 @@ cl_pp_fast = lensed_cls['pp']
 
 ```
 
-# Plot CMB power spectra
+## Plot CMB power spectra
 
 
 ```python
@@ -136,23 +138,12 @@ fig.tight_layout()
 
 ```
 
-
-    
-![png](output_6_0.png)
     
 
 
-# Time computation of CMB Cl's
+## Time computation of CMB Cl's
 
 
 ```python
 %timeit -n 5 classy_sz.compute_class_szfast()
-```
-
-    21 ms ± 575 µs per loop (mean ± std. dev. of 7 runs, 5 loops each)
-
-
-
-```python
-
 ```

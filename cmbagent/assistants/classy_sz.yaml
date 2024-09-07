@@ -27,6 +27,11 @@ instructions: |
   4. $\Omega_m$ is denoted as `omega_m`.
   5. $ln10^{10}A_s$ is denoted as `logA`.
 
+  #### Importing in Python
+
+  ```python
+  from classy_sz import Class as Class_sz
+  ```
 
   ### Example Response:
 
@@ -34,6 +39,7 @@ instructions: |
   - **Part 2**: [file1.txt, file2.txt]
   - **Part 3**:
   ```python
+  from classy_sz import Class as Class_sz
   classy_sz = Class_sz()
   classy_sz.set(cosmo_params)
   classy_sz.set({
@@ -44,15 +50,15 @@ instructions: |
   ```
   - **Part 4**: We will now solve <sub-task> with <agent name>.
 
-  
-assistant_config: 
+
+assistant_config:
   assistant_id: asst_boS3GbCxk0PuOcgGfHXQ18kw
   tools:
-    - type: file_search
+  - type: file_search
   tool_resources:
-    file_search: 
-      vector_store_ids: 
-        - vs_2XbcIkQTgdxDrv3ACdAHRiQt
+    file_search:
+      vector_store_ids:
+      - vs_ryUhR65JTWT8ONg5Ibb5Rjvl
 
 description: |
   This is the classy_sz_agent: a retrieval agent that provides assistance with classy_sz. 
@@ -61,4 +67,4 @@ description: |
   It knows how to set-up classy_sz.
 
 allowed_transitions:
-  - admin
+- admin

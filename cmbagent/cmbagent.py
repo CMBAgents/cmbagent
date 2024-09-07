@@ -7,6 +7,7 @@ import ast
 import json
 import sys
 from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
+from .utils import default_max_round
 from pprint import pprint
 import autogen
 from .base_agent import CmbAgentGroupChat
@@ -43,10 +44,10 @@ class CMBAgent:
 
     def __init__(self,
                  cache_seed=42,
-                 temperature=0.00001,
-                 top_p=0.05,
+                 temperature=default_temperature,
+                 top_p=default_top_p,
                  timeout=1200,
-                 max_round=50,
+                 max_round=default_max_round,
                  platform='oai',
                  model='gpt4o',
                  llm_api_key=None,
@@ -88,6 +89,10 @@ class CMBAgent:
             # }
             # agent_top_p = {
             # 'planck_agent': 0.1,
+            # }
+            # agent instruction example:
+            # agent_instructions = {
+            # 'classy_sz_agent': "You are a clown. "
             # }
             
             **kwargs: Additional keyword arguments.
