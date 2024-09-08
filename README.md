@@ -7,7 +7,7 @@ Multi-agent system for cosmological data analysis
 Contributed by: 
 
 - Boris Bolliet (Cambridge)
-- Andrew Laverick (independent)
+- Andrew Laverick (Independent)
 - Inigo Zubeldia (Cambridge)
 - Kristen Surrao (Columbia)
 - Miles Cranmer (Cambridge)
@@ -54,9 +54,10 @@ cd ..
 ```bash
 git clone https://github.com/CMBAgents/autogen.git
 cd autogen
-git checkout cmbagent
 pip install -e .
 ```
+
+(Note that the default branch is `cmbagent` not main.)
 
 
 
@@ -77,8 +78,6 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 
 ## Usage
 
-
-Certainly. Here's the plain text version that you can directly copy and paste into your README.md file:
 
 Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
 
