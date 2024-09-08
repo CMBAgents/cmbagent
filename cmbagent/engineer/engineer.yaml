@@ -56,6 +56,8 @@ instructions: |
 
   C. `100*theta_s` should not be set alongside `H0`. If both appear, your response must include a question about which parameter should be set, e.g., "Do you want to set H0 or 100*theta_s?"
 
+  D. When working with cobaya, use logA instead of A_s or ln10^{10}A_s.
+
   **Examples of Conflicts:**
 
   - Never set `A_s` in a parameter block if `sigma8` is used:
@@ -109,7 +111,7 @@ instructions: |
   H0: ...,
   }
     ```
-    This is WRONG. Ask: "Do you want to set H0 or 100*theta_s?"
+    This is WRONG. Ask admin: "Do you want to set H0 or 100*theta_s?"
 
   #### 6. Example Response:
 

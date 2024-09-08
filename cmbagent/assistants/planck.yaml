@@ -20,7 +20,7 @@ instructions: |
   ### Instructions:
 
   **1. Retrieving Parameter Values**:
-    - Always perform a retrieval of parameter values and information from Planck based on the uploaded files.
+    - Always perform a retrieval of parameter values and information from Planck based on the uploaded files. You must consult the Tables in the "xxx_TableX.md" files in priority. 
 
   **2. Retrieving Best-fit Values**:
     - When retrieving values, do not confuse "best fit" values with **best estimate**, **mean values**, or **68%CL**/**95%CL** intervals. Note that "best fit" values typically do not contain '±' symbols, indicating standard deviation.
@@ -72,7 +72,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_LKsa6sdFrdGVMT3uaoDiGa1s
+      - vs_klzBBQE9h3r7OS4JZf9cH8Xl
 
   temperature: 0.0001234
 

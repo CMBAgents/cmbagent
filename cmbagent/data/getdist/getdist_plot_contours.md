@@ -4,6 +4,9 @@
 To plot contours with getdist, use this strategy:
 
 ```python
+from getdist import plots,loadMCSamples
+import matplotlib.pyplot as plt
+
 chains_list = []
 
 path_to_chains = "/path/to/chainsA"
@@ -14,7 +17,7 @@ chains_list.append(path_to_chains)
 
 
 all_samples = []
-for i in range(len(path_to_chains)):
+for i in range(len(chains_list)):
     readsamps = loadMCSamples(chains_list[i],settings={'ignore_rows':0.3})
     all_samples.append(readsamps)
 
@@ -31,7 +34,8 @@ g.settings.figure_legend_frame = False
 
 g.settings.title_limit=0 #uncomment if you want to display marg stats.
 
-g.triangle_plot([readsamps,readsamps_dr6],
+g.triangle_plot(
+    all_samples,
     ['omch2','ombh2','logA','ns','H0','sigma8','S825'],
     filled=[True,False],
     legend_labels=['chainsA','chainsB'],
@@ -39,4 +43,8 @@ g.triangle_plot([readsamps,readsamps_dr6],
     colors = ['blue','red'],
     line_args=[{'lw':'1','color':'blue'},{'lw':'2','color':'red'}])
 
+plt.savefig('contour_plot.png')
+
 ```
+
+Make sure you use `loadMCSamples`. 

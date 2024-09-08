@@ -58,7 +58,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_eYcNzmDmCpHVtnELr8ccGKZB
+      - vs_WPlTFpbV7nPZOVU9KuxnhvtW
 
 description: |
   This is the classy_sz_agent: a retrieval agent that provides assistance with classy_sz. 

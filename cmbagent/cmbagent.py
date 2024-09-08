@@ -305,6 +305,11 @@ class CMBAgent:
         self.session = self.admin.agent.initiate_chat(self.manager,message = task)
 
 
+    def print_usage_summary(self):
+        # autogen.ChatCompletion.print_usage_summary()
+        print("Usage summary: TBD")
+        # print(self.manager.get_usage_summary())
+
 
     def restore(self):
 

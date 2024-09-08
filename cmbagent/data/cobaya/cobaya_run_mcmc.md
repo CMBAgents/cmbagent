@@ -108,3 +108,12 @@ Unless otherwise stated, we always specify `timing: False`.
 
 We also set `debug: False` to avoid printing out execution messages.
 
+
+## Setting up the covariance matrix
+
+If no covmat file is specified, always use: 
+```
+covmat: auto 
+```
+
+Never use `covmat: null` or `covmat: None`. 

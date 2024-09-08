@@ -211,22 +211,5 @@ params:
   chi2__BAO:
     latex: \chi^2_\mathrm{BAO}
     derived: true
-    
-sampler:
-  mcmc:
-    burn_in: 0
-    max_tries: 10000
-    covmat: auto
-    covmat_params: null
-    proposal_scale: 1.9
-    output_every: 60s
-    learn_every: 40d
-    learn_proposal: true
-    learn_proposal_Rminus1_max: 100.0
-    learn_proposal_Rminus1_max_early: 100.0
-    learn_proposal_Rminus1_min: 0.0
-
-    Rminus1_stop: 0.01
-
 ```
 
