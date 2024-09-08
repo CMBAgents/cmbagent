@@ -40,4 +40,3 @@ g.triangle_plot([readsamps,readsamps_dr6],
     line_args=[{'lw':'1','color':'blue'},{'lw':'2','color':'red'}])
 
 ```
-

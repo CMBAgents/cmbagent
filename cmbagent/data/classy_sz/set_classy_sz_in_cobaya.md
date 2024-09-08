@@ -13,3 +13,13 @@ The theory block should be set according as
 ```
 where classy_sz is called through **classy_szfast.classy_sz.classy_sz**
 
+
+# Classy_sz whth BAO likelihoods
+
+With BAO likelihoods, we need to set the following extra_args: 
+
+```python
+extra_args:
+  skip_chi : 0
+  skip_hubble: 0
+```

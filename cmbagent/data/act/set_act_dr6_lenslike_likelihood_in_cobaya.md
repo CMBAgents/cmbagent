@@ -1,4 +1,6 @@
-To set up the likelihood for ACT DR6 Lensing likelihood in cobaya, you need to use the dictionnary: 
+# How to set up the likelihood for ACT DR6 Lensing in cobaya
+
+To set up the likelihood for ACT DR6 Lensing in cobaya, you need to use the dictionnary: 
 
 ```python
 

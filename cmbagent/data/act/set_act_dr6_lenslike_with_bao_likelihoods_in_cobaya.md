@@ -1,4 +1,4 @@
-**EXAMPLE YAML FILE FOR COBAYA to run ACT DR6 Lensing**
+**EXAMPLE YAML configuration file for COBAYA to run ACT DR6 Lensing with Bao likelihoods**
 
 This is bits in the yaml file relevant to the analysis for lcdm_actplanck_baseline_167926925701
 
