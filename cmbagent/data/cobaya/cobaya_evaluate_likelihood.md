@@ -2,6 +2,8 @@
 
 Here how to structure the code when we are asked about evaluating a likelihood at some parameter values.
 
+## setting up configuration file with yaml package via python
+
 First, we write a yaml file. Then we use subprocess.run to run cobaya. 
 
 ```python

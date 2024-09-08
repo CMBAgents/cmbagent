@@ -251,9 +251,9 @@ class CMBAgent:
             
                 if agent.set_agent(**agent_kwargs) == 1:
 
-                    print(f"setting make_vector_stores=['{agent.name.rstrip('_agent')}'],")
+                    print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
                     
-                    self.push_vector_stores([agent.name.rstrip('_agent')], chunking_strategy, verbose = verbose)
+                    self.push_vector_stores([agent.name.removesuffix('_agent')], chunking_strategy, verbose = verbose)
 
                     agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
 

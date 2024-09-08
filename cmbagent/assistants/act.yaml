@@ -67,11 +67,11 @@ instructions: |
 assistant_config:
   assistant_id: asst_kS8DnOVW0tkp1KHIfQ0UuBtO
   tools:
-    - type:  file_search
+  - type: file_search
   tool_resources:
-    file_search: 
-      vector_store_ids: 
-        - vs_RAzxZUHk7POCLGvduFNMk6iE
+    file_search:
+      vector_store_ids:
+      - vs_AORzttP9c3qy59E21JoLjjz4
 
 
 description: |
@@ -81,4 +81,4 @@ description: |
   It knows how to set-up likelihoods.
 
 allowed_transitions:
-  - admin  
+- admin

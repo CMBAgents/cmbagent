@@ -117,6 +117,7 @@ instructions: |
   - **Part 2**: Resolved conflict by setting `omega_cdm` and removing `Omega_m`.
   - **Part 3**:
   ```python
+  from classy_sz import Class as Class_sz
   classy_sz = Class_sz()
   classy_sz.set({
   'H0': 67.4,
@@ -167,6 +168,26 @@ instructions: |
       json.dump(data, json_file, indent=4
   ```
   - This code is then executed by executor agent. 
+
+
+  #### 8. yaml and python
+
+  ```yaml
+  ....
+  ```
+  is not a valid code block. 
+
+  Instead use: 
+  ```python
+  import yaml
+  # Serializing the dictionary to a yaml formatted string
+  yaml_str = yaml.dump(config, default_flow_style=False)
+
+  # Writing the info to a yaml file
+  with open('config.yaml', 'w') as file:
+      file.write(yaml_str)
+  ```
+
  
 description: | 
   An engineer agent that writes the best possible Python code. 

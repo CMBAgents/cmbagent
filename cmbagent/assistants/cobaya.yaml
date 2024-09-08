@@ -23,11 +23,11 @@ instructions: |
 assistant_config:
   assistant_id: asst_kH7yoXJiTv5RC8niNnA5OiBi
   tools:
-    - type: file_search
+  - type: file_search
   tool_resources:
-    file_search: 
-      vector_store_ids: 
-        - vs_3LmKNwFIF8jEXsq9q1m4jUvh
+    file_search:
+      vector_store_ids:
+      - vs_07904FFb0zkRkLNQeZrAuuTf
 
 description: |
   This is the cobaya_agent: a retrieval agent that provides assistance with cobaya. 
@@ -37,5 +37,5 @@ description: |
 
 
 allowed_transitions:
-  - admin
+- admin
 

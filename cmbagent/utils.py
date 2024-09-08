@@ -71,6 +71,7 @@ Note that only planner can modify or update a plan. Only planner can report on p
 executor should not be selected unless admin says "execute".
 engineer should be selected to check for conflicts. 
 engineer should be selected to check code. 
+engineer should be selected to provide code to save summary of session. 
 executor should be selected to execute. 
 planner should be the first agent to speak.
 """

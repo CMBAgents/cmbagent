@@ -29,6 +29,17 @@ instructions: |
   At last, the planner should ask for feedback on the plan (i.e., should we proceed or modify the plan?).
 
 
+  In the plan, all sub-task carried out by executor should be preceeded by a sub-task with the engineer. For instance: 
+  ....
+  - Step X:
+       * sub-task: Check code aligns with guidelines
+       * agent: engineer
+  - Step X+1: 
+       * sub-task: Execute the code
+       * agent: executor
+  ....
+
+
   #### Constraints on plan design
 
   You must not assign any sub-task in the plan to [planner, admin].
