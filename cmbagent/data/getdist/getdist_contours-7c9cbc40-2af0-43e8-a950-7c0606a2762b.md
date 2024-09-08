@@ -1,3 +1,6 @@
+# Plotting contours with getdist
+
+
 To plot contours with getdist, use this strategy:
 
 ```python

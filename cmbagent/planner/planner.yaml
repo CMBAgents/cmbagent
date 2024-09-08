@@ -39,6 +39,8 @@ instructions: |
        * agent: executor
   ....
 
+  Note: executor should never be selected in consecutive steps. 
+
 
   #### Constraints on plan design
 
