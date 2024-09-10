@@ -26,7 +26,8 @@ setup(
                       "camb",
                       "cobaya",
                       "getdist",
-                      "pyautogen @ git+https://github.com/CMBAgents/autogen"
+                      "pyautogen @ git+https://github.com/CMBAgents/autogen",
+                      "ruamel",
                       ],
 
     extras_require={

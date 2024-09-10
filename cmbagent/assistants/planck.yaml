@@ -72,7 +72,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_klzBBQE9h3r7OS4JZf9cH8Xl
+      - vs_mySQLgfZ0Kiwelq6VjM35d3M
 
   temperature: 0.0001234
 
