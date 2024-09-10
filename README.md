@@ -1,4 +1,7 @@
+
 # cmbagent
+
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Multi-agent system for cosmological data analysis, powered by [autogen](https://github.com/autogen-ai/autogen).
 
