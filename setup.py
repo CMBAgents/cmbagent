@@ -28,6 +28,7 @@ setup(
                       "getdist",
                       "pyautogen @ git+https://github.com/CMBAgents/autogen",
                       "ruamel.yaml",
+                      "dask[dataframe]"
                       ],
 
     extras_require={
