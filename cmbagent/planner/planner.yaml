@@ -39,10 +39,7 @@ instructions: |
        * agent: executor
   ....
 
-  Note: executor should never be selected in consecutive steps. 
-
-  Engineer (and executor) should never be selected when the main task does not involve coding.
-
+  Note: if executor agent is present, executor should never be selected in consecutive steps in the plan. 
 
   #### Constraints on plan design
 
