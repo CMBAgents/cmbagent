@@ -140,7 +140,7 @@ cmbagent uses cache to speed up the process and reduce costs when asking the sam
 cmbagent.clear_cache()
 ```
 
-## For developers
+## For cosmologist developers
 
 For all dependencies to be installed, use:
 
