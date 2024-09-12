@@ -3,7 +3,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Multi-agent system for cosmological data analysis, powered by [autogen](https://github.com/autogen-ai/autogen).
+Multi-agent system for data analytics, made by cosmologists, powered by [autogen](https://github.com/autogen-ai/autogen).
 
 **Beta version: do not use unless you know what you are doing.**
 
