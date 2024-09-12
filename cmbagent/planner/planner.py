@@ -10,9 +10,9 @@ class PlannerAgent(BaseAgent):
         super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
 
 
-    def set_agent(self):
+    def set_agent(self,**kwargs):
 
-        super().set_assistant_agent()
+        super().set_assistant_agent(**kwargs)
 
 
 

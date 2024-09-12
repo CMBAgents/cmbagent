@@ -155,10 +155,11 @@ class CMBAgent:
                  agent_top_p = None,
                 #  vector_store_ids = None,
                  chunking_strategy = None,
-                 select_speaker_prompt_template = None,
-                 select_speaker_message_template = None,
+                 select_speaker_prompt = None,
+                 select_speaker_message = None,
                  intro_message = None,
                  set_allowed_transitions = None,
+                 skip_executor = False,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
@@ -237,6 +238,8 @@ class CMBAgent:
 
         self.kwargs = kwargs
 
+        self.skip_executor = skip_executor
+
         # self.make_new_rag_agents = make_new_rag_agents
         self.set_allowed_transitions = set_allowed_transitions
 
@@ -314,6 +317,10 @@ class CMBAgent:
         # then we set the agents
         for agent in self.agents:
 
+            if self.skip_executor:
+                if agent.name == 'executor':
+                    continue
+
             print(f"\t- {agent.name}")
 
             instructions = agent_instructions[agent.name] if agent_instructions and agent.name in agent_instructions else None
@@ -383,11 +390,15 @@ class CMBAgent:
 
             self.show_allowed_transitions()
 
+        if self.verbose:
+            print("Planner instructions:")
+
+            print(self.planner.info['instructions'])
 
 
 
-        select_speaker_prompt_template = select_speaker_prompt_template if select_speaker_prompt_template else default_select_speaker_prompt_template
-        select_speaker_message_template = select_speaker_message_template if select_speaker_message_template else default_select_speaker_message_template
+        select_speaker_prompt_template = select_speaker_prompt if select_speaker_prompt else default_select_speaker_prompt_template
+        select_speaker_message_template = select_speaker_message if select_speaker_message else default_select_speaker_message_template
         groupchat_intro_message = intro_message if intro_message else default_groupchat_intro_message
 
 
@@ -689,7 +700,7 @@ class CMBAgent:
     def init_agents(self):
 
         imported_rag_agents = import_rag_agents()
-        print('imported_rag_agents: ', imported_rag_agents)
+        # print('imported_rag_agents: ', imported_rag_agents)
         # print("making new rag agents: ", self.make_new_rag_agents)
         # make_rag_agents(self.make_new_rag_agents)
         # imported_rag_agents = import_rag_agents()
@@ -711,6 +722,7 @@ class CMBAgent:
 
 
         ### by default are always here
+        
         self.engineer = EngineerAgent(llm_config=self.llm_config)
         self.planner = PlannerAgent(llm_config=self.llm_config)
         self.executor = ExecutorAgent(llm_config=self.llm_config)
@@ -720,10 +732,13 @@ class CMBAgent:
 
 
         # all agents
+
         self.agents = [self.admin,
                        self.planner,
-                       self.engineer,
-                       self.executor]
+                       self.engineer]
+        
+        if not self.skip_executor:
+            self.agents.append(self.executor)
 
         if self.agent_list is None:
 
@@ -751,6 +766,9 @@ class CMBAgent:
         agent_keys = self.agent_classes.keys()
 
         self.agent_names =  [f"{key}_agent" if key not in ['engineer', 'planner', 'executor', 'admin'] else key for key in agent_keys]
+
+        if self.skip_executor:
+            self.agent_names.remove('executor')
 
         if self.verbose:
 
@@ -861,13 +879,6 @@ class CMBAgent:
 
         # commenting for now
         # self.planner.info['instructions'] += available_agents + '\n\n' #+ all_allowed_transitions
-
-
-        if self.verbose:
-            print("Planner instructions:")
-
-            print(self.planner.info['instructions'])
-
 
         return
 
