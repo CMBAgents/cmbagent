@@ -7,7 +7,7 @@ import ast
 import json
 import sys
 from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
-from .utils import default_max_round
+from .utils import default_max_round, default_groupchat_intro_message
 from pprint import pprint
 import autogen
 from .base_agent import CmbAgentGroupChat
@@ -15,17 +15,112 @@ from .base_agent import CmbAgentGroupChat
 # import yaml
 from ruamel.yaml import YAML
 
-imported_rag_agents = {}
-for filename in os.listdir(path_to_assistants):
-    if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
-        module_name = filename[:-3]  # Remove the .py extension
-        class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
-        module_path = f"cmbagent.assistants.{module_name}"
-        module = importlib.import_module(module_path)
-        agent_class = getattr(module, class_name)
-        imported_rag_agents[class_name] = {}
-        imported_rag_agents[class_name]['agent_class'] = agent_class
-        imported_rag_agents[class_name]['agent_name'] = module_name
+def import_rag_agents():        
+    imported_rag_agents = {}
+    for filename in os.listdir(path_to_assistants):
+        if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
+            module_name = filename[:-3]  # Remove the .py extension
+            class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
+            module_path = f"cmbagent.assistants.{module_name}"
+            module = importlib.import_module(module_path)
+            agent_class = getattr(module, class_name)
+            imported_rag_agents[class_name] = {}
+            imported_rag_agents[class_name]['agent_class'] = agent_class
+            imported_rag_agents[class_name]['agent_name'] = module_name
+    return imported_rag_agents
+
+def make_rag_agents(make_new_rag_agents):
+    """
+    Create new RAG agents based on the provided list of agent names.
+
+    This function generates Python and YAML files for each new agent specified
+    in the 'make_new_rag_agents' list. It creates:
+    1. A Python file with a basic agent class structure.
+    2. A YAML file with initial configuration for the agent.
+    3. A data folder for each agent to store relevant files.
+
+    Args:
+        make_new_rag_agents (list): A list of strings, where each string is the
+                                    name of a new agent to be created.
+
+    Returns:
+        dict: A dictionary where keys are agent names and values are paths to
+              their respective data folders.
+
+    Note:
+    - The Python file will contain a class definition inheriting from BaseAgent.
+    - The YAML file will include basic configuration like name, instructions,
+      and tool definitions.
+    - Existing files with the same names will be overwritten.
+    - A new data folder is created for each agent in the assistants directory.
+    """
+    data_folders = {}
+    for agent_name in make_new_rag_agents:
+        # Create the Python file for the agent
+        agent_file_path = os.path.join(path_to_assistants, f"{agent_name}.py")
+        with open(agent_file_path, "w") as f:
+            f.write(f"""import os
+from cmbagent.base_agent import BaseAgent
+
+
+class {agent_name.capitalize()}Agent(BaseAgent):
+
+    def __init__(self, llm_config=None, **kwargs):
+
+        agent_id = os.path.splitext(os.path.abspath(__file__))[0]
+
+        super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
+""")
+
+        # Create the YAML file for the agent
+        yaml = YAML()
+        yaml.preserve_quotes = True
+        yaml.indent(mapping=2, sequence=4, offset=2)
+        
+        yaml_file_path = os.path.join(path_to_assistants, f"{agent_name}.yaml")
+
+        yaml_content = {
+            "name": f"{agent_name}_agent",
+            "instructions": f"You are the {agent_name}_agent in the team. Your role is to assist with tasks related to {agent_name}.",
+            "assistant_config": {
+                "assistant_id": "asst_ijk",
+                "tools": [
+                    {
+                        "type": "file_search"
+                    }
+                ],
+                "tool_resources": {
+                    "file_search": {
+                        "vector_store_ids": [
+                            "vs_xyz"
+                        ]
+                    }
+                }
+            },
+            "description": f"This is the {agent_name}_agent: a retrieval agent that provides assistance with {agent_name.upper()}. It must perform retrieval augmented generation and include the <filenames> in the response.",
+            "allowed_transitions": [
+                "admin"
+            ]
+        }
+        
+        with open(yaml_file_path, "w") as f:
+            yaml.dump(yaml_content, f)
+
+        print(f"Created {agent_name} agent files: {agent_file_path} and {yaml_file_path}")
+        # Create a folder for the agent's data
+        agent_data_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', agent_name)
+        os.makedirs(agent_data_folder, exist_ok=True)
+        print(f"Created data folder for {agent_name} agent: {agent_data_folder}")
+        print(f"Please deposit any relevant files for the {agent_name} agent in this folder.")
+
+    # Return a dictionary with the full paths to the agent data folders
+    data_folders = {}
+    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+    for agent_folder in os.listdir(data_dir):
+        full_path = os.path.join(data_dir, agent_folder)
+        if os.path.isdir(full_path):
+            data_folders[agent_folder] = full_path
+    return data_folders
 
 
 from cmbagent.engineer.engineer import EngineerAgent
@@ -55,10 +150,16 @@ class CMBAgent:
                  agent_list = None,
                  verbose = False,
                  agent_instructions = None,
+                 agent_descriptions = None,
                  agent_temperature = None,
                  agent_top_p = None,
                 #  vector_store_ids = None,
                  chunking_strategy = None,
+                 select_speaker_prompt_template = None,
+                 select_speaker_message_template = None,
+                 intro_message = None,
+                 set_allowed_transitions = None,
+                #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
         Initialize the CMBAgent.
@@ -94,6 +195,7 @@ class CMBAgent:
             # agent_instructions = {
             # 'classy_sz_agent': "You are a clown. "
             # }
+            make_new_rag_agents (list of strings, optional): List of names for new rag agents to be created. Defaults to False.
             
             **kwargs: Additional keyword arguments.
 
@@ -134,6 +236,9 @@ class CMBAgent:
 
 
         self.kwargs = kwargs
+
+        # self.make_new_rag_agents = make_new_rag_agents
+        self.set_allowed_transitions = set_allowed_transitions
 
         self.vector_store_ids = None
 
@@ -213,11 +318,17 @@ class CMBAgent:
 
             instructions = agent_instructions[agent.name] if agent_instructions and agent.name in agent_instructions else None
 
+            description = agent_descriptions[agent.name] if agent_descriptions and agent.name in agent_descriptions else None
+
             agent_kwargs = {}
 
             if instructions is not None:
 
                 agent_kwargs['instructions'] = instructions
+
+            if description is not None:
+
+                agent_kwargs['description'] = description
 
             if agent.name not in self.non_rag_agents:
 
@@ -275,6 +386,10 @@ class CMBAgent:
 
 
 
+        select_speaker_prompt_template = select_speaker_prompt_template if select_speaker_prompt_template else default_select_speaker_prompt_template
+        select_speaker_message_template = select_speaker_message_template if select_speaker_message_template else default_select_speaker_message_template
+        groupchat_intro_message = intro_message if intro_message else default_groupchat_intro_message
+
 
         self.groupchat = CmbAgentGroupChat(
                                 agents=[agent.agent for agent in self.agents],
@@ -286,9 +401,11 @@ class CMBAgent:
                                 select_speaker_auto_verbose=False,#self.verbose,
                                 send_introductions=True,
                                 admin_name="admin",
-                                select_speaker_prompt_template=default_select_speaker_prompt_template,
-                                select_speaker_message_template=default_select_speaker_message_template
+                                select_speaker_prompt_template=select_speaker_prompt_template,
+                                select_speaker_message_template=select_speaker_message_template,
                                 )
+        
+        self.groupchat.DEFAULT_INTRO_MSG  = groupchat_intro_message
 
 
 
@@ -359,6 +476,30 @@ class CMBAgent:
                 transition_list.append(self.get_agent_from_name(name))
 
             allowed_transitions[agent.agent] = transition_list
+
+        if self.set_allowed_transitions is not None:
+            
+            for name in self.set_allowed_transitions.keys():
+
+                if name not in self.agent_names:
+                    print(f"get_allowed_transitions: agent {name} not found")
+                    break
+
+                transition_list = []
+
+                for name_out in self.set_allowed_transitions[name]:
+
+                    if name_out not in self.agent_names:
+                        print(f"get_allowed_transitions: agent {name_out} not found")
+                        break
+
+
+
+                    transition_list.append(self.get_agent_from_name(name_out))
+
+                if transition_list:
+                    
+                    allowed_transitions[self.get_agent_from_name(name)] = transition_list
 
         return allowed_transitions
 
@@ -547,6 +688,13 @@ class CMBAgent:
 
     def init_agents(self):
 
+        imported_rag_agents = import_rag_agents()
+        print('imported_rag_agents: ', imported_rag_agents)
+        # print("making new rag agents: ", self.make_new_rag_agents)
+        # make_rag_agents(self.make_new_rag_agents)
+        # imported_rag_agents = import_rag_agents()
+        # print('imported_rag_agents: ', imported_rag_agents)
+
         self.agent_classes = {}
 
         for k in imported_rag_agents.keys():
@@ -711,8 +859,8 @@ class CMBAgent:
 
 
 
-
-        self.planner.info['instructions'] += available_agents + '\n\n' #+ all_allowed_transitions
+        # commenting for now
+        # self.planner.info['instructions'] += available_agents + '\n\n' #+ all_allowed_transitions
 
 
         if self.verbose:

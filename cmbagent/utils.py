@@ -75,6 +75,8 @@ engineer should be selected to provide code to save summary of session.
 executor should be selected to execute. 
 planner should be the first agent to speak.
 """
+### note that we hardcoded the requirement that planner speaks first. 
+
 
 default_select_speaker_message_template = """
 You are in a role play game about cosmological data analysis. The following roles are available:

@@ -15,7 +15,9 @@ class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor
     }
 
 class CmbAgentGroupChat(GroupChat):
-    DEFAULT_INTRO_MSG = default_groupchat_intro_message
+    cost = 0
+    # DEFAULT_INTRO_MSG = default_groupchat_intro_message
+
 
 
 class BaseAgent:
@@ -37,7 +39,9 @@ class BaseAgent:
 
 
 
-    def set_agent(self,instructions=None, vector_store_ids=None, agent_temperature=None, agent_top_p=None):
+    def set_agent(self,instructions=None, description=None,
+                  vector_store_ids=None, agent_temperature=None, 
+                  agent_top_p=None):
 
     
         # print('setting agent: ',self.name)
@@ -47,6 +51,10 @@ class BaseAgent:
         if instructions is not None:
 
             self.info["instructions"] = instructions
+
+        if description is not None:
+
+            self.info["description"] = description
 
         if vector_store_ids is not None:
 
@@ -98,11 +106,15 @@ class BaseAgent:
 
 
 
-    def set_assistant_agent(self,instructions=None):
+    def set_assistant_agent(self,instructions=None, description=None):
 
         if instructions is not None:
 
             self.info["instructions"] = instructions
+
+        if description is not None:
+
+            self.info["description"] = description
 
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")
