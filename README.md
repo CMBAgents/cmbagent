@@ -8,7 +8,7 @@ Multi-agent system for data analysis, made by cosmologists, powered by [autogen]
 
 **Beta version: do not use unless you know what you are doing.**
 
-See our examples here to have a preview of our work: [cmbagent.ipynb](https://github.com/CMBAgents/cmbagent/blob/main/notebooks/cmbagent.ipynb)
+See our examples here to have a preview of our work: [cmbagent.ipynb](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent.ipynb)
 
 Contributed by: 
 
