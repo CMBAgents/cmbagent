@@ -11,7 +11,7 @@ setup(
     description="A small package for XYZ functionality",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/cmbagent",
+    url="https://github.com/CMBAgents/cmbagent",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

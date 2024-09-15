@@ -49,3 +49,7 @@ cmbagent/data/camb/*.txt
 
 
 .env
+*bor11031990*
+
+
+docs/_*
