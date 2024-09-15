@@ -11,13 +11,6 @@ Welcome to cmbagent's documentation!
    :caption: Contents:
 
 
-   ../notebooks/1_getting_started
+   notebooks/1_getting_started
 
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
