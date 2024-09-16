@@ -20,6 +20,8 @@ Welcome to cmbagent's documentation!
 
    notebooks/1_getting_started
    notebooks/2_stat_class
+   notebooks/3_two_agents_chat
+   notebooks/4_your_rag
 
 
 
