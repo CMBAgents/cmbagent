@@ -19,7 +19,7 @@ Welcome to cmbagent's documentation!
 
 
    notebooks/1_getting_started
-   notebooks/2_advanced_usage
+   notebooks/2_stat_class
 
 
 
