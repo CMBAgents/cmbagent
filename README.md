@@ -1,12 +1,14 @@
 
 # cmbagent
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagents/badge/?version=latest)](https://cmbagentss.readthedocs.io/en/latest/?badge=latest)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagents/badge/?version=latest)](https://cmbagents.readthedocs.io/en/latest/?badge=latest)
 
 
 Multi-agent system for data analysis, made by cosmologists, powered by [autogen](https://github.com/autogen-ai/autogen).
 
-**Beta version: do not use unless you know what you are doing.**
+This software is under MIT license. We bare no responsibility for any misuse of this software or its outputs.
+
+
 
 See our examples here to have a preview of our work: [cmbagent.ipynb](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent.ipynb)
 
