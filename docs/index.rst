@@ -7,16 +7,22 @@ Welcome to cmbagent's documentation!
 ====================================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :caption: Getting Started
 
-
-   notebooks/1_getting_started
+   README.md
 
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Getting Started
+   :maxdepth: 2
+   :caption: Examples
 
 
+   notebooks/1_getting_started
    notebooks/2_advanced_usage
+
+
+
+
+
+   
