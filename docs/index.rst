@@ -14,3 +14,9 @@ Welcome to cmbagent's documentation!
    notebooks/1_getting_started
 
 
+.. toctree::
+   :maxdepth: 3
+   :caption: Getting Started
+
+
+   notebooks/2_advanced_usage
