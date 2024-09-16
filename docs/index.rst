@@ -17,7 +17,7 @@ cmbagent
    :maxdepth: 2
    :caption: Examples
 
-
+   notebooks/cmbagent
    notebooks/1_getting_started
    notebooks/2_stat_class
    notebooks/3_two_agents_chat
