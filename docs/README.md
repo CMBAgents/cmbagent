@@ -3,7 +3,7 @@
 
 Multi-agent system for data analysis, made by cosmologists, powered by [autogen](https://github.com/autogen-ai/autogen).
 
-> **Note:** This software is under MIT license. We bare no responsibility for any misuse of this software or its outputs.
+> **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
 See our examples [here](https://cmbagent.readthedocs.io/en/latest/notebooks/cmbagent.html) to have a preview of our work.
 
