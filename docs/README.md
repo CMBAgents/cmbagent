@@ -1,24 +1,3 @@
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagent/badge/?version=latest)](https://cmbagent.readthedocs.io/en/latest/?badge=latest)
-
-
-Multi-agent system for data analysis, made by cosmologists, powered by [autogen](https://github.com/autogen-ai/autogen).
-
-> **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
-
-See our examples [here](https://cmbagent.readthedocs.io/en/latest/notebooks/cmbagent.html) to have a preview of our work.
-
-
-Contributed by: 
-
-- Boris Bolliet (Cambridge)
-- Andrew Laverick (Independent)
-- Inigo Zubeldia (Cambridge)
-- Kristen Surrao (Columbia)
-- Miles Cranmer (Cambridge)
-- Antony Lewis (Sussex)
-- Blake Sherwin (Cambridge)
-- Julien Lesgourgues (Aachen)
-
 ## Installation
 
 To install cmbagent, follow these steps:
