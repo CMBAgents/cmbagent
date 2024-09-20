@@ -6,6 +6,9 @@ import requests
 import ast
 import json
 import sys
+import pandas as pd
+from IPython.display import display
+from collections import defaultdict
 from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
 from .utils import default_max_round, default_groupchat_intro_message
 from pprint import pprint
@@ -424,13 +427,31 @@ class CMBAgent:
                                                 llm_config=self.llm_config)
 
 
-        for agent in self.groupchat.agents:
+        for agent in self.groupchat.agents: 
 
             agent.reset()
+    
+
+    def display_cost(self):
+        # display full cost dictionary
+        cost_dict = defaultdict(list)
+        for agent in self.agents:
+            if hasattr(agent.agent, 'cost_dict'):
+                cost_dict['Agent'] += agent.agent.cost_dict['Agent']
+                cost_dict['Cost'] += agent.agent.cost_dict['Cost']
+                cost_dict['Prompt Tokens'] += agent.agent.cost_dict['Prompt Tokens']
+                cost_dict['Completion Tokens'] += agent.agent.cost_dict['Completion Tokens']
+                cost_dict['Total Tokens'] += agent.agent.cost_dict['Total Tokens']
+        display(pd.DataFrame(cost_dict))
+        return
+
 
     def solve(self, task):
 
         self.session = self.admin.agent.initiate_chat(self.manager,message = task)
+
+        # display full cost dictionary
+        self.display_cost()
 
 
     def print_usage_summary(self):
