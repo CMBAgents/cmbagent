@@ -12,6 +12,8 @@ instructions: |
 
   (You may also be asked to provide a summmary)
 
+  Step 1 of the plan should always use the memory agent to check if similar tasks have been solved in the past.
+
   #### Plan
 
   The plan should have the following structure: 

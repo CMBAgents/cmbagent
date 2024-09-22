@@ -7,6 +7,7 @@ import ast
 import json
 import sys
 import pandas as pd
+import numpy as np
 from IPython.display import display
 from collections import defaultdict
 from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
@@ -14,6 +15,10 @@ from .utils import default_max_round, default_groupchat_intro_message
 from pprint import pprint
 import autogen
 from .base_agent import CmbAgentGroupChat
+from cmbagent.engineer.engineer import EngineerAgent
+from cmbagent.planner.planner import PlannerAgent
+from cmbagent.executor.executor import ExecutorAgent
+from cmbagent.admin.admin import AdminAgent
 
 # import yaml
 from ruamel.yaml import YAML
@@ -125,11 +130,6 @@ class {agent_name.capitalize()}Agent(BaseAgent):
             data_folders[agent_folder] = full_path
     return data_folders
 
-
-from cmbagent.engineer.engineer import EngineerAgent
-from cmbagent.planner.planner import PlannerAgent
-from cmbagent.executor.executor import ExecutorAgent
-from cmbagent.admin.admin import AdminAgent
 
 
 
@@ -444,6 +444,33 @@ class CMBAgent:
                 cost_dict['Total Tokens'] += agent.agent.cost_dict['Total Tokens']
         display(pd.DataFrame(cost_dict))
         return
+    
+
+    def update_memory_agent(self):
+        
+        response = input('Do you want to save this task summary to the "memory agent" vector stores? This will aid you and others in solving similar tasks in the future. Type "yes" or "no". ').strip().lower()
+        
+        if 'yes' not in response:
+            print('Task summary not added to memory agent\'s vector stores.')
+            return
+        
+        previous_state = f"{self.groupchat.messages}"
+
+        # Convert string to Python dictionary
+        dict_representation = ast.literal_eval(previous_state)
+
+        # Convert dictionary to JSON string and save file
+        json_string = json.dumps(dict_representation)
+        id = ''.join(map(str, np.random.randint(0, 9, 16))) # currently a random number, TODO: update based on existing file in data
+        with open(os.path.dirname(os.path.realpath(__file__)) + '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
+            json.dump(json_string, json_file, indent=4)
+
+        # Push to memory agent vector store
+        self.push_vector_stores(['memory'], None, verbose = False)
+        print('Updated memory agent\'s vector stores.')
+
+        return
+        
 
 
     def solve(self, task):
@@ -452,6 +479,9 @@ class CMBAgent:
 
         # display full cost dictionary
         self.display_cost()
+
+        # ask user if they want to update memory agent
+        self.update_memory_agent()
 
 
     def print_usage_summary(self):

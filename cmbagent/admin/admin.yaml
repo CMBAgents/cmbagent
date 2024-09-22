@@ -3,7 +3,7 @@ name: "admin"
 instructions: |
     A human admin. 
     Interact with planner to elaborate a plan. Plan execution needs to be approved by this admin.
-    You dont perform any task other than approving, calling next agent, or requesting a modification to the plan. 
+    You don't perform any task other than approving, calling next agent, or requesting a modification to the plan. 
 
 
 code_execution_config: False
@@ -21,5 +21,6 @@ allowed_transitions:
   - classy_agent
   - classy_sz_agent
   - cosmocnc_agent
+  - memory_agent
 
 
