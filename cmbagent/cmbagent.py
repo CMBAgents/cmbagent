@@ -7,7 +7,7 @@ import ast
 import json
 import sys
 import pandas as pd
-import numpy as np
+import datetime
 from IPython.display import display
 from collections import defaultdict
 from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
@@ -448,7 +448,7 @@ class CMBAgent:
 
     def update_memory_agent(self):
         
-        response = input('Do you want to save this task summary to the "memory agent" vector stores? This will aid you and others in solving similar tasks in the future. Type "yes" or "no". ').strip().lower()
+        response = input('''Do you want to save this task summary to the "memory agent" vector stores? This will aid you and others in solving similar tasks in the future. Please only save the task if it has been completed successfully. Type "yes" or "no". ''').strip().lower()
         
         if 'yes' not in response:
             print('Task summary not added to memory agent\'s vector stores.')
@@ -461,7 +461,7 @@ class CMBAgent:
 
         # Convert dictionary to JSON string and save file
         json_string = json.dumps(dict_representation)
-        id = ''.join(map(str, np.random.randint(0, 9, 16))) # currently a random number, TODO: update based on existing file in data
+        id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
         with open(os.path.dirname(os.path.realpath(__file__)) + '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
             json.dump(json_string, json_file, indent=4)
 
