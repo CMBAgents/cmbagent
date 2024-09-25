@@ -491,6 +491,20 @@ class CMBAgent:
 
 
     def restore(self):
+        """
+        Restore the previous state of the group chat. 
+
+        This method restores the previous state of the group chat by:
+        1. Converting the stored messages back to a Python dictionary.
+        2. Converting the dictionary to a JSON string.
+        3. Resuming the group chat manager with the restored messages.
+        4. Initiating a new chat session with the last active agent and message.
+
+        Returns:
+            None
+        """
+
+        
 
         previous_state = f"{self.groupchat.messages}"
 
