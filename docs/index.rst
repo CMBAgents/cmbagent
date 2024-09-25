@@ -48,6 +48,7 @@ Contributed by:
    notebooks/2_stat_class
    notebooks/3_two_agents_chat
    notebooks/4_your_rag
+   notebooks/5_memory_agent
 
 
 
