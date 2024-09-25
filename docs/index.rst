@@ -6,6 +6,11 @@
 cmbagent
 ====================================
 
+.. image:: https://img.shields.io/github/stars/CMBAgents/cmbagent?style=social
+   :target: https://github.com/CMBAgents/cmbagent
+   :alt: GitHub stars
+
+
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
    :target: LICENSE
    :alt: License
