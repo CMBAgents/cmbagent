@@ -53,3 +53,4 @@ cmbagent/data/camb/*.txt
 
 
 docs/_*
+output/cmb_tt_power_spectrum.png
