@@ -1,13 +1,26 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel","Cython>=0.29.21"]
 build-backend = "setuptools.build_meta"
 
 [project]
 dynamic = ["version"]
 name = "cmbagent"
-maintainers = [{name = "CMBAgents Team",email="cmbagents@gmail.com"}]
+maintainers = [{name = "CMBAgents Team", email = "cmbagents@gmail.com"}]
 description = "Multi-agent system for data analysis, made by cosmologists, powered by autogen."
-readme = "https://github.com/CMBAgents/cmbagent/blob/main/README.md"
+readme = {file = "README.md", content-type = "text/markdown"}
+requires-python = ">=3.6"  # Specify the Python version requirement here
+dependencies = [
+    "numpy>=1.19.0",
+    "camb",
+    "cobaya",
+    "getdist",
+    "classy_sz",
+    "cmbagent_autogen",
+    "ruamel.yaml",
+    "pandas",
+]
+
+
 
 [project.urls]
 Homepage = "https://github.com/CMBAgents/cmbagent"

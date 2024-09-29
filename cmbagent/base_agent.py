@@ -1,6 +1,6 @@
 import os 
 import logging
-import autogen
+
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,work_dir,GroupChat,default_groupchat_intro_message
 import sys
 

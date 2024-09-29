@@ -4,14 +4,14 @@ from openai import OpenAI
 
 from pprint import pprint
 
-from autogen.coding import LocalCommandLineCodeExecutor
+from cmbagent_autogen.coding import LocalCommandLineCodeExecutor
 
-import autogen
-from autogen import AssistantAgent
+import cmbagent_autogen as autogen
+from cmbagent_autogen import AssistantAgent
 # from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent 
 
-from autogen import UserProxyAgent, config_list_from_json, GroupChat
-from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+from cmbagent_autogen import UserProxyAgent, config_list_from_json, GroupChat
+from cmbagent_autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
 from cobaya.yaml import yaml_load_file, yaml_load
 

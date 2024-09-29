@@ -1,8 +1,8 @@
 import os
 import logging
 import importlib
-import autogen
 import requests
+import cmbagent_autogen 
 import ast
 import json
 import sys
@@ -13,7 +13,6 @@ from collections import defaultdict
 from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
 from .utils import default_max_round, default_groupchat_intro_message
 from pprint import pprint
-import autogen
 from .base_agent import CmbAgentGroupChat
 from cmbagent.engineer.engineer import EngineerAgent
 from cmbagent.planner.planner import PlannerAgent
@@ -260,7 +259,7 @@ class CMBAgent:
 
         self.path_to_assistants = path_to_assistants
 
-        self.logger.info(f"Autogen version: {autogen.__version__}")
+        self.logger.info(f"Autogen version: {cmbagent_autogen.__version__}")
 
         llm_config = config_list_from_json(f"{path_to_apis}/{platform}_{model}.json")
 
@@ -423,7 +422,7 @@ class CMBAgent:
 
 
 
-        self.manager = autogen.GroupChatManager(groupchat=self.groupchat,
+        self.manager = cmbagent_autogen.GroupChatManager(groupchat=self.groupchat,
                                                 llm_config=self.llm_config)
 
 
@@ -893,7 +892,7 @@ class CMBAgent:
 
 
     def clear_cache(self):
-        autogen.Completion.clear_cache(self.cache_seed)
+        cmbagent_autogen.Completion.clear_cache(self.cache_seed)
 
 
     def hello_cmbagent(self):
