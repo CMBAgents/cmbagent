@@ -125,11 +125,3 @@ For all dependencies to be installed, use:
 ```bash
 pip install -e .[dev]
 ```
-
-If you use the dev version, update OpenAI to the latest version:
-
-```bash
-pip install --upgrade openai
-```
-
-(this is due to a tensorflow compatibility issues with cosmopower.)

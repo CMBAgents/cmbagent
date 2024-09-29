@@ -1,5 +1,9 @@
 include LICENSE
 include README.md
-
-
-
+recursive-exclude cmbagent/output *
+recursive-exclude cmbagent/cmbagent/data *
+global-exclude __pycache__/
+global-exclude *.py[cod]
+global-exclude *.egg-info/
+global-exclude .DS_Store
+recursive-exclude cmbagent/docs * 

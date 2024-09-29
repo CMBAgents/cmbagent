@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dynamic = ["version"]
+name = "cmbagent"
+maintainers = [{name = "CMBAgents Team",email="cmbagents@gmail.com"}]
+description = "Multi-agent system for data analysis, made by cosmologists, powered by autogen."
+readme = "https://github.com/CMBAgents/cmbagent/blob/main/README.md"
+
+[project.urls]
+Homepage = "https://github.com/CMBAgents/cmbagent"
+GitHub = "https://github.com/CMBAgents/cmbagent"

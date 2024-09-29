@@ -5,10 +5,10 @@ with open("README.md", "r") as fh:
 
 setup(
     name="cmbagent",
-    version="0.0.1",
-    author="Your Name",
-    author_email="your.email@example.com",
-    description="A small package for XYZ functionality",
+    version="0.0.0",
+    author="CMBAgents Team",
+    author_email="bb667@cam.ac.uk",
+    description="Multi-agent system for data analysis, made by cosmologists, powered by autogen.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/CMBAgents/cmbagent",
@@ -26,7 +26,7 @@ setup(
                       "camb",
                       "cobaya",
                       "getdist",
-                      "pyautogen @ git+https://github.com/CMBAgents/autogen",
+                      # "pyautogen @ git+https://github.com/CMBAgents/autogen",
                       "ruamel.yaml",
                       "dask[dataframe]",
                       "pandas"
@@ -35,11 +35,9 @@ setup(
     extras_require={
         "dev": [
                 "classy",
-                "tensorflow==2.13.0", 
-                "tensorflow-probability==0.21.0", 
-                "cosmopower", 
-                "mcfit",
+                "classy_sz",
             ],
+         "git_install": ["pyautogen @ git+https://github.com/CMBAgents/autogen"],
     },
 
     test_suite='tests',
