@@ -252,6 +252,8 @@ class CMBAgent:
         self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin']
 
         self.agent_list = agent_list
+        if 'memory' not in agent_list:
+            agent_list.append('memory')
 
         self.verbose = verbose
 

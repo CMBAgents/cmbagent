@@ -129,7 +129,7 @@ cmbagent = CMBAgent(make_vector_stores=['act', 'camb'])
 Start session with only a subset of RAG agents:
 
 ```python
-cmbagent = CMBAgent(agents=['classy', 'planck'])
+cmbagent = CMBAgent(agent_list=['classy', 'planck'])
 ```
 
 Show allowed transitions:
