@@ -18,6 +18,7 @@ dependencies = [
     "cmbagent_autogen",
     "ruamel.yaml",
     "pandas",
+    "ipython"
 ]
 
 

@@ -37,7 +37,8 @@ setup(
         "cmbagent_autogen",
         "ruamel.yaml",
         "dask[dataframe]",
-        "pandas"
+        "pandas",
+        "ipython"
     ],
     test_suite='tests',
 )
