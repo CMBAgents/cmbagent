@@ -1,9 +1,7 @@
 
 # cmbagent
 
-[![PyPI version](https://badge.fury.io/py/cmbagent.svg)](https://pypi.org/project/cmbagent/)
-
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagent/badge/?version=latest)](https://cmbagent.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://badge.fury.io/py/cmbagent.svg)](https://pypi.org/project/cmbagent/)[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagent/badge/?version=latest)](https://cmbagent.readthedocs.io/en/latest/?badge=latest)
 
 
 Multi-agent system for data analysis, made by cosmologists, powered by [autogen](https://github.com/autogen-ai/autogen).
