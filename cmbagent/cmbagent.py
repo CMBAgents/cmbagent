@@ -463,7 +463,7 @@ class CMBAgent:
         # Convert dictionary to JSON string and save file
         json_string = json.dumps(dict_representation)
         id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
-        with open(os.path.dirname(os.path.realpath(__file__)) + '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
+        with open(os.getenv('CMBAGENT_DATA')+ '/memory/' + f'summary_{id}.json', 'w') as json_file:
             json.dump(json_string, json_file, indent=4)
 
         # Push to memory agent vector store
@@ -709,7 +709,7 @@ class CMBAgent:
             # Initialize a list to hold the file paths
             file_paths = []
 
-            assistant_data = os.path.dirname(os.path.realpath(__file__)) + '/data/' + vector_store_name.removesuffix('_agent_store')
+            assistant_data = os.getenv('CMBAGENT_DATA') + vector_store_name.removesuffix('_agent_store')
 
 
             print("Files to upload:")
