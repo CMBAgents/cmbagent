@@ -25,12 +25,31 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Install bump2version
-        run: python -m pip install bump2version
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt  # Install other dependencies if needed
 
-      - name: Bump version (patch)
+      - name: Bump beta version
         run: |
-          bump2version patch --current-version $(grep -Eo '__version__ = "[^"]*' cmbagent/version.py | cut -d'"' -f2) --new-version $(bump2version --dry-run --list patch | grep new_version | sed -r s,"^.*=",,) cmbagent/version.py
+          VERSION_FILE="cmbagent/version.py"
+          current_version=$(grep -Eo '__version__ = "[^"]*' "$VERSION_FILE" | cut -d'"' -f2)
+
+          if [[ $current_version =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)\.beta([0-9]+)$ ]]; then
+              major="${BASH_REMATCH[1]}"
+              minor="${BASH_REMATCH[2]}"
+              patch="${BASH_REMATCH[3]}"
+              beta="${BASH_REMATCH[4]}"
+              
+              # Increment the beta version
+              new_beta=$((beta + 1))
+              new_version="${major}.${minor}.${patch}.beta${new_beta}"
+              
+              # Update the version in version.py
+              sed -i "s/__version__ = \"$current_version\"/__version__ = \"$new_version\"/" "$VERSION_FILE"
+              echo "Version bumped to: $new_version"
+          else
+              echo "Current version format is not valid for beta versioning."
+              exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -39,7 +58,7 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add cmbagent/version.py
-          git commit -m "Bump version"
+          git commit -m "Bump beta version to $new_version"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
