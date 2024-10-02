@@ -46,7 +46,7 @@ You can then pip install cmbagent in this fresh environment.
 
 RAG agents are defined in a generic way. The core of the code is located in [cmbagent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py).
 
-To generate a RAG agent, create a `.py` and `.yaml` file and place them in the [assistants directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/assistants). Additionally, create a directory named after the agent and include associated files in the [data directory]([https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/data](https://github.com/CMBAgents/cmbagent_data/tree/main/data) of cmbagent.
+To generate a RAG agent, create a `.py` and `.yaml` file and place them in the [assistants directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/assistants). Additionally, create a directory named after the agent and include associated files in the [data directory](https://github.com/CMBAgents/cmbagent_data/tree/main/data) of cmbagent.
 
 Apart from the RAG agents, we have assistant agents (engineer and planner) and a code agent (executor).
 
