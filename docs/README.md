@@ -5,19 +5,22 @@ To install cmbagent, follow these steps:
 Clone and install our package from the `cmbagent` repository:
 
 ```bash
-git clone https://github.com/CMBAgents/cmbagent.git
-cd cmbagent
-pip install -e .
+pip install cmbagent
 ```
 
-
+Creating a virual environment is envouraged: 
+```bash
+python -m venv /path/to/your/envs/cmbagent_env
+source /path/to/your/envs/cmbagent_env/bin/activate
+```
+You can then pip install cmbagent in this fresh environment.
 
 
 ## Structure
 
 RAG agents are defined in a generic way. The core of the code is located in [cmbagent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py).
 
-To generate a RAG agent, create a `.py` and `.yaml` file and place them in the [assistants directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/assistants). Additionally, create a directory named after the agent and include associated files in the [data directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/data).
+To generate a RAG agent, create a `.py` and `.yaml` file and place them in the [assistants directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/assistants). Additionally, create a directory named after the agent and include associated files in the [data directory](https://github.com/CMBAgents/cmbagent_data/tree/main/data) of cmbagent.
 
 Apart from the RAG agents, we have assistant agents (engineer and planner) and a code agent (executor).
 
@@ -103,7 +106,7 @@ cmbagent = CMBAgent(make_vector_stores=['act', 'camb'])
 Start session with only a subset of RAG agents:
 
 ```python
-cmbagent = CMBAgent(agents=['classy', 'planck'])
+cmbagent = CMBAgent(agent_list=['classy', 'planck'])
 ```
 
 Show allowed transitions:
@@ -118,10 +121,3 @@ cmbagent uses cache to speed up the process and reduce costs when asking the sam
 cmbagent.clear_cache()
 ```
 
-## For cosmologist developers
-
-For all dependencies to be installed, use:
-
-```bash
-pip install -e .[dev]
-```

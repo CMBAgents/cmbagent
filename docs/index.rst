@@ -10,6 +10,9 @@ cmbagent
    :target: https://github.com/CMBAgents/cmbagent
    :alt: GitHub stars
 
+.. image:: https://badge.fury.io/py/cmbagent.svg
+   :target: https://pypi.org/project/cmbagent/
+   :alt: PyPI version
 
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
    :target: LICENSE
