@@ -1,6 +1,8 @@
 
 # cmbagent
 
+[![PyPI version](https://badge.fury.io/py/cmbagent.svg)](https://pypi.org/project/cmbagent/)
+
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagent/badge/?version=latest)](https://cmbagent.readthedocs.io/en/latest/?badge=latest)
 
 
