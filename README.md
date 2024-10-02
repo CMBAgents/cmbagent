@@ -31,9 +31,7 @@ To install cmbagent, follow these steps:
 Clone and install our package from the `cmbagent` repository:
 
 ```bash
-git clone https://github.com/CMBAgents/cmbagent.git
-cd cmbagent
-pip install -e .
+pip install cmbagent
 ```
 
 
