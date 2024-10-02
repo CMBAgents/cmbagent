@@ -34,7 +34,12 @@ Clone and install our package from the `cmbagent` repository:
 pip install cmbagent
 ```
 
-
+Creating a virual environment is envouraged: 
+```bash
+python -m venv /path/to/your/envs/cmbagent_env
+source /path/to/your/envs/cmbagent_env/bin/activate
+```
+You can then pip install cmbagent in this fresh environment.
 
 
 ## Structure
