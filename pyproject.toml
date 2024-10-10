@@ -21,7 +21,8 @@ dependencies = [
     "ipython"
 ]
 
-
+[tool.setuptools.package-data]
+cmbagent = ["cmbagent/apis/*.json"]
 
 [project.urls]
 Homepage = "https://github.com/CMBAgents/cmbagent"
