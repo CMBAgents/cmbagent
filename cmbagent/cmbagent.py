@@ -463,7 +463,7 @@ class CMBAgent:
         # Convert dictionary to JSON string and save file
         json_string = json.dumps(dict_representation)
         id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
-        with open(os.getenv('CMBAGENT_DATA')+ '/memory/' + f'summary_{id}.json', 'w') as json_file:
+        with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
             json.dump(json_string, json_file, indent=4)
 
         # Push to memory agent vector store
