@@ -709,7 +709,7 @@ class CMBAgent:
             # Initialize a list to hold the file paths
             file_paths = []
 
-            assistant_data = os.getenv('CMBAGENT_DATA') + vector_store_name.removesuffix('_agent_store')
+            assistant_data = os.getenv('CMBAGENT_DATA') + "/data/" + vector_store_name.removesuffix('_agent_store')
 
 
             print("Files to upload:")
