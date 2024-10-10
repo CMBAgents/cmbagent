@@ -7,3 +7,4 @@ global-exclude *.py[cod]
 global-exclude *.egg-info/
 global-exclude .DS_Store
 recursive-exclude cmbagent/docs * 
+include cmbagent/apis/*.json
