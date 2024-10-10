@@ -27,7 +27,8 @@ cmbagent = [
   "cmbagent/assistants/*.yaml",
   "cmbagent/planner/*.yaml",
   "cmbagent/engineer/*.yaml",
-  "cmbagent/executor/*.yaml"
+  "cmbagent/executor/*.yaml",
+  "cmbagent/admin/*.yaml"
 ]
 
 [project.urls]

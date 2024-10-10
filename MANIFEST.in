@@ -12,3 +12,4 @@ include cmbagent/assistants/*yaml
 include cmbagent/planner/*yaml
 include cmbagent/engineer/*yaml
 include cmbagent/executor/*yaml
+include cmbagent/admin/*yaml
