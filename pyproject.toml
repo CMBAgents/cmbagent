@@ -22,7 +22,13 @@ dependencies = [
 ]
 
 [tool.setuptools.package-data]
-cmbagent = ["cmbagent/apis/*.json"]
+cmbagent = [
+  "cmbagent/apis/*.json",
+  "cmbagent/assistants/*.yaml",
+  "cmbagent/planner/*.yaml",
+  "cmbagent/engineer/*.yaml",
+  "cmbagent/executor/*.yaml"
+]
 
 [project.urls]
 Homepage = "https://github.com/CMBAgents/cmbagent"
