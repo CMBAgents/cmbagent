@@ -69,7 +69,8 @@ class BaseAgent:
             self.info['assistant_config']['top_p'] = agent_top_p
 
         
-        dir_path = os.path.dirname(os.path.realpath(__file__))
+        # dir_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = os.getenv('CMBAGENT_DATA')
         data_path = os.path.join(dir_path, 'data', self.name.replace('_agent', ''))
         # List files in the data_path excluding unwanted files
         files = [f for f in os.listdir(data_path) if not (f.startswith('.') or f.endswith('.ipynb') or f.endswith('.yaml') or f.endswith('.txt') or os.path.isdir(os.path.join(data_path, f)))]
