@@ -6,7 +6,9 @@ REPO_URL = "https://github.com/CMBAgents/cmbagent_data.git"
 
 def set_cmbagent_data_env(path):
     """Set the CMBAGENT_DATA environment variable."""
-    os.environ["CMBAGENT_DATA"] = path + "/cmbagent_data"
+    if not path.endswith("cmbagent_data"):
+        path = os.path.join(path, "cmbagent_data")
+    os.environ["CMBAGENT_DATA"] = path
     print(f"CMBAGENT_DATA is set to {os.environ['CMBAGENT_DATA']}")
 
 def get_cmbagent_data_dir():
@@ -38,16 +40,11 @@ def set_and_get_rag_data():
         print(f"Defaulting to: {home_dir}")
 
     # Now check if the cmbagent_data directory exists
-    if os.path.exists(path_to_cmbagent_data+"/cmbagent_data"):
+    if os.path.exists(path_to_cmbagent_data):
         print(f"Found cmbagent_data directory at: {os.path.realpath(path_to_cmbagent_data)}")
         
-        # Set the environment variable if it's not already set
-        current_path = os.getenv("CMBAGENT_DATA")
-        if current_path != path_to_cmbagent_data:
-            print("CMBAGENT_DATA is not correctly set. Setting it now...")
-            set_cmbagent_data_env(path_to_cmbagent_data)
-        else:
-            print("CMBAGENT_DATA is already correctly set.")
+        set_cmbagent_data_env(path_to_cmbagent_data)
+
     else:
         print("--> cmbagent_data directory not found. Cloning repository in your system!")
 
