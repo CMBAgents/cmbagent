@@ -41,6 +41,22 @@ source /path/to/your/envs/cmbagent_env/bin/activate
 ```
 You can then pip install cmbagent in this fresh environment.
 
+You can then pip install cmbagent in this fresh environment.
+
+If you are a cosmologist, you need the RAG data to use `cmbagent` in your cosmology work. 
+
+## Getting the RAG data (cosmologist only)
+
+Do this:
+
+```bash
+export CMBAGENT_DATA=/where/you/want/the/data
+git clone https://github.com/CMBAgents/cmbagent_data.git
+```
+
+Note that you need to set the `CMBAGENT_DATA` environment variable accordingly before using `cmbagent` 
+in any future session. Maybe you want to add this to your `.bashrc` or `.zshrc` file.
+
 
 ## Structure
 
