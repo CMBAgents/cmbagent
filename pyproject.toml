@@ -1,9 +1,14 @@
 [build-system]
-requires = ["setuptools", "wheel","Cython>=0.29.21"]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "Cython>=0.29.21",
+    "setuptools_scm"
+]
 build-backend = "setuptools.build_meta"
 
 [project]
-dynamic = ["version"]
+version = "0.0.0"  # Will be overwritten by setuptools-scm
 name = "cmbagent"
 maintainers = [{name = "CMBAgents Team", email = "cmbagents@gmail.com"}]
 description = "Multi-agent system for data analysis, made by cosmologists, powered by autogen."
@@ -34,3 +39,11 @@ cmbagent = [
 [project.urls]
 Homepage = "https://github.com/CMBAgents/cmbagent"
 GitHub = "https://github.com/CMBAgents/cmbagent"
+
+[tool.setuptools_scm]
+write_to = "cmbagent/version.py"
+
+
+
+[tool.setuptools.packages.find]
+exclude = ["output"]

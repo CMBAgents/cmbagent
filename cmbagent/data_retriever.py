@@ -9,7 +9,7 @@ def set_cmbagent_data_env(path):
     if not path.endswith("cmbagent_data"):
         path = os.path.join(path, "cmbagent_data")
     os.environ["CMBAGENT_DATA"] = path
-    print(f"CMBAGENT_DATA is set to {os.environ['CMBAGENT_DATA']}")
+    print(f"CMBAGENT_DATA is pointing to {os.environ['CMBAGENT_DATA']}")
 
 def get_cmbagent_data_dir():
     """Get the current value of the CMBAGENT_DATA environment variable."""
@@ -23,7 +23,7 @@ def set_and_get_rag_data():
         # Avoid appending 'cmbagent_data_directory' multiple times
         if not path_to_cmbagent_data.endswith("cmbagent_data"):
             path_to_cmbagent_data = os.path.join(path_to_cmbagent_data, "cmbagent_data")
-        print(f"Using CMBAGENT_DATA: {path_to_cmbagent_data}")
+        print(f"Using CMBAGENT_DATA pointing to {path_to_cmbagent_data}")
 
         # Check if the directory exists; if not, fall back to default
         if not os.path.exists(path_to_cmbagent_data):
