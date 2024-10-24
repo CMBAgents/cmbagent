@@ -55,7 +55,7 @@ git clone https://github.com/CMBAgents/cmbagent_data.git
 ```
 
 Note that you need to set the `CMBAGENT_DATA` environment variable accordingly before using `cmbagent` 
-in any future session. Maybe you want to add this to your `.bashrc` or `.zshrc` file.
+in any future session. Maybe you want to add this to your `.bashrc` or `.zshrc` file, or in your `activate` script.
 
 
 ## Structure
