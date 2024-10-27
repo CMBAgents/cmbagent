@@ -41,8 +41,6 @@ source /path/to/your/envs/cmbagent_env/bin/activate
 ```
 You can then pip install cmbagent in this fresh environment.
 
-You can then pip install cmbagent in this fresh environment.
-
 If you are a cosmologist, you need the RAG data to use `cmbagent` in your cosmology work. 
 
 ## Getting the RAG data (cosmologist only)
