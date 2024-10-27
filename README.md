@@ -49,7 +49,6 @@ Do this:
 
 ```bash
 export CMBAGENT_DATA=/where/you/want/the/data
-git clone https://github.com/CMBAgents/cmbagent_data.git
 ```
 
 Note that you need to set the `CMBAGENT_DATA` environment variable accordingly before using `cmbagent` 
