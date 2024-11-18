@@ -14,7 +14,7 @@ Multi-agent system for data analysis, made by cosmologists, powered by [autogen]
 
 ## Installation
 
-To install cmbagent, follow these steps:
+If you plan to modify the code, follow these steps:
 
 Clone and install our package from the `cmbagent` repository:
 
