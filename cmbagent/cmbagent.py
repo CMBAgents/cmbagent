@@ -438,13 +438,17 @@ class CMBAgent:
         cost_dict = defaultdict(list)
         all_agents = [agent.agent for agent in self.agents] + self.groupchat.new_conversable_agents
         for agent in all_agents:
-            if hasattr(agent, 'cost_dict'):
-                cost_dict['Agent'] += agent.cost_dict['Agent']
-                cost_dict['Cost'] += agent.cost_dict['Cost']
-                cost_dict['Prompt Tokens'] += agent.cost_dict['Prompt Tokens']
-                cost_dict['Completion Tokens'] += agent.cost_dict['Completion Tokens']
-                cost_dict['Total Tokens'] += agent.cost_dict['Total Tokens']
-        display(pd.DataFrame(cost_dict))
+            if hasattr(agent, 'cost_dict') and agent.cost_dict['Agent']:
+                cost_dict['Agent'].append(agent.cost_dict['Agent'][0])
+                cost_dict['Cost'].append(sum(agent.cost_dict['Cost']))
+                cost_dict['Prompt Tokens'].append(sum(agent.cost_dict['Prompt Tokens']))
+                cost_dict['Completion Tokens'].append(sum(agent.cost_dict['Completion Tokens']))
+                cost_dict['Total Tokens'].append(sum(agent.cost_dict['Total Tokens']))
+        df = pd.DataFrame(cost_dict)
+        columns_to_sum = df.select_dtypes(include='number').columns
+        totals = df[columns_to_sum].sum()
+        df.loc['Total'] = pd.concat([pd.Series({'Name': 'Total'}), totals])
+        display(df)
         return
     
 
