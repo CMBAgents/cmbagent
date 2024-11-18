@@ -434,15 +434,16 @@ class CMBAgent:
     
 
     def display_cost(self):
-        # display full cost dictionary
+        '''display full cost dictionary'''
         cost_dict = defaultdict(list)
-        for agent in self.agents:
-            if hasattr(agent.agent, 'cost_dict'):
-                cost_dict['Agent'] += agent.agent.cost_dict['Agent']
-                cost_dict['Cost'] += agent.agent.cost_dict['Cost']
-                cost_dict['Prompt Tokens'] += agent.agent.cost_dict['Prompt Tokens']
-                cost_dict['Completion Tokens'] += agent.agent.cost_dict['Completion Tokens']
-                cost_dict['Total Tokens'] += agent.agent.cost_dict['Total Tokens']
+        all_agents = [agent.agent for agent in self.agents] + self.groupchat.new_conversable_agents
+        for agent in all_agents:
+            if hasattr(agent, 'cost_dict'):
+                cost_dict['Agent'] += agent.cost_dict['Agent']
+                cost_dict['Cost'] += agent.cost_dict['Cost']
+                cost_dict['Prompt Tokens'] += agent.cost_dict['Prompt Tokens']
+                cost_dict['Completion Tokens'] += agent.cost_dict['Completion Tokens']
+                cost_dict['Total Tokens'] += agent.cost_dict['Total Tokens']
         display(pd.DataFrame(cost_dict))
         return
     
@@ -966,3 +967,6 @@ def update_yaml_preserving_format(yaml_file, agent_name, new_id):
     # Write the changes back to the YAML file while preserving formatting
     with open(yaml_file, 'w') as file:
         yaml.dump(yaml_content, file)
+
+
+
