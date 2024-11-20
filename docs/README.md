@@ -2,10 +2,18 @@
 
 To install cmbagent, follow these steps:
 
-Clone and install our package from the `cmbagent` repository:
+Clone and install our package PyPi:
 
 ```bash
 pip install cmbagent
+```
+
+Or clone the repository and install it locally (advised if you want to develop the package, or if you have issues with the installation):
+
+```bash
+git clone https://github.com/CMBAgents/cmbagent.git
+cd cmbagent
+pip install -e .
 ```
 
 Creating a virual environment is envouraged: 
