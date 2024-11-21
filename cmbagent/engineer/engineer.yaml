@@ -138,7 +138,7 @@ instructions: |
   - **Part 4**: Next step is to solve <task> with <agent name>.
 
 
-  #### 7. Saving a summary
+  #### 7. Script to save a summary
 
   - Collect summary written by planner
   - Write code so that it can be saved in the following forma, according to the following structure:  

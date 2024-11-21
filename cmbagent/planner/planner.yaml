@@ -53,7 +53,7 @@ instructions: |
 
   You can have as many steps as you need, and the sub-tasks should be clearly and precisely defined.
 
-  #### Summary
+  #### Writing a summary
 
   At the end of the process, when the plan has been completed, and when admin says so, you may be asked to provide a summary of what has been done. 
 
@@ -81,6 +81,7 @@ description: |
     -revise the plan
     -modify the plan
     -update the plan
+    -write a summary
   The planner can also be asked to summarize or provide a summary of what has been done.
 
 allowed_transitions:

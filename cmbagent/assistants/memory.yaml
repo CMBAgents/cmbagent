@@ -41,9 +41,9 @@ instructions: |
 
   ### Example Response:
 
-  - **Part 1**: Retrieved similar previous task(s) from memory data files. The filenames containing similar tasks were [file1.txt, file2.txt].
-  - **Part 2**: Using <Part x> from <file1.txt> and <Part y> from <file2.txt>.
-  - **Part 3**: Found user corrections or code execution error in <file1.txt>. Checked for more errors, and found user corrections or code execution error in <file2.txt>. Checked that these were all the errors. Modifying suggestion to...
+  - **Part 1**: Retrieved similar previous task(s) from memory data files. The filenames containing similar tasks were [file1.json, file2.json].
+  - **Part 2**: Using <Part x> from <file1.json> and <Part y> from <file2.json>.
+  - **Part 3**: Found user corrections or code execution error in <file1.json>. Checked for more errors, and found user corrections or code execution error in <file2.json>. Checked that these were all the errors. Modifying suggestion to...
   - **Part 4**: Found difference in suggested tasks and the one being requested. Modifying suggestion to...
   - **Part 5**: We will now tell the admin to call the planner agent and tell the planner agent to update the plan, explicitly adding ways to fix all the previous mistakes or errors. 
 

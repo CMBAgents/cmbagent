@@ -18,6 +18,7 @@ from cmbagent.engineer.engineer import EngineerAgent
 from cmbagent.planner.planner import PlannerAgent
 from cmbagent.executor.executor import ExecutorAgent
 from cmbagent.admin.admin import AdminAgent
+from pydantic import BaseModel
 
 # import yaml
 from ruamel.yaml import YAML
@@ -459,6 +460,49 @@ class CMBAgent:
         
         response = input('''Do you want to save this task summary to the "memory agent" vector stores? This will aid you and others in solving similar tasks in the future. Please only save the task if it has been completed successfully. Type "yes" or "no". ''').strip().lower()
         
+
+        if 'yes' in response:
+            print('Asking planner to generate summary')
+            summary_message = """
+            Based on the conversation history, write a synthetic executivesummary of the session.
+            Specifically highlight the steps that required revision by admin and what was done to reach a successful answer that 
+            was accepted the admin (i.e., who asked to proceed). 
+
+            Your answer should be in the following format:
+            <start of answer>
+            - Part 1: Summary: 
+                - main task: 
+                - results: 
+                - summary: 
+                    - sub-task 1: 
+                        - result: 
+                        - feedback: 
+                        - agent:
+                    - sub-task 2: 
+                        - result: 
+                        - feedback: 
+                        - agent: 
+
+            - Part 2: Would you like to proceed and ask engineer to write the script to save the summary?
+            <end of answer>
+            """
+
+            previous_state = f"{self.groupchat.messages}"
+
+            # Convert string to Python dictionary
+            dict_representation = ast.literal_eval(previous_state)
+
+            # Convert dictionary to JSON string
+            json_string = json.dumps(dict_representation)
+
+            print("previous state: ", json_string)
+            # exit()
+            last_agent, last_message = self.manager.resume(messages=json_string)
+
+            self.session = self.planner.agent.initiate_chat(recipient=self.manager,
+                                                            message=summary_message,
+                                                            clear_history=False)
+
         if 'yes' not in response:
             print('Task summary not added to memory agent\'s vector stores.')
             return
@@ -490,8 +534,11 @@ class CMBAgent:
         self.display_cost()
 
         # ask user if they want to update memory agent
+        self.update_memory_agent()
         if not self.skip_memory:
             self.update_memory_agent()
+
+        
 
 
     def print_usage_summary(self):
