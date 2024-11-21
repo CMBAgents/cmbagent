@@ -162,6 +162,7 @@ class CMBAgent:
                  intro_message = None,
                  set_allowed_transitions = None,
                  skip_executor = False,
+                 skip_memory = True,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
@@ -252,8 +253,10 @@ class CMBAgent:
         self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin']
 
         self.agent_list = agent_list
-        if 'memory' not in agent_list:
-            agent_list.append('memory')
+        self.skip_memory = skip_memory
+        if not self.skip_memory:
+            if 'memory' not in agent_list:
+                agent_list.append('memory')
 
         self.verbose = verbose
 
@@ -487,7 +490,8 @@ class CMBAgent:
         self.display_cost()
 
         # ask user if they want to update memory agent
-        self.update_memory_agent()
+        if not self.skip_memory:
+            self.update_memory_agent()
 
 
     def print_usage_summary(self):
