@@ -19,9 +19,21 @@ from cmbagent.planner.planner import PlannerAgent
 from cmbagent.executor.executor import ExecutorAgent
 from cmbagent.admin.admin import AdminAgent
 from pydantic import BaseModel
-
 # import yaml
 from ruamel.yaml import YAML
+from typing import List
+
+class SummarySubTask(BaseModel):
+    result: str
+    feedback: str
+    agent: str
+
+class Summary(BaseModel):
+    main_task: str
+    results: str
+    summary: List[SummarySubTask]
+
+
 
 def import_rag_agents():        
     imported_rag_agents = {}
@@ -495,13 +507,14 @@ class CMBAgent:
             # Convert dictionary to JSON string
             json_string = json.dumps(dict_representation)
 
-            print("previous state: ", json_string)
+            # print("previous state: ", json_string)
             # exit()
             last_agent, last_message = self.manager.resume(messages=json_string)
 
             self.session = self.planner.agent.initiate_chat(recipient=self.manager,
                                                             message=summary_message,
-                                                            clear_history=False)
+                                                            clear_history=False,
+                                                            response_format=Summary)
 
         if 'yes' not in response:
             print('Task summary not added to memory agent\'s vector stores.')

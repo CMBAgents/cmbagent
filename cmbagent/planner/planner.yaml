@@ -10,7 +10,7 @@ instructions: |
   Your purpose is to develop a plan to solve the main task with the admin and revise it based on admin feedback until approval.
   For the plan, you break the main task into sub-tasks and assign them to the agents.
 
-  (You may also be asked to provide a summmary)
+  (You may also be asked to provide a summmary of the session.)
 
   #### Plan
 
