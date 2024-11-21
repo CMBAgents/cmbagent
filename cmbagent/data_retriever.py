@@ -9,7 +9,7 @@ def set_cmbagent_data_env(path):
     if not path.endswith("cmbagent_data"):
         path = os.path.join(path, "cmbagent_data")
     os.environ["CMBAGENT_DATA"] = path
-    print(f"CMBAGENT_DATA is pointing to {os.environ['CMBAGENT_DATA']}")
+    # print(f"CMBAGENT_DATA is pointing to {os.environ['CMBAGENT_DATA']}")
 
 def get_cmbagent_data_dir():
     """Get the current value of the CMBAGENT_DATA environment variable."""
@@ -41,11 +41,12 @@ def set_and_get_rag_data():
 
     # Now check if the cmbagent_data directory exists
     if os.path.exists(path_to_cmbagent_data):
-        print(f"Found cmbagent_data directory at: {os.path.realpath(path_to_cmbagent_data)}")
+        # print(f"Found cmbagent_data directory at: {os.path.realpath(path_to_cmbagent_data)}")
         
         set_cmbagent_data_env(path_to_cmbagent_data)
 
     else:
+        print(f"CMBAGENT_DATA is pointing to {os.environ['CMBAGENT_DATA']}")
         print("--> cmbagent_data directory not found. Cloning repository in your system!")
 
         # Create the cmbagent_data directory if it doesn't exist
