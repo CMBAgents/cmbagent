@@ -547,7 +547,7 @@ class CMBAgent:
         self.display_cost()
 
         # ask user if they want to update memory agent
-        self.update_memory_agent()
+        # self.update_memory_agent()
         if not self.skip_memory:
             self.update_memory_agent()
 
