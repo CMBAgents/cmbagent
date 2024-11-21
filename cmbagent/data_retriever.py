@@ -23,7 +23,7 @@ def set_and_get_rag_data():
         # Avoid appending 'cmbagent_data_directory' multiple times
         if not path_to_cmbagent_data.endswith("cmbagent_data"):
             path_to_cmbagent_data = os.path.join(path_to_cmbagent_data, "cmbagent_data")
-        print(f"Using CMBAGENT_DATA pointing to {path_to_cmbagent_data}")
+        # print(f"Using CMBAGENT_DATA pointing to {path_to_cmbagent_data}")
 
         # Check if the directory exists; if not, fall back to default
         if not os.path.exists(path_to_cmbagent_data):
