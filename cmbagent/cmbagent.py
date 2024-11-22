@@ -482,7 +482,6 @@ class CMBAgent:
 
             Your answer should be in the following format:
             <start of answer>
-            - Part 1: Summary: 
                 - main task: 
                 - results: 
                 - summary: 
@@ -494,8 +493,6 @@ class CMBAgent:
                         - result: 
                         - feedback: 
                         - agent: 
-
-            - Part 2: Would you like to proceed and ask engineer to write the script to save the summary?
             <end of answer>
             """
 
@@ -516,24 +513,47 @@ class CMBAgent:
                                                             clear_history=False,
                                                             response_format=Summary)
 
+            # print("in cmbagent.py update_memory_agent: summary: ",self.groupchat.messages)
+            # Extract the content
+            content = self.groupchat.messages[-1]['content']
+
+            # Parse the content string to a Python dictionary
+            content_dict = json.loads(content)
+
+            # Save to a JSON file
+            id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
+            with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
+                json.dump(content_dict, json_file, indent=4)
+            # Pretty-print the JSON
+            pretty_json = json.dumps(content_dict, indent=4)
+            print(pretty_json)
+            # id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
+            # with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
+            #     json.dump(pretty_json, json_file, indent=4) 
+
+            # Push to memory agent vector store
+            self.push_vector_stores(['memory'], None, verbose = True)
+            # print('Updated memory agent\'s vector stores.')
+
+
         if 'yes' not in response:
             print('Task summary not added to memory agent\'s vector stores.')
             return
         
-        previous_state = f"{self.groupchat.messages}"
+        # previous_state = f"{self.groupchat.messages}"
 
         # Convert string to Python dictionary
-        dict_representation = ast.literal_eval(previous_state)
+        # dict_representation = ast.literal_eval(previous_state)
 
         # Convert dictionary to JSON string and save file
-        json_string = json.dumps(dict_representation)
-        id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
-        with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
-            json.dump(json_string, json_file, indent=4)
+        # json_string = json.dumps(dict_representation)
+        # id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
+        # with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
+        #     json.dump(json_string, json_file, indent=4)
 
         # Push to memory agent vector store
-        self.push_vector_stores(['memory'], None, verbose = False)
-        print('Updated memory agent\'s vector stores.')
+        # self.push_vector_stores(['memory'], None, verbose = False)
+        # print('Updated memory agent\'s vector stores.')
 
         return
         
@@ -547,7 +567,7 @@ class CMBAgent:
         self.display_cost()
 
         # ask user if they want to update memory agent
-        # self.update_memory_agent()
+        self.update_memory_agent()
         if not self.skip_memory:
             self.update_memory_agent()
 
