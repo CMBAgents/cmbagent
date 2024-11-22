@@ -12,6 +12,13 @@ Multi-agent system for data analysis, made by cosmologists, powered by [autogen]
 **See our preliminary documentation and examples [here](https://cmbagent.readthedocs.io/en/latest/index.html) to have a preview of our work.**
 
 
+Contributed by:
+
+Kristen Surrao (Columbia), Andrew Laverick (Independent), Inigo Zubeldia (Cambridge), Boris Bolliet (Cambridge), Miles Cranmer (Cambridge), Antony Lewis (Sussex), Blake Sherwin (Cambridge), Julien Lesgourgues (Aachen).
+
+
+
+
 ## Installation
 
 If you plan to modify the code, follow these steps:
