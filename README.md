@@ -14,7 +14,7 @@ Multi-agent system for data analysis, made by cosmologists, powered by [autogen]
 
 Contributed by:
 
-Kristen Surrao (Columbia), Andrew Laverick (Independent), Inigo Zubeldia (Cambridge), Boris Bolliet (Cambridge), Miles Cranmer (Cambridge), Antony Lewis (Sussex), Blake Sherwin (Cambridge), Julien Lesgourgues (Aachen).
+Kristen Surrao (@kmsurrao, Columbia), Andrew Laverick (Independent), Inigo Zubeldia (Cambridge), Boris Bolliet (Cambridge), Miles Cranmer (Cambridge), Antony Lewis (Sussex), Blake Sherwin (Cambridge), Julien Lesgourgues (Aachen).
 
 
 
