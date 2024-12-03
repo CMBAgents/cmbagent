@@ -22,22 +22,31 @@ cmbagent
    :target: https://cmbagent.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-Multi-agent system for data analysis, made by cosmologists, powered by `autogen <https://github.com/autogen-ai/autogen>`_.
+.. image:: https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg
+   :target: https://arxiv.org/abs/2412.00431
+   :alt: arXiv
+
+
+Multi-agent system for data analysis, made by cosmologists, powered by `autogen <https://github.com/autogen-ai/autogen>`_/`ag2 <https://github.com/ag2ai/ag2>`_.
 
 .. note::
    This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
 
-Contributed by:
+If you would like to cite us, please use:
 
-- Boris Bolliet (Cambridge)
-- Andrew Laverick (Independent)
-- Inigo Zubeldia (Cambridge)
-- Kristen Surrao (Columbia)
-- Miles Cranmer (Cambridge)
-- Antony Lewis (Sussex)
-- Blake Sherwin (Cambridge)
-- Julien Lesgourgues (Aachen)
+.. code-block:: bash
+
+   @misc{Laverick:2024fyh,
+      author = "Laverick, Andrew and Surrao, Kristen and Zubeldia, Inigo and Bolliet, Boris and Cranmer, Miles and Lewis, Antony and Sherwin, Blake and Lesgourgues, Julien",
+      title = "{Multi-Agent System for Cosmological Parameter Analysis}",
+      eprint = "2412.00431",
+      archivePrefix = "arXiv",
+      primaryClass = "astro-ph.IM",
+      month = "11",
+      year = "2024"
+   }
+
 
 
 .. toctree::

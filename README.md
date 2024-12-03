@@ -1,22 +1,31 @@
 
 # cmbagent
 
-[![PyPI version](https://badge.fury.io/py/cmbagent.svg)](https://pypi.org/project/cmbagent/)[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagent/badge/?version=latest)](https://cmbagent.readthedocs.io/en/latest/?badge=latest)
+[![PyPI version](https://badge.fury.io/py/cmbagent.svg)](https://pypi.org/project/cmbagent/)[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagent/badge/?version=latest)](https://cmbagent.readthedocs.io/en/latest/?badge=latest) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
 
 
-Multi-agent system for data analysis, made by cosmologists, powered by [autogen](https://github.com/autogen-ai/autogen).
+Multi-agent system for data analysis, made by cosmologists, powered by [autogen](https://github.com/autogen-ai/autogen)/[ag2](https://github.com/ag2ai/ag2).
 
 > **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
 
-**See our preliminary documentation and examples [here](https://cmbagent.readthedocs.io/en/latest/index.html) to have a preview of our work.**
+Our preliminary documentation and set of working examples can be consulted [here](https://cmbagent.readthedocs.io/en/latest/index.html). 
 
+We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). If you would like to cite us, please use:
 
-Contributed by:
+```bash
+   @misc{Laverick:2024fyh,
+      author = "Laverick, Andrew and Surrao, Kristen and Zubeldia, Inigo and Bolliet, Boris and Cranmer, Miles and Lewis, Antony and Sherwin, Blake and Lesgourgues, Julien",
+      title = "{Multi-Agent System for Cosmological Parameter Analysis}",
+      eprint = "2412.00431",
+      archivePrefix = "arXiv",
+      primaryClass = "astro-ph.IM",
+      month = "11",
+      year = "2024"
+   }
+```
 
-[Kristen Surrao](https://github.com/kmsurrao) (Columbia), Andrew Laverick (Independent), Inigo Zubeldia (Cambridge), Boris Bolliet (Cambridge), Miles Cranmer (Cambridge), Antony Lewis (Sussex), Blake Sherwin (Cambridge), Julien Lesgourgues (Aachen).
-
-
+Our project is funded by the [Cambridge Centre for Data-Driven Discovery Accelerate Programme](https://science.ai.cam.ac.uk).
 
 
 ## Installation
