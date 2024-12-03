@@ -48,6 +48,7 @@ If you would like to cite us, please use:
    }
 
 
+Our project is funded by the `Cambridge Centre for Data-Driven Discovery Accelerate Programme <https://science.ai.cam.ac.uk>`_.
 
 .. toctree::
    :maxdepth: 2
