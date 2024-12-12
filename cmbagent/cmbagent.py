@@ -22,6 +22,7 @@ from pydantic import BaseModel
 # import yaml
 from ruamel.yaml import YAML
 from typing import List
+from pprint import pprint
 
 class SummarySubTask(BaseModel):
     result: str
@@ -475,6 +476,8 @@ class CMBAgent:
 
         if 'yes' in response:
             print('Asking planner to generate summary')
+            print('The summary will be json formatted.')
+            print('\n\n')
             summary_message = """
             Based on the conversation history, write a synthetic executivesummary of the session.
             Specifically highlight the steps that required revision by admin and what was done to reach a successful answer that 
@@ -526,13 +529,19 @@ class CMBAgent:
                 json.dump(content_dict, json_file, indent=4)
             # Pretty-print the JSON
             pretty_json = json.dumps(content_dict, indent=4)
+
+            print("Formatted JSON output:\n")
             print(pretty_json)
+            # print("\nNested structure with pprint:\n")
+            # pprint(content_dict)
             # id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
             # with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
             #     json.dump(pretty_json, json_file, indent=4) 
 
             # Push to memory agent vector store
             self.push_vector_stores(['memory'], None, verbose = True)
+
+            print("The memory vector store has been updated. The session will now be closed.")
             # print('Updated memory agent\'s vector stores.')
 
 
