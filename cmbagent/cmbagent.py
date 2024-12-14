@@ -442,7 +442,7 @@ class CMBAgent:
 
 
         self.manager = cmbagent_autogen.GroupChatManager(groupchat=self.groupchat,
-                                                llm_config=self.llm_config)
+                                                         llm_config=self.llm_config)
 
 
         for agent in self.groupchat.agents: 
