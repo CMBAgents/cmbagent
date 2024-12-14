@@ -24,15 +24,7 @@ from ruamel.yaml import YAML
 from typing import List
 from pprint import pprint
 
-class SummarySubTask(BaseModel):
-    result: str
-    feedback: str
-    agent: str
-
-class Summary(BaseModel):
-    main_task: str
-    results: str
-    summary: List[SummarySubTask]
+from autogen.formatting_utils import CMBAGENTSummary
 
 
 
@@ -479,24 +471,11 @@ class CMBAgent:
             print('The summary will be json formatted.')
             print('\n\n')
             summary_message = """
-            Based on the conversation history, write a synthetic executivesummary of the session.
+            Based on the conversation history, write a synthetic executive summary of the session.
             Specifically highlight the steps that required revision by admin and what was done to reach a successful answer that 
             was accepted the admin (i.e., who asked to proceed). 
 
-            Your answer should be in the following format:
-            <start of answer>
-                - main task: 
-                - results: 
-                - summary: 
-                    - sub-task 1: 
-                        - result: 
-                        - feedback: 
-                        - agent:
-                    - sub-task 2: 
-                        - result: 
-                        - feedback: 
-                        - agent: 
-            <end of answer>
+            Your answer is formatted in json. 
             """
 
             previous_state = f"{self.groupchat.messages}"
@@ -511,12 +490,13 @@ class CMBAgent:
             # exit()
             last_agent, last_message = self.manager.resume(messages=json_string)
 
+
             self.session = self.planner.agent.initiate_chat(recipient=self.manager,
                                                             message=summary_message,
                                                             clear_history=False,
-                                                            response_format=Summary)
+                                                            response_format=CMBAGENTSummary)
 
-            # print("in cmbagent.py update_memory_agent: summary: ",self.groupchat.messages)
+
             # Extract the content
             content = self.groupchat.messages[-1]['content']
 
