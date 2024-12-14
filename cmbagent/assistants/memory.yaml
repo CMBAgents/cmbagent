@@ -55,7 +55,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_QqCO7PM5Rm8DdP3ehdg6MzJY
+      - vs_SBuMDDFLAYQB2Hqn5KBMPkga
 
 
 description: |
