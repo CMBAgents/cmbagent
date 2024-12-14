@@ -2,7 +2,7 @@ import os
 import logging
 import importlib
 import requests
-import cmbagent_autogen 
+import autogen 
 import ast
 import json
 import sys
@@ -278,7 +278,7 @@ class CMBAgent:
 
         self.path_to_assistants = path_to_assistants
 
-        self.logger.info(f"Autogen version: {cmbagent_autogen.__version__}")
+        self.logger.info(f"Autogen version: {autogen.__version__}")
 
         llm_config = config_list_from_json(f"{path_to_apis}/{platform}_{model}.json")
 
@@ -441,7 +441,7 @@ class CMBAgent:
 
 
 
-        self.manager = cmbagent_autogen.GroupChatManager(groupchat=self.groupchat,
+        self.manager = autogen.GroupChatManager(groupchat=self.groupchat,
                                                          llm_config=self.llm_config)
 
 
@@ -581,13 +581,6 @@ class CMBAgent:
             self.update_memory_agent()
 
         
-
-
-    def print_usage_summary(self):
-        # autogen.ChatCompletion.print_usage_summary()
-        print("Usage summary: TBD")
-        # print(self.manager.get_usage_summary())
-
 
     def restore(self):
         """
@@ -992,7 +985,7 @@ class CMBAgent:
 
 
     def clear_cache(self):
-        cmbagent_autogen.Completion.clear_cache(self.cache_seed)
+        autogen.Completion.clear_cache(self.cache_seed)
 
 
     def hello_cmbagent(self):

@@ -20,7 +20,7 @@ dependencies = [
     "cobaya",
     "getdist",
     "classy_sz",
-    "cmbagent_autogen",
+    "pyautogen_cmbagent>=0.5.3",
     "ruamel.yaml",
     "pandas",
     "ipython"
