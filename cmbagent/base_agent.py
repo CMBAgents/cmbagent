@@ -1,7 +1,7 @@
 import os 
 import logging
 
-from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,work_dir,GroupChat,default_groupchat_intro_message
+from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message
 import sys
 
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
@@ -25,6 +25,7 @@ class BaseAgent:
     def __init__(self, 
                  llm_config=None,
                  agent_id=None,
+                 work_dir=None,
                  **kwargs):
         
 
@@ -35,12 +36,17 @@ class BaseAgent:
         self.info = yaml_load_file(agent_id + ".yaml")
 
         self.name = self.info["name"]
+
+        self.work_dir = work_dir
         
 
 
 
-    def set_agent(self,instructions=None, description=None,
-                  vector_store_ids=None, agent_temperature=None, 
+    def set_agent(self,
+                  instructions=None, 
+                  description=None,
+                  vector_store_ids=None, 
+                  agent_temperature=None, 
                   agent_top_p=None):
 
     
@@ -151,7 +157,7 @@ class BaseAgent:
             max_consecutive_auto_reply=self.info["max_consecutive_auto_reply"],
             is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
             code_execution_config={
-                "executor": LocalCommandLineCodeExecutor(work_dir=work_dir,
+                "executor": LocalCommandLineCodeExecutor(work_dir=self.work_dir,
                                                          timeout=self.info["timeout"]),
             },
         )

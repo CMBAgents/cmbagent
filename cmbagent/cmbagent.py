@@ -10,7 +10,8 @@ import pandas as pd
 import datetime
 from IPython.display import display
 from collections import defaultdict
-from .utils import work_dir,path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
+from .utils import work_dir as work_dir_default
+from .utils import path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
 from .utils import default_max_round, default_groupchat_intro_message
 from pprint import pprint
 from .base_agent import CmbAgentGroupChat
@@ -169,6 +170,7 @@ class CMBAgent:
                  set_allowed_transitions = None,
                  skip_executor = False,
                  skip_memory = True,
+                 work_dir = None,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
@@ -266,7 +268,7 @@ class CMBAgent:
 
         self.verbose = verbose
 
-        self.work_dir = work_dir
+        self.work_dir = work_dir if work_dir else work_dir_default
 
         self.path_to_assistants = path_to_assistants
 
@@ -862,7 +864,8 @@ class CMBAgent:
         
         self.engineer = EngineerAgent(llm_config=self.llm_config)
         self.planner = PlannerAgent(llm_config=self.llm_config)
-        self.executor = ExecutorAgent(llm_config=self.llm_config)
+        self.executor = ExecutorAgent(llm_config=self.llm_config, 
+                                       work_dir=self.work_dir)
 
         # the administrator (to interact with us humans)
         self.admin = AdminAgent()
