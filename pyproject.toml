@@ -8,7 +8,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.0"  # Will be overwritten by setuptools-scm
+version = "0.0.1post1"
 name = "cmbagent"
 maintainers = [{name = "CMBAgents Team", email = "cmbagents@gmail.com"}]
 description = "Multi-agent system for data analysis, made by cosmologists, powered by autogen."
@@ -20,7 +20,7 @@ dependencies = [
     "cobaya",
     "getdist",
     "classy_sz",
-    "pyautogen_cmbagent>=0.5.3",
+    "cmbagent_autogen>=0.0.6post1",
     "ruamel.yaml",
     "pandas",
     "ipython"
@@ -40,8 +40,8 @@ cmbagent = [
 Homepage = "https://github.com/CMBAgents/cmbagent"
 GitHub = "https://github.com/CMBAgents/cmbagent"
 
-[tool.setuptools_scm]
-write_to = "cmbagent/version.py"
+#[tool.setuptools_scm]
+#write_to = "cmbagent/version.py"
 
 
 
