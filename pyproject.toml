@@ -8,7 +8,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1post1"
+version = "0.0.1post2"
 name = "cmbagent"
 maintainers = [{name = "CMBAgents Team", email = "cmbagents@gmail.com"}]
 description = "Multi-agent system for data analysis, made by cosmologists, powered by autogen."
