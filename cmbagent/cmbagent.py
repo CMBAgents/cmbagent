@@ -171,6 +171,7 @@ class CMBAgent:
                  skip_executor = False,
                  skip_memory = True,
                  work_dir = None,
+                 agent_llm_configs = None,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
@@ -307,7 +308,7 @@ class CMBAgent:
             self.logger.info(f"{key}: {value}")
 
 
-        self.init_agents()
+        self.init_agents(agent_llm_configs=agent_llm_configs)
 
 
         # check if assistants exist: 
@@ -394,7 +395,7 @@ class CMBAgent:
                     
 
             else:
-
+                
                 agent.set_agent(**agent_kwargs)
 
 
@@ -836,7 +837,7 @@ class CMBAgent:
             update_yaml_preserving_format(f"{path_to_assistants}/{agent_name.replace('_agent', '') }.yaml", agent_name, vector_id)
 
 
-    def init_agents(self):
+    def init_agents(self,agent_llm_configs=None):
 
         imported_rag_agents = import_rag_agents()
         # print('imported_rag_agents: ', imported_rag_agents)
@@ -861,9 +862,13 @@ class CMBAgent:
 
 
         ### by default are always here
+
+        engineer_llm_config = self.llm_config.copy()
+        engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
+        self.engineer = EngineerAgent(llm_config=engineer_llm_config)
         
-        self.engineer = EngineerAgent(llm_config=self.llm_config)
         self.planner = PlannerAgent(llm_config=self.llm_config)
+
         self.executor = ExecutorAgent(llm_config=self.llm_config, 
                                        work_dir=self.work_dir)
 

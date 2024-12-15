@@ -52,8 +52,7 @@ class BaseAgent:
     
         # print('setting agent: ',self.name)
         # print(self.info['assistant_config']['tool_resources']['file_search'])
-        # print()
-    
+        # print()    
         if instructions is not None:
 
             self.info["instructions"] = instructions
@@ -113,7 +112,9 @@ class BaseAgent:
 
 
 
-    def set_assistant_agent(self,instructions=None, description=None):
+    def set_assistant_agent(self,
+                            instructions=None, 
+                            description=None):
 
         if instructions is not None:
 
