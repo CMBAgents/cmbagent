@@ -864,7 +864,8 @@ class CMBAgent:
         ### by default are always here
 
         engineer_llm_config = self.llm_config.copy()
-        engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
+        if agent_llm_configs is not None:
+            engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
         self.engineer = EngineerAgent(llm_config=engineer_llm_config)
         
         self.planner = PlannerAgent(llm_config=self.llm_config)
