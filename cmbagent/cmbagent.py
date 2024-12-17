@@ -420,6 +420,7 @@ class CMBAgent:
             self.show_allowed_transitions()
 
         if self.verbose:
+            
             print("Planner instructions:")
 
             print(self.planner.info['instructions'])
@@ -875,7 +876,8 @@ class CMBAgent:
 
 
         ### by default are always here
-
+        engineer_llm_config = self.llm_config.copy()
+        planner_llm_config = self.llm_config.copy()
 
         engineer_llm_config['config_list'] = [
                         {
