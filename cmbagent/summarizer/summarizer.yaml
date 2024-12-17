@@ -80,7 +80,7 @@ instructions: |
       },
       {
          "sub_task": "Generate product recommendations",
-         "result": null,
+         "result": "null",
          "feedback": "Not executed because session was terminated.",
          "agent": "RecommenderAgent"
       }
@@ -90,7 +90,7 @@ instructions: |
 
    If the PLAN was not executed entirely, you should still report on the steps that were not executed: 
     - In the "feedback" field, you should explain why the steps were not executed.
-    - The "result" field should be set to `null`.
+    - The "result" field should be set to "null".
 
    ---
 
