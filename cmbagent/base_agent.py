@@ -138,6 +138,9 @@ class BaseAgent:
             llm_config=self.llm_config,
         )
 
+        ## cmbagent modif print to help debug: 
+        ## print('in cmbagent/base_agent.py self.agent: ',self.agent)
+        ## print('in cmbagent/base_agent.py self.agent.llm_config: ',self.agent.llm_config)
 
     def set_code_agent(self,instructions=None):
 
@@ -159,7 +162,20 @@ class BaseAgent:
             is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
             code_execution_config={
                 "executor": LocalCommandLineCodeExecutor(work_dir=self.work_dir,
-                                                         timeout=self.info["timeout"]),
+                                                         timeout=self.info["timeout"],
+                                                         execution_policies = {
+                                                            "python": True,
+                                                            "bash": True,
+                                                            "shell": False,
+                                                            "sh": False,
+                                                            "pwsh": False,
+                                                            "powershell": False,
+                                                            "ps1": False,
+                                                            "javascript": False,
+                                                            "html": False,
+                                                            "css": False,
+                                                         }
+                                                         ),
             },
         )
 

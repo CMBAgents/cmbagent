@@ -26,7 +26,7 @@ from typing import List
 from pprint import pprint
 
 from autogen.formatting_utils import CMBAGENTSummary
-
+from cmbagent.structured_output import EngineerResponse, PlannerResponse
 
 
 def import_rag_agents():        
@@ -864,11 +864,16 @@ class CMBAgent:
         ### by default are always here
 
         engineer_llm_config = self.llm_config.copy()
+        planner_llm_config = self.llm_config.copy()
+        # engineer_llm_config['config_list'][0]['response_format'] = EngineerResponse
+        # planner_llm_config['config_list'][0]['response_format'] = PlannerResponse
         if agent_llm_configs is not None:
             engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
+            planner_llm_config['config_list'] = [agent_llm_configs['planner']] if 'planner' in agent_llm_configs else self.llm_config['config_list']
+        
         self.engineer = EngineerAgent(llm_config=engineer_llm_config)
         
-        self.planner = PlannerAgent(llm_config=self.llm_config)
+        self.planner = PlannerAgent(llm_config=planner_llm_config)
 
         self.executor = ExecutorAgent(llm_config=self.llm_config, 
                                        work_dir=self.work_dir)

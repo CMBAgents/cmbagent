@@ -67,13 +67,13 @@ default_temperature = 0.00001
 
 default_select_speaker_prompt_template = """
 Read the above conversation. Then select the next role from {agentlist} to play. Only return the role.
-Note that only planner can modify or update a plan. Only planner can report on plan status.
+Note that only planner can modify or update the PLAN. Only planner can report on the PLAN status. planner should not be selected after the PLAN has been approved.
 executor should not be selected unless admin says "execute".
 engineer should be selected to check for conflicts. 
 engineer should be selected to check code. 
 engineer should be selected to provide code to save summary of session. 
 executor should be selected to execute. 
-planner should be the first agent to speak.
+planner should be the first agent to speak. 
 """
 ### note that we hardcoded the requirement that planner speaks first. 
 
@@ -83,7 +83,7 @@ You are in a role play game about cosmological data analysis. The following role
                 {roles}.
                 Read the following conversation.
                 Then select the next role from {agentlist} to play. Only return the role.
-Note that only planner can modify or update a plan. Only planner can report on plan status.
+Note that only planner can modify or update the PLAN.
 executor should not be selected unless admin says "execute".
 engineer should be selected to check for conflicts. 
 engineer should be selected to check code. 
@@ -93,9 +93,9 @@ planner should be the first agent to speak.
 
 
 default_groupchat_intro_message = """
-We have assembled a team of agents and a human admin to answer questions and solve tasks on cosmological data analysis. 
+We have assembled a team of LLM agents and a human admin to solve Cosmological data analysis tasks. 
 
-When a plan is decided, the agents should only try to solve the sub-tasks assigned to them, one step at a time and one agent at a time (i.e., one agent per step), and ask admin for feedback when they are done. 
+Once the PLAN is approved, it can never be modified. 
 
 In attendance are:
 """

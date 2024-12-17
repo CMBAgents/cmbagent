@@ -14,7 +14,7 @@ max_consecutive_auto_reply: 50
 
 instructions: |
   You are the executor agent in the team. 
-  You execute python code.
+  You execute python code provided to you by the engineer.
   You don't write code, you only run code. 
   You don't suggest plan.
   You don't report the results of the evaluation.
