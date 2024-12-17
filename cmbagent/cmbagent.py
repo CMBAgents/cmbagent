@@ -155,6 +155,7 @@ class CMBAgent:
                  platform='oai',
                  model='gpt4o',
                  llm_api_key=None,
+                 llm_api_type=None,
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
                  agent_list = None,
                  verbose = False,
@@ -284,6 +285,14 @@ class CMBAgent:
         else:
 
             llm_config[0]['api_key'] = os.getenv("OPENAI_API_KEY")
+
+        if llm_api_type is not None:
+
+            llm_config[0]['api_type'] = llm_api_type
+        
+        else:
+        
+            llm_config[0]['api_type'] = 'openai'
 
         self.llm_api_key = llm_config[0]['api_key']
 
@@ -867,19 +876,33 @@ class CMBAgent:
 
         ### by default are always here
 
-        engineer_llm_config = self.llm_config.copy()
-        planner_llm_config = self.llm_config.copy()
-        # print('in cmbagent.py engineer_llm_config: ',engineer_llm_config)
 
-        # engineer_llm_config['config_list']=[{'response_format': EngineerResponse}]
-        # print('in cmbagent.py engineer_llm_config after setting response_format: ',engineer_llm_config)
-        # planner_llm_config['config_list'][0]['response_format'] = PlannerResponse
+        engineer_llm_config['config_list'] = [
+                        {
+                        "model": self.llm_config['config_list'][0]['model'],
+                        "api_key": self.llm_config['config_list'][0]['api_key'],
+                        "api_type": self.llm_config['config_list'][0]['api_type'],
+                        'response_format': EngineerResponse,
+                        }
+        ]
 
+        planner_llm_config['config_list'] = [
+                        {
+                        "model": self.llm_config['config_list'][0]['model'],
+                        "api_key": self.llm_config['config_list'][0]['api_key'],
+                        "api_type": self.llm_config['config_list'][0]['api_type'],
+                        'response_format': PlannerResponse,
+                        }
+        ]
+
+        ## set custom llm configs if provided
         if agent_llm_configs is not None:
+
             engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
+            
             planner_llm_config['config_list'] = [agent_llm_configs['planner']] if 'planner' in agent_llm_configs else self.llm_config['config_list']
         
-        # print('in cmbagent.py engineer_llm_config after setting response_format from input config: ',engineer_llm_config)
+
         self.engineer = EngineerAgent(llm_config=engineer_llm_config)
         
         self.planner = PlannerAgent(llm_config=planner_llm_config)

@@ -67,7 +67,7 @@ default_temperature = 0.00001
 
 default_select_speaker_prompt_template = """
 Read the above conversation. Then select the next role from {agentlist} to play. Only return the role.
-Note that only planner can modify or update the PLAN. Only planner can report on the PLAN status. planner should not be selected after the PLAN has been approved.
+Note that only planner can modify or update the PLAN. planner should not be selected after the PLAN has been approved.
 executor should not be selected unless admin says "execute".
 engineer should be selected to check for conflicts. 
 engineer should be selected to check code. 
@@ -84,6 +84,7 @@ You are in a role play game about cosmological data analysis. The following role
                 Read the following conversation.
                 Then select the next role from {agentlist} to play. Only return the role.
 Note that only planner can modify or update the PLAN.
+planner should not be selected after the PLAN has been approved.
 executor should not be selected unless admin says "execute".
 engineer should be selected to check for conflicts. 
 engineer should be selected to check code. 
