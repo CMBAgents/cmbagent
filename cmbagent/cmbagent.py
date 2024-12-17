@@ -19,14 +19,16 @@ from cmbagent.engineer.engineer import EngineerAgent
 from cmbagent.planner.planner import PlannerAgent
 from cmbagent.executor.executor import ExecutorAgent
 from cmbagent.admin.admin import AdminAgent
+from cmbagent.summarizer.summarizer import SummarizerAgent
 from pydantic import BaseModel
 # import yaml
 from ruamel.yaml import YAML
 from typing import List
 from pprint import pprint
 
-from autogen.formatting_utils import CMBAGENTSummary
-from cmbagent.structured_output import EngineerResponse, PlannerResponse
+from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse
+
+from sys import exit
 
 
 def import_rag_agents():        
@@ -260,13 +262,14 @@ class CMBAgent:
 
         self.logger = logging.getLogger(__name__)
 
-        self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin']
+        self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin', 'summarizer']
 
         self.agent_list = agent_list
         self.skip_memory = skip_memory
-        if not self.skip_memory:
-            if 'memory' not in agent_list:
-                agent_list.append('memory')
+
+        if not self.skip_memory and 'memory' not in agent_list:
+            self.agent_list.append('memory')
+
 
         self.verbose = verbose
 
@@ -420,7 +423,7 @@ class CMBAgent:
             self.show_allowed_transitions()
 
         if self.verbose:
-            
+
             print("Planner instructions:")
 
             print(self.planner.info['instructions'])
@@ -451,7 +454,7 @@ class CMBAgent:
 
 
         self.manager = autogen.GroupChatManager(groupchat=self.groupchat,
-                                                         llm_config=self.llm_config)
+                                                llm_config=self.llm_config)
 
 
         for agent in self.groupchat.agents: 
@@ -484,15 +487,11 @@ class CMBAgent:
         
 
         if 'yes' in response:
-            print('Asking planner to generate summary')
+            print('Asking summarizer to generate summary')
             print('The summary will be json formatted.')
             print('\n\n')
             summary_message = """
-            Based on the conversation history, write a synthetic executive summary of the session.
-            Specifically highlight the steps that required revision by admin and what was done to reach a successful answer that 
-            was accepted the admin (i.e., who asked to proceed). 
-
-            Your answer is formatted in json. 
+            We will now summarize the session.
             """
 
             previous_state = f"{self.groupchat.messages}"
@@ -507,11 +506,11 @@ class CMBAgent:
             # exit()
             last_agent, last_message = self.manager.resume(messages=json_string)
 
+            self.manager.cmbagent_summarizer = True
 
-            self.session = self.planner.agent.initiate_chat(recipient=self.manager,
-                                                            message=summary_message,
-                                                            clear_history=False,
-                                                            response_format=CMBAGENTSummary)
+            self.session = self.summarizer.agent.initiate_chat(recipient=self.manager,
+                                                          message=summary_message,
+                                                          clear_history=False)
 
 
             # Extract the content
@@ -860,25 +859,28 @@ class CMBAgent:
         # imported_rag_agents = import_rag_agents()
         # print('imported_rag_agents: ', imported_rag_agents)
 
+        ## this will store classes for each agents
         self.agent_classes = {}
 
         for k in imported_rag_agents.keys():
 
             self.agent_classes[imported_rag_agents[k]['agent_name']] = imported_rag_agents[k]['agent_class']
 
+        # print('self.agent_classes: ', self.agent_classes)
+
         self.agent_classes.update({
 
             'engineer': EngineerAgent,
             'planner': PlannerAgent,
             'executor': ExecutorAgent,
+            'summarizer': SummarizerAgent,
             'admin': AdminAgent
         })
 
 
         ### by default are always here
+        
         engineer_llm_config = self.llm_config.copy()
-        planner_llm_config = self.llm_config.copy()
-
         engineer_llm_config['config_list'] = [
                         {
                         "model": self.llm_config['config_list'][0]['model'],
@@ -888,6 +890,7 @@ class CMBAgent:
                         }
         ]
 
+        planner_llm_config = self.llm_config.copy()
         planner_llm_config['config_list'] = [
                         {
                         "model": self.llm_config['config_list'][0]['model'],
@@ -897,12 +900,24 @@ class CMBAgent:
                         }
         ]
 
+        summarizer_llm_config = self.llm_config.copy()
+        summarizer_llm_config['config_list'] = [
+                        {
+                        "model": self.llm_config['config_list'][0]['model'],
+                        "api_key": self.llm_config['config_list'][0]['api_key'],
+                        "api_type": self.llm_config['config_list'][0]['api_type'],
+                        'response_format': SummarizerResponse,
+                        }
+        ]
+
         ## set custom llm configs if provided
         if agent_llm_configs is not None:
 
             engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
             
             planner_llm_config['config_list'] = [agent_llm_configs['planner']] if 'planner' in agent_llm_configs else self.llm_config['config_list']
+
+            summarizer_llm_config['config_list'] = [agent_llm_configs['summarizer']] if 'summarizer' in agent_llm_configs else self.llm_config['config_list']
         
 
         self.engineer = EngineerAgent(llm_config=engineer_llm_config)
@@ -911,6 +926,8 @@ class CMBAgent:
 
         self.executor = ExecutorAgent(llm_config=self.llm_config, 
                                        work_dir=self.work_dir)
+
+        self.summarizer = SummarizerAgent(llm_config=summarizer_llm_config)
 
         # the administrator (to interact with us humans)
         self.admin = AdminAgent()
@@ -921,6 +938,9 @@ class CMBAgent:
         self.agents = [self.admin,
                        self.planner,
                        self.engineer]
+
+        if not self.skip_memory:
+            self.agents.append(self.summarizer)
         
         if not self.skip_executor:
             self.agents.append(self.executor)
@@ -930,7 +950,7 @@ class CMBAgent:
             self.agent_list = list(self.agent_classes.keys())
 
         # Drop entries from self.agent_classes that are not in self.agent_list
-        self.agent_classes = {k: v for k, v in self.agent_classes.items() if k in self.agent_list or k in ['engineer', 'planner', 'executor', 'admin']}
+        self.agent_classes = {k: v for k, v in self.agent_classes.items() if k in self.agent_list or k in ['summarizer', 'engineer', 'planner', 'executor', 'admin']}
 
 
         for agent_name in self.agent_list:
@@ -938,6 +958,7 @@ class CMBAgent:
             if agent_name in self.agent_classes and agent_name not in ['engineer',
                                                                        'planner',
                                                                        'executor',
+                                                                       'summarizer',
                                                                        'admin']:
                 agent_class = self.agent_classes[agent_name]
 
@@ -950,10 +971,13 @@ class CMBAgent:
 
         agent_keys = self.agent_classes.keys()
 
-        self.agent_names =  [f"{key}_agent" if key not in ['engineer', 'planner', 'executor', 'admin'] else key for key in agent_keys]
+        self.agent_names =  [f"{key}_agent" if key not in ['engineer', 'planner', 'executor', 'admin', 'summarizer'] else key for key in agent_keys]
 
         if self.skip_executor:
             self.agent_names.remove('executor')
+
+        if self.skip_memory:
+            self.agent_names.remove('summarizer')
 
         if self.verbose:
 

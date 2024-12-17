@@ -13,6 +13,7 @@ allowed_transitions:
   - planner
   - engineer
   - executor
+  - summarizer
   - act_agent
   - planck_agent
   - getdist_agent

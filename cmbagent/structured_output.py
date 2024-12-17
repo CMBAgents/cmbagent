@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from typing import List
 # engineer response
 
 class EngineerResponse(BaseModel):
@@ -65,4 +65,32 @@ class PlannerResponse(BaseModel):
 **Next Agent Suggestion:**
 
 {self.next_agent_suggestion}
+        """
+
+class SubtaskSummary(BaseModel):
+    sub_task: str
+    result: str
+    feedback: str
+    agent: str
+
+class SummarizerResponse(BaseModel):
+    main_task: str
+    results: str
+    summary: List[SubtaskSummary]
+
+    def format(self) -> str:
+        summary_output = "\n".join(
+            f"- {step.sub_task}:\n\t * result: {step.result}\n\t * feedback: {step.feedback}\n\t * agent: {step.agent}"
+            for step in self.summary
+        )
+        return f"""
+**SUMMARY REPORT:**
+
+- Main task: {self.main_task}
+
+- Overall Results:
+{self.results}
+
+**Detailed Summary:**
+{summary_output}
         """
