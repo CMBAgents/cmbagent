@@ -4,7 +4,7 @@
 [![PyPI version](https://badge.fury.io/py/cmbagent.svg)](https://pypi.org/project/cmbagent/)[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagent/badge/?version=latest)](https://cmbagent.readthedocs.io/en/latest/?badge=latest) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
 
 
-Multi-agent system for data analysis, made by cosmologists, powered by [autogen](https://github.com/autogen-ai/autogen)/[ag2](https://github.com/ag2ai/ag2).
+Multi-agent system for data analysis, made by cosmologists, powered by [ag2](https://github.com/ag2ai/ag2).
 
 > **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
