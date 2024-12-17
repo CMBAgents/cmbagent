@@ -398,6 +398,10 @@ class CMBAgent:
                 
                 agent.set_agent(**agent_kwargs)
 
+            ## debug print to help debug
+            #print('in cmbagent.py self.agents instructions: ',instructions)
+            #print('in cmbagent.py self.agents description: ',description)
+
 
         self.allowed_transitions = self.get_allowed_transitions()
 
@@ -865,12 +869,17 @@ class CMBAgent:
 
         engineer_llm_config = self.llm_config.copy()
         planner_llm_config = self.llm_config.copy()
-        # engineer_llm_config['config_list'][0]['response_format'] = EngineerResponse
+        # print('in cmbagent.py engineer_llm_config: ',engineer_llm_config)
+
+        # engineer_llm_config['config_list']=[{'response_format': EngineerResponse}]
+        # print('in cmbagent.py engineer_llm_config after setting response_format: ',engineer_llm_config)
         # planner_llm_config['config_list'][0]['response_format'] = PlannerResponse
+
         if agent_llm_configs is not None:
             engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
             planner_llm_config['config_list'] = [agent_llm_configs['planner']] if 'planner' in agent_llm_configs else self.llm_config['config_list']
         
+        # print('in cmbagent.py engineer_llm_config after setting response_format from input config: ',engineer_llm_config)
         self.engineer = EngineerAgent(llm_config=engineer_llm_config)
         
         self.planner = PlannerAgent(llm_config=planner_llm_config)
