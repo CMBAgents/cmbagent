@@ -38,7 +38,7 @@ Clone and install our package from `PyPi`:
 pip install cmbagent
 ```
 
-Before pip installing cmbagent, creating a virual environment is envouraged: 
+Before pip installing cmbagent, creating a virual environment is encouraged: 
 ```bash
 python -m venv /path/to/your/envs/cmbagent_env
 source /path/to/your/envs/cmbagent_env/bin/activate
@@ -46,6 +46,8 @@ source /path/to/your/envs/cmbagent_env/bin/activate
 You can then pip install cmbagent in this fresh environment.
 
 If you are a cosmologist, you need the RAG data to use `cmbagent` in your cosmology work. 
+
+Before installation, make sure you do not have any other autogen/pyautogen/ag2 versions installed. You may need to uninstall these packages before installing `cmbagent`.  
 
 ## Getting the RAG data (cosmologist only)
 
