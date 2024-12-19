@@ -1,9 +1,9 @@
 import os 
 import logging
-
+from typing import List
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message
 import sys
-
+from autogen import Agent
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
     """A custom proxy agent for the user with redefined default descriptions."""
 
@@ -14,9 +14,45 @@ class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor
         "NEVER": "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks).", # default for executor 
     }
 
+
 class CmbAgentGroupChat(GroupChat):
-    cost = 0
-    # DEFAULT_INTRO_MSG = default_groupchat_intro_message
+    def __init__(
+        self,
+        agents: List[Agent],
+        rag_agents: List[Agent],
+        allowed_or_disallowed_speaker_transitions: List,
+        speaker_transitions_type: str,
+        messages: List,
+        speaker_selection_method: str,
+        max_round: int,
+        select_speaker_auto_verbose: bool,
+        send_introductions: bool,
+        admin_name: str,
+        select_speaker_prompt_template: str,
+        select_speaker_message_template: str,
+        cost: int = 0,
+        verbose: bool = False,
+    ):
+        # Initialize the parent GroupChat
+        super().__init__(
+            agents=agents,
+            allowed_or_disallowed_speaker_transitions=allowed_or_disallowed_speaker_transitions,
+            speaker_transitions_type=speaker_transitions_type,
+            messages=messages,
+            speaker_selection_method=speaker_selection_method,
+            max_round=max_round,
+            select_speaker_auto_verbose=select_speaker_auto_verbose,
+            send_introductions=send_introductions,
+            admin_name=admin_name,
+            select_speaker_prompt_template=select_speaker_prompt_template,
+            select_speaker_message_template=select_speaker_message_template,
+        )
+        
+        # Initialize CmbAgentGroupChat-specific attributes
+        self.rag_agents = rag_agents
+        self.verbose = verbose
+        self.cost = cost
+        # DEFAULT_INTRO_MSG = default_groupchat_intro_message
 
 
 
@@ -176,6 +212,7 @@ class BaseAgent:
                                                             "css": False,
                                                          }
                                                          ),
+                "last_n_messages": 2,
             },
         )
 
