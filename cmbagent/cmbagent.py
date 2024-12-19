@@ -483,11 +483,15 @@ class CMBAgent:
         all_agents = [agent.agent for agent in self.agents] + self.groupchat.new_conversable_agents
         for agent in all_agents:
             if hasattr(agent, 'cost_dict') and agent.cost_dict['Agent']:
-                cost_dict['Agent'].append(agent.cost_dict['Agent'][0])
-                cost_dict['Cost'].append(sum(agent.cost_dict['Cost']))
-                cost_dict['Prompt Tokens'].append(sum(agent.cost_dict['Prompt Tokens']))
-                cost_dict['Completion Tokens'].append(sum(agent.cost_dict['Completion Tokens']))
-                cost_dict['Total Tokens'].append(sum(agent.cost_dict['Total Tokens']))
+                name = agent.cost_dict['Agent'][0].replace('admin (', '').replace(')', '').replace('_', ' ')
+                if name in cost_dict['Agent']:
+                    idx = cost_dict['Agent'].index(name)
+                    for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
+                        cost_dict[field][idx] += sum(agent.cost_dict[field])
+                else:
+                    cost_dict['Agent'].append(name)
+                    for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
+                        cost_dict[field].append(sum(agent.cost_dict[field]))
         df = pd.DataFrame(cost_dict)
         columns_to_sum = df.select_dtypes(include='number').columns
         totals = df[columns_to_sum].sum()
