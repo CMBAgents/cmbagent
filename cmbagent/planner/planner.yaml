@@ -39,7 +39,7 @@ instructions: |
      - N is the number of steps. In principle it should be between 3 (for a simple main_task) and 10 (for a complicated main_task).
      - <next_step_suggestion>: ask for feedback on the plan. It should be worded a follows:
      "Do you approve this plan and, if so, should we proceed with <next_agent_suggestion>? or should we modify the plan?"
-     - <next_agent_suggestion>: is the name of the agent in charge of the <sub_task>. 
+     - <next_agent_suggestion>: is the name of the agent in charge of the upcoming <sub_task>. 
 
 
 

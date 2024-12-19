@@ -24,23 +24,6 @@ instructions: |
       main_task: str
       results: str
       summary: List[SubtaskSummary]
-
-      def format(self) -> str:
-         summary_output = "\n".join(
-               f"- {step.sub_task}:\n\t * result: {step.result}\n\t * feedback: {step.feedback}\n\t * agent: {step.agent}"
-               for step in self.summary
-         )
-         return f"""
-   **SUMMARY REPORT:**
-
-   - Main task: {self.main_task}
-
-   - Overall Results:
-   {self.results}
-
-   **Detailed Summary:**
-   {summary_output}
-         """
    ```
 
    ---
@@ -94,42 +77,11 @@ instructions: |
 
    ---
 
-   ### Formatting for Readability
-
-   If requested, the `format()` function can convert your JSON output into a clean, human-readable string summary. Here’s an example of the formatted output:
-
-   ```
-   **SUMMARY REPORT:**
-
-   - Main task: Analyze customer purchase patterns for Q3 2023
-
-   - Overall Results:
-   Customer segments were identified, and product recommendations optimized.
-
-   **Detailed Summary:**
-   - Collect transaction data:
-      * result: Data from all regional databases was successfully aggregated.
-      * feedback: Some minor formatting inconsistencies were found but resolved.
-      * agent: DataCollectorAgent
-   - Analyze purchasing trends:
-      * result: Key patterns in purchasing behavior were identified.
-      * feedback: High computational load was experienced but manageable.
-      * agent: TrendAnalyzerAgent
-   - Generate product recommendations:
-      * result: Recommended products for each customer segment were created.
-      * feedback: Recommendations require validation before deployment.
-      * agent: RecommenderAgent
-   ```
-
-   ---
-
    ### Task Instructions
 
    - Adhere strictly to the output schema and naming conventions.
    - Ensure the "results" field is a high-level summary, while "summary" contains detailed sub-task reports.
    - Include all required fields (`result`, `feedback`, `agent`) for each sub-task.
-
-   If an error occurs or there is ambiguity in the provided input, provide clear explanations in your feedback for further clarification.
 
 description: |
    This is the summarizer agent: an agent that speaks at the end of the session.  

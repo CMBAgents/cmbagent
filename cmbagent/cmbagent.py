@@ -20,13 +20,14 @@ from cmbagent.planner.planner import PlannerAgent
 from cmbagent.executor.executor import ExecutorAgent
 from cmbagent.admin.admin import AdminAgent
 from cmbagent.summarizer.summarizer import SummarizerAgent
+from cmbagent.rag_software_formatter.rag_software_formatter import RagSoftwareFormatterAgent
 from pydantic import BaseModel
 # import yaml
 from ruamel.yaml import YAML
 from typing import List
 from pprint import pprint
 
-from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse
+from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse, RagSoftwareFormatterResponse
 
 from sys import exit
 
@@ -161,6 +162,7 @@ class CMBAgent:
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
                  agent_list = None,
                  verbose = False,
+                 reset_assistant = False,
                  agent_instructions = None,
                  agent_descriptions = None,
                  agent_temperature = None,
@@ -211,6 +213,12 @@ class CMBAgent:
             # agent_instructions = {
             # 'classy_sz_agent': "You are a clown. "
             # }
+            reset_assistant (List of strings, optional): List of agents to reset the assistant. Defaults to False.
+            # example:
+            # reset_assistant = [
+            # 'classy_sz',
+            # ]
+            
             make_new_rag_agents (list of strings, optional): List of names for new rag agents to be created. Defaults to False.
             
             **kwargs: Additional keyword arguments.
@@ -262,7 +270,7 @@ class CMBAgent:
 
         self.logger = logging.getLogger(__name__)
 
-        self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin', 'summarizer']
+        self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin', 'summarizer', 'rag_software_formatter']
 
         self.agent_list = agent_list
         self.skip_memory = skip_memory
@@ -324,7 +332,7 @@ class CMBAgent:
 
 
         # check if assistants exist: 
-        self.check_assistants()
+        self.check_assistants(reset_assistant=reset_assistant)
 
 
 
@@ -416,6 +424,7 @@ class CMBAgent:
 
 
         self.allowed_transitions = self.get_allowed_transitions()
+        
 
 
         if self.verbose:
@@ -434,19 +443,24 @@ class CMBAgent:
         select_speaker_message_template = select_speaker_message if select_speaker_message else default_select_speaker_message_template
         groupchat_intro_message = intro_message if intro_message else default_groupchat_intro_message
 
-
+        self.rag_agents = [agent.agent for agent in self.agents if agent.name not in self.non_rag_agents]
+        
+        # cmbagent debug print: 
+        # print("--> in cmbagent.py self.rag_agents: ", self.rag_agents)
         self.groupchat = CmbAgentGroupChat(
                                 agents=[agent.agent for agent in self.agents],
+                                rag_agents=self.rag_agents,
                                 allowed_or_disallowed_speaker_transitions=self.allowed_transitions,
                                 speaker_transitions_type="allowed",
                                 messages=[],
                                 speaker_selection_method = "auto",
                                 max_round=max_round,
-                                select_speaker_auto_verbose=False,#self.verbose,
+                                select_speaker_auto_verbose=False,
                                 send_introductions=True,
                                 admin_name="admin",
                                 select_speaker_prompt_template=select_speaker_prompt_template,
                                 select_speaker_message_template=select_speaker_message_template,
+                                verbose=self.verbose,
                                 )
         
         self.groupchat.DEFAULT_INTRO_MSG  = groupchat_intro_message
@@ -454,6 +468,7 @@ class CMBAgent:
 
 
         self.manager = autogen.GroupChatManager(groupchat=self.groupchat,
+                                                name="cmbagent",
                                                 llm_config=self.llm_config)
 
 
@@ -867,6 +882,7 @@ class CMBAgent:
             self.agent_classes[imported_rag_agents[k]['agent_name']] = imported_rag_agents[k]['agent_class']
 
         # print('self.agent_classes: ', self.agent_classes)
+        # exit()
 
         self.agent_classes.update({
 
@@ -874,7 +890,8 @@ class CMBAgent:
             'planner': PlannerAgent,
             'executor': ExecutorAgent,
             'summarizer': SummarizerAgent,
-            'admin': AdminAgent
+            'admin': AdminAgent,
+            'rag_software_formatter': RagSoftwareFormatterAgent
         })
 
 
@@ -910,6 +927,26 @@ class CMBAgent:
                         }
         ]
 
+        rag_software_formatter_llm_config = self.llm_config.copy()
+        rag_software_formatter_llm_config['config_list'] = [
+                        {
+                        "model": self.llm_config['config_list'][0]['model'],
+                        "api_key": self.llm_config['config_list'][0]['api_key'],
+                        "api_type": self.llm_config['config_list'][0]['api_type'],
+                        'response_format': RagSoftwareFormatterResponse,
+                        }
+        ]
+
+        classy_sz_llm_config = self.llm_config.copy()
+        classy_sz_llm_config['config_list'] = [
+                        {
+                        "model": self.llm_config['config_list'][0]['model'],
+                        "api_key": self.llm_config['config_list'][0]['api_key'],
+                        "api_type": self.llm_config['config_list'][0]['api_type'],
+                        'response_format': RagSoftwareFormatterResponse, # doesnt work yet. Currently using rag_software_formatter after this agent. 
+                        }
+        ]
+
         ## set custom llm configs if provided
         if agent_llm_configs is not None:
 
@@ -929,6 +966,8 @@ class CMBAgent:
 
         self.summarizer = SummarizerAgent(llm_config=summarizer_llm_config)
 
+        self.rag_software_formatter = RagSoftwareFormatterAgent(llm_config=rag_software_formatter_llm_config)
+
         # the administrator (to interact with us humans)
         self.admin = AdminAgent()
 
@@ -937,7 +976,8 @@ class CMBAgent:
 
         self.agents = [self.admin,
                        self.planner,
-                       self.engineer]
+                       self.engineer,
+                       self.rag_software_formatter]
 
         if not self.skip_memory:
             self.agents.append(self.summarizer)
@@ -950,7 +990,12 @@ class CMBAgent:
             self.agent_list = list(self.agent_classes.keys())
 
         # Drop entries from self.agent_classes that are not in self.agent_list
-        self.agent_classes = {k: v for k, v in self.agent_classes.items() if k in self.agent_list or k in ['summarizer', 'engineer', 'planner', 'executor', 'admin']}
+        self.agent_classes = {k: v for k, v in self.agent_classes.items() if k in self.agent_list or k in ['summarizer', 
+                                                                                                            'engineer', 
+                                                                                                            'planner', 
+                                                                                                            'executor', 
+                                                                                                            'rag_software_formatter',
+                                                                                                            'admin']}
 
 
         for agent_name in self.agent_list:
@@ -959,10 +1004,19 @@ class CMBAgent:
                                                                        'planner',
                                                                        'executor',
                                                                        'summarizer',
+                                                                       'rag_software_formatter',
                                                                        'admin']:
                 agent_class = self.agent_classes[agent_name]
 
-                agent_instance = agent_class(llm_config=self.llm_config)
+                # print('agent_name: ', agent_name)
+
+                if agent_name == 'classy_sz':
+                    llm_config = classy_sz_llm_config
+                    # print('in cmbagent.py: classy_sz_llm_config: ', classy_sz_llm_config)
+                else:
+                    llm_config = self.llm_config
+
+                agent_instance = agent_class(llm_config=llm_config)
 
                 setattr(self, agent_name, agent_instance)
 
@@ -971,7 +1025,7 @@ class CMBAgent:
 
         agent_keys = self.agent_classes.keys()
 
-        self.agent_names =  [f"{key}_agent" if key not in ['engineer', 'planner', 'executor', 'admin', 'summarizer'] else key for key in agent_keys]
+        self.agent_names =  [f"{key}_agent" if key not in ['engineer', 'planner', 'executor', 'admin', 'summarizer', 'rag_software_formatter'] else key for key in agent_keys]
 
         if self.skip_executor:
             self.agent_names.remove('executor')
@@ -984,10 +1038,31 @@ class CMBAgent:
             print("Using following agents: ", self.agent_names)
             print()
 
+    def create_assistant(self, client, agent):
+
+        print(f"-->Creating assistant {agent.name}")
+
+        print(f"--> llm_config: {self.llm_config}")
+
+        print(f"--> agent.llm_config: {agent.llm_config}")
+
+        new_assistant = client.beta.assistants.create(
+            name=agent.name,
+            instructions=agent.info['instructions'],
+            tools=[{"type": "file_search"}],
+            tool_resources={"file_search": {"vector_store_ids":[]}},
+            model=agent.llm_config['config_list'][0]['model'],
+            # response_format=agent.llm_config['config_list'][0]['response_format']
+        )
+        print("New assistant created.")
+        print(f"--> New assistant id: {new_assistant.id}")
+        print(f"--> New assistant response format: {new_assistant.response_format}")
+        print("\n")
+
+        return new_assistant
 
 
-
-    def check_assistants(self):
+    def check_assistants(self, reset_assistant=[]):
 
         client = OpenAI(api_key = self.llm_api_key)
         available_assistants = client.beta.assistants.list(
@@ -1001,34 +1076,44 @@ class CMBAgent:
         assistant_ids = [d.id for d in available_assistants.data]
 
         for agent in self.agents:
+
             if agent.name not in self.non_rag_agents:
+                
                 print(f"Checking agent: {agent.name}")
+
                 # Check if agent name exists in the available assistants
                 if agent.name in assistant_names:
-                    print(f"Agent {agent.name} exists in available assistants")
-                    assistant_id = agent.info['assistant_config']['assistant_id']
 
-                    if assistant_id != assistant_ids[assistant_names.index(agent.name)]:
-                        print(f"-->Assistant ID from your yaml: {assistant_id}")
-                        print(f"-->Assistant ID in openai: {assistant_ids[assistant_names.index(agent.name)]}")
-                        print("-->We will use the assistant id from openai")
-                        agent.info['assistant_config']['assistant_id'] = assistant_ids[assistant_names.index(agent.name)]
-                else:
-                    print(f"Agent {agent.name} does not exist in available assistants")
-                    print(f"-->Creating assistant {agent.name}")
+                    print(f"Agent {agent.name} exists in available assistants with id: {assistant_ids[assistant_names.index(agent.name)]}")
 
-                    new_assistant = client.beta.assistants.create(
-                        instructions=" ",
-                        name=agent.name,
-                        tools=[{"type": "file_search"}],
-                        tool_resources={"file_search": {"vector_store_ids":[]}},
-                        model=self.llm_config['config_list'][0]['model']
-                    )
-                    print(f"-->New assistant id: {new_assistant.id}")
-                    agent.info['assistant_config']['assistant_id'] = new_assistant.id
-                    print("-->assistant created")
+                    if reset_assistant and agent.name.replace('_agent', '') in reset_assistant:
+                        
+                        print("This agent is in the reset_assistant list. Resetting the assistant.")
+                        print("Deleting the assistant...")
+                        client.beta.assistants.delete(assistant_ids[assistant_names.index(agent.name)])
+                        print("Assistant deleted. Creating a new one...")
+                        new_assistant = self.create_assistant(client, agent)
+                        agent.info['assistant_config']['assistant_id'] = new_assistant.id
+                        
+
+                    else:
+
+                        assistant_id = agent.info['assistant_config']['assistant_id']
+
+                        if assistant_id != assistant_ids[assistant_names.index(agent.name)]:
+                            print(f"--> Assistant ID between yaml and openai do not match.")
+                            print(f"--> Assistant ID from your yaml: {assistant_id}")
+                            print(f"--> Assistant ID in openai: {assistant_ids[assistant_names.index(agent.name)]}")
+                            print("--> We will use the assistant id from openai")
+                            agent.info['assistant_config']['assistant_id'] = assistant_ids[assistant_names.index(agent.name)]
+                            print(f"--> Updating yaml file with new assistant id: {assistant_ids[assistant_names.index(agent.name)]}")
+                            update_yaml_preserving_format(f"{path_to_assistants}/{agent.name.replace('_agent', '') }.yaml", agent.name, assistant_ids[assistant_names.index(agent.name)], field = 'assistant_id')
                     
-                print("\n")
+                else:
+
+                    new_assistant = self.create_assistant(client, agent)
+                    agent.info['assistant_config']['assistant_id'] = new_assistant.id
+
 
 
     def show_plot(self,plot_name):
@@ -1058,8 +1143,10 @@ class CMBAgent:
 
 
     def set_planner_instructions(self):
+
         # available agents and their roles:
         available_agents = "\n\n#### Available agents and their roles\n\n"
+        
         for agent in self.agents:
 
             if agent.name in ['planner', 'engineer', 'executor', 'admin']:
@@ -1092,7 +1179,7 @@ class CMBAgent:
         return
 
 
-def update_yaml_preserving_format(yaml_file, agent_name, new_id):
+def update_yaml_preserving_format(yaml_file, agent_name, new_id, field = 'vector_store_ids'):
     yaml = YAML()
     yaml.preserve_quotes = True  # This preserves quotes in the YAML file if they are present
 
@@ -1102,7 +1189,10 @@ def update_yaml_preserving_format(yaml_file, agent_name, new_id):
     
     # Update the vector_store_id for the specific agent
     if yaml_content['name'] == agent_name:
-        yaml_content['assistant_config']['tool_resources']['file_search']['vector_store_ids'][0] = new_id
+        if field == 'vector_store_ids':
+            yaml_content['assistant_config']['tool_resources']['file_search']['vector_store_ids'][0] = new_id
+        elif field == 'assistant_id':
+            yaml_content['assistant_config']['assistant_id'] = new_id
     else:
         print(f"Agent {agent_name} not found.")
     
