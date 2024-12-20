@@ -8,6 +8,7 @@ import json
 import sys
 import pandas as pd
 import datetime
+from typing import Any, Dict
 from IPython.display import display
 from collections import defaultdict
 from .utils import work_dir as work_dir_default
@@ -26,6 +27,7 @@ from pydantic import BaseModel
 from ruamel.yaml import YAML
 from typing import List
 from pprint import pprint
+from autogen import SwarmAgent, initiate_swarm_chat, AfterWorkOption,  AFTER_WORK, ON_CONDITION, SwarmResult
 
 from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse, RagSoftwareFormatterResponse
 
@@ -77,17 +79,12 @@ def make_rag_agents(make_new_rag_agents):
         agent_file_path = os.path.join(path_to_assistants, f"{agent_name}.py")
         with open(agent_file_path, "w") as f:
             f.write(f"""import os
-from cmbagent.base_agent import BaseAgent
-
-
-class {agent_name.capitalize()}Agent(BaseAgent):
-
-    def __init__(self, llm_config=None, **kwargs):
-
-        agent_id = os.path.splitext(os.path.abspath(__file__))[0]
-
-        super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
-""")
+                    from cmbagent.base_agent import BaseAgent
+                    class {agent_name.capitalize()}Agent(BaseAgent):
+                        def __init__(self, llm_config=None, **kwargs):
+                            agent_id = os.path.splitext(os.path.abspath(__file__))[0]
+                            super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
+                    """)
 
         # Create the YAML file for the agent
         yaml = YAML()
@@ -124,6 +121,7 @@ class {agent_name.capitalize()}Agent(BaseAgent):
             yaml.dump(yaml_content, f)
 
         print(f"Created {agent_name} agent files: {agent_file_path} and {yaml_file_path}")
+        
         # Create a folder for the agent's data
         agent_data_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', agent_name)
         os.makedirs(agent_data_folder, exist_ok=True)
@@ -146,8 +144,6 @@ class {agent_name.capitalize()}Agent(BaseAgent):
 class CMBAgent:
 
     logging.disable(logging.CRITICAL)
-
-
 
     def __init__(self,
                  cache_seed=42,
@@ -236,81 +232,35 @@ class CMBAgent:
             This class initializes various agents and configurations for cosmological data analysis.
         """
 
-        # if make_vector_stores and vector_store_ids:
-        #     for name in make_vector_stores:
-        #         print("You can not make vector store and pass vector store ids simultaneously")
-        #         if f'{name}_agent' in vector_store_ids:
-
-        #             print(f"You are trying to do this for {name}_agent")
-        #         print()
-        #         print("If you want to update vector stores, you need to do this:")
-        #         print("\t1. first make vector stores (and make sure you don't specify vector_store_ids)")
-        #         print("\t2. restart session (and make sure you don't specify make_vector_stores)")
-        #         print("\t3. pass vector stores ids in arguments of vector_store_ids in this format (example with cobaya and planck): ")
-        #         print("""\tvector_store_ids = {
-        #                 \t'cobaya_agent' : 'vs_xyz',
-        #                 \t'planck_agent': 'vs_abc',
-        #                 \t}
-        #               """)
-        #         print("\twhere vs_xyz and vs_abc are vector store ids that were printed after step 1.")
-        #         print()
-        #         print("If you do not want to update vector stores, just pass make_vector_stores=False")
-
-        #         return
-
-
         self.kwargs = kwargs
-
         self.skip_executor = skip_executor
-
         # self.make_new_rag_agents = make_new_rag_agents
         self.set_allowed_transitions = set_allowed_transitions
-
         self.vector_store_ids = None
-
         self.logger = logging.getLogger(__name__)
-
         self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin', 'summarizer', 'rag_software_formatter']
-
         self.agent_list = agent_list
         self.skip_memory = skip_memory
 
-        if not self.skip_memory and 'memory' not in agent_list:
-            self.agent_list.append('memory')
-
 
         self.verbose = verbose
-
         self.work_dir = work_dir if work_dir else work_dir_default
-
         self.path_to_assistants = path_to_assistants
-
         self.logger.info(f"Autogen version: {autogen.__version__}")
-
         llm_config = config_list_from_json(f"{path_to_apis}/{platform}_{model}.json")
 
         if llm_api_key is not None:
-
             llm_config[0]['api_key'] = llm_api_key
-
         else:
-
             llm_config[0]['api_key'] = os.getenv("OPENAI_API_KEY")
 
         if llm_api_type is not None:
-
             llm_config[0]['api_type'] = llm_api_type
-        
         else:
-        
             llm_config[0]['api_type'] = 'openai'
 
         self.llm_api_key = llm_config[0]['api_key']
-
-
         self.logger.info(f"Path to APIs: {path_to_apis}")
-
-
         self.cache_seed = cache_seed
 
         self.llm_config = {
@@ -324,35 +274,18 @@ class CMBAgent:
         self.logger.info("LLM Configuration:")
 
         for key, value in self.llm_config.items():
-
             self.logger.info(f"{key}: {value}")
-
-
-        self.init_agents(agent_llm_configs=agent_llm_configs)
-
-
-        # check if assistants exist: 
-        self.check_assistants(reset_assistant=reset_assistant)
-
-
-
  
+        self.init_agents(agent_llm_configs=agent_llm_configs)
+        self.check_assistants(reset_assistant=reset_assistant) # check if assistants exist
         self.push_vector_stores(make_vector_stores, chunking_strategy, verbose = verbose)
-
-
-
         self.set_planner_instructions()
 
-
-
         if self.verbose:
-
             print("Setting up agents:")
-
 
         # then we set the agents
         for agent in self.agents:
-
             if self.skip_executor:
                 if agent.name == 'executor':
                     continue
@@ -360,62 +293,38 @@ class CMBAgent:
             print(f"\t- {agent.name}")
 
             instructions = agent_instructions[agent.name] if agent_instructions and agent.name in agent_instructions else None
-
             description = agent_descriptions[agent.name] if agent_descriptions and agent.name in agent_descriptions else None
-
             agent_kwargs = {}
 
             if instructions is not None:
-
                 agent_kwargs['instructions'] = instructions
 
             if description is not None:
-
                 agent_kwargs['description'] = description
 
             if agent.name not in self.non_rag_agents:
-
-
                 vector_ids = self.vector_store_ids[agent.name] if self.vector_store_ids and agent.name in self.vector_store_ids else None
-
                 temperature = agent_temperature[agent.name] if agent_temperature and agent.name in agent_temperature else None
-                
                 top_p = agent_top_p[agent.name] if agent_top_p and agent.name in agent_top_p else None
-
                 if vector_ids is not None:
-
                     agent_kwargs['vector_store_ids'] = vector_ids
-
                 if temperature is not None:
-
                     agent_kwargs['agent_temperature'] = temperature
-
                 else:
-
                     agent_kwargs['agent_temperature'] = default_temperature
-
                 if top_p is not None:
-
                     agent_kwargs['agent_top_p'] = top_p
-
                 else:
-
                     agent_kwargs['agent_top_p'] = default_top_p
-
             
                 if agent.set_agent(**agent_kwargs) == 1:
-
                     print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
-                    
                     self.push_vector_stores([agent.name.removesuffix('_agent')], chunking_strategy, verbose = verbose)
-
                     agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
-
                     agent.set_agent(**agent_kwargs) 
-                    
-
+                else:
+                    agent.set_agent(**agent_kwargs)
             else:
-                
                 agent.set_agent(**agent_kwargs)
 
             ## debug print to help debug
@@ -424,20 +333,12 @@ class CMBAgent:
 
 
         self.allowed_transitions = self.get_allowed_transitions()
-        
-
-
         if self.verbose:
-
             self.show_allowed_transitions()
 
         if self.verbose:
-
             print("Planner instructions:")
-
             print(self.planner.info['instructions'])
-
-
 
         select_speaker_prompt_template = select_speaker_prompt if select_speaker_prompt else default_select_speaker_prompt_template
         select_speaker_message_template = select_speaker_message if select_speaker_message else default_select_speaker_message_template
@@ -445,10 +346,11 @@ class CMBAgent:
 
         self.rag_agents = [agent.agent for agent in self.agents if agent.name not in self.non_rag_agents]
         
+        self.manager = SwarmAgent(name= "cmbagent", llm_config=self.llm_config)
         # cmbagent debug print: 
         # print("--> in cmbagent.py self.rag_agents: ", self.rag_agents)
         self.groupchat = CmbAgentGroupChat(
-                                agents=[agent.agent for agent in self.agents],
+                                agents=[agent.agent for agent in self.agents] + [self.manager],
                                 rag_agents=self.rag_agents,
                                 allowed_or_disallowed_speaker_transitions=self.allowed_transitions,
                                 speaker_transitions_type="allowed",
@@ -467,13 +369,7 @@ class CMBAgent:
 
 
 
-        self.manager = autogen.GroupChatManager(groupchat=self.groupchat,
-                                                name="cmbagent",
-                                                llm_config=self.llm_config)
-
-
         for agent in self.groupchat.agents: 
-
             agent.reset()
     
 
@@ -483,11 +379,15 @@ class CMBAgent:
         all_agents = [agent.agent for agent in self.agents] + self.groupchat.new_conversable_agents
         for agent in all_agents:
             if hasattr(agent, 'cost_dict') and agent.cost_dict['Agent']:
-                cost_dict['Agent'].append(agent.cost_dict['Agent'][0])
-                cost_dict['Cost'].append(sum(agent.cost_dict['Cost']))
-                cost_dict['Prompt Tokens'].append(sum(agent.cost_dict['Prompt Tokens']))
-                cost_dict['Completion Tokens'].append(sum(agent.cost_dict['Completion Tokens']))
-                cost_dict['Total Tokens'].append(sum(agent.cost_dict['Total Tokens']))
+                name = agent.cost_dict['Agent'][0].replace('admin (', '').replace(')', '').replace('_', ' ')
+                if name in cost_dict['Agent']:
+                    idx = cost_dict['Agent'].index(name)
+                    for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
+                        cost_dict[field][idx] += sum(agent.cost_dict[field])
+                else:
+                    cost_dict['Agent'].append(name)
+                    for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
+                        cost_dict[field].append(sum(agent.cost_dict[field]))
         df = pd.DataFrame(cost_dict)
         columns_to_sum = df.select_dtypes(include='number').columns
         totals = df[columns_to_sum].sum()
@@ -500,7 +400,6 @@ class CMBAgent:
         
         response = input('''Do you want to save this task summary to the "memory agent" vector stores? This will aid you and others in solving similar tasks in the future. Please only save the task if it has been completed successfully. Type "yes" or "no". ''').strip().lower()
         
-
         if 'yes' in response:
             print('Asking summarizer to generate summary')
             print('The summary will be json formatted.')
@@ -508,7 +407,6 @@ class CMBAgent:
             summary_message = """
             We will now summarize the session.
             """
-
             previous_state = f"{self.groupchat.messages}"
 
             # Convert string to Python dictionary
@@ -517,16 +415,11 @@ class CMBAgent:
             # Convert dictionary to JSON string
             json_string = json.dumps(dict_representation)
 
-            # print("previous state: ", json_string)
-            # exit()
             last_agent, last_message = self.manager.resume(messages=json_string)
-
             self.manager.cmbagent_summarizer = True
-
             self.session = self.summarizer.agent.initiate_chat(recipient=self.manager,
                                                           message=summary_message,
                                                           clear_history=False)
-
 
             # Extract the content
             content = self.groupchat.messages[-1]['content']
@@ -541,39 +434,13 @@ class CMBAgent:
             # Pretty-print the JSON
             pretty_json = json.dumps(content_dict, indent=4)
 
-            print("Formatted JSON output:\n")
-            print(pretty_json)
-            # print("\nNested structure with pprint:\n")
-            # pprint(content_dict)
-            # id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
-            # with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
-            #     json.dump(pretty_json, json_file, indent=4) 
-
             # Push to memory agent vector store
             self.push_vector_stores(['memory'], None, verbose = True)
-
             print("The memory vector store has been updated. The session will now be closed.")
-            # print('Updated memory agent\'s vector stores.')
-
 
         if 'yes' not in response:
             print('Task summary not added to memory agent\'s vector stores.')
             return
-        
-        # previous_state = f"{self.groupchat.messages}"
-
-        # Convert string to Python dictionary
-        # dict_representation = ast.literal_eval(previous_state)
-
-        # Convert dictionary to JSON string and save file
-        # json_string = json.dumps(dict_representation)
-        # id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
-        # with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
-        #     json.dump(json_string, json_file, indent=4)
-
-        # Push to memory agent vector store
-        # self.push_vector_stores(['memory'], None, verbose = False)
-        # print('Updated memory agent\'s vector stores.')
 
         return
         
@@ -581,13 +448,112 @@ class CMBAgent:
 
     def solve(self, task):
 
-        self.session = self.admin.agent.initiate_chat(self.manager,message = task)
+        swarm_agents = [agent.agent for agent in self.agents if agent.name != 'admin']
+        swarm_agent_names = [agent.name for agent in self.agents if agent.name != 'admin']
+        if not self.skip_memory:
+            memory_agent = swarm_agents[swarm_agent_names.index('memory_agent')]
+        planner = swarm_agents[swarm_agent_names.index('planner')]
+        rag_software_formatter = swarm_agents[swarm_agent_names.index('rag_software_formatter')]
+
+
+        # context variables
+        context = {
+            "plan_confirmed": False, # whether the user has confirmed the proposed plan
+            "plan": "", # the proposed plan
+            "structured_plan": None, # the properly structured proposed plan
+            "num_steps": 0, # the number of steps in the plan
+            "steps_complete": [], # a list of the step numbers that have been successfully completed
+            "problem_solved": False # whether the full problem has been solved
+        }
+
+
+
+        # agent functions
+
+        def mark_plan_as_complete(final_plan: str, context_variables: Dict[str, Any], num_steps: int) -> SwarmResult:
+            """Store and mark our plan as accepted by the user. Note the number of steps in the plan."""
+            context_variables["plan_confirmed"] = True
+            context_variables["plan"] = final_plan
+            context_variables["num_steps"] = num_steps
+            # This will update the context variables and then transfer to the Structured Output agent
+            return SwarmResult(
+                agent="rag_software_formatter", context_variables=context_variables, values="Plan recorded and confirmed."
+            )
+
+        def create_structured_plan(context_variables: Dict[str, Any], structured_plan: str) -> SwarmResult:
+            """Once a structured plan is created, store it."""
+            # Ensure the itinerary is confirmed, if not, back to the Planner agent to confirm it with the user
+            if not context_variables["plan_confirmed"]:
+                return SwarmResult(
+                    agent="planner",
+                    values="Plan not confirmed, please confirm the plan with the user first.",
+                )
+            context_variables["structured_plan"] = structured_plan
+            return SwarmResult(
+                context_variables=context_variables, values="Structured plan stored."
+            )
+        
+        def mark_steps_as_complete(context_variables: Dict[str, Any], step: int, step_description: str) -> SwarmResult:
+            """Once a step of the plan is complete, add the step number to the completed steps list."""
+            context_variables["steps_complete"].append(step)
+            return SwarmResult(
+                context_variables=context_variables, values=f"Step {step} added to list of completed steps ({step_description})."
+            )
+        
+        def mark_problem_solved(context_variables: Dict[str, Any]) -> SwarmResult:
+            "Once all steps are complete (the length of steps_complete is equal to num_steps), mark the problem as solved."
+            if len(context_variables["steps_complete"]) == context_variables["num_steps"]:
+                context_variables["problem_solved"] = True
+                return SwarmResult(
+                    context_variables=context_variables, values="All steps are complete. Problem solved."
+                )
+            else:
+                return SwarmResult(values="There are still remaining steps to complete. Continuing with plan...")
+
+        planner.add_single_function(mark_plan_as_complete)
+        rag_software_formatter.add_single_function(create_structured_plan)
+        for agent in swarm_agents:
+            if agent != planner and agent != memory_agent:
+                agent.add_functions([mark_steps_as_complete, mark_problem_solved])
+        
+
+        # hand offs among agents
+        if not self.skip_memory:
+            memory_agent.register_hand_off(hand_to=[AFTER_WORK(planner)])
+        else:
+            planner.register_hand_off(
+                hand_to=[AFTER_WORK(AfterWorkOption.REVERT_TO_USER),  # Revert to the user for more information
+                ])
+        skip_these = {planner} if self.skip_memory else {planner, memory_agent}
+        for agent1 in swarm_agents:
+            for agent2 in swarm_agents:
+                if agent1 in skip_these or agent2 in skip_these or agent1 == agent2: continue
+                agent1.register_hand_off(
+                    hand_to=[
+                        ON_CONDITION(agent2, f"The next agent suggestion is {agent2.name}. DO NOT call more than once at a time."),
+                        AFTER_WORK(AfterWorkOption.REVERT_TO_USER),  # Revert to the use for more information on their plans
+                    ])
+
+        
+
+        initial_agent = memory_agent if not self.skip_memory else planner
+        chat_history, context_variables, last_active_agent = \
+            initiate_swarm_chat(initial_agent = initial_agent, 
+                                agents = swarm_agents,
+                                messages = task,
+                                user_agent = self.admin.agent,
+                                max_rounds = 100,
+                                context_variables=context,
+                                after_work=AfterWorkOption.REVERT_TO_USER)
+        self.chat_history = chat_history
+        self.context_variables = context_variables
+        self.last_active_agent = last_active_agent
+        print('context variables: ', context_variables)
 
         # display full cost dictionary
         self.display_cost()
 
         # ask user if they want to update memory agent
-        # self.update_memory_agent()
         if not self.skip_memory:
             self.update_memory_agent()
 
@@ -621,115 +587,72 @@ class CMBAgent:
         last_agent, last_message = self.manager.resume(messages=json_string)
 
         # Resume the chat using the last agent and message
-        self.session = last_agent.initiate_chat(recipient=self.manager,
+        self.session = last_agent.initiate_swarm_chat(recipient=self.manager,
                                                 message=last_message,
                                                 clear_history=False)
 
 
     def get_agent_from_name(self,name):
-
         for agent in self.agents:
-
             if agent.info['name'] == name:
-
                 return agent.agent
-
         print(f"get_agent_from_name: agent {name} not found")
-
         sys.exit()
 
 
     def get_allowed_transitions(self):
-
         allowed_transitions = {}
-
         for agent in self.agents:
-
             transition_list = []
-
             for name in agent.info['allowed_transitions']:
-
                 if name not in self.agent_names:
                     continue
-
                 transition_list.append(self.get_agent_from_name(name))
-
             allowed_transitions[agent.agent] = transition_list
-
         if self.set_allowed_transitions is not None:
-            
             for name in self.set_allowed_transitions.keys():
-
                 if name not in self.agent_names:
                     print(f"get_allowed_transitions: agent {name} not found")
                     break
-
                 transition_list = []
-
                 for name_out in self.set_allowed_transitions[name]:
-
                     if name_out not in self.agent_names:
                         print(f"get_allowed_transitions: agent {name_out} not found")
                         break
-
-
-
                     transition_list.append(self.get_agent_from_name(name_out))
-
                 if transition_list:
-                    
                     allowed_transitions[self.get_agent_from_name(name)] = transition_list
-
         return allowed_transitions
 
 
     def show_allowed_transitions(self):
-
         print("Allowed transitions:")
-
         for agent, transitions in self.allowed_transitions.items():
-
             print(f"{agent.name} -> {', '.join([t.name for t in transitions])}")
-
         print()
-
 
 
     def push_vector_stores(self, make_vector_stores, chunking_strategy, verbose = False):
 
         if make_vector_stores == False:
             return
-
         client = OpenAI(api_key = self.llm_api_key)
 
         # 1. identify rag agents and set store names
-
         store_names = []
         rag_agents = []
 
         for agent in self.agents:
-
-
             if type(make_vector_stores) == list and agent.info['name'] not in make_vector_stores and agent.info['name'].replace('_agent', '') not in make_vector_stores:
                 continue
-
             if 'assistant_config' in agent.info:
-
                 if 'file_search' in agent.info['assistant_config']['tool_resources'].keys():
-
                     print(f"Updating vector store for {agent.info['name']}")
-
-                    # print(agent.info['assistant_config']['assistant_id'])
-
-                    # print(agent.info['assistant_config']['tool_resources']['file_search'])
-
                     store_names.append(f"{agent.info['name']}_store")
-
                     rag_agents.append(agent)
 
-
         # 2. collect all vector stores
-
+                    
         # Set the headers for authentication
         headers = {
             "Authorization": f"Bearer {self.llm_api_key}",
@@ -744,11 +667,8 @@ class CMBAgent:
 
         # Check if the request was successful
         if response.status_code == 200:
-
             vector_stores = response.json()
-
         else:
-
             print("Failed to retrieve vector stores:", response.status_code, response.text)
 
 
@@ -765,9 +685,6 @@ class CMBAgent:
             ]
 
             if matching_vector_store_ids:
-
-                # print(f"Vector store IDs for '{vector_store_name}':", matching_vector_store_ids)
-
                 for vector_store_id in matching_vector_store_ids:
 
                     # Define the URL endpoint for deleting a vector store by ID
@@ -778,60 +695,39 @@ class CMBAgent:
 
                     # Check if the request was successful
                     if delete_response.status_code == 200:
-
-                        # print(f"Vector store with ID '{vector_store_id}' deleted successfully.")
-
                         continue
-
                     else:
-
                         print("Failed to delete vector store:", delete_response.status_code, delete_response.text)
-
             else:
-
                 print(f"No vector stores found with the name '{vector_store_name}'.")
 
-            # print()
-
-            # print(rag_agent.name)
             chunking_strategy = chunking_strategy[rag_agent.name] if chunking_strategy and rag_agent.name in chunking_strategy else default_chunking_strategy
             if verbose:
                 print(f"{rag_agent.name}: chunking strategy: ")
                 pprint(chunking_strategy)
-            # print()
 
             # print('calling client.beta.vector_stores.create')
             # Create a vector store called "planck_store"
             vector_store = client.beta.vector_stores.create(name=vector_store_name,
                                                             chunking_strategy=chunking_strategy)
-
-            # print('created vector store with id: ',vector_store.id)
-            # print('\n')
-
+            
             # Initialize a list to hold the file paths
             file_paths = []
 
             assistant_data = os.getenv('CMBAGENT_DATA') + "/data/" + vector_store_name.removesuffix('_agent_store')
-
-
             print("Files to upload:")
             for root, dirs, files in os.walk(assistant_data):
                 # Filter out unwanted directories like .ipynb_checkpoints
                 dirs[:] = [d for d in dirs if not d.startswith('.')]
-
                 for file in files:
-
                     if file.startswith('.') or file.endswith('.ipynb')  or file.endswith('.yaml') or file.endswith('.txt'):
-
                         continue
-
                     print(f"\t - {file}")
 
                     # Get the absolute path of each file
                     file_paths.append(os.path.join(root, file))
 
             # Ready the files for upload to OpenAI
-
             file_streams = [open(path, "rb") for path in file_paths]
 
             # Use the upload and poll SDK helper to upload the files, add them to the vector store,
@@ -853,13 +749,9 @@ class CMBAgent:
             vector_store_ids.update(new_vector_store_ids)
 
         self.vector_store_ids = vector_store_ids
-
         print("vector stores updated")
-
         for key, value in self.vector_store_ids.items():
             print(f"'{key}': '{value}',")
-
-        # vector_store_ids = self.vector_store_ids
 
         for agent_name, vector_id in self.vector_store_ids.items():
             update_yaml_preserving_format(f"{path_to_assistants}/{agent_name.replace('_agent', '') }.yaml", agent_name, vector_id)
@@ -868,24 +760,14 @@ class CMBAgent:
     def init_agents(self,agent_llm_configs=None):
 
         imported_rag_agents = import_rag_agents()
-        # print('imported_rag_agents: ', imported_rag_agents)
-        # print("making new rag agents: ", self.make_new_rag_agents)
-        # make_rag_agents(self.make_new_rag_agents)
-        # imported_rag_agents = import_rag_agents()
-        # print('imported_rag_agents: ', imported_rag_agents)
 
         ## this will store classes for each agents
         self.agent_classes = {}
 
         for k in imported_rag_agents.keys():
-
             self.agent_classes[imported_rag_agents[k]['agent_name']] = imported_rag_agents[k]['agent_class']
 
-        # print('self.agent_classes: ', self.agent_classes)
-        # exit()
-
         self.agent_classes.update({
-
             'engineer': EngineerAgent,
             'planner': PlannerAgent,
             'executor': ExecutorAgent,
@@ -896,7 +778,6 @@ class CMBAgent:
 
 
         ### by default are always here
-        
         engineer_llm_config = self.llm_config.copy()
         engineer_llm_config['config_list'] = [
                         {
@@ -949,31 +830,21 @@ class CMBAgent:
 
         ## set custom llm configs if provided
         if agent_llm_configs is not None:
-
             engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
-            
             planner_llm_config['config_list'] = [agent_llm_configs['planner']] if 'planner' in agent_llm_configs else self.llm_config['config_list']
-
             summarizer_llm_config['config_list'] = [agent_llm_configs['summarizer']] if 'summarizer' in agent_llm_configs else self.llm_config['config_list']
         
 
         self.engineer = EngineerAgent(llm_config=engineer_llm_config)
-        
         self.planner = PlannerAgent(llm_config=planner_llm_config)
-
         self.executor = ExecutorAgent(llm_config=self.llm_config, 
                                        work_dir=self.work_dir)
-
         self.summarizer = SummarizerAgent(llm_config=summarizer_llm_config)
-
         self.rag_software_formatter = RagSoftwareFormatterAgent(llm_config=rag_software_formatter_llm_config)
-
-        # the administrator (to interact with us humans)
-        self.admin = AdminAgent()
+        self.admin = AdminAgent() # the administrator (to interact with us humans)
 
 
         # all agents
-
         self.agents = [self.admin,
                        self.planner,
                        self.engineer,
@@ -986,8 +857,10 @@ class CMBAgent:
             self.agents.append(self.executor)
 
         if self.agent_list is None:
-
             self.agent_list = list(self.agent_classes.keys())
+        
+        if 'memory' not in self.agent_list:
+            self.agent_list.append('memory')
 
         # Drop entries from self.agent_classes that are not in self.agent_list
         self.agent_classes = {k: v for k, v in self.agent_classes.items() if k in self.agent_list or k in ['summarizer', 
@@ -997,9 +870,7 @@ class CMBAgent:
                                                                                                             'rag_software_formatter',
                                                                                                             'admin']}
 
-
         for agent_name in self.agent_list:
-
             if agent_name in self.agent_classes and agent_name not in ['engineer',
                                                                        'planner',
                                                                        'executor',
@@ -1007,43 +878,28 @@ class CMBAgent:
                                                                        'rag_software_formatter',
                                                                        'admin']:
                 agent_class = self.agent_classes[agent_name]
-
-                # print('agent_name: ', agent_name)
-
                 if agent_name == 'classy_sz':
                     llm_config = classy_sz_llm_config
-                    # print('in cmbagent.py: classy_sz_llm_config: ', classy_sz_llm_config)
                 else:
                     llm_config = self.llm_config
-
                 agent_instance = agent_class(llm_config=llm_config)
-
                 setattr(self, agent_name, agent_instance)
-
                 self.agents.append(agent_instance)
 
-
         agent_keys = self.agent_classes.keys()
-
         self.agent_names =  [f"{key}_agent" if key not in ['engineer', 'planner', 'executor', 'admin', 'summarizer', 'rag_software_formatter'] else key for key in agent_keys]
-
         if self.skip_executor:
             self.agent_names.remove('executor')
-
         if self.skip_memory:
             self.agent_names.remove('summarizer')
-
         if self.verbose:
-
             print("Using following agents: ", self.agent_names)
             print()
 
     def create_assistant(self, client, agent):
 
         print(f"-->Creating assistant {agent.name}")
-
         print(f"--> llm_config: {self.llm_config}")
-
         print(f"--> agent.llm_config: {agent.llm_config}")
 
         new_assistant = client.beta.assistants.create(
@@ -1070,36 +926,25 @@ class CMBAgent:
             limit="100",
         )
 
-
         # Create a list of assistant names for easy comparison
         assistant_names = [d.name for d in available_assistants.data]
         assistant_ids = [d.id for d in available_assistants.data]
 
         for agent in self.agents:
-
-            if agent.name not in self.non_rag_agents:
-                
+            if agent.name not in self.non_rag_agents:   
                 print(f"Checking agent: {agent.name}")
-
                 # Check if agent name exists in the available assistants
                 if agent.name in assistant_names:
-
                     print(f"Agent {agent.name} exists in available assistants with id: {assistant_ids[assistant_names.index(agent.name)]}")
-
-                    if reset_assistant and agent.name.replace('_agent', '') in reset_assistant:
-                        
+                    if reset_assistant and agent.name.replace('_agent', '') in reset_assistant: 
                         print("This agent is in the reset_assistant list. Resetting the assistant.")
                         print("Deleting the assistant...")
                         client.beta.assistants.delete(assistant_ids[assistant_names.index(agent.name)])
                         print("Assistant deleted. Creating a new one...")
                         new_assistant = self.create_assistant(client, agent)
                         agent.info['assistant_config']['assistant_id'] = new_assistant.id
-                        
-
                     else:
-
                         assistant_id = agent.info['assistant_config']['assistant_id']
-
                         if assistant_id != assistant_ids[assistant_names.index(agent.name)]:
                             print(f"--> Assistant ID between yaml and openai do not match.")
                             print(f"--> Assistant ID from your yaml: {assistant_id}")
@@ -1108,16 +953,12 @@ class CMBAgent:
                             agent.info['assistant_config']['assistant_id'] = assistant_ids[assistant_names.index(agent.name)]
                             print(f"--> Updating yaml file with new assistant id: {assistant_ids[assistant_names.index(agent.name)]}")
                             update_yaml_preserving_format(f"{path_to_assistants}/{agent.name.replace('_agent', '') }.yaml", agent.name, assistant_ids[assistant_names.index(agent.name)], field = 'assistant_id')
-                    
                 else:
-
                     new_assistant = self.create_assistant(client, agent)
                     agent.info['assistant_config']['assistant_id'] = new_assistant.id
 
 
-
     def show_plot(self,plot_name):
-
         return Image(filename=self.work_dir + '/' + plot_name)
 
 
@@ -1126,11 +967,8 @@ class CMBAgent:
 
 
     def hello_cmbagent(self):
-
         return "Hello from cmbagent!"
-
-
-
+    
 
     def filter_and_combine_agent_names(self, input_list):
         # Filter the input list to include only entries in self.agent_names
@@ -1138,7 +976,6 @@ class CMBAgent:
 
         # Convert the filtered list of strings into one string
         combined_string = ', '.join(filtered_list)
-
         return combined_string
 
 
@@ -1146,32 +983,20 @@ class CMBAgent:
 
         # available agents and their roles:
         available_agents = "\n\n#### Available agents and their roles\n\n"
-        
         for agent in self.agents:
-
             if agent.name in ['planner', 'engineer', 'executor', 'admin']:
                 continue
-
-
             if 'description' in agent.info:
-
                 role = agent.info['description']
-
             else:
-
                 role = agent.info['instructions']
-
             available_agents += f"- *{agent.name}* : {role}\n"
-
 
         # collect allowed transitions
         all_allowed_transitions = "\n\n#### Allowed transitions\n\n"
 
         for agent in self.agents:
-
             all_allowed_transitions += f"\t- {agent.name} -> {self.filter_and_combine_agent_names(agent.info['allowed_transitions'])}\n"
-
-
 
         # commenting for now
         # self.planner.info['instructions'] += available_agents + '\n\n' #+ all_allowed_transitions

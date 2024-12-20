@@ -3,7 +3,7 @@ import logging
 from typing import List
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message
 import sys
-from autogen import Agent
+from autogen import Agent, SwarmAgent
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
     """A custom proxy agent for the user with redefined default descriptions."""
 
@@ -127,24 +127,21 @@ class BaseAgent:
             logger.info(f"{key}: {value}")
 
 
-        self.agent = GPTAssistantAgent(
+        self.agent = SwarmAgent(
             name=self.name,
             instructions= self.info["instructions"],
             description=self.info["description"],
-            assistant_config=self.info["assistant_config"],
-            llm_config=self.llm_config,
-            overwrite_tools=True,
-            overwrite_instructions=True
+            llm_config=self.llm_config
         )
 
-        if self.agent._assistant_error is not None:
+        # if self.agent._assistant_error is not None:
 
-            # print(self.agent._assistant_error)
-            if "No vector store" in self.agent._assistant_error:
-                print(f"Vector store not found for {self.name}")
-                print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
+        #     # print(self.agent._assistant_error)
+        #     if "No vector store" in self.agent._assistant_error:
+        #         print(f"Vector store not found for {self.name}")
+        #         print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
                 
-                return 1
+        #         return 1
 
 
 
@@ -167,7 +164,7 @@ class BaseAgent:
 
             logger.info(f"{key}: {value}")
 
-        self.agent = AssistantAgent(
+        self.agent = SwarmAgent(
             name= self.name,
             system_message= self.info["instructions"],
             description=self.info["description"],
@@ -188,7 +185,7 @@ class BaseAgent:
             logger.info(f"{key}: {value}")
 
 
-        self.agent = CmbAgentUserProxyAgent(
+        self.agent = SwarmAgent(
             name= self.name,
             system_message= self.info["instructions"],
             description=self.info["description"],
