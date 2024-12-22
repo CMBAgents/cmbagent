@@ -3,7 +3,9 @@ import logging
 from typing import List
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message
 import sys
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from autogen import Agent, SwarmAgent
+
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
     """A custom proxy agent for the user with redefined default descriptions."""
 
@@ -20,32 +22,24 @@ class CmbAgentGroupChat(GroupChat):
         self,
         agents: List[Agent],
         rag_agents: List[Agent],
-        allowed_or_disallowed_speaker_transitions: List,
-        speaker_transitions_type: str,
         messages: List,
-        speaker_selection_method: str,
         max_round: int,
-        select_speaker_auto_verbose: bool,
+        speaker_selection_method: str,
         send_introductions: bool,
         admin_name: str,
-        select_speaker_prompt_template: str,
-        select_speaker_message_template: str,
+        select_speaker_auto_verbose: Optional[bool] = True,
         cost: int = 0,
         verbose: bool = False,
     ):
         # Initialize the parent GroupChat
         super().__init__(
-            agents=agents,
-            allowed_or_disallowed_speaker_transitions=allowed_or_disallowed_speaker_transitions,
-            speaker_transitions_type=speaker_transitions_type,
-            messages=messages,
-            speaker_selection_method=speaker_selection_method,
+            agents = agents,
+            messages = messages,
             max_round=max_round,
-            select_speaker_auto_verbose=select_speaker_auto_verbose,
+            speaker_selection_method=speaker_selection_method,
             send_introductions=send_introductions,
             admin_name=admin_name,
-            select_speaker_prompt_template=select_speaker_prompt_template,
-            select_speaker_message_template=select_speaker_message_template,
+            select_speaker_auto_verbose=select_speaker_auto_verbose,
         )
         
         # Initialize CmbAgentGroupChat-specific attributes
@@ -86,27 +80,20 @@ class BaseAgent:
                   agent_top_p=None):
 
     
-        # print('setting agent: ',self.name)
-        # print(self.info['assistant_config']['tool_resources']['file_search'])
-        # print()    
+   
         if instructions is not None:
-
             self.info["instructions"] = instructions
 
         if description is not None:
-
             self.info["description"] = description
 
         if vector_store_ids is not None:
-
             self.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store_ids]
         
         if agent_temperature is not None:
-
             self.info['assistant_config']['temperature'] = agent_temperature
 
         if agent_top_p is not None:
-
             self.info['assistant_config']['top_p'] = agent_top_p
 
         
@@ -118,18 +105,15 @@ class BaseAgent:
 
         self.info["instructions"] += f'\n You have access to the following files: {files}.\n'
 
-
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")
 
         for key, value in self.info.items():
-
             logger.info(f"{key}: {value}")
 
-
-        self.agent = SwarmAgent(
+        self.agent = CmbSwarmAgent(
             name=self.name,
-            instructions= self.info["instructions"],
+            system_message= self.info["instructions"],
             description=self.info["description"],
             llm_config=self.llm_config
         )
@@ -150,32 +134,26 @@ class BaseAgent:
                             description=None):
 
         if instructions is not None:
-
             self.info["instructions"] = instructions
 
         if description is not None:
-
             self.info["description"] = description
 
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")
 
         for key, value in self.info.items():
-
             logger.info(f"{key}: {value}")
 
-        self.agent = SwarmAgent(
+        self.agent = CmbSwarmAgent(
             name= self.name,
             system_message= self.info["instructions"],
             description=self.info["description"],
-            llm_config=self.llm_config,
+            llm_config=self.llm_config
         )
 
-        ## cmbagent modif print to help debug: 
-        ## print('in cmbagent/base_agent.py self.agent: ',self.agent)
-        ## print('in cmbagent/base_agent.py self.agent.llm_config: ',self.agent.llm_config)
 
-    def set_code_agent(self,instructions=None):
+    def set_code_agent(self, instructions=None):
 
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")
@@ -185,7 +163,7 @@ class BaseAgent:
             logger.info(f"{key}: {value}")
 
 
-        self.agent = SwarmAgent(
+        self.agent = CmbSwarmAgent(
             name= self.name,
             system_message= self.info["instructions"],
             description=self.info["description"],
@@ -226,4 +204,40 @@ class BaseAgent:
             name= self.name,
             system_message= self.info["instructions"],
             code_execution_config=self.info["code_execution_config"],
+        )
+
+
+class CmbSwarmAgent(SwarmAgent):
+    """CMB Swarm agent for participating in a swarm.
+
+    CmbSwarmAgent is a subclass of SwarmAgent, which is a subclass of ConversableAgent.
+
+    Additional args:
+        functions (List[Callable]): A list of functions to register with the agent.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        system_message: Optional[str] = "You are a helpful AI Assistant.",
+        llm_config: Optional[Union[Dict, Literal[False]]] = None,
+        functions: Union[List[Callable], Callable] = None,
+        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
+        max_consecutive_auto_reply: Optional[int] = None,
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
+        description: Optional[str] = None,
+        code_execution_config=False,
+        **kwargs
+    ) -> None:
+        super().__init__(
+            name,
+            system_message,
+            llm_config,
+            functions,
+            is_termination_msg,
+            max_consecutive_auto_reply,
+            human_input_mode,
+            description,
+            code_execution_config,
+            **kwargs
         )

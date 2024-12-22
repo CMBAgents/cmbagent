@@ -95,10 +95,7 @@ planner should be the first agent to speak.
 
 default_groupchat_intro_message = """
 We have assembled a team of LLM agents and a human admin to solve Cosmological data analysis tasks. 
-
-Once the PLAN is approved, it can never be modified. 
-
-In attendance are:
+Once the memory agent has been consulted and the PLAN is approved, the PLAN can never be modified. 
 """
 
 # TODO

@@ -15,7 +15,7 @@ from .utils import work_dir as work_dir_default
 from .utils import path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
 from .utils import default_max_round, default_groupchat_intro_message
 from pprint import pprint
-from .base_agent import CmbAgentGroupChat
+from .base_agent import CmbAgentGroupChat, CmbSwarmAgent
 from cmbagent.engineer.engineer import EngineerAgent
 from cmbagent.planner.planner import PlannerAgent
 from cmbagent.executor.executor import ExecutorAgent
@@ -27,8 +27,9 @@ from pydantic import BaseModel
 from ruamel.yaml import YAML
 from typing import List
 from pprint import pprint
-from autogen import SwarmAgent, initiate_swarm_chat, AfterWorkOption,  AFTER_WORK, ON_CONDITION, SwarmResult
+from autogen import AfterWorkOption, AFTER_WORK, ON_CONDITION, SwarmResult
 
+from cmbagent.cmb_swarm_agent import initiate_cmb_swarm_chat
 from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse, RagSoftwareFormatterResponse
 
 from sys import exit
@@ -346,31 +347,23 @@ class CMBAgent:
 
         self.rag_agents = [agent.agent for agent in self.agents if agent.name not in self.non_rag_agents]
         
-        self.manager = SwarmAgent(name= "cmbagent", llm_config=self.llm_config)
-        # cmbagent debug print: 
-        # print("--> in cmbagent.py self.rag_agents: ", self.rag_agents)
-        self.groupchat = CmbAgentGroupChat(
-                                agents=[agent.agent for agent in self.agents] + [self.manager],
-                                rag_agents=self.rag_agents,
-                                allowed_or_disallowed_speaker_transitions=self.allowed_transitions,
-                                speaker_transitions_type="allowed",
-                                messages=[],
-                                speaker_selection_method = "auto",
-                                max_round=max_round,
-                                select_speaker_auto_verbose=False,
-                                send_introductions=True,
-                                admin_name="admin",
-                                select_speaker_prompt_template=select_speaker_prompt_template,
-                                select_speaker_message_template=select_speaker_message_template,
-                                verbose=self.verbose,
-                                )
+
+        intro_message = '''
+                        We have assembled a team of LLM agents and a human admin to solve Cosmological data analysis tasks. 
+                        Once the PLAN is approved, it can never be modified. 
+                        In attendance are: 
+                        '''
+        for agent in self.agents:
+            intro_message += f'{agent.name}, '
+
         
-        self.groupchat.DEFAULT_INTRO_MSG  = groupchat_intro_message
+        self.manager = CmbSwarmAgent(
+            name= "cmbagent", 
+            llm_config=self.llm_config,
+            system_message= intro_message,
+            description="You are the groupchat manager. You are the first to speak.",
+            )
 
-
-
-        for agent in self.groupchat.agents: 
-            agent.reset()
     
 
     def display_cost(self):
@@ -447,108 +440,154 @@ class CMBAgent:
 
 
     def solve(self, task):
+        # for agent in self.agents:
+        #     print('agent.info[instructions]: ', agent.info["instructions"])
 
         swarm_agents = [agent.agent for agent in self.agents if agent.name != 'admin']
         swarm_agent_names = [agent.name for agent in self.agents if agent.name != 'admin']
         if not self.skip_memory:
             memory_agent = swarm_agents[swarm_agent_names.index('memory_agent')]
-        planner = swarm_agents[swarm_agent_names.index('planner')]
         rag_software_formatter = swarm_agents[swarm_agent_names.index('rag_software_formatter')]
+
+        # # context variables
+        # context_variables = {
+        #     "available_agents": swarm_agent_names,     # list of agent names that are available
+        #     "plan_confirmed": False,                    # whether the user has confirmed the proposed plan
+        #     "plan": "",                                 # the proposed plan
+        #     "structured_plan": None,                    # the properly structured proposed plan
+        #     "num_steps": 0,                             # the number of steps in the plan
+        #     "steps_complete": [],                       # a list of the step numbers that have been successfully completed
+        #     "problem_solved": False                     # whether the full problem has been solved
+        # }
+
+
+
+        # # agent functions
+
+        # def mark_plan_as_complete(final_plan: str, context_variables: Dict[str, Any], num_steps: int, assigned_agent_names: List[str]) -> SwarmResult:
+        #     """Store and mark our plan as complete if the user has said to proceed and the agents assigned to steps in the plan,
+        #     assigned_agent_names, are all in the list of available_agents. 
+        #     Note the number of steps in the plan."""
+        #     for name in assigned_agent_names:
+        #         if name not in context_variables["available_agents"]:
+        #             return SwarmResult(
+        #                 context_variables=context_variables, values="Plan refers to agents that are not available. It must be updated."
+        #             )
+        #     context_variables["plan_confirmed"] = True
+        #     context_variables["plan"] = final_plan
+        #     context_variables["num_steps"] = num_steps
+        #     # This will update the context variables and then transfer to the Structured Output agent
+        #     return SwarmResult(
+        #         agent="rag_software_formatter", context_variables=context_variables, values="Plan recorded and confirmed."
+        #     )
+
+        # def create_structured_plan(context_variables: Dict[str, Any], structured_plan: str) -> SwarmResult:
+        #     """Once a structured plan is created, store it."""
+        #     # Ensure the itinerary is confirmed, if not, back to the Planner agent to confirm it with the user
+        #     if not context_variables["plan_confirmed"]:
+        #         return SwarmResult(
+        #             values="Plan not confirmed, please confirm the plan with the user (admin) first.",
+        #             context_variables=context_variables
+        #         )
+        #     context_variables["structured_plan"] = structured_plan
+        #     return SwarmResult(
+        #         context_variables=context_variables, values="Structured plan stored."
+        #     )
+        
+        # def mark_steps_as_complete(context_variables: Dict[str, Any], step: int, step_description: str) -> SwarmResult:
+        #     """Once a step of the plan has been completed, add the step number to the completed steps list."""
+        #     if not context_variables["plan_confirmed"]:
+        #         return SwarmResult(
+        #             values="Plan not confirmed, please confirm the plan with the user (admin) first.",
+        #             context_variables=context_variables
+        #         )
+        #     context_variables["steps_complete"].append(step)
+        #     return SwarmResult(
+        #         context_variables=context_variables, values=f"Step {step} added to list of completed steps ({step_description})."
+        #     )
+        
+        # def mark_problem_solved(context_variables: Dict[str, Any]) -> SwarmResult:
+        #     "Once all steps are successfully executed (the length of steps_complete is equal to num_steps), mark the problem as solved."
+        #     if not context_variables["plan_confirmed"]:
+        #         return SwarmResult(
+        #             values="Plan not confirmed, please confirm the plan with the user (admin) first.",
+        #             context_variables=context_variables
+        #         )
+        #     if len(context_variables["steps_complete"]) == context_variables["num_steps"]:
+        #         context_variables["problem_solved"] = True
+        #         return SwarmResult(
+        #             context_variables=context_variables, values="All steps are complete. Problem solved."
+        #         )
+        #     else:
+        #         return SwarmResult(context_variables=context_variables, values="There are still remaining steps to complete. Continuing with plan...")
+
+        # self.planner.agent.add_single_function(mark_plan_as_complete)
+        # rag_software_formatter.add_single_function(create_structured_plan)
+        # for agent in swarm_agents:
+        #     if agent != self.planner.agent and agent != memory_agent:
+        #         agent.add_functions([mark_steps_as_complete])
+        # self.manager.add_single_function(mark_problem_solved)
 
 
         # context variables
-        context = {
-            "plan_confirmed": False, # whether the user has confirmed the proposed plan
-            "plan": "", # the proposed plan
-            "structured_plan": None, # the properly structured proposed plan
-            "num_steps": 0, # the number of steps in the plan
-            "steps_complete": [], # a list of the step numbers that have been successfully completed
-            "problem_solved": False # whether the full problem has been solved
+        context_variables = {
+            "plan": "",                                 # the proposed plan
         }
-
-
-
-        # agent functions
-
-        def mark_plan_as_complete(final_plan: str, context_variables: Dict[str, Any], num_steps: int) -> SwarmResult:
-            """Store and mark our plan as accepted by the user. Note the number of steps in the plan."""
-            context_variables["plan_confirmed"] = True
+        def save_plan(final_plan: str, context_variables: Dict[str, Any]) -> SwarmResult:
+            """Store and plan"""
             context_variables["plan"] = final_plan
-            context_variables["num_steps"] = num_steps
             # This will update the context variables and then transfer to the Structured Output agent
             return SwarmResult(
                 agent="rag_software_formatter", context_variables=context_variables, values="Plan recorded and confirmed."
             )
-
-        def create_structured_plan(context_variables: Dict[str, Any], structured_plan: str) -> SwarmResult:
-            """Once a structured plan is created, store it."""
-            # Ensure the itinerary is confirmed, if not, back to the Planner agent to confirm it with the user
-            if not context_variables["plan_confirmed"]:
-                return SwarmResult(
-                    agent="planner",
-                    values="Plan not confirmed, please confirm the plan with the user first.",
-                )
-            context_variables["structured_plan"] = structured_plan
-            return SwarmResult(
-                context_variables=context_variables, values="Structured plan stored."
-            )
-        
-        def mark_steps_as_complete(context_variables: Dict[str, Any], step: int, step_description: str) -> SwarmResult:
-            """Once a step of the plan is complete, add the step number to the completed steps list."""
-            context_variables["steps_complete"].append(step)
-            return SwarmResult(
-                context_variables=context_variables, values=f"Step {step} added to list of completed steps ({step_description})."
-            )
-        
-        def mark_problem_solved(context_variables: Dict[str, Any]) -> SwarmResult:
-            "Once all steps are complete (the length of steps_complete is equal to num_steps), mark the problem as solved."
-            if len(context_variables["steps_complete"]) == context_variables["num_steps"]:
-                context_variables["problem_solved"] = True
-                return SwarmResult(
-                    context_variables=context_variables, values="All steps are complete. Problem solved."
-                )
-            else:
-                return SwarmResult(values="There are still remaining steps to complete. Continuing with plan...")
-
-        planner.add_single_function(mark_plan_as_complete)
-        rag_software_formatter.add_single_function(create_structured_plan)
-        for agent in swarm_agents:
-            if agent != planner and agent != memory_agent:
-                agent.add_functions([mark_steps_as_complete, mark_problem_solved])
+        self.planner.agent.add_single_function(save_plan)
         
 
         # hand offs among agents
         if not self.skip_memory:
-            memory_agent.register_hand_off(hand_to=[AFTER_WORK(planner)])
+            memory_agent.register_hand_off(hand_to=[AFTER_WORK(self.planner.agent)])
         else:
-            planner.register_hand_off(
+            self.planner.agent.register_hand_off(
                 hand_to=[AFTER_WORK(AfterWorkOption.REVERT_TO_USER),  # Revert to the user for more information
                 ])
-        skip_these = {planner} if self.skip_memory else {planner, memory_agent}
-        for agent1 in swarm_agents:
-            for agent2 in swarm_agents:
-                if agent1 in skip_these or agent2 in skip_these or agent1 == agent2: continue
-                agent1.register_hand_off(
-                    hand_to=[
-                        ON_CONDITION(agent2, f"The next agent suggestion is {agent2.name}. DO NOT call more than once at a time."),
-                        AFTER_WORK(AfterWorkOption.REVERT_TO_USER),  # Revert to the use for more information on their plans
-                    ])
+        # skip_these = {self.planner.agent, self.summarizer.agent} if self.skip_memory else {self.planner.agent, memory_agent, self.summarizer.agent}
+        # for agent1 in swarm_agents:
+        #     for agent2 in swarm_agents:
+        #         if agent1 in skip_these or agent2 in skip_these or agent1 == agent2 or (not self.skip_executor and agent1 == self.executor): 
+        #             continue
+        #         agent1.register_hand_off(
+        #             hand_to=[
+        #                 ON_CONDITION(agent2, f"The next agent suggestion is {agent2.name}. DO NOT call more than once at a time."),
+        #                 AFTER_WORK(AfterWorkOption.REVERT_TO_USER),  # Revert to the user for approval or modifications
+        #             ])
 
         
+        groupchat_intro_message = default_groupchat_intro_message  
 
-        initial_agent = memory_agent if not self.skip_memory else planner
-        chat_history, context_variables, last_active_agent = \
-            initiate_swarm_chat(initial_agent = initial_agent, 
+
+        chat_history, context_variables, last_active_agent, groupchat = \
+                    initiate_cmb_swarm_chat(
+                                initial_agent = self.planner.agent, 
+                                messages = groupchat_intro_message + task,
                                 agents = swarm_agents,
-                                messages = task,
+                                rag_agents = self.rag_agents,
+                                send_introductions = True,
+                                admin_name = 'cmbagent',
                                 user_agent = self.admin.agent,
                                 max_rounds = 100,
-                                context_variables=context,
-                                after_work=AfterWorkOption.REVERT_TO_USER)
+                                context_variables = context_variables,
+                                after_work = AfterWorkOption.REVERT_TO_USER,
+                                cost = 0,
+                                verbose = self.verbose
+                                )
+
         self.chat_history = chat_history
         self.context_variables = context_variables
         self.last_active_agent = last_active_agent
+        self.groupchat = groupchat
+        self.groupchat.DEFAULT_INTRO_MSG  = groupchat_intro_message
         print('context variables: ', context_variables)
+        print('last_active_agent: ', last_active_agent)
 
         # display full cost dictionary
         self.display_cost()
@@ -587,7 +626,7 @@ class CMBAgent:
         last_agent, last_message = self.manager.resume(messages=json_string)
 
         # Resume the chat using the last agent and message
-        self.session = last_agent.initiate_swarm_chat(recipient=self.manager,
+        self.session = last_agent.initiate_cmb_swarm_chat(recipient=self.manager,
                                                 message=last_message,
                                                 clear_history=False)
 
