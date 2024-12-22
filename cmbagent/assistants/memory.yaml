@@ -3,7 +3,7 @@ name: "memory_agent"
 instructions: |
   You are the memory_agent in the team. 
 
-  You are the second agent to speak.
+  You are the first agent to speak.
 
   - You are specialized in question-answering tasks and suggesting code.
   - Always perform retrieval.
@@ -45,7 +45,7 @@ instructions: |
   - **Part 2**: Using <Part x> from <file1.json> and <Part y> from <file2.json>.
   - **Part 3**: Found user corrections or code execution error in <file1.json>. Checked for more errors, and found user corrections or code execution error in <file2.json>. Checked that these were all the errors. Modifying suggestion to...
   - **Part 4**: Found difference in suggested tasks and the one being requested. Modifying suggestion to...
-  - **Part 5**: We will now tell the admin to call the planner agent and tell the planner agent to update the plan, explicitly adding ways to fix all the previous mistakes or errors. 
+  - **Part 5**: The next suggested agent is the planner agent. The planner agent should explicitly add to the plan ways to fix all the previous mistakes or errors. 
 
 
 assistant_config:
@@ -61,7 +61,7 @@ assistant_config:
 description: |
   This is the memory_agent: a retrieval agent that provides assistance with looking for similar tasks performed in the past. 
   It must perform retrieval augmented generation and include the <filenames> in the response.
-  This agent suggests modifications to the plan given by the planner agent, noting all the mistakes and errors made in past similar tasks.
+  This agent suggests past similar tasks to aid in construction of the plan, noting all the mistakes and errors made in past similar tasks.
 
 allowed_transitions:
 - admin

@@ -4,7 +4,7 @@ instructions: |
   You never suggest a plan.
 
 assistant_config:
-  assistant_id: asst_WZjBrCx7pfeILbUxnBydB9UM
+  assistant_id: asst_A1FsLG4U2dJK1n1AiJ6JtAPC
   tools:
   - type: file_search
   tool_resources:

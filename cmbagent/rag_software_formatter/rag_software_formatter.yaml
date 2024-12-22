@@ -39,7 +39,7 @@ instructions: |
       code_explanation: CodeExplanation = Field(..., description="Explanation of the retrieved or generated code")
       python_code: PythonCode = Field(..., description="The Python code block")
       current_status_and_next_step: CurrentStatusAndNextStep = Field(..., description="Current status and next step suggestion")
-      next_agent_suggestion: str = Field(..., description="The name of the next agent to consult")
+      next_agent_suggestion: str = Field(..., description="The name of the next agent to consult. Must be an agent in the swarm.")
 
   ```
   ### JSON Example Output
