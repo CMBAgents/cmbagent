@@ -180,7 +180,7 @@ class CMBAgent:
                  skip_memory = True,
                  work_dir = None,
                  agent_llm_configs = None,
-                 agent_type = 'swarm',
+                 agent_type = None,# 'swarm',
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
