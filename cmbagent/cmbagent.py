@@ -8,13 +8,14 @@ import json
 import sys
 import pandas as pd
 import datetime
+from typing import Any, Dict
 from IPython.display import display
 from collections import defaultdict
 from .utils import work_dir as work_dir_default
 from .utils import path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
 from .utils import default_max_round, default_groupchat_intro_message
 from pprint import pprint
-from .base_agent import CmbAgentGroupChat
+from .base_agent import CmbAgentGroupChat, CmbAgentSwarmAgent
 from cmbagent.engineer.engineer import EngineerAgent
 from cmbagent.planner.planner import PlannerAgent
 from cmbagent.executor.executor import ExecutorAgent
@@ -26,7 +27,9 @@ from pydantic import BaseModel
 from ruamel.yaml import YAML
 from typing import List
 from pprint import pprint
+from autogen import  AfterWorkOption, AFTER_WORK, ON_CONDITION, SwarmResult
 
+from cmbagent.cmbagent_swarm_agent import initiate_cmbagent_swarm_chat
 from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse, RagSoftwareFormatterResponse
 
 from sys import exit
@@ -177,6 +180,7 @@ class CMBAgent:
                  skip_memory = True,
                  work_dir = None,
                  agent_llm_configs = None,
+                 agent_type = 'swarm',
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
@@ -236,27 +240,6 @@ class CMBAgent:
             This class initializes various agents and configurations for cosmological data analysis.
         """
 
-        # if make_vector_stores and vector_store_ids:
-        #     for name in make_vector_stores:
-        #         print("You can not make vector store and pass vector store ids simultaneously")
-        #         if f'{name}_agent' in vector_store_ids:
-
-        #             print(f"You are trying to do this for {name}_agent")
-        #         print()
-        #         print("If you want to update vector stores, you need to do this:")
-        #         print("\t1. first make vector stores (and make sure you don't specify vector_store_ids)")
-        #         print("\t2. restart session (and make sure you don't specify make_vector_stores)")
-        #         print("\t3. pass vector stores ids in arguments of vector_store_ids in this format (example with cobaya and planck): ")
-        #         print("""\tvector_store_ids = {
-        #                 \t'cobaya_agent' : 'vs_xyz',
-        #                 \t'planck_agent': 'vs_abc',
-        #                 \t}
-        #               """)
-        #         print("\twhere vs_xyz and vs_abc are vector store ids that were printed after step 1.")
-        #         print()
-        #         print("If you do not want to update vector stores, just pass make_vector_stores=False")
-
-        #         return
 
 
         self.kwargs = kwargs
@@ -273,6 +256,7 @@ class CMBAgent:
         self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin', 'summarizer', 'rag_software_formatter']
 
         self.agent_list = agent_list
+
         self.skip_memory = skip_memory
 
         if not self.skip_memory and 'memory' not in agent_list:
@@ -290,26 +274,18 @@ class CMBAgent:
         llm_config = config_list_from_json(f"{path_to_apis}/{platform}_{model}.json")
 
         if llm_api_key is not None:
-
             llm_config[0]['api_key'] = llm_api_key
-
         else:
-
             llm_config[0]['api_key'] = os.getenv("OPENAI_API_KEY")
 
         if llm_api_type is not None:
-
             llm_config[0]['api_type'] = llm_api_type
-        
         else:
-        
             llm_config[0]['api_type'] = 'openai'
 
         self.llm_api_key = llm_config[0]['api_key']
 
-
         self.logger.info(f"Path to APIs: {path_to_apis}")
-
 
         self.cache_seed = cache_seed
 
@@ -327,31 +303,26 @@ class CMBAgent:
 
             self.logger.info(f"{key}: {value}")
 
+        self.agent_type = agent_type
 
-        self.init_agents(agent_llm_configs=agent_llm_configs)
+        self.init_agents(agent_llm_configs=agent_llm_configs) # initialize agents
 
+        
+        self.check_assistants(reset_assistant=reset_assistant) # check if assistants exist
 
-        # check if assistants exist: 
-        self.check_assistants(reset_assistant=reset_assistant)
+        self.push_vector_stores(make_vector_stores, chunking_strategy, verbose = verbose) # push vector stores
 
-
-
- 
-        self.push_vector_stores(make_vector_stores, chunking_strategy, verbose = verbose)
-
-
-
-        self.set_planner_instructions()
-
+        self.set_planner_instructions() # set planner instructions
 
 
         if self.verbose:
-
             print("Setting up agents:")
 
 
-        # then we set the agents
+        # then we set the agents, note that self.agents is set in init_agents
         for agent in self.agents:
+
+            agent.agent_type = self.agent_type
 
             if self.skip_executor:
                 if agent.name == 'executor':
@@ -360,9 +331,7 @@ class CMBAgent:
             print(f"\t- {agent.name}")
 
             instructions = agent_instructions[agent.name] if agent_instructions and agent.name in agent_instructions else None
-
             description = agent_descriptions[agent.name] if agent_descriptions and agent.name in agent_descriptions else None
-
             agent_kwargs = {}
 
             if instructions is not None:
@@ -373,7 +342,7 @@ class CMBAgent:
 
                 agent_kwargs['description'] = description
 
-            if agent.name not in self.non_rag_agents:
+            if agent.name not in self.non_rag_agents: ## loop over all rag agents 
 
 
                 vector_ids = self.vector_store_ids[agent.name] if self.vector_store_ids and agent.name in self.vector_store_ids else None
@@ -412,9 +381,12 @@ class CMBAgent:
                     agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
 
                     agent.set_agent(**agent_kwargs) 
-                    
 
-            else:
+                else:
+                    # see above for trick on how to make vector store if it is not found. 
+                    agent.set_agent(**agent_kwargs)
+
+            else: ## set all non-rag agents
                 
                 agent.set_agent(**agent_kwargs)
 
@@ -428,13 +400,10 @@ class CMBAgent:
 
 
         if self.verbose:
-
             self.show_allowed_transitions()
 
         if self.verbose:
-
             print("Planner instructions:")
-
             print(self.planner.info['instructions'])
 
 
@@ -445,36 +414,53 @@ class CMBAgent:
 
         self.rag_agents = [agent.agent for agent in self.agents if agent.name not in self.non_rag_agents]
         
-        # cmbagent debug print: 
-        # print("--> in cmbagent.py self.rag_agents: ", self.rag_agents)
-        self.groupchat = CmbAgentGroupChat(
-                                agents=[agent.agent for agent in self.agents],
-                                rag_agents=self.rag_agents,
-                                allowed_or_disallowed_speaker_transitions=self.allowed_transitions,
-                                speaker_transitions_type="allowed",
-                                messages=[],
-                                speaker_selection_method = "auto",
-                                max_round=max_round,
-                                select_speaker_auto_verbose=False,
-                                send_introductions=True,
-                                admin_name="admin",
-                                select_speaker_prompt_template=select_speaker_prompt_template,
-                                select_speaker_message_template=select_speaker_message_template,
-                                verbose=self.verbose,
-                                )
         
-        self.groupchat.DEFAULT_INTRO_MSG  = groupchat_intro_message
+        if self.agent_type == 'swarm':
+            
+            intro_message = default_groupchat_intro_message
+
+            for agent in self.agents:
+                intro_message += f'{agent.name}, '
+    
+            self.manager = CmbAgentSwarmAgent(name= "cmbagent", 
+                                              llm_config=self.llm_config,
+                                              system_message= intro_message,
+                                              description="You are the groupchat manager. You are the first to speak.")
+
+        else:
+            # cmbagent debug print: 
+            # print("--> in cmbagent.py self.rag_agents: ", self.rag_agents)
+            self.groupchat = CmbAgentGroupChat(
+                                    agents=[agent.agent for agent in self.agents],
+                                    rag_agents=self.rag_agents,
+                                    allowed_or_disallowed_speaker_transitions=self.allowed_transitions,
+                                    speaker_transitions_type="allowed",
+                                    messages=[],
+                                    speaker_selection_method = "auto",
+                                    max_round=max_round,
+                                    select_speaker_auto_verbose=False,
+                                    send_introductions=True,
+                                    admin_name="admin",
+                                    select_speaker_prompt_template=select_speaker_prompt_template,
+                                    select_speaker_message_template=select_speaker_message_template,
+                                    verbose=self.verbose,
+                                    agent_type=self.agent_type
+                                    )
+
+
+            self.manager = autogen.GroupChatManager(groupchat=self.groupchat,
+                                                    name="cmbagent",
+                                                    llm_config=self.llm_config)
+
+        
+            self.groupchat.DEFAULT_INTRO_MSG  = groupchat_intro_message
 
 
 
-        self.manager = autogen.GroupChatManager(groupchat=self.groupchat,
-                                                name="cmbagent",
-                                                llm_config=self.llm_config)
 
+            for agent in self.groupchat.agents: 
 
-        for agent in self.groupchat.agents: 
-
-            agent.reset()
+                agent.reset()
     
 
     def display_cost(self):
@@ -585,15 +571,85 @@ class CMBAgent:
 
     def solve(self, task):
 
-        self.session = self.admin.agent.initiate_chat(self.manager,message = task)
+        if self.agent_type == 'swarm':
 
-        # display full cost dictionary
-        self.display_cost()
+            swarm_agents = [agent.agent for agent in self.agents if agent.name != 'admin']
+            swarm_agent_names = [agent.name for agent in self.agents if agent.name != 'admin']
+            if not self.skip_memory:
+                memory_agent = swarm_agents[swarm_agent_names.index('memory_agent')]
+            rag_software_formatter = swarm_agents[swarm_agent_names.index('rag_software_formatter')]
 
-        # ask user if they want to update memory agent
-        # self.update_memory_agent()
-        if not self.skip_memory:
-            self.update_memory_agent()
+
+            # context variables
+            context_variables = {
+                "plan": "",                                 # the proposed plan
+            }
+
+            def save_plan(final_plan: str, context_variables: Dict[str, Any]) -> SwarmResult:
+                """Store and plan"""
+                context_variables["plan"] = final_plan
+                # This will update the context variables and then transfer to the Structured Output agent
+                return SwarmResult(
+                    agent="rag_software_formatter", context_variables=context_variables, values="Plan recorded and confirmed."
+                )
+            self.planner.agent.add_single_function(save_plan)
+            
+
+            # hand offs among agents
+            if not self.skip_memory:
+                memory_agent.register_hand_off(hand_to=[AFTER_WORK(self.planner.agent)])
+            else:
+                self.planner.agent.register_hand_off(
+                    hand_to=[AFTER_WORK(AfterWorkOption.REVERT_TO_USER),  # Revert to the user for more information
+                    ])
+
+
+            groupchat_intro_message = default_groupchat_intro_message  
+
+
+            chat_history, context_variables, last_active_agent, groupchat = \
+                        initiate_cmbagent_swarm_chat(
+                                    initial_agent = self.planner.agent, 
+                                    messages = groupchat_intro_message + task,
+                                    agents = swarm_agents,
+                                    rag_agents = self.rag_agents,
+                                    send_introductions = True,
+                                    admin_name = 'cmbagent',
+                                    user_agent = self.admin.agent,
+                                    max_rounds = 100,
+                                    context_variables = context_variables,
+                                    after_work = AfterWorkOption.REVERT_TO_USER,
+                                    cost = 0,
+                                    verbose = self.verbose
+                                    )
+
+            self.chat_history = chat_history
+            self.context_variables = context_variables
+            self.last_active_agent = last_active_agent
+            self.groupchat = groupchat
+            self.groupchat.DEFAULT_INTRO_MSG  = groupchat_intro_message
+            print('context variables: ', context_variables)
+            print('last_active_agent: ', last_active_agent)
+
+            # display full cost dictionary
+            self.display_cost()
+
+            # ask user if they want to update memory agent
+            if not self.skip_memory:
+                self.update_memory_agent()
+
+
+        else:
+
+            self.session = self.admin.agent.initiate_chat(self.manager,message = task)
+
+            # display full cost dictionary
+            self.display_cost()
+
+            # ask user if they want to update memory agent
+            # self.update_memory_agent()
+            if not self.skip_memory:
+                self.update_memory_agent()
 
         
 
@@ -624,22 +680,24 @@ class CMBAgent:
         # Prepare the group chat for resuming
         last_agent, last_message = self.manager.resume(messages=json_string)
 
-        # Resume the chat using the last agent and message
-        self.session = last_agent.initiate_chat(recipient=self.manager,
+        if self.agent_type == 'swarm':
+            # Resume the chat using the last agent and message
+            self.session = last_agent.initiate_cmbagent_swarm_chat(recipient=self.manager,
+                                                    message=last_message,
+                                                    clear_history=False)
+
+        else:
+            # Resume the chat using the last agent and message
+            self.session = last_agent.initiate_chat(recipient=self.manager,
                                                 message=last_message,
                                                 clear_history=False)
 
 
     def get_agent_from_name(self,name):
-
         for agent in self.agents:
-
             if agent.info['name'] == name:
-
                 return agent.agent
-
         print(f"get_agent_from_name: agent {name} not found")
-
         sys.exit()
 
 
@@ -1020,7 +1078,9 @@ class CMBAgent:
                 else:
                     llm_config = self.llm_config
 
-                agent_instance = agent_class(llm_config=llm_config)
+                agent_instance = agent_class(llm_config=llm_config,agent_type=self.agent_type)
+
+                print('agent_type: ', agent_instance.agent_type)
 
                 setattr(self, agent_name, agent_instance)
 

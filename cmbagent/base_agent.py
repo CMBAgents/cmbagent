@@ -1,9 +1,11 @@
 import os 
 import logging
-from typing import List
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message
 import sys
-from autogen import Agent
+from autogen import Agent, SwarmAgent
+
+
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
     """A custom proxy agent for the user with redefined default descriptions."""
 
@@ -20,33 +22,47 @@ class CmbAgentGroupChat(GroupChat):
         self,
         agents: List[Agent],
         rag_agents: List[Agent],
-        allowed_or_disallowed_speaker_transitions: List,
-        speaker_transitions_type: str,
         messages: List,
         speaker_selection_method: str,
         max_round: int,
-        select_speaker_auto_verbose: bool,
         send_introductions: bool,
         admin_name: str,
-        select_speaker_prompt_template: str,
-        select_speaker_message_template: str,
+        select_speaker_auto_verbose: Optional[bool] = True,
+        speaker_transitions_type: Optional[str] = None,
+        select_speaker_prompt_template: Optional[str] = None,
+        select_speaker_message_template: Optional[str] = None,
+        agent_type: Optional[str] = None,   
+        allowed_or_disallowed_speaker_transitions: Optional[List] = None,
         cost: int = 0,
         verbose: bool = False,
     ):
-        # Initialize the parent GroupChat
-        super().__init__(
-            agents=agents,
-            allowed_or_disallowed_speaker_transitions=allowed_or_disallowed_speaker_transitions,
-            speaker_transitions_type=speaker_transitions_type,
-            messages=messages,
-            speaker_selection_method=speaker_selection_method,
-            max_round=max_round,
-            select_speaker_auto_verbose=select_speaker_auto_verbose,
-            send_introductions=send_introductions,
-            admin_name=admin_name,
-            select_speaker_prompt_template=select_speaker_prompt_template,
-            select_speaker_message_template=select_speaker_message_template,
-        )
+
+        if agent_type == 'swarm':
+            # Initialize the parent GroupChat
+            super().__init__(
+                agents = agents,
+                messages = messages,
+                max_round=max_round,
+                speaker_selection_method=speaker_selection_method,
+                send_introductions=send_introductions,
+                admin_name=admin_name,
+                select_speaker_auto_verbose=select_speaker_auto_verbose,
+            )
+        else:
+            # Initialize the parent GroupChat
+            super().__init__(
+                agents=agents,
+                allowed_or_disallowed_speaker_transitions=allowed_or_disallowed_speaker_transitions,
+                speaker_transitions_type=speaker_transitions_type,
+                messages=messages,
+                speaker_selection_method=speaker_selection_method,
+                max_round=max_round,
+                select_speaker_auto_verbose=select_speaker_auto_verbose,
+                send_introductions=send_introductions,
+                admin_name=admin_name,
+                select_speaker_prompt_template=select_speaker_prompt_template,
+                select_speaker_message_template=select_speaker_message_template,
+            )
         
         # Initialize CmbAgentGroupChat-specific attributes
         self.rag_agents = rag_agents
@@ -62,6 +78,7 @@ class BaseAgent:
                  llm_config=None,
                  agent_id=None,
                  work_dir=None,
+                 agent_type=None,
                  **kwargs):
         
 
@@ -74,6 +91,8 @@ class BaseAgent:
         self.name = self.info["name"]
 
         self.work_dir = work_dir
+
+        self.agent_type = agent_type
         
 
 
@@ -126,25 +145,38 @@ class BaseAgent:
 
             logger.info(f"{key}: {value}")
 
+        if self.agent_type == 'swarm':
 
-        self.agent = GPTAssistantAgent(
-            name=self.name,
-            instructions= self.info["instructions"],
-            description=self.info["description"],
-            assistant_config=self.info["assistant_config"],
-            llm_config=self.llm_config,
-            overwrite_tools=True,
-            overwrite_instructions=True
-        )
+            self.agent = CmbAgentSwarmAgent(
+                name=self.name,
+                system_message= self.info["instructions"],
+                description=self.info["description"],
+                llm_config=self.llm_config,
+                )
 
-        if self.agent._assistant_error is not None:
+            ### case of missing vector store not implemented for swarm...
+            ### TODO: implement this, see below. 
 
-            # print(self.agent._assistant_error)
-            if "No vector store" in self.agent._assistant_error:
-                print(f"Vector store not found for {self.name}")
-                print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
-                
-                return 1
+        else:
+
+            self.agent = GPTAssistantAgent(
+                name=self.name,
+                instructions= self.info["instructions"],
+                description=self.info["description"],
+                assistant_config=self.info["assistant_config"],
+                llm_config=self.llm_config,
+                overwrite_tools=True,
+                overwrite_instructions=True
+                )
+
+            if self.agent._assistant_error is not None:
+
+                # print(self.agent._assistant_error)
+                if "No vector store" in self.agent._assistant_error:
+                    print(f"Vector store not found for {self.name}")
+                    print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
+                    
+                    return 1
 
 
 
@@ -167,12 +199,26 @@ class BaseAgent:
 
             logger.info(f"{key}: {value}")
 
-        self.agent = AssistantAgent(
-            name= self.name,
-            system_message= self.info["instructions"],
-            description=self.info["description"],
-            llm_config=self.llm_config,
-        )
+        print('setting assistant agent: ',self.name)
+        print('self.agent_type: ',self.agent_type)
+
+        if self.agent_type == 'swarm':
+
+            self.agent = CmbAgentSwarmAgent(
+                name=self.name,
+                system_message=self.info["instructions"],
+                description=self.info["description"],
+                llm_config=self.llm_config,
+                )
+
+        else:
+
+            self.agent = AssistantAgent(
+                name= self.name,
+                system_message= self.info["instructions"],
+                description=self.info["description"],
+                llm_config=self.llm_config,
+            )
 
         ## cmbagent modif print to help debug: 
         ## print('in cmbagent/base_agent.py self.agent: ',self.agent)
@@ -187,13 +233,43 @@ class BaseAgent:
 
             logger.info(f"{key}: {value}")
 
+        if self.agent_type == 'swarm':
+            self.agent = CmbAgentSwarmAgent(
+                name= self.name,
+                system_message= self.info["instructions"],
+                description=self.info["description"],
+                llm_config=self.llm_config,
+                human_input_mode=self.info["human_input_mode"],
+            max_consecutive_auto_reply=self.info["max_consecutive_auto_reply"],
+            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+            code_execution_config={
+                "executor": LocalCommandLineCodeExecutor(work_dir=self.work_dir,
+                                                         timeout=self.info["timeout"],
+                                                         execution_policies = {
+                                                            "python": True,
+                                                            "bash": True,
+                                                            "shell": False,
+                                                            "sh": False,
+                                                            "pwsh": False,
+                                                            "powershell": False,
+                                                            "ps1": False,
+                                                            "javascript": False,
+                                                            "html": False,
+                                                            "css": False,
+                                                         }
+                                                         ),
+                "last_n_messages": 2,
+            },
+        )
 
-        self.agent = CmbAgentUserProxyAgent(
-            name= self.name,
-            system_message= self.info["instructions"],
-            description=self.info["description"],
-            llm_config=self.llm_config,
-            human_input_mode=self.info["human_input_mode"],
+        else:
+
+            self.agent = CmbAgentUserProxyAgent(
+                name= self.name,
+                system_message= self.info["instructions"],
+                description=self.info["description"],
+                llm_config=self.llm_config,
+                human_input_mode=self.info["human_input_mode"],
             max_consecutive_auto_reply=self.info["max_consecutive_auto_reply"],
             is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
             code_execution_config={
@@ -229,4 +305,41 @@ class BaseAgent:
             name= self.name,
             system_message= self.info["instructions"],
             code_execution_config=self.info["code_execution_config"],
+        )
+
+
+
+class CmbAgentSwarmAgent(SwarmAgent):
+    """CMB Swarm agent for participating in a swarm.
+
+    CmbAgentSwarmAgent is a subclass of SwarmAgent, which is a subclass of ConversableAgent.
+
+    Additional args:
+        functions (List[Callable]): A list of functions to register with the agent.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        system_message: Optional[str] = "You are a helpful AI Assistant.",
+        llm_config: Optional[Union[Dict, Literal[False]]] = None,
+        functions: Union[List[Callable], Callable] = None,
+        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
+        max_consecutive_auto_reply: Optional[int] = None,
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
+        description: Optional[str] = None,
+        code_execution_config=False,
+        **kwargs
+    ) -> None:
+        super().__init__(
+            name,
+            system_message,
+            llm_config,
+            functions,
+            is_termination_msg,
+            max_consecutive_auto_reply,
+            human_input_mode,
+            description,
+            code_execution_config,
+            **kwargs
         )
