@@ -68,7 +68,7 @@ class CmbAgentGroupChat(GroupChat):
         self.rag_agents = rag_agents
         self.verbose = verbose
         self.cost = cost
-        # DEFAULT_INTRO_MSG = default_groupchat_intro_message
+        self.DEFAULT_INTRO_MSG = default_groupchat_intro_message
 
 
 
@@ -199,8 +199,8 @@ class BaseAgent:
 
             logger.info(f"{key}: {value}")
 
-        print('setting assistant agent: ',self.name)
-        print('self.agent_type: ',self.agent_type)
+        # print('setting assistant agent: ',self.name)
+        # print('self.agent_type: ',self.agent_type)
 
         if self.agent_type == 'swarm':
 

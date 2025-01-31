@@ -413,21 +413,23 @@ class CMBAgent:
         groupchat_intro_message = intro_message if intro_message else default_groupchat_intro_message
 
         self.rag_agents = [agent.agent for agent in self.agents if agent.name not in self.non_rag_agents]
+        self.hidden_agent_names = ['admin','summarizer','memory','rag_software_formatter']
         
         
-        if self.agent_type == 'swarm':
+        # if self.agent_type == 'swarm':
             
-            intro_message = default_groupchat_intro_message
+        #     intro_message = default_groupchat_intro_message
 
-            for agent in self.agents:
-                intro_message += f'{agent.name}, '
+        #     for agent in self.agents:
+        #         intro_message += f'{agent.name}, '
+        #     print("\nin cmbagent.py, intro_message: ", intro_message)
     
-            self.manager = CmbAgentSwarmAgent(name= "cmbagent", 
-                                              llm_config=self.llm_config,
-                                              system_message= intro_message,
-                                              description="You are the groupchat manager. You are the first to speak.")
+        #     # self.manager = CmbAgentSwarmAgent(name= "cmbagent", 
+        #     #                                   llm_config=self.llm_config,
+        #     #                                   system_message= intro_message,
+        #     #                                   description="You are the groupchat manager. You are the first to speak.")
 
-        else:
+        if self.agent_type != 'swarm':
             # cmbagent debug print: 
             # print("--> in cmbagent.py self.rag_agents: ", self.rag_agents)
             self.groupchat = CmbAgentGroupChat(
@@ -575,6 +577,10 @@ class CMBAgent:
 
             swarm_agents = [agent.agent for agent in self.agents if agent.name != 'admin']
             swarm_agent_names = [agent.name for agent in self.agents if agent.name != 'admin']
+            
+            print("\nin cmbagent.py, swarm_agents: ", swarm_agents)
+            print("\nin cmbagent.py, swarm_agent_names: ", swarm_agent_names)
+
             if not self.skip_memory:
                 memory_agent = swarm_agents[swarm_agent_names.index('memory_agent')]
             rag_software_formatter = swarm_agents[swarm_agent_names.index('rag_software_formatter')]
@@ -582,15 +588,19 @@ class CMBAgent:
 
             # context variables
             context_variables = {
-                "plan": "",                                 # the proposed plan
+                "plan": "", 
+                "act_agent_used_in_plan": False,  # the proposed plan
             }
 
             def save_plan(final_plan: str, context_variables: Dict[str, Any]) -> SwarmResult:
                 """Store and plan"""
+                print("\n update plan context variable")
                 context_variables["plan"] = final_plan
                 # This will update the context variables and then transfer to the Structured Output agent
                 return SwarmResult(
-                    agent="rag_software_formatter", context_variables=context_variables, values="Plan recorded and confirmed."
+                    agent="rag_software_formatter", 
+                    context_variables=context_variables, 
+                    values="Plan recorded and confirmed."
                 )
             self.planner.agent.add_single_function(save_plan)
             
@@ -600,11 +610,35 @@ class CMBAgent:
                 memory_agent.register_hand_off(hand_to=[AFTER_WORK(self.planner.agent)])
             else:
                 self.planner.agent.register_hand_off(
-                    hand_to=[AFTER_WORK(AfterWorkOption.REVERT_TO_USER),  # Revert to the user for more information
+                   [
+                    ON_CONDITION(
+                        target=self.planner.agent,
+                        condition="The ACT agent has not been used. Update the plan.",
+                        available="act_agent_used_in_plan",
+                    ),
+                    AFTER_WORK(AfterWorkOption.REVERT_TO_USER),  # Revert to the user for more information
+                    # hand_to=[AFTER_WORK(AfterWorkOption.STAY),  # stay
+                    # hand_to=[AFTER_WORK(AfterWorkOption.TERMINATE),  # terminate
                     ])
 
+            for agent in swarm_agents:
+                print("\n cmbagent.py")
+                print(f"Agent {agent.name} hand off: {agent.after_work if hasattr(agent, 'after_work') else None}")
 
-            groupchat_intro_message = default_groupchat_intro_message  
+            
+
+
+            groupchat_intro_message = default_groupchat_intro_message 
+            
+            for agent in self.agents:
+                if agent.name not in self.hidden_agent_names:
+                    groupchat_intro_message += f'- {agent.name}\n'
+            groupchat_intro_message += '\nMain Task: '
+
+            #     print("name: ", agent.name)
+            # for agent in self.rag_agents:
+            #     print("rag agent name: ", agent.name)
+            # sys.exit(0)
 
 
             chat_history, context_variables, last_active_agent, groupchat = \
@@ -614,7 +648,7 @@ class CMBAgent:
                                     agents = swarm_agents,
                                     rag_agents = self.rag_agents,
                                     send_introductions = True,
-                                    admin_name = 'cmbagent',
+                                    admin_name = 'admin',
                                     user_agent = self.admin.agent,
                                     max_rounds = 100,
                                     context_variables = context_variables,

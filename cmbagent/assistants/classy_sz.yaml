@@ -121,7 +121,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_CGuHDkc5g4rETLtO6mvC9q7v
+      - vs_8kqbw7TnNaHGKNj9vA9JSxvo
 
 description: |
   This is the classy_sz_agent: a retrieval agent that provides assistance on how to compute with classy_sz. 
