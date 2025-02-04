@@ -128,14 +128,18 @@ class {agent_name.capitalize()}Agent(BaseAgent):
 
         print(f"Created {agent_name} agent files: {agent_file_path} and {yaml_file_path}")
         # Create a folder for the agent's data
-        agent_data_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', agent_name)
+        # agent_data_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', agent_name)
+        dir_path = os.getenv('CMBAGENT_DATA')
+        agent_data_folder = os.path.join(dir_path, 'data', agent_name)
+        print(f"Creating data folder for {agent_name} agent: {agent_data_folder}")
         os.makedirs(agent_data_folder, exist_ok=True)
         print(f"Created data folder for {agent_name} agent: {agent_data_folder}")
         print(f"Please deposit any relevant files for the {agent_name} agent in this folder.")
 
     # Return a dictionary with the full paths to the agent data folders
     data_folders = {}
-    data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+    # data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
+    data_dir = os.path.join(dir_path, 'data')
     for agent_folder in os.listdir(data_dir):
         full_path = os.path.join(data_dir, agent_folder)
         if os.path.isdir(full_path):
@@ -178,6 +182,7 @@ class CMBAgent:
                  set_allowed_transitions = None,
                  skip_executor = False,
                  skip_memory = True,
+                 skip_rag_software_formatter = True,
                  work_dir = None,
                  agent_llm_configs = None,
                  agent_type = None,# 'swarm',
@@ -245,6 +250,8 @@ class CMBAgent:
         self.kwargs = kwargs
 
         self.skip_executor = skip_executor
+
+        self.skip_rag_software_formatter = skip_rag_software_formatter
 
         # self.make_new_rag_agents = make_new_rag_agents
         self.set_allowed_transitions = set_allowed_transitions
@@ -330,6 +337,10 @@ class CMBAgent:
                 if agent.name == 'executor':
                     continue
 
+            if self.skip_rag_software_formatter:
+                if agent.name == 'rag_software_formatter':
+                    continue
+
             print(f"\t- {agent.name}")
 
             instructions = agent_instructions[agent.name] if agent_instructions and agent.name in agent_instructions else None
@@ -373,22 +384,22 @@ class CMBAgent:
 
                     agent_kwargs['agent_top_p'] = default_top_p
 
-                # cmbagent debug
-                #### the files list is appended twice to the instructions.... TBD!!!
-                if agent.set_agent(**agent_kwargs) == 1:
+                # cmbagent debug --> removed this option, pass in make_vector_stores=True in kwargs
+                # #### the files list is appended twice to the instructions.... TBD!!!
+                # if agent.set_agent(**agent_kwargs) == 1:
 
-                    print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
+                #     print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
                     
-                    self.push_vector_stores([agent.name.removesuffix('_agent')], chunking_strategy, verbose = verbose)
+                #     self.push_vector_stores([agent.name.removesuffix('_agent')], chunking_strategy, verbose = verbose)
 
-                    agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
+                #     agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
 
                     
-                    agent.set_agent(**agent_kwargs) 
+                #     agent.set_agent(**agent_kwargs) 
 
-                else:
-                    # see above for trick on how to make vector store if it is not found. 
-                    agent.set_agent(**agent_kwargs)
+                # else:
+                # see above for trick on how to make vector store if it is not found. 
+                agent.set_agent(**agent_kwargs)
 
             else: ## set all non-rag agents
                 
@@ -778,6 +789,9 @@ class CMBAgent:
 
         for agent in self.agents:
 
+            if agent.name == 'rag_software_formatter' and self.skip_rag_software_formatter:
+                continue
+
             transition_list = []
 
             for name in agent.info['allowed_transitions']:
@@ -1109,8 +1123,7 @@ class CMBAgent:
 
         self.agents = [self.admin,
                        self.planner,
-                       self.engineer,
-                       self.rag_software_formatter]
+                       self.engineer]
 
         if not self.skip_memory:
             self.agents.append(self.summarizer)
@@ -1118,8 +1131,10 @@ class CMBAgent:
         if not self.skip_executor:
             self.agents.append(self.executor)
 
-        if self.agent_list is None:
+        if not self.skip_rag_software_formatter:
+            self.agents.append(self.rag_software_formatter)
 
+        if self.agent_list is None:
             self.agent_list = list(self.agent_classes.keys())
 
         # Drop entries from self.agent_classes that are not in self.agent_list
@@ -1164,6 +1179,9 @@ class CMBAgent:
 
         if self.skip_executor:
             self.agent_names.remove('executor')
+
+        if self.skip_rag_software_formatter:
+            self.agent_names.remove('rag_software_formatter')
 
         if self.skip_memory:
             self.agent_names.remove('summarizer')
