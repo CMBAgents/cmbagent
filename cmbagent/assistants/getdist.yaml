@@ -4,7 +4,7 @@ instructions: |
   You suggest codes to help engineer run getdist. You never suggest plan.
 
 assistant_config:
-  assistant_id: asst_vxFI3Evvi6jJPTl1ksS2eF2Z
+  assistant_id: asst_3gyogUgKaDi1JiCvt7AfaKVK
   tools:
   - type: file_search
   tool_resources:

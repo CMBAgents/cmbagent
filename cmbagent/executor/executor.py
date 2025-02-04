@@ -13,9 +13,9 @@ class ExecutorAgent(BaseAgent):
                          **kwargs)
 
 
-    def set_agent(self):
+    def set_agent(self,**kwargs):
 
-        super().set_code_agent()
+        super().set_code_agent(**kwargs)
 
 
 

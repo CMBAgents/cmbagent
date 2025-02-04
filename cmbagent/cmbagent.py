@@ -27,7 +27,7 @@ from pydantic import BaseModel
 from ruamel.yaml import YAML
 from typing import List
 from pprint import pprint
-from autogen import  AfterWorkOption, AFTER_WORK, ON_CONDITION, SwarmResult
+from autogen import  AfterWorkOption, AFTER_WORK, ON_CONDITION, SwarmResult, initiate_swarm_chat, SwarmAgent
 
 from cmbagent.cmbagent_swarm_agent import initiate_cmbagent_swarm_chat
 from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse, RagSoftwareFormatterResponse
@@ -297,6 +297,8 @@ class CMBAgent:
                         "timeout": timeout,
                     }
 
+        # self.llm_config =  {"model": "gpt-4o-mini", "cache_seed": None}
+
         self.logger.info("LLM Configuration:")
 
         for key, value in self.llm_config.items():
@@ -371,7 +373,8 @@ class CMBAgent:
 
                     agent_kwargs['agent_top_p'] = default_top_p
 
-            
+                # cmbagent debug
+                #### the files list is appended twice to the instructions.... TBD!!!
                 if agent.set_agent(**agent_kwargs) == 1:
 
                     print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
@@ -380,6 +383,7 @@ class CMBAgent:
 
                     agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
 
+                    
                     agent.set_agent(**agent_kwargs) 
 
                 else:
@@ -587,45 +591,13 @@ class CMBAgent:
 
 
             # context variables
-            context_variables = {
-                "plan": "", 
-                "act_agent_used_in_plan": False,  # the proposed plan
+            shared_context = {
+                "plan_suggestions": [], # the proposed plan
+                "plan_reviews": [], # the plan reviews
+                "reviews_left": 1,  
             }
 
-            def save_plan(final_plan: str, context_variables: Dict[str, Any]) -> SwarmResult:
-                """Store and plan"""
-                print("\n update plan context variable")
-                context_variables["plan"] = final_plan
-                # This will update the context variables and then transfer to the Structured Output agent
-                return SwarmResult(
-                    agent="rag_software_formatter", 
-                    context_variables=context_variables, 
-                    values="Plan recorded and confirmed."
-                )
-            self.planner.agent.add_single_function(save_plan)
-            
 
-            # hand offs among agents
-            if not self.skip_memory:
-                memory_agent.register_hand_off(hand_to=[AFTER_WORK(self.planner.agent)])
-            else:
-                self.planner.agent.register_hand_off(
-                   [
-                    ON_CONDITION(
-                        target=self.planner.agent,
-                        condition="The ACT agent has not been used. Update the plan.",
-                        available="act_agent_used_in_plan",
-                    ),
-                    AFTER_WORK(AfterWorkOption.REVERT_TO_USER),  # Revert to the user for more information
-                    # hand_to=[AFTER_WORK(AfterWorkOption.STAY),  # stay
-                    # hand_to=[AFTER_WORK(AfterWorkOption.TERMINATE),  # terminate
-                    ])
-
-            for agent in swarm_agents:
-                print("\n cmbagent.py")
-                print(f"Agent {agent.name} hand off: {agent.after_work if hasattr(agent, 'after_work') else None}")
-
-            
 
 
             groupchat_intro_message = default_groupchat_intro_message 
@@ -635,12 +607,77 @@ class CMBAgent:
                     groupchat_intro_message += f'- {agent.name}\n'
             groupchat_intro_message += '\nMain Task: '
 
-            #     print("name: ", agent.name)
-            # for agent in self.rag_agents:
-            #     print("rag agent name: ", agent.name)
-            # sys.exit(0)
+
+            # 2. Functions
+            def record_plan(plan_suggestion: str, context_variables: dict) -> SwarmResult:
+                """Record the lesson plan"""
+                context_variables["plan_suggestions"].append(plan_suggestion)
+
+                # Returning the updated context so the shared context can be updated
+                return SwarmResult(context_variables=context_variables)
+
+            self.planner.agent.add_single_function(record_plan)
+
+            def record_review(plan_review: str, context_variables: dict) -> SwarmResult:
+                """After a review has been made, increment the count of reviews"""
+                context_variables["plan_reviews"].append(plan_review)
+                context_variables["reviews_left"] -= 1
+
+                # Controlling the flow to the next agent from a tool call
+                return SwarmResult(
+                    agent=self.engineer.agent if context_variables["reviews_left"] < 0 else self.planner.agent, 
+                    context_variables=context_variables
+                )
+
+            
+
+            reviewer_message = """You are a plan reviewer.
+            You compare the plan to best practices and provide a maximum of 3 recommended changes for each review.
+            Make sure you provide recommendations each time the plan is updated.
+            """
+
+            lesson_reviewer = SwarmAgent(
+                name="reviewer_agent", llm_config=self.llm_config, 
+                system_message=reviewer_message, functions=[record_review]
+            )
+
+            # Lesson planner will create a plan and hand off to the reviewer if we're still
+            # allowing reviews. After that's done, transition to the teacher.
+            self.planner.agent.register_hand_off(
+                [
+                    ON_CONDITION(
+                        target=lesson_reviewer,
+                        condition="After creating/updating and recording the plan, it must be reviewed.",
+                        available="reviews_left",
+                                ),
+                    AFTER_WORK(agent=self.engineer.agent),
+                            ]
+                        )
+
+            # Lesson reviewer will review the plan and return control to the planner if there's
+            # no plan to review, otherwise it will provide a review and
+            lesson_reviewer.register_hand_off(
+                [
+                    ON_CONDITION(
+                        target=self.planner.agent, 
+                        condition="After new feedback has been made and recorded, the plan must be updated."
+                    ),
+                    AFTER_WORK(AfterWorkOption.REVERT_TO_USER),
+                ]
+            )
 
 
+            # 5. Run the Swarm which returns the chat and updated context variables
+            chat_result, context_variables, last_agent = initiate_swarm_chat(
+                initial_agent= self.planner.agent, 
+                agents=swarm_agents + [lesson_reviewer],
+                messages=groupchat_intro_message + task,
+                context_variables=shared_context,
+            )
+
+            print("\n chat_result: ", chat_result)
+            import sys; sys.exit()
+            #############################################################################
             chat_history, context_variables, last_active_agent, groupchat = \
                         initiate_cmbagent_swarm_chat(
                                     initial_agent = self.planner.agent, 
@@ -652,7 +689,7 @@ class CMBAgent:
                                     user_agent = self.admin.agent,
                                     max_rounds = 100,
                                     context_variables = context_variables,
-                                    after_work = AfterWorkOption.REVERT_TO_USER,
+                                    after_work = AfterWorkOption.TERMINATE,
                                     cost = 0,
                                     verbose = self.verbose
                                     )
@@ -1009,7 +1046,7 @@ class CMBAgent:
                         "model": self.llm_config['config_list'][0]['model'],
                         "api_key": self.llm_config['config_list'][0]['api_key'],
                         "api_type": self.llm_config['config_list'][0]['api_type'],
-                        'response_format': PlannerResponse,
+                        "response_format": PlannerResponse,
                         }
         ]
 
@@ -1039,7 +1076,7 @@ class CMBAgent:
                         "model": self.llm_config['config_list'][0]['model'],
                         "api_key": self.llm_config['config_list'][0]['api_key'],
                         "api_type": self.llm_config['config_list'][0]['api_type'],
-                        'response_format': RagSoftwareFormatterResponse, # doesnt work yet. Currently using rag_software_formatter after this agent. 
+                        # 'response_format': RagSoftwareFormatterResponse, # doesnt work yet. Currently using rag_software_formatter after this agent. 
                         }
         ]
 

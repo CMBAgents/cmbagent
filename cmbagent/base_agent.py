@@ -105,7 +105,7 @@ class BaseAgent:
                   agent_top_p=None):
 
     
-        # print('setting agent: ',self.name)
+        print('setting agent: ',self.name)
         # print(self.info['assistant_config']['tool_resources']['file_search'])
         # print()    
         if instructions is not None:
@@ -135,6 +135,8 @@ class BaseAgent:
         # List files in the data_path excluding unwanted files
         files = [f for f in os.listdir(data_path) if not (f.startswith('.') or f.endswith('.ipynb') or f.endswith('.yaml') or f.endswith('.txt') or os.path.isdir(os.path.join(data_path, f)))]
 
+        # cmbagent debug
+        print("\n adding files to instructions: ", files)
         self.info["instructions"] += f'\n You have access to the following files: {files}.\n'
 
 
@@ -145,38 +147,38 @@ class BaseAgent:
 
             logger.info(f"{key}: {value}")
 
-        if self.agent_type == 'swarm':
+        # if self.agent_type == 'swarm':
 
-            self.agent = CmbAgentSwarmAgent(
-                name=self.name,
-                system_message= self.info["instructions"],
-                description=self.info["description"],
-                llm_config=self.llm_config,
-                )
+        #     self.agent = CmbAgentSwarmAgent(
+        #         name=self.name,
+        #         system_message= self.info["instructions"],
+        #         description=self.info["description"],
+        #         llm_config=self.llm_config,
+        #         )
 
-            ### case of missing vector store not implemented for swarm...
-            ### TODO: implement this, see below. 
+        #     ### case of missing vector store not implemented for swarm...
+        #     ### TODO: implement this, see below. 
 
-        else:
+        # else:
 
-            self.agent = GPTAssistantAgent(
-                name=self.name,
-                instructions= self.info["instructions"],
-                description=self.info["description"],
-                assistant_config=self.info["assistant_config"],
-                llm_config=self.llm_config,
-                overwrite_tools=True,
-                overwrite_instructions=True
-                )
+        self.agent = GPTAssistantAgent(
+            name=self.name,
+            instructions= self.info["instructions"],
+            description=self.info["description"],
+            assistant_config=self.info["assistant_config"],
+            llm_config=self.llm_config,
+            overwrite_tools=True,
+            overwrite_instructions=True
+            )
 
-            if self.agent._assistant_error is not None:
+        if self.agent._assistant_error is not None:
 
-                # print(self.agent._assistant_error)
-                if "No vector store" in self.agent._assistant_error:
-                    print(f"Vector store not found for {self.name}")
-                    print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
-                    
-                    return 1
+            # print(self.agent._assistant_error)
+            if "No vector store" in self.agent._assistant_error:
+                print(f"Vector store not found for {self.name}")
+                print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
+                
+                return 1
 
 
 
@@ -194,9 +196,7 @@ class BaseAgent:
 
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")
-
         for key, value in self.info.items():
-
             logger.info(f"{key}: {value}")
 
         # print('setting assistant agent: ',self.name)
@@ -226,11 +226,12 @@ class BaseAgent:
 
     def set_code_agent(self,instructions=None):
 
+        if instructions is not None:
+            self.info["instructions"] = instructions
+
         logger = logging.getLogger(self.name) 
         logger.info("Loaded assistant info:")
-
         for key, value in self.info.items():
-
             logger.info(f"{key}: {value}")
 
         if self.agent_type == 'swarm':
@@ -247,7 +248,7 @@ class BaseAgent:
                                                          timeout=self.info["timeout"],
                                                          execution_policies = {
                                                             "python": True,
-                                                            "bash": True,
+                                                            "bash": False,
                                                             "shell": False,
                                                             "sh": False,
                                                             "pwsh": False,
@@ -258,7 +259,7 @@ class BaseAgent:
                                                             "css": False,
                                                          }
                                                          ),
-                "last_n_messages": 2,
+                "last_n_messages": 3,
             },
         )
 

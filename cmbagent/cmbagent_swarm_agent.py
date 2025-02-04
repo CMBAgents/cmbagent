@@ -5,7 +5,7 @@
 # from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from cmbagent.base_agent import CmbAgentGroupChat, CmbAgentSwarmAgent
-from autogen.agentchat.contrib.swarm_agent import _prepare_swarm_agents
+from autogen.agentchat.contrib.swarm_agent import _prepare_swarm_agents,  _process_initial_messages, create_swarm_transition, _setup_context_variables
 from autogen import ChatResult, GroupChatManager, UserProxyAgent, AfterWorkOption, AFTER_WORK, ON_CONDITION, SwarmResult
 
 # Parameter name for context variables
@@ -86,12 +86,81 @@ def initiate_cmbagent_swarm_chat(
     """
     print("\n in cmbagent_swarm_agent.py, initiate_cmbagent_swarm_chat")
     tool_execution, nested_chat_agents = _prepare_swarm_agents(initial_agent, agents)
+    ## tool_execution is a swarm agent created. 
+    print("\n in cmbagent_swarm_agent.py, tool_execution: ", tool_execution)
+    print("\n in cmbagent_swarm_agent.py, tool_execution.name: ", tool_execution.name)
+    print("\n in cmbagent_swarm_agent.py, tool_execution._function_map: ", tool_execution._function_map)
 
     print("\n in cmbagent_swarm_agent.py, processing initial messages")
     processed_messages, last_agent, swarm_agent_names, temp_user_list = _process_initial_messages(
         messages, user_agent, agents, nested_chat_agents
     )
     print("\n in cmbagent_swarm_agent.py, processed_messages: ", processed_messages)
+
+    # Create transition function (has enclosed state for initial agent)
+    swarm_transition = create_swarm_transition(
+        initial_agent=initial_agent,
+        tool_execution=tool_execution,
+        swarm_agent_names=swarm_agent_names,
+        user_agent=user_agent,
+        swarm_after_work=after_work,
+    )
+    print("\n swarm transition created")
+
+    # transition are programmed in swarm_agent.py in determine_next_agent
+    # it checks  for after_work_condition....
+
+
+    groupchat = CmbAgentGroupChat(
+        agents = [tool_execution]
+        + agents
+        + nested_chat_agents
+        + ([user_agent] if user_agent is not None else temp_user_list),
+        rag_agents = rag_agents,
+        messages = [], #messages,  # Set to empty. We will resume the conversation with the messages,
+        max_round = max_rounds,
+        speaker_selection_method = swarm_transition,
+        send_introductions = send_introductions,
+        admin_name = admin_name,
+        cost = cost,
+        verbose = verbose,
+        agent_type = 'swarm'
+    )
+    print("\n groupchat created")
+    manager = GroupChatManager(groupchat)
+    print("\n manager created")
+    # Point all SwarmAgent's context variables to this function's context_variables
+    _setup_context_variables(tool_execution, agents, manager, context_variables or {})
+    print("\n context variables setup using: ", context_variables)
+
+
+
+    if len(processed_messages) > 1:
+        last_agent, last_message = manager.resume(messages=processed_messages)
+        clear_history = False
+    else:
+        last_message = processed_messages[0]
+        clear_history = True
+
+    print("\n last_agent: ", last_agent.name)
+    print("\n last_message: ", last_message)
+    print("\n clear_history: ", clear_history)
+
+    print("\n initiating chat with last_message: ", last_message, " and last_agent: ", last_agent.name)
+
+    ### this is where the chat starts
+    chat_result = last_agent.initiate_chat(
+        manager,
+        message=last_message,
+        clear_history=clear_history,
+    )
+    print("\n chat_result: ", chat_result)
+
+    _cleanup_temp_user_messages(chat_result)
+
+    return chat_result, context_variables, manager.last_speaker
+
+
     import sys; sys.exit(0)
     
     assert isinstance(initial_agent, CmbAgentSwarmAgent), "initial_agent must be a CmbAgentSwarmAgent"
