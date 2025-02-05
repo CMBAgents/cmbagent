@@ -3,7 +3,7 @@ import logging
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message
 import sys
-from autogen import Agent, SwarmAgent
+from autogen import Agent, SwarmAgent, ConversableAgent
 
 
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
@@ -310,7 +310,7 @@ class BaseAgent:
 
 
 
-class CmbAgentSwarmAgent(SwarmAgent):
+class CmbAgentSwarmAgent(ConversableAgent):
     """CMB Swarm agent for participating in a swarm.
 
     CmbAgentSwarmAgent is a subclass of SwarmAgent, which is a subclass of ConversableAgent.
@@ -318,29 +318,4 @@ class CmbAgentSwarmAgent(SwarmAgent):
     Additional args:
         functions (List[Callable]): A list of functions to register with the agent.
     """
-
-    def __init__(
-        self,
-        name: str,
-        system_message: Optional[str] = "You are a helpful AI Assistant.",
-        llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        functions: Union[List[Callable], Callable] = None,
-        is_termination_msg: Optional[Callable[[Dict], bool]] = None,
-        max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "NEVER",
-        description: Optional[str] = None,
-        code_execution_config=False,
-        **kwargs
-    ) -> None:
-        super().__init__(
-            name,
-            system_message,
-            llm_config,
-            functions,
-            is_termination_msg,
-            max_consecutive_auto_reply,
-            human_input_mode,
-            description,
-            code_execution_config,
-            **kwargs
-        )
+    pass
