@@ -246,7 +246,6 @@ class CMBAgent:
         """
 
 
-
         self.kwargs = kwargs
 
         self.skip_executor = skip_executor
@@ -426,6 +425,8 @@ class CMBAgent:
         select_speaker_prompt_template = select_speaker_prompt if select_speaker_prompt else default_select_speaker_prompt_template
         select_speaker_message_template = select_speaker_message if select_speaker_message else default_select_speaker_message_template
         groupchat_intro_message = intro_message if intro_message else default_groupchat_intro_message
+
+        self.groupchat_intro_message = groupchat_intro_message
 
         self.rag_agents = [agent.agent for agent in self.agents if agent.name not in self.non_rag_agents]
         self.hidden_agent_names = ['admin','summarizer','memory','rag_software_formatter']
@@ -1050,7 +1051,7 @@ class CMBAgent:
                         "model": self.llm_config['config_list'][0]['model'],
                         "api_key": self.llm_config['config_list'][0]['api_key'],
                         "api_type": self.llm_config['config_list'][0]['api_type'],
-                        'response_format': EngineerResponse,
+                        # 'response_format': EngineerResponse,
                         }
         ]
 
@@ -1095,18 +1096,29 @@ class CMBAgent:
         ]
 
         ## set custom llm configs if provided
-        if agent_llm_configs is not None:
+        # if agent_llm_configs is not None:
 
-            engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
+        #     engineer_llm_config['config_list'] = [agent_llm_configs['engineer']] if 'engineer' in agent_llm_configs else self.llm_config['config_list']
             
-            planner_llm_config['config_list'] = [agent_llm_configs['planner']] if 'planner' in agent_llm_configs else self.llm_config['config_list']
+        #     planner_llm_config['config_list'] = [agent_llm_configs['planner']] if 'planner' in agent_llm_configs else self.llm_config['config_list']
 
-            summarizer_llm_config['config_list'] = [agent_llm_configs['summarizer']] if 'summarizer' in agent_llm_configs else self.llm_config['config_list']
+        #     summarizer_llm_config['config_list'] = [agent_llm_configs['summarizer']] if 'summarizer' in agent_llm_configs else self.llm_config['config_list']
         
+        if agent_llm_configs is not None:
+            if 'engineer' in agent_llm_configs:
+                # Update the existing engineer configuration rather than replacing it entirely.
+                engineer_llm_config['config_list'][0].update(agent_llm_configs['engineer'])
+            if 'planner' in agent_llm_configs:
+                planner_llm_config['config_list'][0].update(agent_llm_configs['planner'])
+            if 'summarizer' in agent_llm_configs:
+                summarizer_llm_config['config_list'][0].update(agent_llm_configs['summarizer'])
+
 
         self.engineer = EngineerAgent(llm_config=engineer_llm_config)
         
+        print('in cmbagent.py planner_llm_config: ', planner_llm_config)
         self.planner = PlannerAgent(llm_config=planner_llm_config)
+        # import sys; sys.exit()
 
         self.executor = ExecutorAgent(llm_config=self.llm_config, 
                                        work_dir=self.work_dir)

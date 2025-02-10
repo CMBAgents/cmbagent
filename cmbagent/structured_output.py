@@ -8,7 +8,6 @@ class EngineerResponse(BaseModel):
     # step: Step
     code_explanation: str = Field(..., description="The code explanation")
     python_code:  str = Field(..., description="The Python code in a form ready to execute")
-    current_status_and_next_step_suggestion: str = Field(..., description="Ask admin for approval.")
 
     def format(self) -> str:
         return f"""
@@ -22,26 +21,17 @@ class EngineerResponse(BaseModel):
 {self.python_code}
 ```
 
-**Current Status and Next Step Suggestion:**
-
-{self.current_status_and_next_step_suggestion}
-
         """
 
 # plan_reviewer response
 class PlanReviewerResponse(BaseModel):
-    recommendations: List[str] = Field(..., description="Each recommendation must amount to a single modification to the plan.")
-    next_step_suggestion: str = Field(..., description="The next step suggestion")
+    recommendations: List[str] = Field(..., description="Each recommendation must amount to a modification of one part of the plan.")
     def format(self) -> str:
         recommendations_output = "\n".join(f"- {recommendation}\n" for i, recommendation in enumerate(self.recommendations))
         return f"""
 **Recommendations:**
 
 {recommendations_output}
-
-**Next Step Suggestion:**
-
-{self.next_step_suggestion}
         """
 
 # planner response
@@ -53,7 +43,7 @@ class Subtasks(BaseModel):
 class PlannerResponse(BaseModel):
     main_task: str
     sub_tasks: list[Subtasks]
-    next_step_suggestion: str = Field(..., description="The next step suggestion, either proceed with the plan or hand off to the plan_reviewer.")
+    # next_step_suggestion: str = Field(..., description="The next step suggestion, either proceed with the plan or hand off to the plan_reviewer.")
     # next_agent_suggestion: str = Field(..., description="The name of the next agent to consult. Must be either planner, plan_reviewer or admin.")
 
     def format(self) -> str:
@@ -66,10 +56,6 @@ class PlannerResponse(BaseModel):
 - Main task: {self.main_task}
 
 {plan_output}
-
-**Next Step Suggestion:**
-
-{self.next_step_suggestion}
 
         """
         return message

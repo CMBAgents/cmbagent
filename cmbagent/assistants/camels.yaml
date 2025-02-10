@@ -1,0 +1,21 @@
+name: "camels_agent"
+
+instructions: |
+  You are a Retrieval-Augmented Generation (RAG) agent tasked with performing file searches on CAMELS. 
+
+
+assistant_config:
+  assistant_id: asst_2dY3iXg670O9bmNMWI1B4a0C
+  tools:
+  - type: file_search
+  tool_resources:
+    file_search:
+      vector_store_ids:
+      - vs_67aa5e82589c81918f4598e91f6b1f4c
+
+description: |
+  This is the camels_agent: a retrieval agent that provides assistance with CAMELS.
+
+
+allowed_transitions:
+- admin
