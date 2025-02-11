@@ -11,7 +11,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_67aa5e82589c81918f4598e91f6b1f4c
+      - vs_67aaa3da548c8191bd5584ab14b0d05e
 
 description: |
   This is the camels_agent: a retrieval agent that provides assistance with CAMELS.
