@@ -1,20 +1,23 @@
 ## Installation
 
-To install cmbagent, follow these steps:
 
-Clone and install our package PyPi:
+An old version of `cmbagent` is available on `PyPi`, however we are not maintaining it at this time due to intensive development on the new version.
 
-```bash
-pip install cmbagent
-```
-
-Or clone the repository and install it locally (advised if you want to develop the package, or if you have issues with the installation):
+Thus, we recommend cloning the repository and installing it from source. You need `cmbagent` and our fork of `ag2` to get things working.
 
 ```bash
 git clone https://github.com/CMBAgents/cmbagent.git
+git clone https://github.com/CMBAgents/ag2.git
 cd cmbagent
 pip install -e .
-```
+cd ..
+cd ag2
+pip install -e .
+```   
+
+We apologize for some bugs that you may encounter we hope to release a stable version before the end of 2025.
+
+
 
 Creating a virual environment is envouraged: 
 ```bash

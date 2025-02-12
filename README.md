@@ -32,11 +32,24 @@ Our project is funded by the [Cambridge Centre for Data-Driven Discovery Acceler
 
 If you plan to modify the code, follow these steps:
 
-Clone and install our package from `PyPi`:
+An old version of `cmbagent` is available on `PyPi`, however we are not maintaining it at this time due to intensive development on the new version.
+
+Thus, we recommend cloning the repository and installing it from source. You need `cmbagent` and our fork of `ag2` to get things working.
 
 ```bash
-pip install cmbagent
-```
+git clone https://github.com/CMBAgents/cmbagent.git
+git clone https://github.com/CMBAgents/ag2.git
+cd cmbagent
+pip install -e .
+cd ..
+cd ag2
+pip install -e .
+```   
+
+We apologize for some bugs that you may encounter we hope to release a stable version before the end of 2025.
+
+
+
 
 Before pip installing cmbagent, creating a virual environment is encouraged: 
 ```bash
