@@ -1,7 +1,7 @@
 import os 
 import logging
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
-from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message
+from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message,file_search_max_num_results
 import sys
 from autogen import Agent, SwarmAgent, ConversableAgent
 
@@ -120,6 +120,8 @@ class BaseAgent:
 
             self.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store_ids]
         
+            
+
         if agent_temperature is not None:
 
             self.info['assistant_config']['temperature'] = agent_temperature
@@ -160,7 +162,7 @@ class BaseAgent:
         #     ### TODO: implement this, see below. 
 
         # else:
-
+        self.info['assistant_config']['tools'][0]['file_search'] ={'max_num_results': file_search_max_num_results} 
         self.agent = GPTAssistantAgent(
             name=self.name,
             instructions= self.info["instructions"],
