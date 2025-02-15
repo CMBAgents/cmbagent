@@ -26,7 +26,6 @@ from pydantic import BaseModel
 # import yaml
 from ruamel.yaml import YAML
 from typing import List
-from pprint import pprint
 from autogen import  AfterWorkOption, AFTER_WORK, ON_CONDITION, SwarmResult, initiate_swarm_chat, SwarmAgent
 
 from cmbagent.cmbagent_swarm_agent import initiate_cmbagent_swarm_chat
@@ -1062,6 +1061,7 @@ class CMBAgent:
                         "api_key": self.llm_config['config_list'][0]['api_key'],
                         "api_type": self.llm_config['config_list'][0]['api_type'],
                         "response_format": PlannerResponse,
+                        # "parallel_tool_calls": False
                         }
         ]
 
@@ -1108,6 +1108,11 @@ class CMBAgent:
             if 'engineer' in agent_llm_configs:
                 # Update the existing engineer configuration rather than replacing it entirely.
                 engineer_llm_config['config_list'][0].update(agent_llm_configs['engineer'])
+                # print('in cmbagent.py engineer_llm_config: ', engineer_llm_config)
+                if 'o3-mini-2025-01-31' in engineer_llm_config['config_list'][0]['model']:
+                    # Pop temperature and top_p for o3-mini model since they are not supported
+                    engineer_llm_config.pop('temperature', None)
+                    engineer_llm_config.pop('top_p', None)
             if 'planner' in agent_llm_configs:
                 planner_llm_config['config_list'][0].update(agent_llm_configs['planner'])
             if 'summarizer' in agent_llm_configs:
