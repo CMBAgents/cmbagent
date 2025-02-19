@@ -58,3 +58,5 @@ output/cmb_tt_power_spectrum.png
 docs/notebooks/bbolliet_local
 docs/cmbagent_*_arxiv
 docs/cmbagent_*zip
+
+output_bkp

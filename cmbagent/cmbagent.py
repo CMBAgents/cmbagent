@@ -1060,7 +1060,7 @@ class CMBAgent:
                         "model": self.llm_config['config_list'][0]['model'],
                         "api_key": self.llm_config['config_list'][0]['api_key'],
                         "api_type": self.llm_config['config_list'][0]['api_type'],
-                        "response_format": PlannerResponse,
+                        # "response_format": PlannerResponse,
                         # "parallel_tool_calls": False
                         }
         ]
@@ -1113,15 +1113,17 @@ class CMBAgent:
                     # Pop temperature and top_p for o3-mini model since they are not supported
                     engineer_llm_config.pop('temperature', None)
                     engineer_llm_config.pop('top_p', None)
+                    # engineer_llm_config['config_list'][0]['reasoning_effort'] = "high"
             if 'planner' in agent_llm_configs:
                 planner_llm_config['config_list'][0].update(agent_llm_configs['planner'])
             if 'summarizer' in agent_llm_configs:
                 summarizer_llm_config['config_list'][0].update(agent_llm_configs['summarizer'])
 
 
+        # print('in cmbagent.py engineer_llm_config: ', engineer_llm_config)
         self.engineer = EngineerAgent(llm_config=engineer_llm_config)
         
-        print('in cmbagent.py planner_llm_config: ', planner_llm_config)
+        # print('in cmbagent.py planner_llm_config: ', planner_llm_config)
         self.planner = PlannerAgent(llm_config=planner_llm_config)
         # import sys; sys.exit()
 
