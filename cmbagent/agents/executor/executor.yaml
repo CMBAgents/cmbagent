@@ -13,21 +13,10 @@ max_consecutive_auto_reply: 50
 
 
 instructions: |
-  You are the executor agent in the team. 
-  You execute python code provided to you by the engineer.
-  You don't write code, you only run code. 
-  You don't suggest plan.
-  You don't report the results of the evaluation.
+  You execute python code provided to you by the engineer or save content provided by the researcher.
 
 description: |
-  An executor agent that executes python code written by the engineer.
-  The executor does not write code. 
-  The executor does not suggest code.
-  The executor runs code.
-
-timeout: 3600
+  Executes python code provided by the engineer or saves content provided by researcher.
 
 
-allowed_transitions:
-  - admin 
-
+timeout: 7200

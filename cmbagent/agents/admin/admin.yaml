@@ -9,19 +9,5 @@ instructions: |
 code_execution_config: False
 
 
-allowed_transitions:
-  - planner
-  - engineer
-  - executor
-  - summarizer
-  - act_agent
-  - planck_agent
-  - getdist_agent
-  - cobaya_agent
-  - camb_agent
-  - classy_agent
-  - classy_sz_agent
-  - cosmocnc_agent
-  - memory_agent
 
 

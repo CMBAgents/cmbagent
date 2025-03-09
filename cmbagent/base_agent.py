@@ -3,7 +3,8 @@ import logging
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message,file_search_max_num_results
 import sys
-from autogen import Agent, SwarmAgent, ConversableAgent
+from autogen import Agent, SwarmAgent, ConversableAgent, UpdateSystemMessage
+from autogen.cmbagent_utils import cmbagent_debug
 
 
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
@@ -84,19 +85,30 @@ class BaseAgent:
 
         self.kwargs = kwargs
 
-        self.llm_config = llm_config
+        if cmbagent_debug:
+            print('\n\n in base_agent.py: __init__: llm_config: ', llm_config)
+            print('\n\n')
+
+        self.llm_config = llm_config.copy()
 
         self.info = yaml_load_file(agent_id + ".yaml")
+
 
         self.name = self.info["name"]
 
         self.work_dir = work_dir
 
         self.agent_type = agent_type
+
+        if cmbagent_debug:
+            print('\n---------------------------------- setting name: ', self.info["name"])
+            print('work_dir: ', self.work_dir)
+            print('\n----------------------------------')
+
         
 
 
-
+    ## for oai rag agents
     def set_agent(self,
                   instructions=None, 
                   description=None,
@@ -104,26 +116,35 @@ class BaseAgent:
                   agent_temperature=None, 
                   agent_top_p=None):
 
-    
-        print('setting agent: ',self.name)
+        if cmbagent_debug:
+            print('\n\n\n\nin base_agent.py set_agent')
+            print('name: ',self.name)
+            # import sys; sys.exit()  
+
+            print('setting agent: ',self.name)
+            print('instructions: ',instructions)
+            print('description: ',description)
+            print('vector_store_ids: ',vector_store_ids)
+            print('agent_temperature: ',agent_temperature)
+            print('agent_top_p: ',agent_top_p)
+            print('\n\n')
         # print(self.info['assistant_config']['tool_resources']['file_search'])
         # print()    
         if instructions is not None:
-
             self.info["instructions"] = instructions
 
         if description is not None:
-
             self.info["description"] = description
 
         if vector_store_ids is not None:
-
             self.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store_ids]
         
             
 
         if agent_temperature is not None:
-
+            if cmbagent_debug:
+                print('\n\n\n\nin base_agent.py set_agent')
+                print('setting agent temperature: ', agent_temperature)
             self.info['assistant_config']['temperature'] = agent_temperature
 
         if agent_top_p is not None:
@@ -138,7 +159,12 @@ class BaseAgent:
         files = [f for f in os.listdir(data_path) if not (f.startswith('.') or f.endswith('.ipynb') or f.endswith('.yaml') or f.endswith('.txt') or os.path.isdir(os.path.join(data_path, f)))]
 
         # cmbagent debug
-        print("\n adding files to instructions: ", files)
+        if cmbagent_debug:
+            print('\n\n\n\nin base_agent.py set_agent')
+            print('files: ',files)
+            # import sys; sys.exit()
+            print("\n adding files to instructions: ", files)
+
         self.info["instructions"] += f'\n You have access to the following files: {files}.\n'
 
 
@@ -149,29 +175,27 @@ class BaseAgent:
 
             logger.info(f"{key}: {value}")
 
-        # if self.agent_type == 'swarm':
+        #### case of missing vector store not implemented for swarm...
+        #### TODO: implement this.
 
-        #     self.agent = CmbAgentSwarmAgent(
-        #         name=self.name,
-        #         system_message= self.info["instructions"],
-        #         description=self.info["description"],
-        #         llm_config=self.llm_config,
-        #         )
-
-        #     ### case of missing vector store not implemented for swarm...
-        #     ### TODO: implement this, see below. 
-
-        # else:
         self.info['assistant_config']['tools'][0]['file_search'] ={'max_num_results': file_search_max_num_results} 
+        if cmbagent_debug:
+            print('\n\n\n\nin base_agent.py set_agent')
+            print('working with llm_config: ',self.llm_config)
+            # import sys; sys.exit()
+
         self.agent = GPTAssistantAgent(
             name=self.name,
-            instructions= self.info["instructions"],
-            description=self.info["description"],
+            instructions= self.info["instructions"], # UpdateSystemMessage is in autogen/gpt_assistant_agent.py
+            # description=self.info["description"],
             assistant_config=self.info["assistant_config"],
             llm_config=self.llm_config,
             overwrite_tools=True,
             overwrite_instructions=True
             )
+        
+        if cmbagent_debug:
+            print("GPTAssistant set.... moving on.\n")
 
         # if self.agent._assistant_error is not None:
 
@@ -183,10 +207,15 @@ class BaseAgent:
         #         return 1
 
 
-    ## for engineer agent
+    ## for engineer/.. all non rag agents
     def set_assistant_agent(self,
                             instructions=None, 
                             description=None):
+        
+        if cmbagent_debug:
+            print('\n\n\n\nin base_agent.py set_assistant_agent')
+            print('name: ',self.name)
+            # import sys; sys.exit()  
 
         if instructions is not None:
 
@@ -204,27 +233,18 @@ class BaseAgent:
         # print('setting assistant agent: ',self.name)
         # print('self.agent_type: ',self.agent_type)
 
-        if self.agent_type == 'swarm':
 
-            self.agent = CmbAgentSwarmAgent(
-                name=self.name,
-                system_message=self.info["instructions"],
-                description=self.info["description"],
-                llm_config=self.llm_config,
-                )
 
-        else:
-
-            self.agent = AssistantAgent(
-                name= self.name,
-                system_message= self.info["instructions"],
-                description=self.info["description"],
-                llm_config=self.llm_config,
+        self.agent = CmbAgentSwarmAgent(
+            name=self.name,
+            # system_message=self.info["instructions"],
+            update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
+            # description=self.info["description"],
+            llm_config=self.llm_config,
             )
 
-        ## cmbagent modif print to help debug: 
-        ## print('in cmbagent/base_agent.py self.agent: ',self.agent)
-        ## print('in cmbagent/base_agent.py self.agent.llm_config: ',self.agent.llm_config)
+        if cmbagent_debug:
+            print("AssistantAgent set.... moving on.\n")
 
     def set_code_agent(self,instructions=None):
 
@@ -236,64 +256,39 @@ class BaseAgent:
         for key, value in self.info.items():
             logger.info(f"{key}: {value}")
 
-        if self.agent_type == 'swarm':
-            self.agent = CmbAgentSwarmAgent(
-                name= self.name,
-                system_message= self.info["instructions"],
-                description=self.info["description"],
-                llm_config=self.llm_config,
-                human_input_mode=self.info["human_input_mode"],
-            max_consecutive_auto_reply=self.info["max_consecutive_auto_reply"],
-            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
-            code_execution_config={
-                "executor": LocalCommandLineCodeExecutor(work_dir=self.work_dir,
-                                                         timeout=self.info["timeout"],
-                                                         execution_policies = {
-                                                            "python": True,
-                                                            "bash": False,
-                                                            "shell": False,
-                                                            "sh": False,
-                                                            "pwsh": False,
-                                                            "powershell": False,
-                                                            "ps1": False,
-                                                            "javascript": False,
-                                                            "html": False,
-                                                            "css": False,
-                                                         }
-                                                         ),
-                "last_n_messages": 3,
-            },
+        self.agent = CmbAgentSwarmAgent(
+            name= self.name,
+            system_message= self.info["instructions"],
+            description=self.info["description"],
+            llm_config=self.llm_config,
+            human_input_mode=self.info["human_input_mode"],
+        max_consecutive_auto_reply=self.info["max_consecutive_auto_reply"],
+        is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+        code_execution_config={
+            "executor": LocalCommandLineCodeExecutor(work_dir=self.work_dir,
+                                                        timeout=self.info["timeout"],
+                                                        execution_policies = {
+                                                        "python": True,
+                                                        "bash": False,
+                                                        "shell": False,
+                                                        "sh": False,
+                                                        "pwsh": False,
+                                                        "powershell": False,
+                                                        "ps1": False,
+                                                        "javascript": False,
+                                                        "html": False,
+                                                        "css": False,
+                                                        }
+                                                        ),
+            "last_n_messages": 3,
+        },
         )
 
-        else:
+        if cmbagent_debug:
+            print('code_agent set with work_dir: ', self.work_dir, '.... moving on.\n')
 
-            self.agent = CmbAgentUserProxyAgent(
-                name= self.name,
-                system_message= self.info["instructions"],
-                description=self.info["description"],
-                llm_config=self.llm_config,
-                human_input_mode=self.info["human_input_mode"],
-            max_consecutive_auto_reply=self.info["max_consecutive_auto_reply"],
-            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
-            code_execution_config={
-                "executor": LocalCommandLineCodeExecutor(work_dir=self.work_dir,
-                                                         timeout=self.info["timeout"],
-                                                         execution_policies = {
-                                                            "python": True,
-                                                            "bash": True,
-                                                            "shell": False,
-                                                            "sh": False,
-                                                            "pwsh": False,
-                                                            "powershell": False,
-                                                            "ps1": False,
-                                                            "javascript": False,
-                                                            "html": False,
-                                                            "css": False,
-                                                         }
-                                                         ),
-                "last_n_messages": 2,
-            },
-        )
+
+
 
     def set_admin_agent(self,instructions=None):
 

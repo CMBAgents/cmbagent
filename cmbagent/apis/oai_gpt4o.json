@@ -1,6 +1,6 @@
 [
   {
-    "model": "gpt-4o-2024-08-06",
+    "model": "gpt-4o-mini",
     "api_key": "sk-proj-...<your_api_key>..."
   }
 ]
