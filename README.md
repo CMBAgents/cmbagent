@@ -60,7 +60,7 @@ If you are a cosmologist, you need the RAG data to use `cmbagent` in your cosmol
 
 Before installation, make sure you do not have any other autogen/pyautogen/ag2 versions installed. You may need to uninstall these packages before installing `cmbagent`.  
 
-## Getting the RAG data (cosmologist only)
+## Getting the RAG data
 
 Do this:
 
