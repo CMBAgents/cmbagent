@@ -7,7 +7,7 @@
 
 Multi-agent system for data analysis, made by cosmologists, powered by [ag2](https://github.com/ag2ai/ag2).
 
-Cmbagent acts according to a planning and control strategy. 
+**Cmbagent** acts according to a *Planning and Control* strategy. 
 
 > **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
