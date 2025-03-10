@@ -104,27 +104,19 @@ For Windows:
 setx OPENAI_API_KEY "sk-..."
 ```
 
-You can also pass your API key to cmbagent as an argument when you instantiate it:
-
-```python
-cmbagent = CMBAgent(llm_api_key="sk-...")
-```
-
 Instantiate the CMBAgent with:
 
 ```python
 from cmbagent import CMBAgent
-cmbagent = CMBAgent(verbose=True)
+cmbagent = CMBAgent()
 ```
 
 Define a task as:
 
 ```python
 task = """
-       Get cosmological parameter values from Planck 2018 analysis of TT,TE,EE+lowE+lensing with the Plik likelihood in LCDM. 
-       Use Cobaya with Classy_SZ to evaluate the ACT DR6 lensing likelihood for sigma8=0.8 and Omega_m=0.31. Other parameters set to Planck 2018.  
-       To set Omega_m, adjust the value of omch2. 
-       Give me the value of log-likelihood.
+Assume Planck values for cosmological parameters, find the k at which the linear matter power spectrum peaks,
+as well as the k at which non-linear perturbations become important.
        """
 ```
 
