@@ -7,6 +7,8 @@
 
 Multi-agent system for data analysis, made by cosmologists, powered by [ag2](https://github.com/ag2ai/ag2).
 
+Cmbagent acts according to a planning and control strategy. 
+
 > **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
 > **Note:** Check the [demo notebook](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_beta2_demo.ipynb). 
