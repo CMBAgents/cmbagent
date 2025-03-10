@@ -11,10 +11,9 @@ Multi-agent system for data analysis, made by cosmologists, powered by [ag2](htt
 
 > **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
+> **Note:** Check the [demo notebook](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_beta2_demo.ipynb). 
 
-Our preliminary documentation and set of working examples can be consulted [here](https://cmbagent.readthedocs.io/en/latest/index.html). 
-
-We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). If you would like to cite us, please use:
+We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). If you would like to cite us, please use:
 
 ```bash
    @misc{Laverick:2024fyh,
