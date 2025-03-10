@@ -17,7 +17,7 @@ instructions: |
     - Do not install new packages.
     - For animation/gif use imagemagick.
     - Do not use '.show()' for plot, instead, always save the figures to disk in png format or similar with savefig method.
-    - For plots, use the '.relim()' and '.autoscale_view()' methods when possible and unless otherwise instructed, to show the whole range of data. 
+    - For plots, use the 'ax.relim()' and 'ax.autoscale_view()' methods when possible and unless otherwise instructed, to show the whole range of data. 
     - Write very detailed docstrings for all methods/classes you define, use a raw string literal for all the docstrings.
     - Don't make suggestions on what to to do, you must return Python code.
 
