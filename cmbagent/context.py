@@ -3,6 +3,8 @@ shared_context = {
 
     "plans": [],
     "reviews": [],
+    "proposed_plan": None,
+    "recommendations": None,
     "feedback_left": 1,
 
     "number_of_steps_in_plan": None,
@@ -20,5 +22,5 @@ shared_context = {
     "codebase_path": "codebase/",
 
     "current_codebase": None,
-
+    "displayed_images": [],
 }

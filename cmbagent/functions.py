@@ -4,6 +4,9 @@ import os
 import re
 import ast
 from autogen.cmbagent_utils import cmbagent_debug
+from IPython.display import Image as IPImage, display as ip_display
+from autogen.cmbagent_utils import IMG_WIDTH
+
 
 def register_functions_to_agents(cmbagent_instance):
     '''
@@ -48,6 +51,8 @@ def register_functions_to_agents(cmbagent_instance):
         """
         context_variables["plans"].append(plan_suggestion)
 
+        context_variables["proposed_plan"] = plan_suggestion
+
         context_variables["number_of_steps_in_plan"] = number_of_steps_in_plan
 
         if context_variables["feedback_left"]==0:
@@ -69,6 +74,8 @@ def register_functions_to_agents(cmbagent_instance):
         """ Record reviews of the plan."""
         context_variables["reviews"].append(plan_review)
         context_variables["feedback_left"] -= 1
+
+        context_variables["recommendations"] = plan_review
 
         # if context_variables["feedback_left"]
 
@@ -164,6 +171,24 @@ Now, update the plan accordingly, planner!""",
 
         # Store the full output string in your context variable.
         context_variables["current_codebase"] = output_str
+
+        # Load image plots from the "data" directory.
+        data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
+        image_files = load_plots(data_directory)
+ 
+        # Retrieve the list of images that have been displayed so far.
+        displayed_images = context_variables.get("displayed_images", [])
+
+        # Identify new images that haven't been displayed before.
+        new_images = [img for img in image_files if img not in displayed_images]
+
+        # Display only the new images.
+        for img_file in new_images:
+            ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
+
+        # Update the context to include the newly displayed images.
+        context_variables["displayed_images"] = displayed_images + new_images
+
         
         if cmbagent_debug:
             print("\n\n in functions.py record_status: context_variables: ", context_variables)
@@ -262,3 +287,21 @@ def load_docstrings(directory="codebase"):
 
 
 
+def load_plots(directory: str) -> list:
+    """
+    Searches the given directory for image files with extensions
+    png, jpg, jpeg, or gif and returns a list of their file paths.
+    
+    Args:
+        directory (str): The directory to search.
+        
+    Returns:
+        list: List of image file paths.
+    """
+    image_extensions = ('.png', '.jpg', '.jpeg', '.gif')
+    image_files = []
+    if os.path.exists(directory):
+        for file in os.listdir(directory):
+            if file.lower().endswith(image_extensions):
+                image_files.append(os.path.join(directory, file))
+    return image_files

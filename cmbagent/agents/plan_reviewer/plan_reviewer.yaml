@@ -34,7 +34,12 @@ instructions: |
 
     The recommendations you make must involve modifications to the up-to-date plan, to make it better.
      
-    Make sure the plan has {maximum_number_of_steps_in_plan} steps or less.
+    The Plan must have at most {maximum_number_of_steps_in_plan} Steps.
+
+    Here is the current plan:
+    ------CURRENT PLAN-----
+    {proposed_plan}
+    --------------------
 
     Your response is structured as follows:
 
@@ -45,6 +50,8 @@ instructions: |
         ... and so on
 
     where each recommendation must amount to a modification of one part of the plan.
+
+    If the number of steps in the plan is alrady at the maximum allowed ({maximum_number_of_steps_in_plan}), you should not suggest to split the plan into more steps.
 
 
 description: |
