@@ -255,6 +255,8 @@ class CMBAgent:
         self.verbose = verbose
 
         self.work_dir = work_dir if work_dir else work_dir_default
+        # add the work_dir to the python path so we can import modules from it
+        sys.path.append(self.work_dir)
 
         self.path_to_assistants = path_to_assistants
 
@@ -564,7 +566,7 @@ class CMBAgent:
             user_agent=self.get_agent_from_name("admin"),
             context_variables=this_shared_context,
             max_rounds = max_rounds,
-            after_work=AfterWorkOption.STAY,
+            after_work=AfterWorkOption.REVERT_TO_USER,
         )
 
 

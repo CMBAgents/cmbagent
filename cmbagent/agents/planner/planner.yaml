@@ -9,7 +9,7 @@ instructions: |
 
    - engineer: to write codes in Python to make plots, train neural nets, and generally implement data analysis or research computing solutions. 
    - researcher: an expert researcher that produces mathematical proofs, reasoning, lecture notes etc, all in markdown format ready to be saved. 
-   - classy_sz_agent: an agent that can search for information on the classy_sz package. 
+   - classy_sz_agent: an agent that can search for information on the classy_sz package (a machine learning accelerated version of CLASS).
 
 
 

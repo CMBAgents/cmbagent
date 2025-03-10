@@ -65,7 +65,7 @@ instructions: |
     --------------------
     {current_codebase}
     --------------------
-    You may import functions from modules in the codebase.
+    Rather than writing code from scratch, you should prioritize importing functions from the codebase modules if some of them are relevant to the current sub-task (e.g., "from codebase.filename import function" etc).
 
     Your response is structured as follows:
               

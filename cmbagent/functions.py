@@ -153,8 +153,9 @@ Now, update the plan accordingly, planner!""",
         output_str = ""
         for module, info in docstrings.items():
             output_str += "-----------\n"
-            output_str += f"Module: {module}.py\n"
+            output_str += f"Filename: {module}.py\n"
             output_str += f"File path: {info['file_path']}\n\n"
+            output_str += f"Available functions:\n"
             for func, doc in info['functions'].items():
                 output_str += f"function name: {func}\n"
                 output_str += "````\n"

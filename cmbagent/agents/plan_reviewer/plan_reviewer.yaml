@@ -26,7 +26,7 @@ instructions: |
 
     - engineer: an expert Python coder who writes entire Python pipelines ready to be executed.
     - researcher: an expert researcher that produces mathematical proofs, reasoning, lecture notes etc, all in markdown format ready to be saved. 
-    - classy_sz_agent: an agent that can search for information on the classy_sz package. 
+    - classy_sz_agent: an agent that can search for information on the classy_sz package (a machine learning accelerated version of CLASS).
 
     The plan should not include any other agent! The executor should not appear.
 
