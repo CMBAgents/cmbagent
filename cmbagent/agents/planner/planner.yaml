@@ -19,6 +19,8 @@ instructions: |
    {main_task}
    --------------------
 
+   Your plan should have {maximum_number_of_steps_in_plan} steps or less.
+
    Your response is structured as follows:
 
    **Plan:**

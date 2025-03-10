@@ -118,11 +118,11 @@ class CMBAgent:
                  skip_executor = False,
                  skip_memory = True,
                  skip_rag_software_formatter = True,
-                 work_dir = None,
                  default_llm_config_list = default_llm_config_list,
                  agent_llm_configs = {
                     'engineer': {
-                        "model": "gpt-4o-2024-11-20",
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "high",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
@@ -136,17 +136,16 @@ class CMBAgent:
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
-                    'plan_implementer': {
+                    'control': {
                         "model": "gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
 
                     'researcher': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "high",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
+                        "model": "gemini-2.0-pro-exp-02-05",
+                        "api_key": os.getenv("GEMINI_API_KEY"),
+                        "api_type": "google",
                         },
                     'plan_reviewer': {
                         "model": "claude-3-7-sonnet-20250219",
@@ -254,7 +253,7 @@ class CMBAgent:
 
         self.verbose = verbose
 
-        self.work_dir = work_dir if work_dir else work_dir_default
+        self.work_dir = work_dir_default
         # add the work_dir to the python path so we can import modules from it
         sys.path.append(self.work_dir)
 

@@ -19,7 +19,7 @@ def register_all_hand_offs(cmbagent_instance):
     classy_sz = cmbagent_instance.get_agent_object_from_name('classy_sz_agent')
     classy_sz_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_sz_response_formatter')
     executor = cmbagent_instance.get_agent_object_from_name('executor')
-    plan_implementer = cmbagent_instance.get_agent_object_from_name('plan_implementer')
+    control = cmbagent_instance.get_agent_object_from_name('control')
     admin = cmbagent_instance.get_agent_object_from_name('admin')
 
     if cmbagent_debug:
@@ -36,7 +36,7 @@ def register_all_hand_offs(cmbagent_instance):
         print('\nclassy_sz: ', classy_sz)
         print('\nclassy_sz_response_formatter: ', classy_sz_response_formatter)
         print('\nexecutor: ', executor)
-        print('\nplan_implementer: ', plan_implementer)
+        print('\ncontrol: ', control)
         print('\nadmin: ', admin)
 
     #planner agent
@@ -73,7 +73,7 @@ def register_all_hand_offs(cmbagent_instance):
         agent = plan_reviewer.agent,
         hand_to = [
             OnCondition(
-                target=plan_implementer.agent,
+                target=control.agent,
                 condition="TRUE", ### keep this here as an example, will not actially be used because we bypass this now. 
                 available=no_feedback_left,
             ),
@@ -98,9 +98,9 @@ def register_all_hand_offs(cmbagent_instance):
     )
 
 
-    #plan_implementer agent
+    # control agent
     register_hand_off(
-        agent = plan_implementer.agent,
+        agent = control.agent,
         hand_to = [
     
             OnCondition( 
@@ -201,7 +201,7 @@ def register_all_hand_offs(cmbagent_instance):
     register_hand_off(
         agent = classy_sz_response_formatter.agent,
         hand_to = 
-        [AfterWork(plan_implementer.agent)])
+        [AfterWork(control.agent)])
 
     #researcher 
     register_hand_off(
@@ -221,6 +221,6 @@ def register_all_hand_offs(cmbagent_instance):
     register_hand_off(
         agent = executor.agent,
         hand_to = [
-            AfterWork(plan_implementer.agent),
+            AfterWork(control.agent),
         ]
     )

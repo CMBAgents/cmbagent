@@ -22,7 +22,7 @@ def register_functions_to_agents(cmbagent_instance):
     classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')
     classy_sz_response_formatter = cmbagent_instance.get_agent_from_name('classy_sz_response_formatter')
     executor = cmbagent_instance.get_agent_from_name('executor')
-    plan_implementer = cmbagent_instance.get_agent_from_name('plan_implementer')
+    control = cmbagent_instance.get_agent_from_name('control')
     admin = cmbagent_instance.get_agent_from_name('admin')
 
 
@@ -52,8 +52,8 @@ def register_functions_to_agents(cmbagent_instance):
 
         if context_variables["feedback_left"]==0:
             context_variables["final_plan"] = context_variables["plans"][-1]
-            return SwarmResult(agent=plan_implementer, ## transfer to plan implementer
-                            values="Final plan has been logged. Starting implementation.",
+            return SwarmResult(agent=control, ## transfer to control
+                            values="Planning stage complete. Switching to control.",
                             context_variables=context_variables)
         else:
             return SwarmResult(agent=plan_reviewer, ## transfer to plan reviewer
@@ -180,7 +180,7 @@ Now, update the plan accordingly, planner!""",
     """,
             context_variables=context_variables)
     
-    plan_implementer._add_single_function(record_status)
+    control._add_single_function(record_status)
 
 
 

@@ -33,6 +33,8 @@ instructions: |
     Each new review you provide must differ from the previous ones, providing increasing level of details as the reviewing process progresses.
 
     The recommendations you make must involve modifications to the up-to-date plan, to make it better.
+     
+    Make sure the plan has {maximum_number_of_steps_in_plan} steps or less.
 
     Your response is structured as follows:
 

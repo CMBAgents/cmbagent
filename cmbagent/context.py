@@ -6,6 +6,7 @@ shared_context = {
     "feedback_left": 1,
 
     "number_of_steps_in_plan": None,
+    "maximum_number_of_steps_in_plan": 5,
     "final_plan": None,
     "current_plan_step_number": None,
     "current_sub_task": None,
