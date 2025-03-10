@@ -23,11 +23,9 @@ def print_cmbagent_logo():
 
 Version: beta.2
 Last updated: 09/03/2025
-Author: B. Bolliet
-Contributors: 
-M. Cranmer, S. Krippendorf, A. Laverick, 
-J. Lesgourgues, A. Lewis, K. M. Surrao, 
-F. Villaescusa-Navarro, L. Xu, I. Zubeldia
+Contributors: B. Bolliet, M. Cranmer, S. Krippendorf, 
+A. Laverick, J. Lesgourgues, A. Lewis, B. D. Sherwin, 
+K. M. Surrao, F. Villaescusa-Navarro, L. Xu, I. Zubeldia
 
     """
     # Build the path to logo.png

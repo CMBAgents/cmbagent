@@ -545,31 +545,35 @@ class CMBAgent:
               shared_context=None,
               max_rounds=10):
         
-        shared_context = self.shared_context.copy()
+        this_shared_context = copy.deepcopy(self.shared_context)
         if shared_context is not None:
-            shared_context.update(shared_context)
+            this_shared_context.update(shared_context)
+        
 
         self.clear_cache()
 
         for agent in self.agents:
             agent.agent.reset()
 
-        shared_context['main_task'] = task
+        this_shared_context['main_task'] = task
 
         chat_result, context_variables, last_agent = initiate_swarm_chat(
             initial_agent=self.get_agent_from_name(initial_agent),
             agents=[agent.agent for agent in self.agents],
-            messages=shared_context['main_task'],
+            messages=this_shared_context['main_task'],
             user_agent=self.get_agent_from_name("admin"),
-            context_variables=shared_context,
+            context_variables=this_shared_context,
             max_rounds = max_rounds,
             after_work=AfterWorkOption.STAY,
         )
 
-        # self.display_cost()
-        self.context_variables = context_variables
+
+        self.final_context = copy.deepcopy(context_variables)
+
         self.last_agent = last_agent
         self.chat_result = chat_result
+
+
 
             
 

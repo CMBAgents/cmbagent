@@ -1,5 +1,9 @@
 from autogen import SwarmResult
 from typing import Literal
+import os
+import re
+import ast
+from autogen.cmbagent_utils import cmbagent_debug
 
 def register_functions_to_agents(cmbagent_instance):
     '''
@@ -144,6 +148,26 @@ Now, update the plan accordingly, planner!""",
         context_variables["current_instructions"] = current_instructions
         context_variables["current_status"] = current_status
 
+        codes = os.path.join(cmbagent_instance.work_dir, context_variables['codebase_path'])
+        docstrings = load_docstrings(codes)
+        output_str = ""
+        for module, info in docstrings.items():
+            output_str += "-----------\n"
+            output_str += f"Module: {module}.py\n"
+            output_str += f"File path: {info['file_path']}\n\n"
+            for func, doc in info['functions'].items():
+                output_str += f"function name: {func}\n"
+                output_str += "````\n"
+                output_str += f"{doc}\n"
+                output_str += "````\n\n"
+
+        # Store the full output string in your context variable.
+        context_variables["current_codebase"] = output_str
+        
+        if cmbagent_debug:
+            print("\n\n in functions.py record_status: context_variables: ", context_variables)
+
+
         return SwarmResult(
             values=f"""
 **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
@@ -156,3 +180,84 @@ Now, update the plan accordingly, planner!""",
             context_variables=context_variables)
     
     plan_implementer._add_single_function(record_status)
+
+
+
+def extract_file_path_from_source(source):
+    """
+    Extracts the file path from the top comment in the source code.
+    Expects a line like: "# filename: codebase/module.py"
+    
+    Parameters:
+        source (str): The source code of the file.
+        
+    Returns:
+        str or None: The file path if found, else None.
+    """
+    match = re.search(r'^#\s*filename:\s*(.+)$', source, re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+def extract_functions_docstrings_from_file(file_path):
+    """
+    Parses the given Python file and extracts docstrings from all top-level function
+    definitions (including methods in classes) without capturing nested (internal) functions.
+    Also extracts the file path from the file's top comment.
+    
+    Parameters:
+        file_path (str): Path to the Python file.
+    
+    Returns:
+        dict: A dictionary with two keys:
+              - "file_path": the file path extracted from the comment.
+              - "functions": a dictionary mapping function names to their docstrings.
+    """
+    with open(file_path, 'r', encoding='utf-8') as f:
+        source = f.read()
+        
+    # Extract the file path from the comment at the top of the file
+    file_path_from_comment = extract_file_path_from_source(source)
+    
+    # Parse the AST
+    tree = ast.parse(source, filename=file_path)
+    functions = {}
+    
+    # Process only top-level statements
+    for node in tree.body:
+        # Capture top-level function definitions.
+        if isinstance(node, ast.FunctionDef):
+            functions[node.name] = ast.get_docstring(node)
+        # Optionally, capture methods inside classes.
+        elif isinstance(node, ast.ClassDef):
+            for subnode in node.body:
+                if isinstance(subnode, ast.FunctionDef):
+                    qualified_name = f"{node.name}.{subnode.name}"
+                    functions[qualified_name] = ast.get_docstring(subnode)
+                    
+    return {"file_path": file_path_from_comment, "functions": functions}
+
+def load_docstrings(directory="codebase"):
+    """
+    Loads all top-level function docstrings from Python files in the specified directory
+    without executing any code, and extracts the file path from the top comment of each file.
+    
+    Parameters:
+        directory (str): Path to the directory containing Python files.
+    
+    Returns:
+        dict: A dictionary where each key is a module name and each value is a dictionary
+              containing the file path and another dictionary mapping function names to their docstrings.
+    """
+    all_docstrings = {}
+    
+    for file in os.listdir(directory):
+        if file.endswith(".py") and not file.startswith("__"):
+            module_name = file[:-3]  # Remove the .py extension
+            file_path = os.path.join(directory, file)
+            doc_info = extract_functions_docstrings_from_file(file_path)
+            all_docstrings[module_name] = doc_info
+    return all_docstrings
+
+
+

@@ -16,6 +16,8 @@ shared_context = {
 
     "main_task": None,
     "database_path": "data/",
-    "codebase_path": "codebase/"
+    "codebase_path": "codebase/",
+
+    "current_codebase": None,
 
 }
