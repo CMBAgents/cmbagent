@@ -4,7 +4,7 @@
 
 # cmbagent
 
-[![PyPI version](https://badge.fury.io/py/cmbagent.svg)](https://pypi.org/project/cmbagent/)[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagent/badge/?version=latest)](https://cmbagent.readthedocs.io/en/latest/?badge=latest) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
+[![PyPI version](https://badge.fury.io/py/cmbagent.svg)](https://pypi.org/project/cmbagent/)[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
 
 
 Multi-agent system for data analysis, made by cosmologists, powered by [ag2](https://github.com/ag2ai/ag2).
@@ -35,13 +35,21 @@ Our project is funded by the [Cambridge Centre for Data-Driven Discovery Acceler
 
 If you plan to modify the code, follow these steps:
 
-Clone and install our package from `PyPi`:
+Clone and install our package from GitHub.
 
 ```bash
-pip install cmbagent
+git clone https://github.com/CMBAgents/ag2
+cd ag2
+pip install -e .
+
+cd ..
+
+git clone https://github.com/CMBAgents/cmbagent.git
+cd cmbagent
+pip install -e .
 ```
 
-Before pip installing cmbagent, creating a virual environment is encouraged: 
+Before installing cmbagent, creating a virual environment is encouraged: 
 ```bash
 python -m venv /path/to/your/envs/cmbagent_env
 source /path/to/your/envs/cmbagent_env/bin/activate
@@ -81,6 +89,7 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 
 ## Usage
 
+Check the [demo notebook](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_beta2_demo.ipynb). 
 
 Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
 
@@ -127,45 +136,5 @@ cmbagent.solve(task)
 
 If you request any output, it will be saved in the [output directory](https://github.com/CMBAgents/cmbagent/tree/main/output).
 
-Show the plot with:
 
-```python
-cmbagent.show_plot("cmb_tt_power_spectrum.png")
-```
-
-Restore session with:
-
-```python
-cmbagent.restore()
-```
-
-Push vector stores of RAG agents into the OpenAI platform:
-
-```python
-cmbagent = CMBAgent(make_vector_stores=True)
-```
-
-Push selected vector stores of RAG agents into the OpenAI platform:
-
-```python
-cmbagent = CMBAgent(make_vector_stores=['act', 'camb'])
-```
-
-Start session with only a subset of RAG agents:
-
-```python
-cmbagent = CMBAgent(agent_list=['classy', 'planck'])
-```
-
-Show allowed transitions:
-
-```python
-cmbagent.show_allowed_transitions()
-```
-
-cmbagent uses cache to speed up the process and reduce costs when asking the same questions. When developing, it can be useful to clear the cache. Do this with:
-
-```python
-cmbagent.clear_cache()
-```
 
