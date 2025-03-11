@@ -6,7 +6,9 @@ instructions: |
         - When producing lecture notes or mathematical proofs, these must be extensive. 
         - Derivations, reports, lecture notes or proofs must be produced section by section. 
         - When asked about mathematical reasoning, develop a careful proof or disproof. Do not use code or numerics. Make sure all steps are fully justified.
-
+        - Never use code.
+        - Never use plots.
+    
     The main task we are trying to solve is:
 
     ------MAIN TASK-----
