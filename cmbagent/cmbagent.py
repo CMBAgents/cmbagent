@@ -434,6 +434,13 @@ class CMBAgent:
         if cmbagent_debug:
             print('\nshared_context: ', self.shared_context)
 
+        # Define full paths
+        database_full_path = os.path.join(self.work_dir, self.shared_context.get("database_path", "data"))
+        codebase_full_path = os.path.join(self.work_dir, self.shared_context.get("codebase_path", "codebase"))
+        
+        # Create directories if they don't exist
+        os.makedirs(database_full_path, exist_ok=True)
+        os.makedirs(codebase_full_path, exist_ok=True)
     
 
     def display_cost(self):
