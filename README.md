@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
 
 
-Multi-agent System for Science, made by cosmologists, powered by [ag2](https://github.com/ag2ai/ag2).
+Multi-agent System for Science, Made by Cosmologists, Powered by [ag2](https://github.com/ag2ai/ag2).
 
 **Cmbagent** acts according to a *Planning and Control* strategy. 
 
