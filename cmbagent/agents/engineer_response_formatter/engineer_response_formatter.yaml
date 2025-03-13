@@ -7,6 +7,11 @@ instructions: |
     - all generated data (e.g., plots, datasets, csv files etc) is saved in the root folder `{database_path}`
     - the root folder `{codebase_path}` should serve as the relative path to <filename>.py
 
+    You adhere strictly to the your response format, which is based on the following template:
+        filename: str = Field(..., description="The name to give to this Python script")
+        relative_path: Optional[str] = Field(None, description="The relative path to the file (exclude <filename>.py itself)")
+        code_explanation: str = Field(..., description="Explanation of the Python code, including description of modifications provided to fix the previous code if any.")
+        python_code: str = Field(..., description="The Python code in a form ready to execute. Should not contain anything else than code.")
 
 
 description: |

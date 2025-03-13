@@ -1,9 +1,9 @@
 import os
 import importlib
-from ruamel.yaml import YAML
-from .utils import path_to_assistants,OpenAI,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
+from .utils import path_to_assistants,OpenAI,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template, YAML
 from autogen.cmbagent_utils import cmbagent_debug
 from .utils import update_yaml_preserving_format
+import requests, pprint
 
 def import_rag_agents():        
     imported_rag_agents = {}
@@ -125,7 +125,7 @@ def push_vector_stores(cmbagent_instance, make_vector_stores, chunking_strategy,
         chunking_strategy = chunking_strategy[rag_agent.name] if chunking_strategy and rag_agent.name in chunking_strategy else default_chunking_strategy
         if verbose or cmbagent_debug:
             print(f"{rag_agent.name}: chunking strategy: ")
-            pprint(chunking_strategy)
+            pprint.pprint(chunking_strategy)
         # print()
 
         # print('calling client.beta.vector_stores.create')

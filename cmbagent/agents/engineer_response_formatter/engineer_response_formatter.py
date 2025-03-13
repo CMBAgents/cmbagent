@@ -26,10 +26,10 @@ class EngineerResponseFormatterAgent(BaseAgent):
     class EngineerResponse(BaseModel):
         # steps: list[Step]
         # step: Step
-        code_explanation: str = Field(..., description="Explanation of the Python code")
-        python_code: str = Field(..., description="The Python code in a form ready to execute")
         filename: str = Field(..., description="The name to give to this Python script")
         relative_path: Optional[str] = Field(None, description="The relative path to the file (exclude <filename>.py itself)")
+        code_explanation: str = Field(..., description="Explanation of the Python code, including description of modifications provided to fix the previous code if any.")
+        python_code: str = Field(..., description="The Python code in a form ready to execute. Should not contain anything else than code.")
 
         def format(self) -> str:
             final_filename = self.filename if self.filename.endswith(".py") else self.filename + ".py"
