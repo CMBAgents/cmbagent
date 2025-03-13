@@ -45,8 +45,8 @@ instructions: |
 
     **Recommendations:**
 
-        1. <recommendation>
-        2. <recommendation>
+        - <recommendation 1>
+        - <recommendation 2>
         ... and so on
 
     where each recommendation must amount to a modification of one part of the plan.

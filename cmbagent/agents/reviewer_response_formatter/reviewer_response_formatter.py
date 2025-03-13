@@ -20,13 +20,14 @@ class ReviewerResponseFormatterAgent(BaseAgent):
         super().set_assistant_agent(**kwargs)
 
 
-
     class PlanReviewerResponse(BaseModel):
         recommendations: List[str] = Field(..., description="recommendation.")
-        def format(self) -> str:
-            recommendations_output = "\n".join(f"- {recommendation}\n" for i, recommendation in enumerate(self.recommendations))
-            return f"""
-**Recommendations:**
 
-{recommendations_output}
+        def format(self) -> str:
+            # Start building the final string
+            output = "**Recommendations:**\n\n"
+            for recommendation in self.recommendations:
+                output += f"{recommendation}\n\n"
+            return f"""
+{output}
             """
