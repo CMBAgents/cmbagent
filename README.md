@@ -36,9 +36,33 @@ If you would like to cite us, please use:
    }
 ```
 
-Our project is funded by the [Cambridge Centre for Data-Driven Discovery Accelerate Programme](https://science.ai.cam.ac.uk).
+Our project is funded by the [Cambridge Centre for Data-Driven Discovery Accelerate Programme](https://science.ai.cam.ac.uk). We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](https://github.com/ag2ai/ag2).
 
-We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](https://github.com/ag2ai/ag2).
+## Run
+
+```python
+from cmbagent import CMBAgent
+cmbagent = CMBAgent()
+
+task = """
+Generate simulated stock market data that mimics behavior during a financial crisis (for example, the 2008 global financial crisis). Your simulation should:
+- Include sudden volatility spikes, market jumps, and heavy-tailed returns.
+- Reflect periods of extreme uncertainty and rapid price changes.
+
+After generating the data, apply the Black-Scholes Merton model to price options based on this simulated data. In your analysis, clearly:
+- Describe the model’s assumptions (e.g., constant volatility and log-normal returns).
+- Identify and discuss specific points where these assumptions break down in the context of the crisis.
+- Provide graphical plots comparing the simulated data with the model’s predictions, highlighting areas where the model fails to capture the market dynamics.
+
+Include both the code used for simulation and analysis, along with a written commentary on the limitations of the Black-Scholes Merton model under crisis conditions.
+"""
+
+cmbagent.solve(task)
+```
+
+Your outputs will be stored in the output directory. 
+
+In principle, you should clear it before each session.
 
 
 ## Installation
@@ -113,22 +137,7 @@ export GEMINI_API_KEY="AI...."
 
 For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and the same command.
 
-## Run
 
-```python
-from cmbagent import CMBAgent
-cmbagent = CMBAgent()
-
-task = """
-Generate simulated stock market data during a financial crisis.
-       """
-
-cmbagent.solve(task)
-```
-
-Your outputs will be in the output directory. 
-
-In principle, you should clear it before each session.
 
 
 
