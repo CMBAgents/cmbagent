@@ -16,7 +16,7 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 
 - Currently, RAG agents use `file_search` on OpenAI vector stores.
 
-> Note: Please contribute to the repo. We give access to our top-tier OpenaAI, Anthropic and Cloud organizations to our top contributors.
+> Note: Please fork and contribute to the repo. We give access to our top-tier OpenaAI, Anthropic and Cloud organizations to our top contributors.
 
 Get started with cmbagent and your favorite llms by adapting the [agent_llm_configs](https://github.com/CMBAgents/cmbagent/blob/c451ae76361a382ad0d399a4413966ce9159b5d1/cmbagent/cmbagent.py#L122). 
 
