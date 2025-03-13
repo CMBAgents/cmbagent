@@ -4,7 +4,6 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
 
-
 Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://github.com/ag2ai/ag2).
 
 **Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
@@ -12,6 +11,8 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 > **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
 > **Note:** Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
+
+> Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard).
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). 
 
@@ -96,12 +97,15 @@ Check the [demos](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks
 Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
 
 For Unix-based systems (Linux, macOS):
+
 ```bash
 export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-..."
+export GEMINI_API_KEY="AI...."
 ```
 (paste in your bashrc or zshrc file, if possible.)
 
-For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) 
+For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and the same command.
 
 ## Run
 
