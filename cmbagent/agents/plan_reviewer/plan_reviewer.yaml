@@ -22,11 +22,13 @@ instructions: |
     - there should not be repetitions 
 
 
-    Check that the agents called in each sub-task only include: 
+    Check that the agents called in each sub-task only include, if needed: 
 
     - engineer: an expert Python coder who writes entire Python pipelines ready to be executed.
     - researcher: an expert researcher that produces mathematical proofs, reasoning, lecture notes etc, all in markdown format ready to be saved. 
     - classy_sz_agent: an agent that can search for information on the classy_sz package (a machine learning accelerated Boltzmann solver for cosmology).
+
+    Don't include agents that are not needed.
 
     The plan should not include any other agent! The executor should not appear.
 
