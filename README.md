@@ -58,7 +58,7 @@ cmbagent = CMBAgent(agent_llm_configs = {
                         }})
 
 task = """
-Generate simulated stock market data that mimics behavior of 500 stock (e.g., SP500) during a financial crisis (for example, the 2008 global financial crisis). Your simulation should:
+Generate simulated stock market data that mimics behavior of 500 stocks (e.g., SP500) during a financial crisis (for example, the 2008 global financial crisis). Your simulation should:
 - Include sudden volatility spikes, market jumps, and heavy-tailed returns.
 - Reflect periods of extreme uncertainty and rapid price changes.
 
