@@ -41,11 +41,24 @@ Our project is funded by the [Cambridge Centre for Data-Driven Discovery Acceler
 ## Run
 
 ```python
+import os
 from cmbagent import CMBAgent
-cmbagent = CMBAgent()
+
+cmbagent = CMBAgent(agent_llm_configs = {
+                    'engineer': {
+                        "model": "gpt-4.5-preview-2025-02-27",
+                        "reasoning_effort": "high",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    'researcher': {
+                        "model": "gemini-2.0-pro-exp-02-05",
+                        "api_key": os.getenv("GEMINI_API_KEY"),
+                        "api_type": "google",
+                        }})
 
 task = """
-Generate simulated stock market data that mimics behavior during a financial crisis (for example, the 2008 global financial crisis). Your simulation should:
+Generate simulated stock market data that mimics behavior of 500 stock (e.g., SP500) during a financial crisis (for example, the 2008 global financial crisis). Your simulation should:
 - Include sudden volatility spikes, market jumps, and heavy-tailed returns.
 - Reflect periods of extreme uncertainty and rapid price changes.
 
