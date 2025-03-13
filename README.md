@@ -5,9 +5,9 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
 
 
-Multi-Agent System for Science, Made by Cosmologists, Powered by [ag2](https://github.com/ag2ai/ag2).
+Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://github.com/ag2ai/ag2).
 
-**Cmbagent** acts according to a *Planning and Control* strategy. 
+**Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
 
 > **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
@@ -36,7 +36,7 @@ We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](
 
 ## Installation
 
-If you plan to modify the code, follow these steps:
+Follow these steps:
 
 Clone and install our package from GitHub.
 
