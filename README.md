@@ -36,7 +36,7 @@ We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](
 
 ## Installation
 
-Before installing cmbagent, creating a virual environment is encouraged: 
+Before installing cmbagent, create a virtual environment: 
 ```bash
 python -m venv /path/to/your/envs/cmbagent_env
 source /path/to/your/envs/cmbagent_env/bin/activate
@@ -59,33 +59,29 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
-
-You can then pip install cmbagent in this fresh environment.
-
-If you are a cosmologist, you need the RAG data to use `cmbagent` in your cosmology work. 
-
-Before installation, make sure you do not have any other autogen/pyautogen/ag2 versions installed. You may need to uninstall these packages before installing `cmbagent`.  
-
 ## Getting the RAG data
 
-Do this:
+If you are a cosmologist, you need the RAG data to use `cmbagent` for your cosmology work. 
+
+If you are a non-cosmologist, just modify the code/documents so it does RAG on your own documents of interest. It's pretty straightforward. 
+
+Then, do this:
 
 ```bash
 export CMBAGENT_DATA=/where/you/want/the/data
 ```
 
 Note that you need to set the `CMBAGENT_DATA` environment variable accordingly before using `cmbagent` 
-in any future session. Maybe you want to add this to your `.bashrc` or `.zshrc` file, or in your `activate` script.
+in any future session. Maybe you want to add this to your `.bashrc` or `.zshrc` file, or in your `activate` script!
 
 
 ## Structure
 
-RAG agents are defined in a generic way. The core of the code is located in [cmbagent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py).
+The core of the code is located in [cmbagent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py).
 
-To generate a RAG agent, create a `.py` and `.yaml` file and place them in the [assistants directory](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/assistants). Additionally, create a directory named after the agent and include associated files in the [data directory](https://github.com/CMBAgents/cmbagent_data/tree/main/data) of cmbagent.
+ can be found in [rag_agents](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/agents/rag_agents). You can make your own easily.
 
 Apart from the RAG agents, we have assistant agents (engineer and planner) and a code agent (executor).
-
 
 
 ## Agents
@@ -95,7 +91,7 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 
 ## Usage
 
-Check the [demo notebook](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_beta2_demo.ipynb). 
+Check the [demos](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks). 
 
 Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
 
@@ -105,34 +101,25 @@ export OPENAI_API_KEY="sk-..."
 ```
 (paste in your bashrc or zshrc file, if possible.)
 
-For Windows:
-```cmd
-setx OPENAI_API_KEY "sk-..."
-```
+For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) 
 
-Instantiate the CMBAgent with:
+## Run
 
 ```python
 from cmbagent import CMBAgent
 cmbagent = CMBAgent()
-```
 
-Define a task as:
-
-```python
 task = """
 Assume Planck values for cosmological parameters, find the k at which the linear matter power spectrum peaks,
 as well as the k at which non-linear perturbations become important.
        """
-```
 
-Solve the task with:
-
-```python
 cmbagent.solve(task)
 ```
 
-If you request any output, it will be saved in the [output directory](https://github.com/CMBAgents/cmbagent/tree/main/output).
+Your outputs will be in the output directory. 
+
+In principle, you should clear it before each session.
 
 
 
