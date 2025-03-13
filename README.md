@@ -57,7 +57,10 @@ After generating the data, apply the Black-Scholes Merton model to price options
 Include both the code used for simulation and analysis, along with a written commentary on the limitations of the Black-Scholes Merton model under crisis conditions.
 """
 
-cmbagent.solve(task)
+cmbagent.solve(task,
+               max_rounds=500, # set to a high number, this is the max number of total agent calls
+               shared_context = {'feedback_left': 1, # number of feedbacks on the plan, generally want to set to a low number, as this adds unnecessary complexity to the workflow. 
+                                 'maximum_number_of_steps_in_plan': 5})
 ```
 
 Your outputs will be stored in the output directory. 
