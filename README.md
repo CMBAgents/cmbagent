@@ -36,7 +36,13 @@ We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](
 
 ## Installation
 
-Follow these steps:
+Before installing cmbagent, creating a virual environment is encouraged: 
+```bash
+python -m venv /path/to/your/envs/cmbagent_env
+source /path/to/your/envs/cmbagent_env/bin/activate
+```
+
+Then, follow these steps:
 
 Clone and install our package from GitHub.
 
@@ -53,11 +59,7 @@ pip install -e .
 pip install -r requirements.txt
 ```
 
-Before installing cmbagent, creating a virual environment is encouraged: 
-```bash
-python -m venv /path/to/your/envs/cmbagent_env
-source /path/to/your/envs/cmbagent_env/bin/activate
-```
+
 You can then pip install cmbagent in this fresh environment.
 
 If you are a cosmologist, you need the RAG data to use `cmbagent` in your cosmology work. 
