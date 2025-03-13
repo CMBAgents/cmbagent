@@ -8,11 +8,11 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 
 **Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
 
-> **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
+- This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
-> **Note:** Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
+- Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
 
-> Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard).
+- Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard). (We like gemini, gpt-4o/4.5/o3, claude -- see [our examples](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks)).
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). 
 
