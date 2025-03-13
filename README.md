@@ -50,6 +50,7 @@ cd ..
 git clone https://github.com/CMBAgents/cmbagent.git
 cd cmbagent
 pip install -e .
+pip install -r requirements.txt
 ```
 
 Before installing cmbagent, creating a virual environment is encouraged: 
