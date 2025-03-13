@@ -12,11 +12,13 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 
 - Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
 
-- Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard). (We like gemini, gpt-4o/4.5/o3, claude -- see [our examples](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks)).
+- Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard). (We like gemini, gpt-4o/4.5/o3, claude ––see [our examples](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks)).
 
 - Currently, RAG agents use `file_search` on OpenAI vector stores.
 
-> Note: Please contribute to the repo. We give access to our top-tier OpenaAI, Anthropic and Cloud organizations to our top contributors. 
+> Note: Please contribute to the repo. We give access to our top-tier OpenaAI, Anthropic and Cloud organizations to our top contributors.
+
+Get started with cmbagent and your favorite llms by adapting the [agent_llm_configs](https://github.com/CMBAgents/cmbagent/blob/c451ae76361a382ad0d399a4413966ce9159b5d1/cmbagent/cmbagent.py#L122). 
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). 
 
