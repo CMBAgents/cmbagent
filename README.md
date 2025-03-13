@@ -120,8 +120,7 @@ from cmbagent import CMBAgent
 cmbagent = CMBAgent()
 
 task = """
-Assume Planck values for cosmological parameters, find the k at which the linear matter power spectrum peaks,
-as well as the k at which non-linear perturbations become important.
+Generate simulated stock market data during a financial crisis.
        """
 
 cmbagent.solve(task)
