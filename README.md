@@ -7,7 +7,7 @@
 
 Multi-Agent System for Science, Made by Cosmologists, Powered by [ag2](https://github.com/ag2ai/ag2).
 
-**Cmbagent** acts according to a *Planning and Control* strategy. 
+**Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
 
 > **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
