@@ -36,7 +36,7 @@ We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](
 
 ## Installation
 
-If you plan to modify the code, follow these steps:
+Follow these steps:
 
 Clone and install our package from GitHub.
 
