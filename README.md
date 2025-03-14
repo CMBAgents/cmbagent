@@ -46,8 +46,8 @@ from cmbagent import CMBAgent
 
 cmbagent = CMBAgent(agent_llm_configs = {
                     'engineer': {
-                        "model": "gpt-4.5-preview-2025-02-27",
-                        "reasoning_effort": "high",
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "high", ## for gpt-4.5-preview-2025-02-27, gpt-4o-2024-11-20, gpt-4o-mini, etc, comment out this line.
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
