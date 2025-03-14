@@ -85,6 +85,22 @@ To update a vector stores with local files in your CMBAGENT_DATA folder (see [Ge
 cmbagent = CMBAgent(make_vector_stores=['name_of_agent'])
 ```
 
+## API Keys
+
+Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
+
+For Unix-based systems (Linux, macOS):
+
+```bash
+export OPENAI_API_KEY="sk-..."  ## mandatory for the RAG agents
+export ANTHROPIC_API_KEY="sk-..." ## optional 
+export GEMINI_API_KEY="AI...." ## optional 
+```
+(paste in your bashrc or zshrc file, if possible.)
+
+For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and the same command.
+
+By default, cmbagent use models from oai/anthropic/google. If you want to pick different llms, just adapat `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
 
 ## Installation
 
@@ -147,18 +163,7 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 
 Check the [demos](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks). 
 
-Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
 
-For Unix-based systems (Linux, macOS):
-
-```bash
-export OPENAI_API_KEY="sk-..."
-export ANTHROPIC_API_KEY="sk-..."
-export GEMINI_API_KEY="AI...."
-```
-(paste in your bashrc or zshrc file, if possible.)
-
-For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and the same command.
 
 
 
