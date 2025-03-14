@@ -74,9 +74,7 @@ cmbagent.solve(task,
                                  'maximum_number_of_steps_in_plan': 5})
 ```
 
-Your outputs will be stored in the output directory. 
-
-In principle, you should clear it before each session.
+Your outputs will be stored in the output directory.
 
 
 ## Installation
