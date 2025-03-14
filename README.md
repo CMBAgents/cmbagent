@@ -79,6 +79,13 @@ cmbagent.solve(task,
 Your outputs will be stored in the output directory.
 
 
+To update a vector stores with local files in your CMBAGENT_DATA folder (see [Getting the RAG data](#getting-the-rag-data)), for your RAG agents use:
+
+```python
+cmbagent = CMBAgent(make_vector_stores=['name_of_agent'])
+```
+
+
 ## Installation
 
 Before installing cmbagent, create a virtual environment (we use python3.12): 
@@ -107,9 +114,8 @@ pip install -r requirements.txt
 
 ## Getting the RAG data
 
-If you are a cosmologist, you need the RAG data to use `cmbagent` for your cosmology work. 
-
-If you are a non-cosmologist, just modify the code/documents so it does RAG on your own documents of interest. It's pretty straightforward. 
+If you are a cosmologist, there is already some RAG files for you to play with. 
+If you are not a cosmologist, just modify the code/documents so it does RAG on your own documents of interest. It's pretty straightforward. 
 
 Then, do this:
 
