@@ -83,7 +83,8 @@ In principle, you should clear it before each session.
 
 ## Installation
 
-Before installing cmbagent, create a virtual environment: 
+Before installing cmbagent, create a virtual environment (we use python3.12): 
+
 ```bash
 python -m venv /path/to/your/envs/cmbagent_env
 source /path/to/your/envs/cmbagent_env/bin/activate
