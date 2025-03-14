@@ -109,7 +109,8 @@ Now, update the plan accordingly, planner!""",
     ) -> SwarmResult:
         """
         Updates the execution context and returns the current progress.
-        Must be called before and after each action taken.
+        Must be called **before calling the agent in charge of the next sub-task**.
+        Must be called **after** each action taken.
 
         Args:
             current_status (str): The current status ("in progress", "failed", or "completed").
@@ -122,23 +123,7 @@ Now, update the plan accordingly, planner!""",
         Returns:
             SwarmResult: Contains a formatted status message and updated context.
         """
-        context_variables["current_plan_step_number"] = current_plan_step_number
-        context_variables["current_sub_task"] = current_sub_task
-        context_variables["agent_for_sub_task"] = agent_for_sub_task
-        context_variables["current_instructions"] = current_instructions
-        context_variables["current_status"] = current_status
-
-        #     return SwarmResult(
-        #                        values=f"""
-        # **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-        # **Status:** {context_variables["current_status"]}\n 
-        # **Sub-task:** {context_variables["current_sub_task"]}\n 
-        # **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-        # **Instructions:**\n 
-        # {context_variables["current_instructions"]}
-        # """,
-        #                        context_variables=context_variables)
-
+    
 
         # Map statuses to icons
         status_icons = {
