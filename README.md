@@ -100,7 +100,7 @@ export GEMINI_API_KEY="AI...." ## optional
 
 For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and the same command.
 
-By default, cmbagent use models from oai/anthropic/google. If you want to pick different llms, just adapat `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
+By default, cmbagent uses models from oai/anthropic/google. If you want to pick different llms, just adapat `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
 
 ## Installation
 
