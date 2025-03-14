@@ -152,12 +152,9 @@ If you don't set this, the rag data will go into your home directory (you should
 
 The core of the code is located in [cmbagent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py).
 
- can be found in [rag_agents](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/agents/rag_agents). You can make your own easily.
+RAG agents can be found in [rag_agents](https://github.com/CMBAgents/cmbagent/tree/main/cmbagent/agents/rag_agents). You can make your own easily.
 
-Apart from the RAG agents, we have assistant agents (engineer and planner) and a code agent (executor).
-
-
-## Agents
+Apart from the RAG agents, we have assistant agents (like an engineer and a planner) and a code execution agent (executor).
 
 All agents inherit from the `BaseAgent` class. You can find the definition of `BaseAgent` in the [base_agent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/base_agent.py) file.
 
