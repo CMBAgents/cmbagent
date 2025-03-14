@@ -210,13 +210,8 @@ class CMBAgent:
 
         self.work_dir = work_dir_default
         # Clear everything inside work_dir if it exists
-        if os.path.exists(self.work_dir):
-            for item in os.listdir(self.work_dir):
-                item_path = os.path.join(self.work_dir, item)
-                if os.path.isfile(item_path):
-                    os.unlink(item_path)
-                elif os.path.isdir(item_path):
-                    shutil.rmtree(item_path)
+        self.clear_work_dir()
+        
         # add the work_dir to the python path so we can import modules from it
         sys.path.append(self.work_dir)
 
@@ -332,16 +327,17 @@ class CMBAgent:
 
                 # cmbagent debug --> removed this option, pass in make_vector_stores=True in kwargs
                 # #### the files list is appended twice to the instructions.... TBD!!!
-                # if agent.set_agent(**agent_kwargs) == 1:
+                if agent.set_agent(**agent_kwargs) == 1:
 
-                #     print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
+                    if cmbagent_debug:
+                        print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
                     
-                #     self.push_vector_stores([agent.name.removesuffix('_agent')], chunking_strategy, verbose = verbose)
+                    push_vector_stores(self, [agent.name.removesuffix('_agent')], chunking_strategy, verbose = verbose)
 
-                #     agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
+                    agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
 
                     
-                #     agent.set_agent(**agent_kwargs) 
+                    agent.set_agent(**agent_kwargs) 
 
                 # else:
                 # see above for trick on how to make vector store if it is not found. 
@@ -401,13 +397,6 @@ class CMBAgent:
         if cmbagent_debug:
             print('\nshared_context: ', self.shared_context)
 
-        # Define full paths
-        database_full_path = os.path.join(self.work_dir, self.shared_context.get("database_path", "data"))
-        codebase_full_path = os.path.join(self.work_dir, self.shared_context.get("codebase_path", "codebase"))
-        
-        # Create directories if they don't exist
-        os.makedirs(database_full_path, exist_ok=True)
-        os.makedirs(codebase_full_path, exist_ok=True)
 
     
 
@@ -516,6 +505,16 @@ class CMBAgent:
         return
         
 
+    def clear_work_dir(self):
+        # Clear everything inside work_dir if it exists
+        if os.path.exists(self.work_dir):
+            for item in os.listdir(self.work_dir):
+                item_path = os.path.join(self.work_dir, item)
+                if os.path.isfile(item_path):
+                    os.unlink(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+
 
     def solve(self, task, initial_agent='planner', 
               shared_context=None,
@@ -527,6 +526,15 @@ class CMBAgent:
         
 
         self.clear_cache()
+        self.clear_work_dir()
+
+        # Define full paths
+        database_full_path = os.path.join(self.work_dir, this_shared_context.get("database_path", "data"))
+        codebase_full_path = os.path.join(self.work_dir, this_shared_context.get("codebase_path", "codebase"))
+        
+        # Create directories if they don't exist
+        os.makedirs(database_full_path, exist_ok=True)
+        os.makedirs(codebase_full_path, exist_ok=True)
 
         for agent in self.agents:
             agent.agent.reset()
@@ -750,11 +758,10 @@ class CMBAgent:
 
     def create_assistant(self, client, agent):
 
-        print(f"-->Creating assistant {agent.name}")
-
-        print(f"--> llm_config: {self.llm_config}")
-
-        print(f"--> agent.llm_config: {agent.llm_config}")
+        if cmbagent_debug:
+            print(f"-->Creating assistant {agent.name}")
+            print(f"--> llm_config: {self.llm_config}")
+            print(f"--> agent.llm_config: {agent.llm_config}")
 
         new_assistant = client.beta.assistants.create(
             name=agent.name,
@@ -765,12 +772,14 @@ class CMBAgent:
             # tool_choice={"type": "function", "function": {"name": "file_search"}}, ## not possible to set tool_choice as argument as of 8/03/2025
             # response_format=agent.llm_config['config_list'][0]['response_format']
         )
-        print("New assistant created.")
-        print(f"--> New assistant id: {new_assistant.id}")
-        print(f"--> New assistant model: {new_assistant.model}")
-        # print(f"--> New assistant response format: {new_assistant.response_format}")
-        # print(f"--> New assistant tool choice: {new_assistant.tool_choice}")
-        print("\n")
+
+        if cmbagent_debug:
+            print("New assistant created.")
+            print(f"--> New assistant id: {new_assistant.id}")
+            print(f"--> New assistant model: {new_assistant.model}")
+            # print(f"--> New assistant response format: {new_assistant.response_format}")
+            # print(f"--> New assistant tool choice: {new_assistant.tool_choice}")
+            print("\n")
 
         return new_assistant
 
@@ -830,14 +839,16 @@ class CMBAgent:
                         assistant_id = agent.info['assistant_config']['assistant_id']
 
                         if assistant_id != assistant_ids[assistant_names.index(agent.name)]:
-                            print(f"--> Assistant ID between yaml and openai do not match.")
-                            print(f"--> Assistant ID from your yaml: {assistant_id}")
-                            print(f"--> Assistant ID in openai: {assistant_ids[assistant_names.index(agent.name)]}")
-                            print("--> We will use the assistant id from openai")
+                            if cmbagent_debug:
+                                print(f"--> Assistant ID between yaml and openai do not match.")
+                                print(f"--> Assistant ID from your yaml: {assistant_id}")
+                                print(f"--> Assistant ID in openai: {assistant_ids[assistant_names.index(agent.name)]}")
+                                print("--> We will use the assistant id from openai")
                             
 
                             agent.info['assistant_config']['assistant_id'] = assistant_ids[assistant_names.index(agent.name)]
-                            print(f"--> Updating yaml file with new assistant id: {assistant_ids[assistant_names.index(agent.name)]}")
+                            if cmbagent_debug:
+                                print(f"--> Updating yaml file with new assistant id: {assistant_ids[assistant_names.index(agent.name)]}")
                             update_yaml_preserving_format(f"{path_to_assistants}/{agent.name.replace('_agent', '') }.yaml", agent.name, assistant_ids[assistant_names.index(agent.name)], field = 'assistant_id')
                     
                 else:

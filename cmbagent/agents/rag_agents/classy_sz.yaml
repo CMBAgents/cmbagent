@@ -47,13 +47,13 @@ instructions: |
 
 
 assistant_config:
-  assistant_id: asst_Gc958ucgpUZBFPaBVZTJGWab
+  assistant_id: asst_ertrQDyc168ULiPVnjdR7HST
   tools:
   - type: file_search
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_67d3055dba848191a58811e635bfa193
+      - vs_67d454f861748191abb3cf558a45d6ac
 
 
 description: |

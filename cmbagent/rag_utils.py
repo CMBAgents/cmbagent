@@ -44,8 +44,8 @@ def push_vector_stores(cmbagent_instance, make_vector_stores, chunking_strategy,
         if 'assistant_config' in agent.info:
 
             if 'file_search' in agent.info['assistant_config']['tool_resources'].keys():
-
-                print(f"Updating vector store for {agent.info['name']}")
+                if cmbagent_debug:
+                    print(f"Updating vector store for {agent.info['name']}")
 
                 # print(agent.info['assistant_config']['assistant_id'])
 
@@ -117,7 +117,8 @@ def push_vector_stores(cmbagent_instance, make_vector_stores, chunking_strategy,
 
         else:
 
-            print(f"No vector stores found with the name '{vector_store_name}'.")
+            if cmbagent_debug:
+                print(f"No vector stores found with the name '{vector_store_name}'.")
 
         # print()
 
@@ -142,7 +143,8 @@ def push_vector_stores(cmbagent_instance, make_vector_stores, chunking_strategy,
         assistant_data = os.getenv('CMBAGENT_DATA') + "/data/" + vector_store_name.removesuffix('_agent_store')
 
 
-        print("Files to upload:")
+        if cmbagent_debug:
+            print("Files to upload:")
         for root, dirs, files in os.walk(assistant_data):
             # Filter out unwanted directories like .ipynb_checkpoints
             dirs[:] = [d for d in dirs if not d.startswith('.')]
@@ -153,7 +155,8 @@ def push_vector_stores(cmbagent_instance, make_vector_stores, chunking_strategy,
 
                     continue
 
-                print(f"\t - {file}")
+                if cmbagent_debug:
+                    print(f"\t - {file}")
 
                 # Get the absolute path of each file
                 file_paths.append(os.path.join(root, file))
@@ -170,22 +173,25 @@ def push_vector_stores(cmbagent_instance, make_vector_stores, chunking_strategy,
                 )
 
         # You can print the status and the file counts of the batch to see the result of this operation.
-        print(file_batch.status)
-        print(file_batch.file_counts)
+        if cmbagent_debug:
+            print(file_batch.status)
+            print(file_batch.file_counts)
 
         rag_agent.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store.id]
 
-        print(f'{rag_agent.name}: uploaded assistant data to vector store with id: ',vector_store.id)
-        print('\n')
+        if cmbagent_debug:
+            print(f'{rag_agent.name}: uploaded assistant data to vector store with id: ',vector_store.id)
+            print('\n')
         new_vector_store_ids = {rag_agent.name : vector_store.id}
         vector_store_ids.update(new_vector_store_ids)
 
     cmbagent_instance.vector_store_ids = vector_store_ids
 
-    print("vector stores updated")
+    if cmbagent_debug:
+        print("vector stores updated")
 
-    for key, value in cmbagent_instance.vector_store_ids.items():
-        print(f"'{key}': '{value}',")
+        for key, value in cmbagent_instance.vector_store_ids.items():
+            print(f"'{key}': '{value}',")
 
     # vector_store_ids = self.vector_store_ids
 

@@ -197,14 +197,15 @@ class BaseAgent:
         if cmbagent_debug:
             print("GPTAssistant set.... moving on.\n")
 
-        # if self.agent._assistant_error is not None:
+        if self.agent._assistant_error is not None:
 
-        #     # print(self.agent._assistant_error)
-        #     if "No vector store" in self.agent._assistant_error:
-        #         print(f"Vector store not found for {self.name}")
-        #         print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
+            # print(self.agent._assistant_error)
+            if "No vector store" in self.agent._assistant_error:
+                if cmbagent_debug:
+                    print(f"Vector store not found for {self.name}")
+                    print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
                 
-        #         return 1
+                return 1
 
 
     ## for engineer/.. all non rag agents

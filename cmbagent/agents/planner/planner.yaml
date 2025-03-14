@@ -14,6 +14,9 @@ instructions: |
    Don't include agents that are not needed (e.g., classy_sz_agent is not needed if the sub-task is not related to cosmology).
 
 
+   Each sub-task must be carried out by one and only one agent.
+
+
 
    The main task we are trying to solve is:
 
