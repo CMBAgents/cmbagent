@@ -8,6 +8,8 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 
 **Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
 
+This is **open-source research-ready software**.  Please **star the  repo ⭐ and cite [our preprint](#reference)**.  
+
 - This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
 - Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
@@ -21,21 +23,6 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). 
 
-If you would like to cite us, please use:
-
-```bash
-   @misc{Laverick:2024fyh,
-      author = "Laverick, Andrew and Surrao, Kristen and Zubeldia, Inigo and Bolliet, Boris and Cranmer, Miles and Lewis, Antony and Sherwin, Blake and Lesgourgues, Julien",
-      title = "{Multi-Agent System for Cosmological Parameter Analysis}",
-      eprint = "2412.00431",
-      archivePrefix = "arXiv",
-      primaryClass = "astro-ph.IM",
-      month = "11",
-      year = "2024"
-   }
-```
-
-Our project is funded by the [Cambridge Centre for Data-Driven Discovery Accelerate Programme](https://science.ai.cam.ac.uk). We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](https://github.com/ag2ai/ag2).
 
 ## Run
 
@@ -102,6 +89,22 @@ For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) an
 
 By default, cmbagent uses models from oai/anthropic/google. If you want to pick different llms, just adapat `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
 
+## Reference
+
+```bash
+   @misc{Laverick:2024fyh,
+      author = "Laverick, Andrew and Surrao, Kristen and Zubeldia, Inigo and Bolliet, Boris and Cranmer, Miles and Lewis, Antony and Sherwin, Blake and Lesgourgues, Julien",
+      title = "{Multi-Agent System for Cosmological Parameter Analysis}",
+      eprint = "2412.00431",
+      archivePrefix = "arXiv",
+      primaryClass = "astro-ph.IM",
+      month = "11",
+      year = "2024"
+   }
+```
+
+
+
 ## Installation
 
 Before installing cmbagent, create a virtual environment (we use python3.12): 
@@ -162,6 +165,11 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 ## Usage
 
 Check the [demos](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks). 
+
+
+## Acknowledgments
+
+Our project is funded by the [Cambridge Centre for Data-Driven Discovery Accelerate Programme](https://science.ai.cam.ac.uk). We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](https://github.com/ag2ai/ag2).
 
 
 
