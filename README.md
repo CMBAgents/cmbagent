@@ -39,6 +39,8 @@ Our project is funded by the [Cambridge Centre for Data-Driven Discovery Acceler
 
 ## Run
 
+See [Installation](#installation), and then in a Jupyter notebook, do:
+
 ```python
 import os
 from cmbagent import CMBAgent
