@@ -18,7 +18,6 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 
 > Note: Please fork and contribute to the repo. We give access to our top-tier OpenaAI, Anthropic and Cloud organizations to our top contributors.
 
-**Get started with cmbagent and your favorite llms by adapting the [agent_llm_configs](https://github.com/CMBAgents/cmbagent/blob/c451ae76361a382ad0d399a4413966ce9159b5d1/cmbagent/cmbagent.py#L122).** 
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). 
 
@@ -58,16 +57,15 @@ cmbagent = CMBAgent(agent_llm_configs = {
                         }})
 
 task = """
-Generate simulated stock market data that mimics behavior of 500 stocks (e.g., SP500) during a financial crisis (for example, the 2008 global financial crisis). Your simulation should:
+Generate simulated stock market data that mimics behavior of 500 stocks (e.g., SP500) during a financial crisis (for example, the 2008 global financial crisis). 
+
+Your simulation should:
 - Include sudden volatility spikes, market jumps, and heavy-tailed returns.
 - Reflect periods of extreme uncertainty and rapid price changes.
 
-After generating the data, apply the Black-Scholes Merton model to price options based on this simulated data. In your analysis, clearly:
-- Describe the model’s assumptions (e.g., constant volatility and log-normal returns).
-- Identify and discuss specific points where these assumptions break down in the context of the crisis.
-- Provide graphical plots comparing the simulated data with the model’s predictions, highlighting areas where the model fails to capture the market dynamics.
+After generating the data, apply the Black-Scholes Merton model to price options based on this simulated data.  
 
-Include both the code used for simulation and analysis, along with a written commentary on the limitations of the Black-Scholes Merton model under crisis conditions.
+What conclusions can be made?
 """
 
 cmbagent.solve(task,
