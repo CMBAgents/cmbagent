@@ -8,7 +8,7 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 
 **Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
 
-This is **open-source research-ready software**.  Please **star the  repo ⭐ and cite [our preprint](#reference)**.  
+This is **open-source research-ready software**.  Please **star the  repo ⭐ and cite [Laverick et al (2024)](#reference)**.  
 
 - This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
