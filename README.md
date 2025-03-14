@@ -127,6 +127,8 @@ Note that you need to set the `CMBAGENT_DATA` environment variable accordingly b
 in any future session. Maybe you want to add this to your `.bashrc` or `.zshrc` file, or in your `activate` script!
 
 
+If you don't set this, the rag data will go into your home directory (you should see a folder `cmbagent_data` with same content as [here](https://github.com/CMBAgents/cmbagent_data).
+
 ## Structure
 
 The core of the code is located in [cmbagent.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/cmbagent.py).
