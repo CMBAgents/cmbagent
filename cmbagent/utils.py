@@ -128,6 +128,55 @@ default_llm_config_list = [
                     }
                     ]
 
+default_agent_llm_configs = {
+                    'engineer': {
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "high",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    'classy_sz': {
+                        "model": "gpt-4o-mini", 
+                        "api_key": os.getenv("OPENAI_API_KEY"), # use oai models here only (this is a RAG agent, with an oai vector store attached. If you are not a cosmologist, ignore this, you will never need this agent.
+                        "api_type": "openai",
+                        },
+                    'planner': {
+                        "model": "gpt-4o-2024-11-20",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    'control': {
+                        "model": "gpt-4o-2024-11-20",
+                        # "model": "o3-mini-2025-01-31",
+                        # "reasoning_effort": "high",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+
+                    'researcher': {
+                        "model": "gemini-2.0-pro-exp-02-05",
+                        "api_key": os.getenv("GEMINI_API_KEY"),
+                        "api_type": "google",
+                        },
+                    'plan_reviewer': {
+                        "model": "claude-3-7-sonnet-20250219",
+                        "api_key": os.getenv("ANTHROPIC_API_KEY"),
+                        "api_type": "anthropic",
+                        },
+
+                    "classy_sz_response_formatter": {
+                        "model": "gpt-4o",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    "engineer_response_formatter": {
+                        "model": "gpt-4o",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+
+                    }
+
 
 
 def update_yaml_preserving_format(yaml_file, agent_name, new_id, field = 'vector_store_ids'):

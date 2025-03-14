@@ -14,7 +14,7 @@ from IPython.display import display
 from collections import defaultdict
 from .utils import work_dir as work_dir_default
 from .utils import path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
-from .utils import default_max_round, default_groupchat_intro_message,default_llm_model,default_llm_config_list
+from .utils import default_max_round, default_groupchat_intro_message,default_llm_model,default_llm_config_list,default_agent_llm_configs
 from pprint import pprint
 from .base_agent import CmbAgentGroupChat, CmbAgentSwarmAgent
 from .rag_utils import import_rag_agents, make_rag_agents,push_vector_stores
@@ -67,6 +67,7 @@ from cmbagent.cmbagent_swarm_agent import initiate_cmbagent_swarm_chat
 from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse, RagSoftwareFormatterResponse
 from cmbagent.context import shared_context as shared_context_default
 from sys import exit
+import shutil
 
 
 
@@ -119,53 +120,7 @@ class CMBAgent:
                  skip_memory = True,
                  skip_rag_software_formatter = True,
                  default_llm_config_list = default_llm_config_list,
-                 agent_llm_configs = {
-                    'engineer': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "high",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    'classy_sz': {
-                        "model": "gpt-4o-mini", 
-                        "api_key": os.getenv("OPENAI_API_KEY"), # use oai models here only (this is a RAG agent, with an oai vector store attached. If you are not a cosmologist, ignore this, you will never need this agent.
-                        "api_type": "openai",
-                        },
-                    'planner': {
-                        "model": "gpt-4o-2024-11-20",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    'control': {
-                        "model": "gpt-4o-2024-11-20",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-
-                    'researcher': {
-                        "model": "gemini-2.0-pro-exp-02-05",
-                        "api_key": os.getenv("GEMINI_API_KEY"),
-                        "api_type": "google",
-                        },
-                    'plan_reviewer': {
-                        "model": "claude-3-7-sonnet-20250219",
-                        "api_key": os.getenv("ANTHROPIC_API_KEY"),
-                        "api_type": "anthropic",
-                        },
-
-                    "classy_sz_response_formatter": {
-                        "model": "gpt-4o",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    "engineer_response_formatter": {
-                        "model": "gpt-4o",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-
-                    },
-
+                 agent_llm_configs = default_agent_llm_configs,
                  agent_type = 'swarm',# None,# 'swarm',
                  shared_context = shared_context_default,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
@@ -254,6 +209,14 @@ class CMBAgent:
         self.verbose = verbose
 
         self.work_dir = work_dir_default
+        # Clear everything inside work_dir if it exists
+        if os.path.exists(self.work_dir):
+            for item in os.listdir(self.work_dir):
+                item_path = os.path.join(self.work_dir, item)
+                if os.path.isfile(item_path):
+                    os.unlink(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
         # add the work_dir to the python path so we can import modules from it
         sys.path.append(self.work_dir)
 
@@ -297,7 +260,11 @@ class CMBAgent:
 
         self.agent_type = agent_type
 
-        self.init_agents(agent_llm_configs=agent_llm_configs) # initialize agents
+
+        self.agent_llm_configs = default_agent_llm_configs.copy()
+        self.agent_llm_configs.update(agent_llm_configs)
+
+        self.init_agents(agent_llm_configs=self.agent_llm_configs) # initialize agents
 
         if cmbagent_debug:
             print("\n\n All agents instantiated!!!\n\n")
@@ -441,6 +408,7 @@ class CMBAgent:
         # Create directories if they don't exist
         os.makedirs(database_full_path, exist_ok=True)
         os.makedirs(codebase_full_path, exist_ok=True)
+
     
 
     def display_cost(self):
