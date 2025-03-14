@@ -39,6 +39,8 @@ Our project is funded by the [Cambridge Centre for Data-Driven Discovery Acceler
 
 ## Run
 
+See [Installation](#installation), and then in a Jupyter notebook, do:
+
 ```python
 import os
 from cmbagent import CMBAgent
@@ -77,6 +79,29 @@ cmbagent.solve(task,
 Your outputs will be stored in the output directory.
 
 
+To update a vector stores with local files in your CMBAGENT_DATA folder (see [Getting the RAG data](#getting-the-rag-data)), for your RAG agents use:
+
+```python
+cmbagent = CMBAgent(make_vector_stores=['name_of_agent'])
+```
+
+## API Keys
+
+Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
+
+For Unix-based systems (Linux, macOS):
+
+```bash
+export OPENAI_API_KEY="sk-..."  ## mandatory for the RAG agents
+export ANTHROPIC_API_KEY="sk-..." ## optional 
+export GEMINI_API_KEY="AI...." ## optional 
+```
+(paste in your bashrc or zshrc file, if possible.)
+
+For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and the same command.
+
+By default, cmbagent uses models from oai/anthropic/google. If you want to pick different llms, just adapat `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
+
 ## Installation
 
 Before installing cmbagent, create a virtual environment (we use python3.12): 
@@ -105,9 +130,8 @@ pip install -r requirements.txt
 
 ## Getting the RAG data
 
-If you are a cosmologist, you need the RAG data to use `cmbagent` for your cosmology work. 
-
-If you are a non-cosmologist, just modify the code/documents so it does RAG on your own documents of interest. It's pretty straightforward. 
+If you are a cosmologist, there is already some RAG files for you to play with. 
+If you are not a cosmologist, just modify the code/documents so it does RAG on your own documents of interest. It's pretty straightforward. 
 
 Then, do this:
 
@@ -118,6 +142,8 @@ export CMBAGENT_DATA=/where/you/want/the/data
 Note that you need to set the `CMBAGENT_DATA` environment variable accordingly before using `cmbagent` 
 in any future session. Maybe you want to add this to your `.bashrc` or `.zshrc` file, or in your `activate` script!
 
+
+If you don't set this, the rag data will go into your home directory (you should see a folder `cmbagent_data` with same content as [here](https://github.com/CMBAgents/cmbagent_data).
 
 ## Structure
 
@@ -137,18 +163,7 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 
 Check the [demos](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks). 
 
-Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
 
-For Unix-based systems (Linux, macOS):
-
-```bash
-export OPENAI_API_KEY="sk-..."
-export ANTHROPIC_API_KEY="sk-..."
-export GEMINI_API_KEY="AI...."
-```
-(paste in your bashrc or zshrc file, if possible.)
-
-For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and the same command.
 
 
 
