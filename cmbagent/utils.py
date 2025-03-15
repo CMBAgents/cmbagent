@@ -50,7 +50,13 @@ path_to_agents = os.path.join(path_to_basedir, "agents/")
 # path_to_executor = os.path.join(path_to_basedir, "executor")
 # path_to_admin = os.path.join(path_to_basedir, "admin")
 
-work_dir = os.path.join(path_to_basedir, "../output")
+if "site-packages" in path_to_basedir:
+    work_dir = os.path.join(os.getcwd(), "output")
+    if not os.path.exists(work_dir):
+        os.makedirs(work_dir)
+else:
+    work_dir = os.path.join(path_to_basedir, "../output")
+
 if cmbagent_debug:
     print('\n\n\n\n\nwork_dir: ', work_dir)
 
