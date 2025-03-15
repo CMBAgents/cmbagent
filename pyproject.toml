@@ -32,8 +32,7 @@ dependencies = [
     "cmbagent-autogen @ git+https://github.com/CMBAgents/ag2.git@cmbagent#egg=cmbagent-autogen",
     "shapely",
     "xgboost",
-    "statsmodels",
-    "ImageMagick"
+    "statsmodels"
 ]
 
 [tool.setuptools.package-data]
