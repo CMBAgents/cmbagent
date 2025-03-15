@@ -32,7 +32,8 @@ cmbagent = [
   "cmbagent/planner/*.yaml",
   "cmbagent/engineer/*.yaml",
   "cmbagent/executor/*.yaml",
-  "cmbagent/admin/*.yaml"
+  "cmbagent/admin/*.yaml",
+  "logo.png"  # This will include cmbagent/logo.png if the file is inside the cmbagent directory.
 ]
 
 [project.urls]
