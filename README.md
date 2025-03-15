@@ -128,12 +128,6 @@ Then, follow these steps:
 Clone and install our package from GitHub.
 
 ```bash
-git clone https://github.com/CMBAgents/ag2
-cd ag2
-pip install -e .
-
-cd ..
-
 git clone https://github.com/CMBAgents/cmbagent.git
 cd cmbagent
 pip install -e .
