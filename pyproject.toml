@@ -29,7 +29,7 @@ dependencies = [
     "ruamel.yaml",
     "pandas",
     "ipython",
-    "ag2 @ git+https://github.com/CMBAgents/ag2.git@cmbagent#egg=ag2",
+    "cmbagent-autogen @ git+https://github.com/CMBAgents/ag2.git@cmbagent#egg=cmbagent-autogen",
     "shapely",
     "xgboost",
     "statsmodels",
