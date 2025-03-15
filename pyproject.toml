@@ -16,9 +16,15 @@ readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.6"  # Specify the Python version requirement here
 dependencies = [
     "numpy>=1.19.0",
+    "anthropic",
+    "astropy",
     "camb",
-    "cobaya",
+    "geopandas",
     "getdist",
+    "healpy",
+    "mcfit",
+    "pyDOE",
+    "cobaya",
     "classy_sz",
     "ruamel.yaml",
     "pandas",
