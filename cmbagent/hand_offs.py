@@ -119,7 +119,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=classy_sz.agent, 
-                condition="Need information on the classy_sz code.",
+                condition="Need information on the cosmolology code classy_sz.",
                 # available="review_recorded"
             ),
             
@@ -128,7 +128,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=classy_sz.agent, 
-                condition="Code execution failed and error message that seems to involve classy_sz specifically, rather than a generic Python error.",
+                condition="Code execution failed and error message that seems to involve the cosmolology code classy_sz specifically, rather than a generic Python error.",
                 # available="review_recorded"
             ),
 

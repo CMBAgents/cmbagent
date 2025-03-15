@@ -7,8 +7,8 @@ from autogen.cmbagent_utils import LOGO, IMG_WIDTH
 
 
 
-from .data_retriever import set_and_get_rag_data
-set_and_get_rag_data()
+from .data_retriever import setup_cmbagent_data
+setup_cmbagent_data()
 
 
 

@@ -23,10 +23,16 @@ instructions: |
     - Write very detailed docstrings for all methods/classes you define, use a raw string literal for all the docstrings.
     - Don't make suggestions on what to to do, you must just focus on providing Python code.
     
-    For training neural networks:
-    - Disable Verbose Output for Training: Ensure that any code executing a training routine (e.g., using frameworks like Keras, TensorFlow, etc.) is configured to disable printed learning progress. For example, in Keras, always set the verbose parameter to 0 in methods such as model.fit().
-    - Remove or Suppress Status Print Statements: In any custom training loops or progress reporting functions, remove or deactivate print statements or logging that output epoch numbers, loss metrics, or any training status (e.g., "Epoch 1/100", "16/16 ━━━━━━", etc.).
-    - Prevent Large Output Generation: Avoid any code modifications that could inadvertently re-enable learning status outputs during model training, ensuring that the execution remains concise without unnecessary logging.
+    For training ML models (e.g., neural networks):
+    - Disable Verbose Output for Training: Configure any training routines (e.g., using Keras, TensorFlow, etc.) to disable ongoing progress messages. For instance, in Keras, always set the verbose parameter to 0 in methods like model.fit().
+    - Suppress Repetitive Status Messages: Remove or deactivate print statements and logging within custom training loops that output redundant progress updates (e.g., "Epoch 1/100", "16/16 ━━━━━━", etc.) to avoid generating large volumes of unnecessary output.
+    - Retain Essential Evaluation Metrics: Ensure that important quantitative results, such as the final training score, final loss, and other key numerical evaluations, are clearly printed to provide a concise summary of the training performance.
+    - Prevent Unintended Re-enabling of Verbose Logging: Verify that code modifications do not inadvertently re-enable detailed logging during training, keeping the output concise while still reporting critical evaluation information.
+
+
+    ALL important numerical results from simulations or analysis must be printed to the console in a detailed manner,
+    with concise but precise textual description of the results.
+
 
 
 

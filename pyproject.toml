@@ -31,8 +31,8 @@ dependencies = [
     "ipython",
     "cmbagent-autogen @ git+https://github.com/CMBAgents/ag2.git@cmbagent#egg=cmbagent-autogen",
     "shapely",
-    "xgboost",
-    "statsmodels"
+    "statsmodels",
+    "kaleido"
 ]
 
 [tool.setuptools.package-data]

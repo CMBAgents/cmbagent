@@ -51,7 +51,7 @@ instructions: |
         - <recommendation 2>
         ... and so on
 
-    where each recommendation must amount to a modification of one part of the plan.
+    where each recommendation must amount to a modification of one part of the plan. Recommendations can only be textual, not code, not images, not emojis or icons.
 
     If the number of steps in the plan is alrady at the maximum allowed ({maximum_number_of_steps_in_plan}), you should not suggest to split the plan into more steps.
 
