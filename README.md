@@ -27,6 +27,8 @@ We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under act
 
 See [Installation](#installation), and then in a Jupyter notebook, do:
 
+> The output of this session is [here](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_beta2_demo_finance.ipynb).
+
 ```python
 import os
 from cmbagent import CMBAgent
@@ -45,15 +47,23 @@ cmbagent = CMBAgent(agent_llm_configs = {
                         }})
 
 task = """
-Generate simulated stock market data that mimics behavior of 500 stocks (e.g., SP500) during a financial crisis (for example, the 2008 global financial crisis). 
+Generate simulated stock market data that mimics the behavior of 500 stocks across various sectors (similar to the S&P 500) over a 2-year period. 
+Within this timeframe, incorporate a financial crisis lasting a few weeks in the middle of the period. 
 
-Your simulation should:
-- Include sudden volatility spikes, market jumps, and heavy-tailed returns.
-- Reflect periods of extreme uncertainty and rapid price changes.
+Your simulation should capture:
+Sudden volatility spikes, market jumps, and heavy-tailed returns.
+Periods of extreme uncertainty and rapid price changes.
+Realistic correlations among stocks, particularly reflecting sector-based dependencies.
 
-After generating the data, apply the Black-Scholes Merton model to price options based on this simulated data.  
+After generating the simulated data, apply the Black-Scholes Merton model to price call options—focusing specifically on the impact of varying strike prices. 
 
-What conclusions can be made?
+Provide visualizations that illustrate:
+The evolution of stock prices, highlighting the crisis period.
+Volatility patterns and any market jumps.
+The correlation structure among different sectors.
+The pricing behavior of call options during both normal and crisis conditions.
+
+Finally, analyze how the crisis impacts option pricing and discuss any limitations or insights regarding the model's performance under extreme market conditions.
 """
 
 cmbagent.solve(task,
