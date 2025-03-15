@@ -28,7 +28,12 @@ dependencies = [
     "classy_sz",
     "ruamel.yaml",
     "pandas",
-    "ipython"
+    "ipython",
+    "ag2 @ git+https://github.com/CMBAgents/ag2.git@cmbagent#egg=ag2",
+    "shapely",
+    "xgboost",
+    "statsmodels",
+    "ImageMagick"
 ]
 
 [tool.setuptools.package-data]
