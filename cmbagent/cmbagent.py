@@ -123,6 +123,7 @@ class CMBAgent:
                  agent_llm_configs = default_agent_llm_configs,
                  agent_type = 'swarm',# None,# 'swarm',
                  shared_context = shared_context_default,
+                 work_dir = work_dir_default,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
@@ -208,7 +209,7 @@ class CMBAgent:
 
         self.verbose = verbose
 
-        self.work_dir = work_dir_default
+        self.work_dir = work_dir
         # Clear everything inside work_dir if it exists
         self.clear_work_dir()
         
