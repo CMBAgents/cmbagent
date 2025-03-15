@@ -2,13 +2,19 @@
 
 # cmbagent
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431) <a href="https://colab.research.google.com/github/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_colab_demo.ipynb" target="_parent">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
+
 
 Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://github.com/ag2ai/ag2).
 
 **Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
 
-This is **open-source research-ready software**.  Please **star the  repo ⭐ and cite [Laverick et al (2024)](#reference)**.  
+Try **cmbagent** in [Colab](https://colab.research.google.com/github/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_colab_demo.ipynb)!  
+
+This is **open-source research-ready software**.  Please **star the  repo ⭐ and cite [Laverick et al (2024)](#reference)**. 
+
 
 - This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
