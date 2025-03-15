@@ -8,10 +8,10 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1post2"
+version = "Beta2"
 name = "cmbagent"
-maintainers = [{name = "CMBAgents Team", email = "cmbagents@gmail.com"}]
-description = "Multi-agent system for data analysis, made by cosmologists, powered by autogen."
+maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
+description = "multi-agent system for autonomous discovery, made by cosmologists, powered by ag2"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.6"  # Specify the Python version requirement here
 dependencies = [
