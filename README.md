@@ -137,7 +137,6 @@ cd ..
 git clone https://github.com/CMBAgents/cmbagent.git
 cd cmbagent
 pip install -e .
-pip install -r requirements.txt
 ```
 
 ## Getting the RAG data
