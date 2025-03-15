@@ -32,7 +32,10 @@ dependencies = [
     "cmbagent-autogen @ git+https://github.com/CMBAgents/ag2.git@cmbagent#egg=cmbagent-autogen",
     "shapely",
     "statsmodels",
-    "kaleido"
+    "kaleido",
+    "vertexai",
+    "jsonschema",
+    "jsonref",
 ]
 
 [tool.setuptools.package-data]
