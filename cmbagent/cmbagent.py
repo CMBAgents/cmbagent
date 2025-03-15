@@ -525,7 +525,7 @@ class CMBAgent:
             this_shared_context.update(shared_context)
         
 
-        self.clear_cache()
+        self.clear_cache() ## obsolete
         self.clear_work_dir()
 
         # Define full paths
@@ -864,7 +864,8 @@ class CMBAgent:
 
 
     def clear_cache(self):
-        autogen.Completion.clear_cache(self.cache_seed)
+        # return None
+        autogen.Completion.clear_cache(self.cache_seed) ## obsolete AttributeError: module 'autogen' has no attribute 'Completion'
 
 
 
