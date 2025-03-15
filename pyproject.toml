@@ -39,6 +39,8 @@ dependencies = [
     "google-auth",
     "pillow",
     "jsonschema",
+    "jsonref==1.1.0",
+    "vertexai==1.71.1"
 ]
 
 [tool.setuptools.package-data]
