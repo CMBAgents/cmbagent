@@ -1,5 +1,6 @@
 import os
 import subprocess
+from autogen.cmbagent_utils import cmbagent_debug
 
 # Base URL for the repository containing the data
 REPO_URL = "https://github.com/CMBAgents/cmbagent_data.git"
@@ -30,14 +31,16 @@ def set_and_get_rag_data():
             print(f"Directory {path_to_cmbagent_data} does not exist. Falling back to default path.")
             path_to_cmbagent_data = None
     else:
-        print("CMBAGENT_DATA not set.")
+        if cmbagent_debug:
+            print("CMBAGENT_DATA not set.")
 
     # If no valid path is set or if the path didn't exist, fall back to the default
     if not path_to_cmbagent_data:
         home_dir = os.path.expanduser("~")
         # path_to_cmbagent_data = os.path.join(home_dir, "cmbagent_data")
         path_to_cmbagent_data = home_dir
-        print(f"Defaulting to: {home_dir}")
+        if cmbagent_debug:
+            print(f"Defaulting to: {home_dir}")
 
     # Now check if the cmbagent_data directory exists
     if os.path.exists(path_to_cmbagent_data):
