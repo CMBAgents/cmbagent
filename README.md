@@ -141,13 +141,16 @@ pip install -e .
 
 ## Getting the RAG data
 
+If you ignore this, it is OK, just note that `cmbagent_data` will go into your `$HOME`.
+
 If you are a cosmologist, there is already some RAG files for you to play with. 
 If you are not a cosmologist, just modify the code/documents so it does RAG on your own documents of interest. It's pretty straightforward. 
 
 Then, do this:
 
 ```bash
-export CMBAGENT_DATA=/where/you/want/the/data
+git clone https://github.com/CMBAgents/cmbagent_data.git
+export CMBAGENT_DATA=/where/you/have/cloned/cmbagent_data
 ```
 
 Note that you need to set the `CMBAGENT_DATA` environment variable accordingly before using `cmbagent` 
