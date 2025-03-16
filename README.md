@@ -189,7 +189,7 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 
 Check the [demos](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks). 
 
-## Cosmology example:
+## Cosmology example
 
 ```
 task = """
@@ -199,7 +199,8 @@ Provide a gif of the matter power spectrum varying z between 0 and 20, showing t
 
 Result:
 
-![matter_power_spectrum](https://github.com/user-attachments/assets/304828cb-617b-4704-8b30-6d53b5f378a2)
+<img src="https://github.com/user-attachments/assets/304828cb-617b-4704-8b30-6d53b5f378a2" alt="matter_power_spectrum" width="400" />
+
 
 (Note: after $z=5$, the matter pk is approximated by linear pk, as this is out of the range of emulators.)
 
