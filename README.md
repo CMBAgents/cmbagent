@@ -191,13 +191,15 @@ Check the [demos](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks
 
 ## Cosmology example
 
+**Task:** 
+
 ```
-task = """
+"""
 Provide a gif of the matter power spectrum varying z between 0 and 20, showing the scale where non-linear effects become important
 """
 ```
 
-Result:
+**Result:**
 
 <img src="https://github.com/user-attachments/assets/304828cb-617b-4704-8b30-6d53b5f378a2" alt="matter_power_spectrum" width="400" />
 
