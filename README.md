@@ -89,7 +89,7 @@ cmbagent = CMBAgent(make_vector_stores=['name_of_agent'])
 
 ## API Keys
 
-Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
+Before you can use cmbagent, you need to set your OpenAI API key as an environment variable. Do this in a terminal, before launching Jupyter-lab.
 
 For Unix-based systems (Linux, macOS):
 
