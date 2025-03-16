@@ -125,7 +125,7 @@ By default, cmbagent uses models from oai/anthropic/google. If you want to pick 
 Before installing cmbagent, create a virtual environment (we use python3.12): 
 
 ```bash
-python -m venv /path/to/your/envs/cmbagent_env
+python3.12 -m venv /path/to/your/envs/cmbagent_env
 source /path/to/your/envs/cmbagent_env/bin/activate
 ```
 
