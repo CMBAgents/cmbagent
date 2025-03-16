@@ -9,8 +9,6 @@
 
 Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://github.com/ag2ai/ag2).
 
-**Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
-
 Try **cmbagent** in [Colab](https://colab.research.google.com/github/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_colab_demo.ipynb)!  
 
 This is **open-source research-ready software**.  Please **star the  repo ⭐ and cite [Laverick et al (2024)](#reference)**. 
@@ -28,6 +26,23 @@ This is **open-source research-ready software**.  Please **star the  repo ⭐ an
 
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. 
+
+## Stategy
+
+**Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
+
+You give a task to solve, then:
+
+**Planing**
+
+- A plan is designed from a conversation between a planner and a plan reviewer.
+- Once the number of feedbacks (reviews) is exhausted the plan is recorded in context and **cmbagent** switches to **control**.
+
+**Control**
+
+- The plan is executed **step-by-step**.
+- Sub-tasks are handed over to a single agent in each step.
+- Reverts to admin (i.e., you) after final step of plan is completed. 
 
 ## Run
 
