@@ -131,7 +131,7 @@ def push_vector_stores(cmbagent_instance, make_vector_stores, chunking_strategy,
 
         # print('calling client.beta.vector_stores.create')
         # Create a vector store called "planck_store"
-        vector_store = client.beta.vector_stores.create(name=vector_store_name,
+        vector_store = client.vector_stores.create(name=vector_store_name,
                                                         chunking_strategy=chunking_strategy)
 
         # print('created vector store with id: ',vector_store.id)
@@ -167,7 +167,7 @@ def push_vector_stores(cmbagent_instance, make_vector_stores, chunking_strategy,
 
         # Use the upload and poll SDK helper to upload the files, add them to the vector store,
         # and poll the status of the file batch for completion.
-        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+        file_batch = client.vector_stores.file_batches.upload_and_poll(
                 vector_store_id=vector_store.id,
                 files=file_streams
                 )
