@@ -264,6 +264,12 @@ cmbagent.solve(task,
 
 <img src="https://github.com/user-attachments/assets/ac0a6064-167a-46f4-9cf3-e3f4088b0367" alt="harmonic_oscillator_gemini" width="400" />
 
+**Result with claude-3-7-sonnet-20250219**
+
+<img src="https://github.com/user-attachments/assets/9364b246-6a7e-4b8e-9cee-073827018f24" alt="harmonic_oscillator_claude" width="800" />
+
+*Maybe the best output on this task, but axis limits are questionable on the left panel.*
+
 
 ## Acknowledgments
 
