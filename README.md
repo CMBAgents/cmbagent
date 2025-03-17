@@ -6,28 +6,23 @@
     <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
-
 Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://github.com/ag2ai/ag2).
 
 Try **cmbagent** in [Colab](https://colab.research.google.com/github/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_colab_demo.ipynb)!  
 
 This is **open-source research-ready software**.  Please **star the  repo ⭐ and cite [Laverick et al (2024)](#reference)**. 
 
-
-- This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
-
 - Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
 
-- Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard). (We like gemini, gpt-4o/4.5/o3, claude ––see [our examples](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks)).
+- Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard). (We like Gemini, GPT-4o/4.5/o3, Claude. see [our examples](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).)
 
 - Currently, RAG agents use `file_search` on OpenAI vector stores.
 
 > Note: Please fork and contribute to the repo. We give access to our top-tier OpenaAI, Anthropic and Cloud organizations to our top contributors.
 
-
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. 
 
-## Stategy
+## Strategy
 
 **Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
 
@@ -42,7 +37,7 @@ You give a task to solve, then:
 
 - The plan is executed **step-by-step**.
 - Sub-tasks are handed over to a single agent in each step.
-- Reverts to admin (i.e., you) after final step of plan is completed. 
+
 
 ## Run
 
@@ -117,7 +112,24 @@ export GEMINI_API_KEY="AI...." ## optional
 
 For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and the same command.
 
-By default, cmbagent uses models from oai/anthropic/google. If you want to pick different llms, just adapat `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
+By default, cmbagent uses models from oai/anthropic/google. If you want to pick different LLMs, just adapat `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
+
+
+## Key features from AG2
+
+These features are based on [AG2](https://github.com/ag2ai/ag2). 
+
+- Multi-LLM multi-agent system
+- Tool calls
+- Retrieval Augmented Generation
+- Structured output
+- Swarm 
+- No human-in-the-loop
+- Local code development and execution
+
+Check [our examples](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks) and try **cmbagent** in [Colab](https://colab.research.google.com/github/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_colab_demo.ipynb)!  
+
+
 
 ## Reference
 
@@ -151,6 +163,18 @@ Clone and install our package from GitHub.
 ```bash
 git clone https://github.com/CMBAgents/cmbagent.git
 cd cmbagent
+pip install -e .
+```
+That's it!
+
+## Developing
+
+If you want to develop the package, you should also install in editable mode 
+
+```bash
+git https://github.com/CMBAgents/ag2.git
+cd ag2
+git checkout before_gemini_modif
 pip install -e .
 ```
 
@@ -210,7 +234,7 @@ Provide a gif of the matter power spectrum varying z between 0 and 20, showing t
 
 ## Acknowledgments
 
-Our project is funded by the [Cambridge Centre for Data-Driven Discovery Accelerate Programme](https://science.ai.cam.ac.uk). We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](https://github.com/ag2ai/ag2).
+Our project is funded by the [Cambridge Centre for Data-Driven Discovery Accelerate Programme](https://science.ai.cam.ac.uk). We are grateful to [Mark Sze](https://github.com/marklysze) for help with [AG2](https://github.com/ag2ai/ag2).
 
 
 
