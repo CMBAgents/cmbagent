@@ -1,7 +1,7 @@
 import os
 from cmbagent.base_agent import BaseAgent
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 class ClassySzResponseFormatterAgent(BaseAgent):
     
@@ -21,47 +21,35 @@ class ClassySzResponseFormatterAgent(BaseAgent):
 
 
     class PythonCode(BaseModel):
-        code: Optional[str] = Field(None, description="The Python code retrieved or generated")
+        code: Optional[str] = Field(None, description="The draft of the Python code needed for classy_sz")
 
     class ClassySzResponse(BaseModel):
 
         file_search_task: str = Field(
             ...,
-            description="{retrieval task details}"
+            description="Details of the file search task."
         )
-        file_consulted: str = Field(
+        file_consulted: List[str] = Field(
             ...,
-            description="{files}"
+            description="List of files consulted during the task."
         )
         results: str = Field(
             ...,
-            description="{results of the search}"
+            description="Results of the file search."
         )
         
-        python_code: "ClassySzResponseFormatterAgent.PythonCode" = Field(..., description="The Python code block")
+        python_code: "ClassySzResponseFormatterAgent.PythonCode" = Field(..., description="Python code snippet related to the task.")
 
         def format(self) -> str:
-            python_code = self.python_code.code or "No code provided."
-            return f"""
-**File Search Task:**
-
-{self.file_search_task}
-
-**File Consulted:**
-
-{self.file_consulted}
-
-**Results:**
-
-{self.results}
-
-
-**Python Code:**
-
-```python
-{python_code}
-```
-    """
+            # Format the list of consulted files as a bullet list.
+            consulted_files = "\n".join(f"- {file}" for file in self.file_consulted)
+            code_text = self.python_code.code or "No code provided."
+            return (
+                f"**File Search Task:**\n\n{self.file_search_task}\n\n"
+                f"**Files Consulted:**\n{consulted_files}\n\n"
+                f"**Results:**\n{self.results}\n\n"
+                f"**Rough Python Code:**\n\n```python\n{code_text}\n```"
+            )
 
 
 

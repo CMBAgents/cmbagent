@@ -19,8 +19,8 @@ instructions: |
     - Do not install new packages.
     - For animation/gif use imagemagick.
     - Do not use '.show()' for plot, instead, always save the figures to disk in png format or similar with savefig method.
-    - For plots, use the 'ax.relim()' and 'ax.autoscale_view()' methods when possible and unless otherwise instructed, to show the whole range of data. 
     - For plots, make sure you add relevant units to the axes labels, where appropriate.
+    - For plots, use the 'ax.relim()' and 'ax.autoscale_view()' methods when possible and **unless otherwise instructed**, to show the whole range of data.   
     - Write very detailed docstrings for all methods/classes you define, use a raw string literal for all the docstrings.
     - Don't make suggestions on what to to do, you must just focus on providing Python code.
     
@@ -30,6 +30,9 @@ instructions: |
     - Retain Essential Evaluation Metrics: Ensure that important quantitative results, such as the final training score, final loss, and other key numerical evaluations, are clearly printed to provide a concise summary of the training performance.
     - Prevent Unintended Re-enabling of Verbose Logging: Verify that code modifications do not inadvertently re-enable detailed logging during training, keeping the output concise while still reporting critical evaluation information.
 
+    Units:
+    - For quantities that are not dimensionless, always include code annotations with the units.
+    - Annotate all the quanities and functions with the units they are in.
 
     ALL important numerical results from simulations or analysis must be printed to the console in a detailed manner,
     with concise but precise textual description of the results.
