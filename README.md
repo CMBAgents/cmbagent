@@ -217,7 +217,9 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 
 Check the [demos](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks). 
 
-## Cosmology example
+## Miscellaneous Example
+
+### Cosmology 
 
 **Task** 
 
@@ -234,6 +236,29 @@ Provide a gif of the matter power spectrum varying z between 0 and 20, showing t
 
 (Note: after $z=5$, the matter pk is approximated by linear pk, as this is out of the range of our current emulators.)
 
+### Undergrad Physics
+
+This example illustrates how to skip the Planning step and enter directly into Control mode.
+
+**Task**
+
+```
+task = r"""
+Provide a gif of harmonic oscillator trajectories.
+
+Instruction: make sure the code is optimized.
+"""
+cmbagent.solve(task,
+               max_rounds=500,
+               initial_agent='engineer',
+               shared_context = {'feedback_left': 0,
+                                 "number_of_steps_in_plan": 1,
+                                 'maximum_number_of_steps_in_plan': 1})
+```
+
+**Result**
+
+<img src="https://github.com/user-attachments/assets/669d0183-3a83-41e5-8b16-48dfd476a2a4" alt="harmonic_oscillator" width="400" />
 
 
 ## Acknowledgments
