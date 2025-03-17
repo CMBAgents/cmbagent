@@ -28,7 +28,7 @@ We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under act
 
 You give a task to solve, then:
 
-**Planing**
+**Planning**
 
 - A plan is designed from a conversation between a planner and a plan reviewer.
 - Once the number of feedbacks (reviews) is exhausted the plan is recorded in context and **cmbagent** switches to **control**.
