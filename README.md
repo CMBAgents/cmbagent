@@ -22,7 +22,7 @@ This is **open-source research-ready software**.  Please **star the  repo ⭐ an
 
 - Currently, RAG agents use `file_search` on OpenAI vector stores.
 
-> Note: Please fork and contribute to the repo. We give access to our top-tier OpenaAI, Anthropic and Cloud organizations to our top contributors.
+> Note: Please fork and contribute to the repo. We give access to our top-tier OpenAI, Anthropic and Cloud organizations to our top contributors.
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. 
 
