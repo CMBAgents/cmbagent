@@ -268,7 +268,7 @@ cmbagent.solve(task,
 
 <img src="https://github.com/user-attachments/assets/9364b246-6a7e-4b8e-9cee-073827018f24" alt="harmonic_oscillator_claude" width="800" />
 
-*Maybe the best output on this task, but axis limits are questionable on the left panel.*
+*Not bad, but axis limits are questionable on the left panel.*
 
 
 ## Acknowledgments
