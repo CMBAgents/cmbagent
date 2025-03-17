@@ -256,7 +256,7 @@ cmbagent.solve(task,
                                  'maximum_number_of_steps_in_plan': 1})
 ```
 
-**Result with o3-mini-high**
+**Result with o3-mini-2025-01-31**
 
 <img src="https://github.com/user-attachments/assets/669d0183-3a83-41e5-8b16-48dfd476a2a4" alt="harmonic_oscillator" width="400" />
 
