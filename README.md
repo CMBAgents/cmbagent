@@ -256,9 +256,13 @@ cmbagent.solve(task,
                                  'maximum_number_of_steps_in_plan': 1})
 ```
 
-**Result**
+**Result with o3-mini-high**
 
 <img src="https://github.com/user-attachments/assets/669d0183-3a83-41e5-8b16-48dfd476a2a4" alt="harmonic_oscillator" width="400" />
+
+**Result with gemini-2.0-pro-exp-02-05**
+
+<img src="https://github.com/user-attachments/assets/ac0a6064-167a-46f4-9cf3-e3f4088b0367" alt="harmonic_oscillator_gemini" width="400" />
 
 
 ## Acknowledgments
