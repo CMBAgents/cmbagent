@@ -1,5 +1,7 @@
 <img width="460" alt="Screenshot 2025-03-17 at 01 33 18" src="https://github.com/user-attachments/assets/aa7720ed-f779-4212-a9c8-b51f3cc13be0" />
 
+[![Subscribe on YouTube](https://img.shields.io/badge/YouTube-Subscribe-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/@cmbagent)
+
 # cmbagent
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431) <a href="https://colab.research.google.com/github/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_colab_demo.ipynb" target="_parent">
