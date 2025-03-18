@@ -260,13 +260,44 @@ cmbagent.solve(task,
 
 **Result with o3-mini-2025-01-31 [high]**
 
+Set-up with:
+
+```
+cmbagent = CMBAgent(agent_llm_configs = {
+                    'engineer': {
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "high"
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai"}})
+```
+
 <img src="https://github.com/user-attachments/assets/669d0183-3a83-41e5-8b16-48dfd476a2a4" alt="harmonic_oscillator" width="400" />
 
 **Result with gemini-2.0-pro-exp-02-05**
 
+Set-up with:
+
+```
+cmbagent = CMBAgent(agent_llm_configs = {
+                    'engineer': {
+                        "model": "gemini-2.0-pro-exp-02-05",
+                        "api_key": os.getenv("GEMINI_API_KEY"),
+                        "api_type": "google"}})
+```
+
 <img src="https://github.com/user-attachments/assets/ac0a6064-167a-46f4-9cf3-e3f4088b0367" alt="harmonic_oscillator_gemini" width="400" />
 
 **Result with claude-3-7-sonnet-20250219**
+
+Set-up with:
+
+```
+cmbagent = CMBAgent(agent_llm_configs = {
+                    'engineer': {
+                        "model": "claude-3-7-sonnet-20250219",
+                        "api_key": os.getenv("ANTHROPIC_API_KEY"),
+                        "api_type": "anthropic"}})
+```
 
 <img src="https://github.com/user-attachments/assets/9364b246-6a7e-4b8e-9cee-073827018f24" alt="harmonic_oscillator_claude" width="800" />
 
