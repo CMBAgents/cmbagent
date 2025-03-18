@@ -26,6 +26,8 @@ This is **open-source research-ready software**.  Please **star the  repo ⭐ an
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. 
 
+The backbone of [cmbagent](https://github.com/CMBAgents/cmbagent) is [AG2](https://github.com/ag2ai/ag2). Please star the [AG2](https://github.com/ag2ai/ag2) repo ⭐ and cite [Wu et al (2023)](https://arxiv.org/abs/2308.08155)!
+
 ## Strategy
 
 **Cmbagent** acts according to a **Planning and Control** strategy with **no human-in-the-loop**.
