@@ -14,7 +14,7 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 
 Try **cmbagent** in [Colab](https://colab.research.google.com/github/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_colab_demo.ipynb) and check our [demo video](https://www.youtube.com/watch?v=XE0Eu-tMpgs&t=1s) on YouTube!
 
-This is **open-source research-ready software**.  Please **star the  repo ⭐ and cite [Laverick et al (2024)](#reference)**. 
+This is **open-source research-ready software**.  **Please star the  repo ⭐ and cite [Laverick et al (2024)](#reference) to support our open-source work**. 
 
 - Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
 
@@ -26,7 +26,7 @@ This is **open-source research-ready software**.  Please **star the  repo ⭐ an
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. 
 
-**The backbone of [cmbagent](https://github.com/CMBAgents/cmbagent) is [AG2](https://github.com/ag2ai/ag2)**. Please star the [AG2](https://github.com/ag2ai/ag2) repo ⭐ and cite [Wu et al (2023)](https://arxiv.org/abs/2308.08155)!
+**The backbone of [cmbagent](https://github.com/CMBAgents/cmbagent) is [AG2](https://github.com/ag2ai/ag2)**. **Please star the [AG2](https://github.com/ag2ai/ag2) repo ⭐ and cite [Wu et al (2023)](https://arxiv.org/abs/2308.08155)!**
 
 ## Strategy
 
