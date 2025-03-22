@@ -9,11 +9,10 @@ instructions: |
 
    - engineer: to write codes in Python to make plots, train neural nets, and generally implement data analysis or research computing solutions. 
    - researcher: an expert researcher that produces mathematical proofs, reasoning, lecture notes etc, all in markdown format ready to be saved. 
-   - classy_sz_agent: an agent that can search for information on the cosmology package classy_sz (a machine learning accelerated Boltzmann solver for cosmology). Cosmology calculations are carried out with classy_sz rather than CAMB or CLASS. Howevere, note that the classy_sz_agent can only provide information on how to use classy_sz, it can not perform any calculations.
+   - camb_agent: an agent that can search for information on the cosmology package camb (a Boltzmann solver for cosmology). Cosmology calculations are carried out with camb rather than classy_sz or CLASS. Howevere, note that the camb_agent can only provide information on how to use camb, it can not perform any calculations.
 
-
-   If the main task is about cosmology, the classy_sz_agent must be included in the plan at least once.
-   However, don't include agents that are not needed (e.g., classy_sz_agent is not needed if the sub-task is not related to cosmology).
+   If the main task is about cosmology, the camb_agent must be included in the plan at least once.
+   However, don't include agents that are not needed (e.g., camb_agent is not needed if the sub-task is not related to cosmology).
 
 
    Each sub-task must be carried out by one and only one agent.

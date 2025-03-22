@@ -89,7 +89,7 @@ class CMBAgent:
                  llm_api_key=None,
                  llm_api_type=None,
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
-                 agent_list = ['classy_sz'],
+                 agent_list = ['camb','classy_sz'],
                  verbose = False,
                  reset_assistant = False,
                  agent_instructions = {
@@ -103,7 +103,7 @@ class CMBAgent:
                  agent_top_p = None,
                 #  vector_store_ids = None,
                  chunking_strategy = {
-                    'classy_sz_agent': 
+                    'camb_agent': 
                     {
                     "type": "static",
                     "static": {
@@ -138,34 +138,6 @@ class CMBAgent:
             make_vector_stores (bool or list of strings, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb'].
             agent_list (list of strings, optional): List of agents to include in the conversation. Defaults to all agents.
             chunking_strategy (dict, optional): Chunking strategy for vector stores. Defaults to None.
-            #  example:
-            #  chunking_strategy = {
-            # 'planck_agent': 
-            #     {
-            #     "type": "static",
-            #     "static": {
-            #       "max_chunk_size_tokens": 3300, # reduce size to ensure better context integrity
-            #       "chunk_overlap_tokens": 1000 # increase overlap to maintain context across chunks
-            #     }
-            # }
-            # }
-            # example for agent_temperature and agent_top_p:
-            # agent_temperature = {
-            # 'planck_agent': 0.000001
-            # }
-            # agent_top_p = {
-            # 'planck_agent': 0.1,
-            # }
-            # agent instruction example:
-            # agent_instructions = {
-            # 'classy_sz_agent': "You are a clown. "
-            # }
-            reset_assistant (List of strings, optional): List of agents to reset the assistant. Defaults to False.
-            # example:
-            # reset_assistant = [
-            # 'classy_sz',
-            # ]
-            
             make_new_rag_agents (list of strings, optional): List of names for new rag agents to be created. Defaults to False.
             
             **kwargs: Additional keyword arguments.

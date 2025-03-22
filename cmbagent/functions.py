@@ -24,6 +24,8 @@ def register_functions_to_agents(cmbagent_instance):
     engineer_response_formatter = cmbagent_instance.get_agent_from_name('engineer_response_formatter')
     classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')
     classy_sz_response_formatter = cmbagent_instance.get_agent_from_name('classy_sz_response_formatter')
+    camb = cmbagent_instance.get_agent_from_name('camb_agent')
+    camb_response_formatter = cmbagent_instance.get_agent_from_name('camb_response_formatter')
     executor = cmbagent_instance.get_agent_from_name('executor')
     control = cmbagent_instance.get_agent_from_name('control')
     admin = cmbagent_instance.get_agent_from_name('admin')

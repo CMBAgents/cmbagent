@@ -18,6 +18,8 @@ def register_all_hand_offs(cmbagent_instance):
     engineer_response_formatter = cmbagent_instance.get_agent_object_from_name('engineer_response_formatter')
     classy_sz = cmbagent_instance.get_agent_object_from_name('classy_sz_agent')
     classy_sz_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_sz_response_formatter')
+    camb = cmbagent_instance.get_agent_object_from_name('camb_agent')
+    camb_response_formatter = cmbagent_instance.get_agent_object_from_name('camb_response_formatter')
     executor = cmbagent_instance.get_agent_object_from_name('executor')
     control = cmbagent_instance.get_agent_object_from_name('control')
     admin = cmbagent_instance.get_agent_object_from_name('admin')
@@ -35,6 +37,8 @@ def register_all_hand_offs(cmbagent_instance):
         print('\nengineer_response_formatter: ', engineer_response_formatter)
         print('\nclassy_sz: ', classy_sz)
         print('\nclassy_sz_response_formatter: ', classy_sz_response_formatter)
+        print('\ncamb: ', camb)
+        print('\ncamb_response_formatter: ', camb_response_formatter)
         print('\nexecutor: ', executor)
         print('\ncontrol: ', control)
         print('\nadmin: ', admin)
@@ -113,6 +117,23 @@ def register_all_hand_offs(cmbagent_instance):
             ),
             
         
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=camb.agent, 
+                condition="Need information on the cosmolology code camb.",
+                # available="review_recorded"
+            ),
+            
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=camb.agent, 
+                condition="Code execution failed and error message that seems to involve the cosmolology code CAMB specifically (like CAMBError), rather than a generic Python error.",
+                # available="review_recorded"
+            ),
 
             OnCondition( 
                 # condition (str): 
@@ -200,6 +221,21 @@ def register_all_hand_offs(cmbagent_instance):
     #classy_sz_response_formatter
     register_hand_off(
         agent = classy_sz_response_formatter.agent,
+        hand_to = 
+        [AfterWork(control.agent)])
+
+
+    #camb
+    register_hand_off(
+        agent = camb.agent,
+        hand_to = [
+            AfterWork(camb_response_formatter.agent),
+        ]
+    )
+
+    #camb_response_formatter
+    register_hand_off(
+        agent = camb_response_formatter.agent,
         hand_to = 
         [AfterWork(control.agent)])
 

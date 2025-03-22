@@ -146,6 +146,11 @@ default_agent_llm_configs = {
                         "api_key": os.getenv("OPENAI_API_KEY"), # use oai models here only (this is a RAG agent, with an oai vector store attached. If you are not a cosmologist, ignore this, you will never need this agent.
                         "api_type": "openai",
                         },
+                    'camb': {
+                        "model": "gpt-4o-2024-11-20",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
                     'planner': {
                         "model": "gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),
@@ -171,6 +176,11 @@ default_agent_llm_configs = {
                         },
 
                     "classy_sz_response_formatter": {
+                        "model": "gpt-4o",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    "camb_response_formatter": {
                         "model": "gpt-4o",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
