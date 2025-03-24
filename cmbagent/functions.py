@@ -5,6 +5,7 @@ import re
 import ast
 from autogen.cmbagent_utils import cmbagent_debug
 from IPython.display import Image as IPImage, display as ip_display
+from IPython.display import Markdown
 from autogen.cmbagent_utils import IMG_WIDTH
 
 
@@ -12,6 +13,8 @@ def register_functions_to_agents(cmbagent_instance):
     '''
     This function registers the functions to the agents.
     '''
+    task_recorder = cmbagent_instance.get_agent_from_name('task_recorder')
+    task_improver = cmbagent_instance.get_agent_from_name('task_improver')
     planner = cmbagent_instance.get_agent_from_name('planner')
     planner_response_formatter = cmbagent_instance.get_agent_from_name('planner_response_formatter')
     plan_recorder = cmbagent_instance.get_agent_from_name('plan_recorder')
@@ -30,6 +33,25 @@ def register_functions_to_agents(cmbagent_instance):
     control = cmbagent_instance.get_agent_from_name('control')
     admin = cmbagent_instance.get_agent_from_name('admin')
 
+
+
+    def record_improved_task(improved_main_task: str,  context_variables: dict) -> SwarmResult:
+        """
+        Records the improved main task.
+        """
+
+
+        context_variables["improved_main_task"] = improved_main_task
+
+        display(Markdown(improved_main_task))
+
+
+        return SwarmResult(agent=planner, ## transfer to planner
+                            values="Improved main task has been logged. Now, suggest a plan, planner!",
+                            context_variables=context_variables)
+
+
+    task_recorder._add_single_function(record_improved_task)
 
 
 

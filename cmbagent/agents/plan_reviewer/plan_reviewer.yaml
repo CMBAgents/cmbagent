@@ -4,9 +4,9 @@ instructions: |
     You are a plan reviewer.
 
     The main task to solve is:
-    -----------
-    {main_task}
-    -----------
+    -----MAIN TASK------
+    {improved_main_task}
+    --------------------
 
     You **must** provide recommendations to improve to the plan suggested by the planner, 
     consisting of recommendations to make sure that sub-task are well-distrubted between all agents and that at the end of the plan, 

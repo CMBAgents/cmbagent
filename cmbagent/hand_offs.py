@@ -6,6 +6,8 @@ def register_all_hand_offs(cmbagent_instance):
     if cmbagent_debug:
         print('\nregistering all hand_offs...')
 
+    task_improver = cmbagent_instance.get_agent_object_from_name('task_improver')
+    task_recorder = cmbagent_instance.get_agent_object_from_name('task_recorder')   
     planner = cmbagent_instance.get_agent_object_from_name('planner')
     planner_response_formatter = cmbagent_instance.get_agent_object_from_name('planner_response_formatter')
     plan_recorder = cmbagent_instance.get_agent_object_from_name('plan_recorder')
@@ -42,8 +44,24 @@ def register_all_hand_offs(cmbagent_instance):
         print('\nexecutor: ', executor)
         print('\ncontrol: ', control)
         print('\nadmin: ', admin)
+        print('\ntask_improver: ', task_improver)
 
-    #planner agent
+
+    #task_improver agent
+    register_hand_off(
+        agent = task_improver.agent,
+        hand_to = [
+            AfterWork(task_recorder.agent),
+        ]
+    )
+
+    #task_recorder agent
+    register_hand_off(
+        agent = task_recorder.agent,
+        hand_to = [
+            AfterWork(planner.agent),
+        ]
+    )
     register_hand_off(
         agent = planner.agent,
         hand_to = [

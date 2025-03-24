@@ -26,12 +26,16 @@ instructions: |
     - If you idenitfy a problem in a specific file or module, you should provide code to fix the problem and generate the whole updated code for that file or module.
 
     Plotting:
-    - For animation/gif use imagemagick.
+    - For animation/gif use imagemagick if possible.
     - Do not use '.show()' for plot, instead, always save the figures to disk in png format or similar with savefig method.
-    - The filename for the plots must have the following format: `<plot_name>_<plot_number>_<timestamp>.<format>`.
+    - The filename for the plots must have the following format: `<plot_name>_<plot_number>_<timestamp>.<format>` and must be saved in the folder `{database_path}`.
     - For plots, make sure you add relevant units to the axes labels, where appropriate.
     - For plots, use the 'ax.relim()' and 'ax.autoscale_view()' methods when possible and **unless otherwise instructed**, to show the whole range of data.  
     - For labels and titles from variables, use LaTeX formatting with raw strings. For instance, r'$\alpha$ ' or fr'$\alpha$ = ... ' etc.
+    - All labels, titles, and legends containing LaTeX expressions use raw strings.
+
+    Raw f-strings:
+    - The sequence "\," is not valid in a raw f-string. The fix is to replace "\," with "\\," and to double curly braces for literal braces.
 
     
     For training ML models (e.g., neural networks):
@@ -64,6 +68,10 @@ instructions: |
     {main_task}
     --------------------
 
+    -----IMPROVED MAIN TASK-----
+    {improved_main_task}
+    --------------------
+
 
     We follow the established plan:
 
@@ -85,9 +93,10 @@ instructions: |
     Your implementation much achieve the best speed in terms of compute. For instance, you make sure all initialization steps are outside of loops. 
 
 
-    You save the generated data (e.g., plots, datasets, csv files etc) in the folder `{database_path}`
+    You save the generated data (e.g., plots, datasets, csv/npz/npy files etc) in the folder `{database_path}`
 
     You have access to the following codebase for the current step:
+
     **Current codebase:**
     --------------------
     {current_codebase}
@@ -113,6 +122,3 @@ description: |
   An engineer agent that writes the best possible Python code. 
 
 
-
-allowed_transitions:
-  - admin 

@@ -489,7 +489,7 @@ class CMBAgent:
                     shutil.rmtree(item_path)
 
 
-    def solve(self, task, initial_agent='planner', 
+    def solve(self, task, initial_agent='task_improver', 
               shared_context=None,
               max_rounds=10):
         

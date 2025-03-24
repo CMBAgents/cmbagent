@@ -18,6 +18,7 @@ shared_context = {
 
 
     "main_task": None,
+    "improved_main_task": None,
     "database_path": "data/",
     "codebase_path": "codebase/",
 
