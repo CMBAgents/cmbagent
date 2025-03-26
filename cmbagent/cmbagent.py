@@ -89,7 +89,7 @@ class CMBAgent:
                  llm_api_key=None,
                  llm_api_type=None,
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
-                 agent_list = ['camb','classy_sz'],
+                 agent_list = ['camb','classy_sz','cobaya'],
                  verbose = False,
                  reset_assistant = False,
                  agent_instructions = {
@@ -513,6 +513,7 @@ class CMBAgent:
             agent.agent.reset()
 
         this_shared_context['main_task'] = task
+        this_shared_context['improved_main_task'] = task # initialize improved main task
 
         chat_result, context_variables, last_agent = initiate_swarm_chat(
             initial_agent=self.get_agent_from_name(initial_agent),
@@ -525,13 +526,25 @@ class CMBAgent:
         )
 
 
+
+
         self.final_context = copy.deepcopy(context_variables)
 
         self.last_agent = last_agent
         self.chat_result = chat_result
 
+        # template for one-shot eval
+        # Extract the task result from the chat history, assuming we are interested in the executor's output
+        try:
+            for obj in self.chat_result.chat_history:
+                if obj['name'] == 'executor':
+                    result = obj['content']
+                    break
+            self.task_result = result
+        except:
+            self.task_result = None
 
-
+        return self.task_result
             
 
         

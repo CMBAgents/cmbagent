@@ -1,0 +1,37 @@
+debug: false
+likelihood:
+  bao.desi_dr2: null
+  gaussian_mixture:
+    covs:
+    - - 6.8552146e-16
+      - 1.448686e-12
+      - -1.4105674e-11
+    - - 1.448686e-12
+      - 2.1344167e-08
+      - -1.1534501e-07
+    - - -1.4105674e-11
+      - -1.1534501e-07
+      - 1.697763e-06
+    input_params:
+    - thetastar
+    - ombh2
+    - omch2
+    means:
+    - - 0.0104103
+      - 0.02223
+      - 0.1192
+    output_params: []
+  sn.pantheon: null
+params:
+  As: 2.1e-09
+  H0: 67.36
+  ns: 0.9649
+  ombh2: 0.02237
+  omch2: 0.12
+  tau: 0.0544
+sampler:
+  evaluate: null
+theory:
+  camb:
+    stop_at_error: true
+timing: true

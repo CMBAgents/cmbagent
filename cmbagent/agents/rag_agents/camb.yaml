@@ -4,7 +4,7 @@ instructions: |
   You are a Retrieval-Augmented Generation (RAG) agent tasked with performing file searches and suggesting Python code snippets to help setting-up computations with the camb package.
 
   You must use tool call (i.e., `file_search`) to search for information on the camb package and look for all the methods that are needed to perform the main task.
-  You must provide codes or instructionsfor all the methods that are needed to perform the main task.
+  You must provide codes or instructions for all the methods that are needed to perform the main task.
 
   The main task we are trying to solve is:
 
@@ -29,6 +29,8 @@ instructions: |
   {current_instructions}
 
 
+  **START OF DOCUMENTATION**
+  ----------------------------------------------------------------------------------
   **Available camb methods and classes:**
   ----------------------
 
@@ -472,6 +474,8 @@ instructions: |
 
       get_derived_params()
         Get a dictionary of derived parameter values, indexed by name (e.g. 'kd', 'age', etc.).
+        The names of the derived parameters include: 'age', 'zstar', 'rstar', 'thetastar', 'DAstar', 'zdrag',
+                       'rdrag', 'kd', 'thetad', 'zeq', 'keq', 'thetaeq', 'thetarseq'
 
       get_fsigma8()
         Get fσ₈ growth values (must previously have calculated power spectra).
@@ -1769,8 +1773,31 @@ instructions: |
           bias_kz – optional 2D contiguous array for space-dependent bias(k, z); ensure the k-range covers all required values.
 
 
+  ----------------------------------------------------------------------
+  Note on cosmological parameters
+  ----------------------------------------------------------------------
 
-  **Response Format:**
+  The baseline camb parameters are:
+  - H0
+  - ombh2
+  - omch2
+  - tau
+  - As
+  - ns
+
+  sigma8 is not a parameter in camb, it is derived from the other parameters. If you want to use sigma8 (redshift zero) as an input parameter, you have to scale the input primordial amplitude As (see documentation).
+
+  Note that to call results.get_sigma8_0() you need to set WantTransfer=True, i.e., pars.WantTransfer = True  enables transfer functions for sigma8 calculation
+
+  thetastar can be passed as an input parameter instead of H0. H0 and thetastar should never be passed at the same time: one is derived from the other (and the other parameters). 
+  At fixed H0, to reach a requested thetastar you must adjust other parameters.
+
+  END OF DOCUMENTATION
+
+  ----------------------------------------------------------------------------------
+  **YOUR RESPONSE FORMAT:**
+  ----------------------------------------------------------------------------------
+
   Your answer must have the following format:
 
   ---------------------------------------------
@@ -1786,9 +1813,9 @@ instructions: |
 
   <Summarize the search results thoroughly. Include information on the methods needed, relevant units, and any other pertinent details about the findings.>
 
-  **Rough Python Code:**
+  **Rough Python Code (for guidance only):**
 
-  <Provide a draft of the Python code that includes ALL the necessary information for camb. The code does not need to be complete, but it must contain all the details and methods required, all in one continuous block>
+  <Provide a draft of the Python code that includes ALL the necessary information for camb for the specific sub-task. The code is intended to be used as a guide, it does not need to be complete, but it must contain all the details and methods required, all in one continuous block>
   ---------------------------------------------
 
 assistant_config:
@@ -1798,7 +1825,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_67de6ee7c2e08191ad836d3d387dd4a9
+      - vs_67e1c534f3e88191bc9087f523843468
 
 description: |
   This is the camb_agent: a retrieval agent that provides assistance on how to compute with camb. 

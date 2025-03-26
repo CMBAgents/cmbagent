@@ -151,6 +151,11 @@ default_agent_llm_configs = {
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
+                    'cobaya': {
+                        "model": "gpt-4o-2024-11-20",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
                     'task_improver': {
                         "model": "o3-mini-2025-01-31",
                         "reasoning_effort": "high",
@@ -192,6 +197,11 @@ default_agent_llm_configs = {
                         "api_type": "openai",
                         },
                     "camb_response_formatter": {
+                        "model": "gpt-4o",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    "cobaya_response_formatter": {
                         "model": "gpt-4o",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",

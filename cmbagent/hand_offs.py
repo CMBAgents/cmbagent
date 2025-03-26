@@ -22,6 +22,8 @@ def register_all_hand_offs(cmbagent_instance):
     classy_sz_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_sz_response_formatter')
     camb = cmbagent_instance.get_agent_object_from_name('camb_agent')
     camb_response_formatter = cmbagent_instance.get_agent_object_from_name('camb_response_formatter')
+    cobaya = cmbagent_instance.get_agent_object_from_name('cobaya_agent')
+    cobaya_response_formatter = cmbagent_instance.get_agent_object_from_name('cobaya_response_formatter')
     executor = cmbagent_instance.get_agent_object_from_name('executor')
     control = cmbagent_instance.get_agent_object_from_name('control')
     admin = cmbagent_instance.get_agent_object_from_name('admin')
@@ -41,6 +43,8 @@ def register_all_hand_offs(cmbagent_instance):
         print('\nclassy_sz_response_formatter: ', classy_sz_response_formatter)
         print('\ncamb: ', camb)
         print('\ncamb_response_formatter: ', camb_response_formatter)
+        print('\ncobaya: ', cobaya)
+        print('\ncobaya_response_formatter: ', cobaya_response_formatter)
         print('\nexecutor: ', executor)
         print('\ncontrol: ', control)
         print('\nadmin: ', admin)
@@ -134,7 +138,26 @@ def register_all_hand_offs(cmbagent_instance):
                 # available="review_recorded"
             ),
             
-        
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=cobaya.agent, 
+                condition="Need information on the cosmolology code cobaya.",
+                # available="review_recorded"
+            ),
+            
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=cobaya.agent, 
+                condition="Code execution failed and error message that seems to involve the cosmolology code cobaya specifically, rather than a generic Python error.",
+                # available="review_recorded"
+            ),
+
+
+
             OnCondition( 
                 # condition (str): 
                 # The condition for transitioning to the target agent, 
@@ -143,7 +166,18 @@ def register_all_hand_offs(cmbagent_instance):
                 condition="Need information on the cosmolology code camb.",
                 # available="review_recorded"
             ),
-            
+
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=camb.agent, 
+                condition="Code execution failed and error message from COBAYA but which refers to the cosmolology code CAMB specifically.",
+                # available="review_recorded"
+            ),
+
+
+
             OnCondition( 
                 # condition (str): 
                 # The condition for transitioning to the target agent, 
@@ -176,8 +210,8 @@ def register_all_hand_offs(cmbagent_instance):
                 # condition (str): 
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=admin.agent, 
-                condition="All steps in the plan have been fully implemented. Revert to user.",
+                target=control.agent, 
+                condition="All steps in the plan have been fully implemented. Terminate.",
                 # available="code_approved"
             ),
 
@@ -208,7 +242,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # available="code_approved"
             ),
             
-            AfterWork(AfterWorkOption.STAY), # Handles the next step in the conversation when an agent doesn't suggest a tool call or a handoff
+            AfterWork(AfterWorkOption.TERMINATE), # Handles the next step in the conversation when an agent doesn't suggest a tool call or a handoff
             # AFTER_WORK(plan_manager)
         ]
     )
@@ -242,6 +276,20 @@ def register_all_hand_offs(cmbagent_instance):
         hand_to = 
         [AfterWork(control.agent)])
 
+
+    #cobaya
+    register_hand_off(
+        agent = cobaya.agent,
+        hand_to = [
+            AfterWork(cobaya_response_formatter.agent),
+        ]
+    )
+
+    #camb_response_formatter
+    register_hand_off(
+        agent = cobaya_response_formatter.agent,
+        hand_to = 
+        [AfterWork(control.agent)])
 
     #camb
     register_hand_off(

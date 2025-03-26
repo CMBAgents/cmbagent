@@ -3,13 +3,13 @@ from cmbagent.base_agent import BaseAgent
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
-class CambResponseFormatterAgent(BaseAgent):
+class CobayaResponseFormatterAgent(BaseAgent):
     
     def __init__(self, llm_config=None, **kwargs):
 
         agent_id = os.path.splitext(os.path.abspath(__file__))[0]
 
-        llm_config['config_list'][0]['response_format'] = self.CambResponse
+        llm_config['config_list'][0]['response_format'] = self.CobayaResponse
 
         super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
 
@@ -21,9 +21,9 @@ class CambResponseFormatterAgent(BaseAgent):
 
 
     class PythonCode(BaseModel):
-        code: Optional[str] = Field(None, description="The draft of the Python code needed for camb")
+        code: Optional[str] = Field(None, description="The draft of the Python code needed for cobaya")
 
-    class CambResponse(BaseModel):
+    class CobayaResponse(BaseModel):
 
         file_search_task: str = Field(
             ...,
@@ -38,7 +38,7 @@ class CambResponseFormatterAgent(BaseAgent):
             description="Results of the file search."
         )
         
-        python_code: "CambResponseFormatterAgent.PythonCode" = Field(..., description="Python code snippet related to the task (for guidance only).")
+        python_code: "CobayaResponseFormatterAgent.PythonCode" = Field(..., description="Python code snippet related to the task (for guidance only).")
 
         def format(self) -> str:
             # Format the list of consulted files as a bullet list.

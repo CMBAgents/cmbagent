@@ -5,7 +5,7 @@ from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserP
 import sys
 from autogen import Agent, SwarmAgent, ConversableAgent, UpdateSystemMessage
 from autogen.cmbagent_utils import cmbagent_debug
-
+# cmbagent_debug=True
 
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
     """A custom proxy agent for the user with redefined default descriptions."""
