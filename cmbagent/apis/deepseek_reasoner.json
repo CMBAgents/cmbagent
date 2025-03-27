@@ -1,0 +1,9 @@
+[
+  {
+    "model": "deepseek-reasoner",
+    "api_key": "sk-f2dc9949b6b149db8119e683db8d5e4b",
+    "api_type": "deepseek",
+    "base_url": "https://api.deepseek.com/v1"
+  }
+]
+

@@ -1,0 +1,10 @@
+name: "plan_recorder"
+
+instructions: |
+    Don't respond. You must call your tool record_plan to record the plan.
+
+
+description: |
+    Plan recorder agent, to record the plan.
+
+

@@ -9,7 +9,7 @@ from autogen.coding import LocalCommandLineCodeExecutor
 import autogen as autogen
 from autogen import AssistantAgent
 # from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent 
-
+from autogen.cmbagent_utils import cmbagent_debug
 from autogen import UserProxyAgent, config_list_from_json, GroupChat
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
@@ -21,6 +21,7 @@ import importlib
 import sys
 
 import logging
+from ruamel.yaml import YAML
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
@@ -30,26 +31,35 @@ logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
 
 # Get the path of the current file
 path_to_basedir = os.path.dirname(os.path.abspath(__file__))
+if cmbagent_debug:
+    print('path_to_basedir: ', path_to_basedir)
 
 # Construct the path to the APIs directory
 path_to_apis = os.path.join(path_to_basedir, "apis")
+if cmbagent_debug:
+    print('path_to_apis: ', path_to_apis)
 
 # Construct the path to the assistants directory
-path_to_assistants = os.path.join(path_to_basedir, "assistants")
-path_to_engineer = os.path.join(path_to_basedir, "engineer")
-path_to_planner = os.path.join(path_to_basedir, "planner")
-path_to_executor = os.path.join(path_to_basedir, "executor")
-path_to_admin = os.path.join(path_to_basedir, "admin")
+path_to_assistants = os.path.join(path_to_basedir, "agents/rag_agents/")
+if cmbagent_debug:
+    print('path_to_assistants: ', path_to_assistants)
+path_to_agents = os.path.join(path_to_basedir, "agents/")
+
+# path_to_engineer = os.path.join(path_to_basedir, "engineer")
+# path_to_planner = os.path.join(path_to_basedir, "planner")
+# path_to_executor = os.path.join(path_to_basedir, "executor")
+# path_to_admin = os.path.join(path_to_basedir, "admin")
 
 work_dir = os.path.join(path_to_basedir, "../output")
-
+if cmbagent_debug:
+    print('\n\n\n\n\nwork_dir: ', work_dir)
 
 
 default_chunking_strategy = {
     "type": "static",
     "static": {
-        "max_chunk_size_tokens": 800, # reduce size to ensure better context integrity
-        "chunk_overlap_tokens": 400 # increase overlap to maintain context across chunks
+        "max_chunk_size_tokens": 200, # reduce size to ensure better context integrity
+        "chunk_overlap_tokens": 100 # increase overlap to maintain context across chunks
     }
 }
 
@@ -96,14 +106,47 @@ planner should be the first agent to speak.
 default_groupchat_intro_message = """
 We have assembled a team of LLM agents and a human admin to solve Cosmological data analysis tasks. 
 
-Once the PLAN is approved, it can never be modified. 
-
 In attendance are:
 """
 
 # TODO
 # see https://github.com/openai/openai-python/blob/da48e4cac78d1d4ac749e2aa5cfd619fde1e6c68/src/openai/types/beta/file_search_tool.py#L20
 # default_file_search_max_num_results = 20
-
+# The default is 20 for `gpt-4*` models and 5 for `gpt-3.5-turbo`. This number
+# should be between 1 and 50 inclusive.
+file_search_max_num_results = autogen.file_search_max_num_results
 
 default_max_round = 50
+
+default_llm_model = 'gpt-4o-mini'
+
+default_llm_config_list = [
+                    {
+                        "model": default_llm_model,
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        'api_type': 'openai',
+                    }
+                    ]
+
+
+
+def update_yaml_preserving_format(yaml_file, agent_name, new_id, field = 'vector_store_ids'):
+    yaml = YAML()
+    yaml.preserve_quotes = True  # This preserves quotes in the YAML file if they are present
+
+    # Load the YAML file while preserving formatting
+    with open(yaml_file, 'r') as file:
+        yaml_content = yaml.load(file)
+    
+    # Update the vector_store_id for the specific agent
+    if yaml_content['name'] == agent_name:
+        if field == 'vector_store_ids':
+            yaml_content['assistant_config']['tool_resources']['file_search']['vector_store_ids'][0] = new_id
+        elif field == 'assistant_id':
+            yaml_content['assistant_config']['assistant_id'] = new_id
+    else:
+        print(f"Agent {agent_name} not found.")
+    
+    # Write the changes back to the YAML file while preserving formatting
+    with open(yaml_file, 'w') as file:
+        yaml.dump(yaml_content, file)

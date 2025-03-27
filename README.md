@@ -1,17 +1,21 @@
+<img width="487" alt="Screenshot 2025-03-12 at 16 22 27" src="https://github.com/user-attachments/assets/00669d24-a0f8-4a60-b550-7aa0d8999a6c" />
 
 # cmbagent
 
-[![PyPI version](https://badge.fury.io/py/cmbagent.svg)](https://pypi.org/project/cmbagent/)[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Documentation Status](https://readthedocs.org/projects/cmbagent/badge/?version=latest)](https://cmbagent.readthedocs.io/en/latest/?badge=latest) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431)
 
 
-Multi-agent system for data analysis, made by cosmologists, powered by [ag2](https://github.com/ag2ai/ag2).
+Multi-Agent System for Science, Made by Cosmologists, Powered by [ag2](https://github.com/ag2ai/ag2).
+
+**Cmbagent** acts according to a *Planning and Control* strategy. 
 
 > **Note:** This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
 
+> **Note:** Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
 
-Our preliminary documentation and set of working examples can be consulted [here](https://cmbagent.readthedocs.io/en/latest/index.html). 
+We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). 
 
-We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development. We present our work-in-progress in [Laverick et al (2024)](https://arxiv.org/abs/2412.00431). If you would like to cite us, please use:
+If you would like to cite us, please use:
 
 ```bash
    @misc{Laverick:2024fyh,
@@ -27,18 +31,28 @@ We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under act
 
 Our project is funded by the [Cambridge Centre for Data-Driven Discovery Accelerate Programme](https://science.ai.cam.ac.uk).
 
+We are grateful to [Mark Sze](https://github.com/marklysze) for help with [ag2](https://github.com/ag2ai/ag2).
+
 
 ## Installation
 
 If you plan to modify the code, follow these steps:
 
-Clone and install our package from `PyPi`:
+Clone and install our package from GitHub.
 
 ```bash
-pip install cmbagent
+git clone https://github.com/CMBAgents/ag2
+cd ag2
+pip install -e .
+
+cd ..
+
+git clone https://github.com/CMBAgents/cmbagent.git
+cd cmbagent
+pip install -e .
 ```
 
-Before pip installing cmbagent, creating a virual environment is encouraged: 
+Before installing cmbagent, creating a virual environment is encouraged: 
 ```bash
 python -m venv /path/to/your/envs/cmbagent_env
 source /path/to/your/envs/cmbagent_env/bin/activate
@@ -49,7 +63,7 @@ If you are a cosmologist, you need the RAG data to use `cmbagent` in your cosmol
 
 Before installation, make sure you do not have any other autogen/pyautogen/ag2 versions installed. You may need to uninstall these packages before installing `cmbagent`.  
 
-## Getting the RAG data (cosmologist only)
+## Getting the RAG data
 
 Do this:
 
@@ -78,6 +92,7 @@ All agents inherit from the `BaseAgent` class. You can find the definition of `B
 
 ## Usage
 
+Check the [demo notebook](https://github.com/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_beta2_demo.ipynb). 
 
 Before you can use cmbagent, you need to set your OpenAI API key as an environment variable:
 
@@ -92,27 +107,19 @@ For Windows:
 setx OPENAI_API_KEY "sk-..."
 ```
 
-You can also pass your API key to cmbagent as an argument when you instantiate it:
-
-```python
-cmbagent = CMBAgent(llm_api_key="sk-...")
-```
-
 Instantiate the CMBAgent with:
 
 ```python
 from cmbagent import CMBAgent
-cmbagent = CMBAgent(verbose=True)
+cmbagent = CMBAgent()
 ```
 
 Define a task as:
 
 ```python
 task = """
-       Get cosmological parameter values from Planck 2018 analysis of TT,TE,EE+lowE+lensing with the Plik likelihood in LCDM. 
-       Use Cobaya with Classy_SZ to evaluate the ACT DR6 lensing likelihood for sigma8=0.8 and Omega_m=0.31. Other parameters set to Planck 2018.  
-       To set Omega_m, adjust the value of omch2. 
-       Give me the value of log-likelihood.
+Assume Planck values for cosmological parameters, find the k at which the linear matter power spectrum peaks,
+as well as the k at which non-linear perturbations become important.
        """
 ```
 
@@ -124,45 +131,5 @@ cmbagent.solve(task)
 
 If you request any output, it will be saved in the [output directory](https://github.com/CMBAgents/cmbagent/tree/main/output).
 
-Show the plot with:
 
-```python
-cmbagent.show_plot("cmb_tt_power_spectrum.png")
-```
-
-Restore session with:
-
-```python
-cmbagent.restore()
-```
-
-Push vector stores of RAG agents into the OpenAI platform:
-
-```python
-cmbagent = CMBAgent(make_vector_stores=True)
-```
-
-Push selected vector stores of RAG agents into the OpenAI platform:
-
-```python
-cmbagent = CMBAgent(make_vector_stores=['act', 'camb'])
-```
-
-Start session with only a subset of RAG agents:
-
-```python
-cmbagent = CMBAgent(agent_list=['classy', 'planck'])
-```
-
-Show allowed transitions:
-
-```python
-cmbagent.show_allowed_transitions()
-```
-
-cmbagent uses cache to speed up the process and reduce costs when asking the same questions. When developing, it can be useful to clear the cache. Do this with:
-
-```python
-cmbagent.clear_cache()
-```
 
