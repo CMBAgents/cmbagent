@@ -1825,7 +1825,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_67e1c534f3e88191bc9087f523843468
+      - vs_67e6b55575148191955a597916c9f84e
 
 description: |
   This is the camb_agent: a retrieval agent that provides assistance on how to compute with camb. 

@@ -26,6 +26,8 @@ from ruamel.yaml import YAML
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
 
+import autogen
+cmbagent_debug = autogen.cmbagent_debug
 
 
 

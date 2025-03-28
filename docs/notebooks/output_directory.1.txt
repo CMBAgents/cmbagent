@@ -1,2 +1,0 @@
-#        weight    minuslogpost       chi2__BAO        chi2__SN   minuslogprior minuslogprior__0            chi2 chi2__sn.pantheon chi2__bao.desi_dr2
-              1       532.57103       29.868649       1035.2734              -0               -0       1065.1421         1035.2734          29.868649

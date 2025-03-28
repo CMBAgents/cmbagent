@@ -62,7 +62,7 @@ from pydantic import BaseModel
 from ruamel.yaml import YAML
 from typing import List
 from autogen import  AfterWorkOption, AFTER_WORK, ON_CONDITION, SwarmResult, initiate_swarm_chat, SwarmAgent
-from autogen.cmbagent_utils import cmbagent_debug
+from autogen import cmbagent_debug
 from cmbagent.cmbagent_swarm_agent import initiate_cmbagent_swarm_chat
 from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse, RagSoftwareFormatterResponse
 from cmbagent.context import shared_context as shared_context_default
@@ -75,6 +75,7 @@ import shutil
 class CMBAgent:
 
     logging.disable(logging.CRITICAL)
+    cmbagent_debug = autogen.cmbagent_debug
 
 
 
@@ -215,7 +216,7 @@ class CMBAgent:
                         "timeout": timeout,
                     }
         
-        if cmbagent_debug:
+        if autogen.cmbagent_debug:
             print('\n\n\n\nin cmbagent.py self.llm_config: ',self.llm_config)
 
         # self.llm_config =  {"model": "gpt-4o-mini", "cache_seed": None}
@@ -536,13 +537,16 @@ class CMBAgent:
         # template for one-shot eval
         # Extract the task result from the chat history, assuming we are interested in the executor's output
         try:
-            for obj in self.chat_result.chat_history:
+            for obj in self.chat_result.chat_history[::-1]:
                 if obj['name'] == 'executor':
                     result = obj['content']
                     break
             self.task_result = result
         except:
             self.task_result = None
+
+        # output = cmbagent_baseline_output(self)
+        self.output = self.task_result
 
         return self.task_result
             

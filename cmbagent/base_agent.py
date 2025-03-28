@@ -4,8 +4,11 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message,file_search_max_num_results
 import sys
 from autogen import Agent, SwarmAgent, ConversableAgent, UpdateSystemMessage
-from autogen.cmbagent_utils import cmbagent_debug
+# from autogen.cmbagent_utils import cmbagent_debug
+import autogen
 # cmbagent_debug=True
+
+cmbagent_debug = autogen.cmbagent_debug
 
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
     """A custom proxy agent for the user with redefined default descriptions."""
@@ -81,6 +84,7 @@ class BaseAgent:
                  work_dir=None,
                  agent_type=None,
                  **kwargs):
+        
         
 
         self.kwargs = kwargs
@@ -191,7 +195,8 @@ class BaseAgent:
             assistant_config=self.info["assistant_config"],
             llm_config=self.llm_config,
             overwrite_tools=True,
-            overwrite_instructions=True
+            overwrite_instructions=True,
+            cmbagent_debug=cmbagent_debug,
             )
         
         if cmbagent_debug:
@@ -242,6 +247,7 @@ class BaseAgent:
             update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
             # description=self.info["description"],
             llm_config=self.llm_config,
+            cmbagent_debug=cmbagent_debug,
             )
 
         if cmbagent_debug:
@@ -283,6 +289,7 @@ class BaseAgent:
                                                         ),
             "last_n_messages": 3,
         },
+        cmbagent_debug=cmbagent_debug,
         )
 
         if cmbagent_debug:

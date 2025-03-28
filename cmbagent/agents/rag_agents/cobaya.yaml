@@ -91,9 +91,46 @@ instructions: |
 
   Type Ia Supernovae
   ------------------
-  - sn.pantheon, for the Pantheon SN Ia sample (including Pan-STARRS1 MDS and others)
-  - sn.jla, for the JLA SN Ia sample, based on joint SNLS/SDSS SN Ia data
-  - sn.jla_lite, an alternative version of sn.jla, marginalized over nuisance parameters
+  sn.desy5:
+    Likelihood for DES-Y5 type Ia supernovae sample.
+    
+    Reference
+    ---------
+    https://arxiv.org/abs/2401.02929
+
+  sn.jla:
+    Likelihood of the JLA type Ia supernova sample \cite(Betoule:2014frx), based on
+    observations obtained by the SDSS-II and SNLS collaborations.
+
+  sn.jla_lite.JLA_lite:
+    Likelihood (marginalized over nuisance parameters) of the JLA type Ia supernova sample
+    \cite(Betoule:2014frx), based on observations obtained by the SDSS-II and SNLS
+    collaborations.
+
+  sn.pantheon:
+    Likelihood of the Pantheon type Ia supernova sample \cite(Scolnic:2017caz),
+    including data from the Pan-STARRS1 (PS1) Medium Deep Survey.
+
+  sn.pantheonplus:
+    Likelihood for Pantheon+ (without SH0ES) type Ia supernovae sample.
+    
+    Reference
+    ---------
+    https://arxiv.org/abs/2202.04077
+
+  sn.pantheonplusshoes:
+    Likelihood for Pantheon+ (with SH0ES) type Ia supernovae sample.
+    
+    Reference
+    ---------
+    https://arxiv.org/abs/2202.04077
+
+  sn.union3:
+    Likelihood for the Union3 & UNITY1.5 type Ia supernovae sample.
+    
+    Reference
+    ---------
+    https://arxiv.org/pdf/2311.12098.pdf
 
   Pantheon SN Ia sample
   ----------------------
@@ -289,7 +326,7 @@ instructions: |
   Make sure this information is printed fully. Avoid parsing the likelihood evaluation output or trying to extract it from the log or output files.
   You must report this information in your response for all likelihood evaluation tasks. 
 
-  
+
 
   Further instructions:
   ---------------------
@@ -355,7 +392,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_67e28a2bdbb08191a1f37ec901d9d02d
+      - vs_67e7263f91a08191bcdc9bff3edb28c8
 
 description: |
   This is the cobaya_agent: a retrieval agent that provides assistance with cobaya. 

@@ -7,6 +7,10 @@ from autogen.cmbagent_utils import cmbagent_debug
 from IPython.display import Image as IPImage, display as ip_display
 from IPython.display import Markdown
 from autogen.cmbagent_utils import IMG_WIDTH
+import autogen
+
+cmbagent_debug = autogen.cmbagent_debug
+cmbagent_disable_display = autogen.cmbagent_disable_display
 
 
 def register_functions_to_agents(cmbagent_instance):
@@ -43,7 +47,10 @@ def register_functions_to_agents(cmbagent_instance):
 
         context_variables["improved_main_task"] = improved_main_task
 
-        display(Markdown(improved_main_task))
+        if not cmbagent_disable_display:
+            display(Markdown(improved_main_task))
+        else:
+            print(improved_main_task)
 
 
         return SwarmResult(agent=planner, ## transfer to planner
@@ -193,7 +200,10 @@ Now, update the plan accordingly, planner!""",
 
         # Display only the new images.
         for img_file in new_images:
-            ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
+            if not cmbagent_disable_display:
+                ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
+            else:
+                print(img_file)
 
         # Update the context to include the newly displayed images.
         context_variables["displayed_images"] = displayed_images + new_images

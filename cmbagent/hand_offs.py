@@ -1,6 +1,10 @@
 from autogen import  register_hand_off, AfterWork, OnCondition, AfterWorkOption, ConversableAgent
 from autogen.cmbagent_utils import cmbagent_debug
 from typing import Any, Dict, List
+import autogen
+
+cmbagent_debug = autogen.cmbagent_debug
+
 def register_all_hand_offs(cmbagent_instance):
 
     if cmbagent_debug:
@@ -98,6 +102,8 @@ def register_all_hand_offs(cmbagent_instance):
     register_hand_off(
         agent = plan_reviewer.agent,
         hand_to = [
+            ## example to force a function call 
+            ## see get_function_name_if_description_true in ag2 client.py
             OnCondition(
                 target=control.agent,
                 condition="TRUE", ### keep this here as an example, will not actially be used because we bypass this now. 
