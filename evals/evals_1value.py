@@ -51,7 +51,7 @@ async def my_agent(task):
             match = re.search(r'Execution output:\s*([0-9.]+)', output)
             
             if match:
-                number = float(match.group(1))
+                number = str(float(match.group(1)))
                 print(number)  # (target) 65.6595
             else:
                 number = "None"
@@ -73,7 +73,7 @@ def my_task(mytask):
     return Task(
         dataset=[Sample(input=mytask, target="65.6595") for mytask in mytasks],
         solver=bridge(my_solver()),
-        scorer=match(location="exact",numeric=True),
+        scorer=match(location="exact"),
     )
 
 
