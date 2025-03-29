@@ -492,9 +492,23 @@ class CMBAgent:
 
     def solve(self, task, initial_agent='task_improver', 
               shared_context=None,
+              mode = "default", # can be "one_shot" or "default" (default is planning and control)
               max_rounds=10):
         
         this_shared_context = copy.deepcopy(self.shared_context)
+        
+        if mode == "one_shot":
+            shared_context = {'final_plan': "Step 1: solve the main task.",
+                              'current_status': "In progress",
+                              'current_plan_step_number': 1,
+                              'current_sub_task' : "solve the main task.",
+                              'current_instructions': "solve the main task.",
+                              'agent_for_sub_task': initial_agent,
+                              'feedback_left': 0,
+                              "number_of_steps_in_plan": 1,
+                              'maximum_number_of_steps_in_plan': 1}
+            
+        
         if shared_context is not None:
             this_shared_context.update(shared_context)
         
