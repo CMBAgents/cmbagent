@@ -6,19 +6,15 @@ from cmbagent import CMBAgent
 cmbagent = CMBAgent()
 
 
+
 task1 = r"""
-What is the value of H0 corresponding to the following set of cosmological parameter values in LCDM: 
 
-omega_cdm: 0.125
-omega_b: 0.0224
-ln(10^10 A_s) : 3.05321
-n_s: 0.96
-100*theta_star: 1.0411
-
+Compute sin(x) for x = 1, 2, 3, 4, 5.
 
 Instructions: 
- - Your answer should be given in the format "%.4f" (in units of km/s/Mpc) and must consist of the number only (don't write H0= xxx km/s/Mpc, just print xxx) 
- - Use camb_agent and engineer.
+ - Return a Python-style list of floats with 4 decimal places of precision.
+ - Example: [1.1234, 1.1234, 1.1234, 1.1234, 1.1234]
+
 """
 
 mytasks = [task1]
@@ -37,24 +33,28 @@ from inspect_ai.solver import bridge
 from inspect_ai import eval
 
 async def my_agent(task):
-        cmbagent = CMBAgent()
+
+        cmbagent = CMBAgent(agent_llm_configs = {
+                            'engineer': {
+                                "model": "gemini-2.0-pro-exp-02-05",
+                                "api_key": os.getenv("GEMINI_API_KEY"),
+                                "api_type": "google"}})
 
 
         cmbagent.solve(task,
                        max_rounds=50,
-                       initial_agent='planner',
-                       shared_context = {'feedback_left': 0,
-                                         "number_of_steps_in_plan": 1,
-                                         'maximum_number_of_steps_in_plan': 2})
+                       initial_agent='engineer',
+                       mode = "one_shot")
         
         def get_solution(output):
             match = re.search(r'Execution output:\s*([0-9.]+)', output)
             
             if match:
                 number = str(float(match.group(1)))
-                print(number)  # (target) 65.6595
+                print(number)  
             else:
                 number = "None"
+                print(number)
             return number
 
         return get_solution(cmbagent.output)
@@ -71,7 +71,7 @@ def my_solver():
 @task
 def my_task(mytasks):
     return Task(
-        dataset=[Sample(input=mytask, target="65.6595") for mytask in mytasks],
+        dataset=[Sample(input=mytask, target="[0.8415, 0.9093, 0.1411, -0.7568, -0.9589]") for mytask in mytasks],
         solver=bridge(my_solver()),
         scorer=match(location="exact"),
     )
