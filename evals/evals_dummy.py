@@ -70,7 +70,7 @@ def my_solver():
       return run
 
 @task
-def my_task(mytask):
+def my_task(mytasks):
     return Task(
         dataset=[Sample(input=mytask, target="completed") for mytask in mytasks],
         solver=bridge(my_solver()),
