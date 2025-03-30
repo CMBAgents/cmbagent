@@ -89,11 +89,12 @@ from inspect_ai import eval
 
 async def my_agent(task, metadata):
 
-        cmbagent = CMBAgent(agent_llm_configs = {
-                            'engineer': {
-                                "model": "gemini-2.0-pro-exp-02-05",
-                                "api_key": os.getenv("GEMINI_API_KEY"),
-                                "api_type": "google"}})
+        cmbagent = CMBAgent()
+        # cmbagent = CMBAgent(agent_llm_configs = {
+        #                     'engineer': {
+        #                         "model": "gemini-2.0-pro-exp-02-05",
+        #                         "api_key": os.getenv("GEMINI_API_KEY"),
+        #                         "api_type": "google"}})
 
 
         cmbagent.solve(task,
