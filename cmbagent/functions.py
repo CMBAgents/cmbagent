@@ -1,4 +1,4 @@
-from autogen import SwarmResult
+from autogen import SwarmResult, AfterWorkOption
 from typing import Literal
 import os
 import re
@@ -34,9 +34,27 @@ def register_functions_to_agents(cmbagent_instance):
     camb = cmbagent_instance.get_agent_from_name('camb_agent')
     camb_response_formatter = cmbagent_instance.get_agent_from_name('camb_response_formatter')
     executor = cmbagent_instance.get_agent_from_name('executor')
+    terminator = cmbagent_instance.get_agent_from_name('terminator')
     control = cmbagent_instance.get_agent_from_name('control')
     admin = cmbagent_instance.get_agent_from_name('admin')
 
+
+
+    def terminate_session(context_variables: dict) -> SwarmResult:
+        """
+        Terminate the session.
+        """
+
+        ## do things to context_variables
+        # context_variables["improved_main_task"] = improved_main_task
+
+
+        return SwarmResult(agent=AfterWorkOption.TERMINATE, ## transfer to planner
+                            values="Session terminated.",
+                            context_variables=context_variables)
+
+
+    terminator._add_single_function(terminate_session)
 
 
     def record_improved_task(improved_main_task: str,  context_variables: dict) -> SwarmResult:

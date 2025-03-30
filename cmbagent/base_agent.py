@@ -6,6 +6,7 @@ import sys
 from autogen import Agent, SwarmAgent, ConversableAgent, UpdateSystemMessage
 # from autogen.cmbagent_utils import cmbagent_debug
 import autogen
+import copy
 # cmbagent_debug=True
 
 cmbagent_debug = autogen.cmbagent_debug
@@ -93,7 +94,7 @@ class BaseAgent:
             print('\n\n in base_agent.py: __init__: llm_config: ', llm_config)
             print('\n\n')
 
-        self.llm_config = llm_config.copy()
+        self.llm_config = copy.deepcopy(llm_config)
 
         self.info = yaml_load_file(agent_id + ".yaml")
 
@@ -113,7 +114,7 @@ class BaseAgent:
 
 
     ## for oai rag agents
-    def set_agent(self,
+    def set_gpt_assistant_agent(self,
                   instructions=None, 
                   description=None,
                   vector_store_ids=None, 
@@ -183,10 +184,14 @@ class BaseAgent:
         #### TODO: implement this.
 
         self.info['assistant_config']['tools'][0]['file_search'] ={'max_num_results': file_search_max_num_results} 
+        # self.llm_config['check_every_ms'] = 500 # does not do anything
         if cmbagent_debug:
             print('\n\n\n\nin base_agent.py set_agent')
             print('working with llm_config: ',self.llm_config)
             # import sys; sys.exit()
+
+        
+        # self.info['assistant_config']['check_every_ms'] = 500 # does not do anything
 
         self.agent = GPTAssistantAgent(
             name=self.name,
@@ -309,6 +314,7 @@ class BaseAgent:
 
         self.agent = CmbAgentUserProxyAgent(
             name= self.name,
+            # update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
             system_message= self.info["instructions"],
             code_execution_config=self.info["code_execution_config"],
         )

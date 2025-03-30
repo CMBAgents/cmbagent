@@ -151,6 +151,7 @@ default_agent_llm_configs = {
                     'camb': {
                         "model": "gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),
+                        # "check_every_ms": 500, # does not do anything
                         "api_type": "openai",
                         },
                     'cobaya': {
@@ -181,9 +182,16 @@ default_agent_llm_configs = {
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
+                    'terminator': {
+                        "model": "gpt-4o-2024-11-20",
+                        # "model": "o3-mini-2025-01-31",
+                        # "reasoning_effort": "high",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
 
                     'researcher': {
-                        "model": "gemini-2.0-pro-exp-02-05",
+                        "model": "gemini-2.5-pro-exp-03-25",
                         "api_key": os.getenv("GEMINI_API_KEY"),
                         "api_type": "google",
                         },

@@ -9,3 +9,9 @@ class CosmocncAgent(BaseAgent):
         agent_id = os.path.splitext(os.path.abspath(__file__))[0]
 
         super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
+
+    def set_agent(self,**kwargs):
+
+        super().set_gpt_assistant_agent(**kwargs)
+
+

@@ -34,7 +34,6 @@ dependencies = [
     "shapely",
     "statsmodels",
     "kaleido",
-    "google-genai==0.6.0",
     "google-api-core",
     "google-cloud-aiplatform",
     "google-auth",

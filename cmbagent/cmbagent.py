@@ -214,6 +214,7 @@ class CMBAgent:
                         "top_p": top_p,
                         "config_list": llm_config_list,
                         "timeout": timeout,
+                        "check_every_ms": None,
                     }
         
         if autogen.cmbagent_debug:
@@ -301,7 +302,9 @@ class CMBAgent:
 
                 # cmbagent debug --> removed this option, pass in make_vector_stores=True in kwargs
                 # #### the files list is appended twice to the instructions.... TBD!!!
-                if agent.set_agent(**agent_kwargs) == 1:
+                setagent = agent.set_agent(**agent_kwargs)
+
+                if setagent == 1:
 
                     if cmbagent_debug:
                         print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
@@ -315,7 +318,7 @@ class CMBAgent:
 
                 # else:
                 # see above for trick on how to make vector store if it is not found. 
-                agent.set_agent(**agent_kwargs)
+                # agent.set_agent(**agent_kwargs)
 
             else: ## set all non-rag agents
                 
@@ -713,9 +716,13 @@ class CMBAgent:
             if agent_name in agent_llm_configs:
                 llm_config = copy.deepcopy(self.llm_config)
                 llm_config['config_list'][0].update(agent_llm_configs[agent_name])
+
                 if "reasoning_effort" in llm_config['config_list'][0]:
                     llm_config.pop('temperature')
                     llm_config.pop('top_p')
+
+                if llm_config['config_list'][0]['api_type'] == 'google':
+                    llm_config.pop('top_p') 
                 
                 if cmbagent_debug:
                     print('in cmbagent.py: found agent_llm_configs for: ', agent_name)
@@ -868,8 +875,12 @@ class CMBAgent:
 
 
     def clear_cache(self):
-        # return None
-        autogen.Completion.clear_cache(self.cache_seed) ## obsolete AttributeError: module 'autogen' has no attribute 'Completion'
+        cache_dir = autogen.oai.client.LEGACY_CACHE_DIR
+        if os.path.exists(cache_dir):
+            shutil.rmtree(cache_dir)
+        # sys.exit()s
+        return None
+        #  autogen.Completion.clear_cache(self.cache_seed) ## obsolete AttributeError: module 'autogen' has no attribute 'Completion'
 
 
 
@@ -884,25 +895,26 @@ class CMBAgent:
 
 
     def set_planner_instructions(self):
+        ### this is a template. Currently not used.
 
         # available agents and their roles:
-        available_agents = "\n\n#### Available agents and their roles\n\n"
+        # available_agents = "\n\n#### Available agents and their roles\n\n"
         
-        for agent in self.agents:
+        # for agent in self.agents:
 
-            if agent.name in ['planner', 'engineer', 'executor', 'admin']:
-                continue
+        #     if agent.name in ['planner', 'engineer', 'executor', 'admin']:
+        #         continue
 
 
-            if 'description' in agent.info:
+        #     if 'description' in agent.info:
 
-                role = agent.info['description']
+        #         role = agent.info['description']
 
-            else:
+        #     else:
 
-                role = agent.info['instructions']
+        #         role = agent.info['instructions']
 
-            available_agents += f"- *{agent.name}* : {role}\n"
+        #     available_agents += f"- *{agent.name}* : {role}\n"
 
 
         # # collect allowed transitions

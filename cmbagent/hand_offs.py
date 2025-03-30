@@ -29,6 +29,7 @@ def register_all_hand_offs(cmbagent_instance):
     cobaya = cmbagent_instance.get_agent_object_from_name('cobaya_agent')
     cobaya_response_formatter = cmbagent_instance.get_agent_object_from_name('cobaya_response_formatter')
     executor = cmbagent_instance.get_agent_object_from_name('executor')
+    terminator = cmbagent_instance.get_agent_object_from_name('terminator')
     control = cmbagent_instance.get_agent_object_from_name('control')
     admin = cmbagent_instance.get_agent_object_from_name('admin')
 
@@ -50,6 +51,7 @@ def register_all_hand_offs(cmbagent_instance):
         print('\ncobaya: ', cobaya)
         print('\ncobaya_response_formatter: ', cobaya_response_formatter)
         print('\nexecutor: ', executor)
+        print('\nterminator: ', terminator)
         print('\ncontrol: ', control)
         print('\nadmin: ', admin)
         print('\ntask_improver: ', task_improver)
@@ -216,7 +218,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # condition (str): 
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=control.agent, 
+                target=terminator.agent, 
                 condition="All steps in the plan have been fully implemented. Terminate.",
                 # available="code_approved"
             ),
