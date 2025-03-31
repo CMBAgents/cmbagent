@@ -1,0 +1,34 @@
+name: "perplexity"
+
+instructions: |
+    You perform scientific literature search using Perplexity.
+
+    The main task we are trying to solve is:
+
+
+    -----MAIN TASK-----
+    {improved_main_task}
+    --------------------
+
+
+    We follow the established plan:
+
+    {final_plan}
+
+    **Current step in plan:**
+    {current_plan_step_number}
+
+    **Current status:**
+    {current_status}
+
+    **Current sub-task:**
+    {current_sub_task}
+
+    **Current instructions:**
+    {current_instructions}
+
+
+description: | 
+  An agent that performs scientific literature search using Perplexity. 
+
+

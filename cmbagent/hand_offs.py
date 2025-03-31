@@ -2,7 +2,9 @@ from autogen import  register_hand_off, AfterWork, OnCondition, AfterWorkOption,
 from autogen.cmbagent_utils import cmbagent_debug
 from typing import Any, Dict, List
 import autogen
-
+from autogen import AssistantAgent, UserProxyAgent, LLMConfig
+from autogen.tools.experimental import PerplexitySearchTool
+import os
 cmbagent_debug = autogen.cmbagent_debug
 
 def register_all_hand_offs(cmbagent_instance):
@@ -31,6 +33,7 @@ def register_all_hand_offs(cmbagent_instance):
     executor = cmbagent_instance.get_agent_object_from_name('executor')
     terminator = cmbagent_instance.get_agent_object_from_name('terminator')
     control = cmbagent_instance.get_agent_object_from_name('control')
+    perplexity = cmbagent_instance.get_agent_object_from_name('perplexity')
     admin = cmbagent_instance.get_agent_object_from_name('admin')
 
     if cmbagent_debug:
@@ -54,6 +57,7 @@ def register_all_hand_offs(cmbagent_instance):
         print('\nterminator: ', terminator)
         print('\ncontrol: ', control)
         print('\nadmin: ', admin)
+        print('\nperplexity: ', perplexity)
         print('\ntask_improver: ', task_improver)
 
 
@@ -108,7 +112,7 @@ def register_all_hand_offs(cmbagent_instance):
             ## see get_function_name_if_description_true in ag2 client.py
             OnCondition(
                 target=control.agent,
-                condition="TRUE", ### keep this here as an example, will not actially be used because we bypass this now. 
+                condition="TRUE", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
                 available=no_feedback_left,
             ),
             AfterWork(reviewer_response_formatter.agent)
@@ -131,12 +135,60 @@ def register_all_hand_offs(cmbagent_instance):
         ]
     )
 
+    #perplexity agent
+    config_list = LLMConfig(check_every_ms = None,api_type="openai", model="gpt-4o-mini")
+    perplexity_search_agent = AssistantAgent(
+    name="perplexity_search_agent",
+    llm_config=config_list,
+    )
+
+    perplexity_search_tool = PerplexitySearchTool(
+                        api_key=os.getenv("PERPLEXITY_API_KEY"),
+                        max_tokens=1000,
+                        search_domain_filter=["arxiv.org", "towardsdatascience.com"],
+                    )
+
+    perplexity_search_tool.register_for_execution(perplexity_search_agent)
+    perplexity_search_tool.register_for_llm(perplexity.agent)
+
+    # print(cmbagent_instance.agents)
+
+    nested_chat_one = {
+    "carryover_config": {"summary_method": "last_msg"},  # Bring the last message into the chat
+    "recipient": perplexity.agent,
+    "message": "perform the search",  # Retrieve the status details of the order using the order id
+    "max_turns": 1,  # Only one turn is necessary
+    }
+    chat_queue = [nested_chat_one]
+
+    register_hand_off(
+        agent = perplexity.agent,
+        hand_to = [
+            # AfterWork(control.agent),
+             OnCondition(
+                        target={
+                                "chat_queue": chat_queue,
+                                },
+                        condition="TRUE"
+                        )
+        ]
+    )
 
     # control agent
     register_hand_off(
         agent = control.agent,
         hand_to = [
-    
+
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=perplexity.agent, 
+                condition="Need perplexity to find information on existing scientific literature.",
+                # available="review_recorded"
+            ),
+
+
             OnCondition( 
                 # condition (str): 
                 # The condition for transitioning to the target agent, 

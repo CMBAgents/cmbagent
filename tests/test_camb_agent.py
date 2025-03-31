@@ -2,7 +2,7 @@ import os
 import re
 
 
-os.environ["CMBAGENT_DEBUG"] = "true"
+os.environ["CMBAGENT_DEBUG"] = "false"
 os.environ["CMBAGENT_DISABLE_DISPLAY"] = "true"
 
 from cmbagent import CMBAgent

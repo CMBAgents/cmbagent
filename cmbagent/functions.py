@@ -8,6 +8,7 @@ from IPython.display import Image as IPImage, display as ip_display
 from IPython.display import Markdown
 from autogen.cmbagent_utils import IMG_WIDTH
 import autogen
+from autogen.tools.experimental import PerplexitySearchTool
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -37,6 +38,18 @@ def register_functions_to_agents(cmbagent_instance):
     terminator = cmbagent_instance.get_agent_from_name('terminator')
     control = cmbagent_instance.get_agent_from_name('control')
     admin = cmbagent_instance.get_agent_from_name('admin')
+    perplexity = cmbagent_instance.get_agent_from_name('perplexity')
+
+
+
+    # perplexity_search_tool = PerplexitySearchTool(
+    #                     api_key=os.getenv("PERPLEXITY_API_KEY"),
+    #                     max_tokens=1000,
+    #                     search_domain_filter=["arxiv.org", "towardsdatascience.com"],
+    #                 )
+    
+    # perplexity_search_tool.register_for_llm(perplexity)
+    # perplexity_search_tool.register_for_execution(admin)
 
 
 

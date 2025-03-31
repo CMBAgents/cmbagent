@@ -60,6 +60,7 @@ n_s: 0.96
 Instructions: 
  - use camb_agent and engineer
  - Save results in a csv file named result.csv with columns "l" and "cl"
+ - the file must be saved under the appropriate folder
  - cls should be in uK^2
 """,
          "metadata": {"target_file_path": f"targets/target_x_sinx.csv",

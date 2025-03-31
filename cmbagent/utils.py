@@ -195,6 +195,13 @@ default_agent_llm_configs = {
                         "api_key": os.getenv("GEMINI_API_KEY"),
                         "api_type": "google",
                         },
+
+                    'perplexity': {
+                        "model": "gpt-4o-2024-11-20",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+
                     'plan_reviewer': {
                         "model": "claude-3-7-sonnet-20250219",
                         "api_key": os.getenv("ANTHROPIC_API_KEY"),
