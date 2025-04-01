@@ -28,6 +28,18 @@ instructions: |
     {current_instructions}
 
 
+    Your response should be in the following format:
+    
+    - Search results:
+       
+       Precise and concise summary of the search results.
+
+    - References:
+       - Title, Author, Year, URL
+       - Title, Author, Year, URL
+       - Title, Author, Year, URL
+
+
 description: | 
   An agent that performs scientific literature search using Perplexity. 
 
