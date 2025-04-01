@@ -41,15 +41,17 @@ def register_functions_to_agents(cmbagent_instance):
     perplexity = cmbagent_instance.get_agent_from_name('perplexity')
 
 
-
+    # print("Perplexity API key: ", os.getenv("PERPLEXITY_API_KEY"))
     perplexity_search_tool = PerplexitySearchTool(
                         api_key=os.getenv("PERPLEXITY_API_KEY"),
                         max_tokens=1000,
                         # search_domain_filter=["arxiv.org", "towardsdatascience.com"], # doest seem to work
                     )
     
-    perplexity_search_tool.register_for_llm(perplexity)
-    perplexity_search_tool.register_for_execution(perplexity)
+    # perplexity_search_tool.register_for_llm(perplexity)
+    # perplexity_search_tool.register_for_execution(perplexity)
+
+    perplexity._add_single_function(perplexity_search_tool)
 
 
 

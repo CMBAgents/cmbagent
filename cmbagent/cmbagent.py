@@ -565,7 +565,7 @@ class CMBAgent:
         # output = cmbagent_baseline_output(self)
         self.output = self.task_result
 
-        return self.task_result
+        # return self.task_result
             
 
         

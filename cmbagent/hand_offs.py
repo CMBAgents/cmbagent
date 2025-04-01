@@ -306,8 +306,8 @@ def register_all_hand_offs(cmbagent_instance):
                 # available="code_approved"
             ),
             
-            AfterWork(AfterWorkOption.TERMINATE), # Handles the next step in the conversation when an agent doesn't suggest a tool call or a handoff
-            # AFTER_WORK(plan_manager)
+            # AfterWork(AfterWorkOption.TERMINATE), # Handles the next step in the conversation when an agent doesn't suggest a tool call or a handoff
+            AfterWork(terminator.agent)
         ]
     )
 

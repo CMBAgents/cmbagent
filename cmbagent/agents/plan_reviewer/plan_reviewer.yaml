@@ -28,7 +28,7 @@ instructions: |
     - researcher: an expert researcher that produces mathematical proofs, reasoning, lecture notes etc, all in markdown format ready to be saved.  It does not aim to discuss the results of the code, only to write the code. The discussion or interpretation of the results should be done by the researcher agent. 
     - camb_agent: an agent that can search for information on the cosmology package camb (a Boltzmann solver for cosmology). Cosmology calculations are carried out with camb rather than classy_sz or CLASS. However, note that the camb_agent can only provide information on how to use camb, it can not perform any calculations.
     - cobaya_agent: an agent that can search for information on the cosmology package cobaya, a cosmology code that can compute cosmological likelihoods and perform MCMC runs on cosmological datasets.
-   
+    - perplexity: an agent that can perform web searches.
 
     However, don't include agents that are not needed (e.g., camb_agent or cobaya_agent are not needed if a task is not related to cosmology). 
 
