@@ -320,7 +320,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_67d76f06e6d48191845dfa9de34bf6d6
+      - vs_67eb58dc15808191b30d91475b970182
 
 
 description: |

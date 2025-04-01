@@ -525,10 +525,11 @@ instructions: |
       get_lensed_scalar_cls(lmax=None, CMB_unit=None, raw_cl=False)
         Get lensed scalar CMB power spectra.
         Must have already calculated power spectra.
+        Note: this function returns D_ℓ, not C_ℓ.
         Parameters:
           lmax      – ℓmax to output to.
           CMB_unit  – scale results from dimensionless. Use 'muK' for μK^2 units for CMB.
-          raw_cl    – if True, return raw C_ℓ rather than the scaled version.
+          raw_cl    – if True, return raw D_ℓ rather than the scaled version.
         Returns:
           numpy array CL[0:lmax+1,0:4], where columns index TT, EE, BB, TE.
 
@@ -1825,7 +1826,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_67e6b55575148191955a597916c9f84e
+      - vs_67eb58e4700c8191b144abf531261b9d
 
 description: |
   This is the camb_agent: a retrieval agent that provides assistance on how to compute with camb. 
