@@ -2,7 +2,7 @@ import os
 import re
 
 
-os.environ["CMBAGENT_DEBUG"] = "true"
+os.environ["CMBAGENT_DEBUG"] = "false"
 os.environ["CMBAGENT_DISABLE_DISPLAY"] = "true"
 
 from cmbagent import CMBAgent
@@ -17,10 +17,19 @@ What is the difference between CAMB and CLASS?
 - Instructions:
     - Use perplexity agent to find the answer.
 
+- Output:
+    - A list of the differences between CAMB and CLASS
+
+    - References:
+       - Title, Author, Year, URL
+       - Title, Author, Year, URL
+       - Title, Author, Year, URL
+       - Title, Author, Year, URL
+
 """
 
 cmbagent.solve(task,
-               max_rounds=5,
-               initial_agent='perplexity',
+               max_rounds=10,
+               initial_agent='control',
                mode = "one_shot",
               )

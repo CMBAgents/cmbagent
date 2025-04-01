@@ -136,41 +136,45 @@ def register_all_hand_offs(cmbagent_instance):
     )
 
     #perplexity agent
-    config_list = LLMConfig(check_every_ms = None,api_type="openai", model="gpt-4o-mini")
-    perplexity_search_agent = AssistantAgent(
-    name="perplexity_search_agent",
-    llm_config=config_list,
-    )
+    # config_list = LLMConfig(check_every_ms = None,api_type="openai", model="gpt-4o-mini")
+    # perplexity_search_agent = AssistantAgent(
+    # name="perplexity_search_agent",
+    # llm_config=config_list,
+    # )
 
-    perplexity_search_tool = PerplexitySearchTool(
-                        api_key=os.getenv("PERPLEXITY_API_KEY"),
-                        max_tokens=1000,
-                        search_domain_filter=["arxiv.org", "towardsdatascience.com"],
-                    )
+    # perplexity_search_tool = PerplexitySearchTool(
+    #                     api_key=os.getenv("PERPLEXITY_API_KEY"),
+    #                     max_tokens=1000,
+    #                     # search_domain_filter=["arxiv.org", "towardsdatascience.com"],
+    #                 )
 
-    perplexity_search_tool.register_for_execution(perplexity_search_agent)
-    perplexity_search_tool.register_for_llm(perplexity.agent)
+    # perplexity_search_tool.register_for_execution(perplexity.agent)
+    # perplexity_search_tool.register_for_llm(perplexity.agent)
 
     # print(cmbagent_instance.agents)
 
-    nested_chat_one = {
-    "carryover_config": {"summary_method": "last_msg"},  # Bring the last message into the chat
-    "recipient": perplexity.agent,
-    "message": "perform the search",  # Retrieve the status details of the order using the order id
-    "max_turns": 1,  # Only one turn is necessary
-    }
-    chat_queue = [nested_chat_one]
+    # nested_chat_one = {
+    # "carryover_config": {"summary_method": "last_msg"},  # Bring the last message into the chat
+    # "recipient": perplexity.agent,
+    # "message": "perform the search",  # Retrieve the status details of the order using the order id
+    # "max_turns": 1,  # Only one turn is necessary
+    # }
+    # chat_queue = [nested_chat_one]
 
     register_hand_off(
         agent = perplexity.agent,
         hand_to = [
-            # AfterWork(control.agent),
-             OnCondition(
-                        target={
-                                "chat_queue": chat_queue,
-                                },
-                        condition="TRUE"
-                        )
+            AfterWork(control.agent),
+            #  OnCondition(
+            #             target={
+            #                     "chat_queue": chat_queue,
+            #                     },
+            #             condition="TRUE"
+            #             )
+            OnCondition(
+                target=control.agent,
+                condition="Literature search completed.", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
+            ),
         ]
     )
 

@@ -42,14 +42,14 @@ def register_functions_to_agents(cmbagent_instance):
 
 
 
-    # perplexity_search_tool = PerplexitySearchTool(
-    #                     api_key=os.getenv("PERPLEXITY_API_KEY"),
-    #                     max_tokens=1000,
-    #                     search_domain_filter=["arxiv.org", "towardsdatascience.com"],
-    #                 )
+    perplexity_search_tool = PerplexitySearchTool(
+                        api_key=os.getenv("PERPLEXITY_API_KEY"),
+                        max_tokens=1000,
+                        # search_domain_filter=["arxiv.org", "towardsdatascience.com"], # doest seem to work
+                    )
     
-    # perplexity_search_tool.register_for_llm(perplexity)
-    # perplexity_search_tool.register_for_execution(admin)
+    perplexity_search_tool.register_for_llm(perplexity)
+    perplexity_search_tool.register_for_execution(perplexity)
 
 
 
