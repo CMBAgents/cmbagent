@@ -44,7 +44,6 @@ async def my_agent(task):
                        max_rounds=50,
                        initial_agent='planner',
                        shared_context = {'feedback_left': 0,
-                                         "number_of_steps_in_plan": 1,
                                          'maximum_number_of_steps_in_plan': 2})
         
         def get_solution(output):
