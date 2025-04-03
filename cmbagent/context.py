@@ -24,4 +24,12 @@ shared_context = {
 
     "current_codebase": None,
     "displayed_images": [],
+
+    "transfer_to_engineer": False,
+    "transfer_to_researcher": False,
+    "transfer_to_camb_agent": False,
+    "transfer_to_cobaya_agent": False,
+    "transfer_to_perplexity": False,
+
+
 }

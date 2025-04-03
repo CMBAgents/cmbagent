@@ -2,6 +2,9 @@ name: "plan_recorder"
 
 instructions: |
     Don't respond. You must call your tool record_plan to record the plan.
+    This tool call collects:             
+    - plan_suggestion (str): The complete plan suggestion to be recorded.
+    - number_of_steps_in_plan (int): The total number of **Steps** in the suggested plan.
 
 
 description: |

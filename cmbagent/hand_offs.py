@@ -1,4 +1,8 @@
-from autogen import  register_hand_off, AfterWork, OnCondition, AfterWorkOption, ConversableAgent
+from autogen import  (register_hand_off, 
+                      AfterWork, OnCondition, 
+                      AfterWorkOption, ConversableAgent,
+                      OnContextCondition, 
+                      ContextExpression)
 from autogen.cmbagent_utils import cmbagent_debug
 from typing import Any, Dict, List
 import autogen
@@ -270,21 +274,21 @@ def register_all_hand_offs(cmbagent_instance):
             ),
 
             
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=terminator.agent, 
-                condition="All steps in the plan have been fully implemented. Terminate.",
-                # available="code_approved"
-            ),
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=terminator.agent, 
+            #     condition="**ALL** steps in the plan have been fully and successfully implemented. Terminate.",
+            #     # available="code_approved"
+            # ),
 
             OnCondition( 
                 # condition (str): 
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=researcher.agent, 
-                condition="Generate proofs, reasoning, etc. Anything that does not require a code to be executed",
+                condition="Researcher needed to generate proofs, reasoning, etc.",
                 # available="code_approved"
             ),
 
@@ -294,7 +298,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=engineer.agent, 
-                condition="Write code",
+                condition="Engineer needed to write code",
                 # available="code_approved"
             ),
             OnCondition( 
@@ -302,7 +306,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=executor.agent, 
-                condition="Execute code",
+                condition="Executor needed to execute code",
                 # available="code_approved"
             ),
             
@@ -310,6 +314,17 @@ def register_all_hand_offs(cmbagent_instance):
             AfterWork(terminator.agent)
         ]
     )
+        # # If the user is not logged in, transfer to the authentication agent
+        # OnCondition(
+        #     target=authentication_agent,
+        #     condition="The customer is not logged in, authenticate the customer.",
+        #     available=ContextExpression("!(${logged_in})"),
+        # ),
+
+        # OnContextCondition(
+        #     target=order_triage_agent,
+        #     condition="logged_in",
+        # ),
 
     #engineer
     register_hand_off(

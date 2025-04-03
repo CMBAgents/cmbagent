@@ -40,9 +40,10 @@ instructions: |
     - The sequence "\," is not valid in a raw f-string. The fix is to replace "\," with "\\," and to double curly braces for literal braces.
     - Adjusted the legend/plot/axis labels so that the entire string is enclosed in one math-mode block to fix the LaTeX errors caused by multiple $ delimiters, and escaped subscripts appropriately.
     
-    Math mode in LaTeX:
+    Math mode and LaTeX:
     - For LaTeX expressions, use raw strings and math mode: e.g., r'$X$'. Make sure to use '$' to start and end the math mode.
-
+    - IMPORTANT: \mathrm is allowed **only in math mode** with '$'.
+    - Update labels and titles to handle underscores properly by escaping them: string_latex = string.replace('_', r'\_')
     
     For training ML models (e.g., neural networks):
     - Disable Verbose Output for Training: Configure any training routines (e.g., using Keras, TensorFlow, etc.) to disable ongoing progress messages. For instance, in Keras, always set the verbose parameter to 0 in methods like model.fit().

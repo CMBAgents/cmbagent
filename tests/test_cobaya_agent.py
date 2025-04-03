@@ -2,7 +2,7 @@ import os
 import re
 
 
-os.environ["CMBAGENT_DEBUG"] = "true"
+os.environ["CMBAGENT_DEBUG"] = "false"
 os.environ["CMBAGENT_DISABLE_DISPLAY"] = "true"
 
 from cmbagent import CMBAgent
@@ -18,20 +18,11 @@ cmbagent = CMBAgent(agent_llm_configs = {
 
 
 task = r"""
-Here is a sentence in english: "I have a Masters in Computer Science and I love NLP". 
-
-Translate it into Italian.
-
-Your final answer should be in format: 
-
-####################\n
-Translated sentence:\n
-<result>\n
-####################\n
+How can i run an MCMC with cobaya using lattest Planck 2pt data, both highl and low-l?
 """
 
 cmbagent.solve(task,
                max_rounds=50,
-               initial_agent='researcher',
+               initial_agent='cobaya_agent',
                mode = "one_shot",
               )

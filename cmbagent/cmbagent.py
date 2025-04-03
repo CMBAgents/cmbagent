@@ -184,7 +184,7 @@ class CMBAgent:
 
         self.work_dir = work_dir
         # Clear everything inside work_dir if it exists
-        self.clear_work_dir()
+        # self.clear_work_dir()
         
         # add the work_dir to the python path so we can import modules from it
         sys.path.append(self.work_dir)
@@ -517,7 +517,7 @@ class CMBAgent:
         
 
         self.clear_cache() ## obsolete
-        self.clear_work_dir()
+        # self.clear_work_dir()
 
         # Define full paths
         database_full_path = os.path.join(self.work_dir, this_shared_context.get("database_path", "data"))

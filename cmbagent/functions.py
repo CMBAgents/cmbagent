@@ -45,7 +45,7 @@ def register_functions_to_agents(cmbagent_instance):
     perplexity_search_tool = PerplexitySearchTool(
                         api_key=os.getenv("PERPLEXITY_API_KEY"),
                         max_tokens=1000,
-                        # search_domain_filter=["arxiv.org", "towardsdatascience.com"], # doest seem to work
+                        # search_domain_filter=["arxiv.org"], # doest seem to work
                     )
     
     # perplexity_search_tool.register_for_llm(perplexity)
@@ -244,10 +244,74 @@ Now, update the plan accordingly, planner!""",
         
         if cmbagent_debug:
             print("\n\n in functions.py record_status: context_variables: ", context_variables)
+            import pprint
+            print('--'*70)
+            pprint.pprint(context_variables["current_status"])
+            pprint.pprint(context_variables["agent_for_sub_task"])
+            print('--'*70)
 
 
-        return SwarmResult(
-            values=f"""
+        context_variables["transfer_to_engineer"] = False
+        context_variables["transfer_to_researcher"] = False
+        context_variables["transfer_to_camb_agent"] = False
+        context_variables["transfer_to_cobaya_agent"] = False
+        context_variables["transfer_to_perplexity"] = False
+
+        agent_to_transfer_to = None
+        if "in progress" in context_variables["current_status"]:
+            if context_variables["agent_for_sub_task"] == "engineer":
+                context_variables["transfer_to_engineer"] = True
+            elif context_variables["agent_for_sub_task"] == "researcher":
+                context_variables["transfer_to_researcher"] = True
+            elif context_variables["agent_for_sub_task"] == "camb_agent":
+                context_variables["transfer_to_camb_agent"] = True
+            elif context_variables["agent_for_sub_task"] == "cobaya_agent":
+                context_variables["transfer_to_cobaya_agent"] = True
+            elif context_variables["agent_for_sub_task"] == "perplexity":
+                context_variables["transfer_to_perplexity"] = True
+
+        
+            if context_variables["transfer_to_engineer"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
+            elif context_variables["transfer_to_researcher"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
+            elif context_variables["transfer_to_camb_agent"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_agent')
+            elif context_variables["transfer_to_cobaya_agent"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('cobaya_agent')
+            elif context_variables["transfer_to_perplexity"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('perplexity')
+
+        if "completed" in context_variables["current_status"]:
+            if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
+            else:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('control')
+
+
+        if cmbagent_debug:
+            if agent_to_transfer_to is None:
+                print("agent_to_transfer_to is None")
+            else:   
+                print("agent_to_transfer_to: ", agent_to_transfer_to.name)
+            
+
+        if agent_to_transfer_to is None:
+            return SwarmResult(
+                
+                values=f"""
+    **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
+    **Sub-task:** {context_variables["current_sub_task"]}\n 
+    **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
+    **Instructions:**\n 
+    {context_variables["current_instructions"]}\n 
+    **Status:** {context_variables["current_status"]} {icon}
+        """,
+                context_variables=context_variables)
+        else:
+            return SwarmResult(
+                agent=agent_to_transfer_to,
+                values=f"""
 **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
 **Sub-task:** {context_variables["current_sub_task"]}\n 
 **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
