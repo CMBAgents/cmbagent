@@ -126,7 +126,7 @@ file_search_max_num_results = autogen.file_search_max_num_results
 
 default_max_round = 50
 
-default_llm_model = 'gpt-4o-mini'
+default_llm_model = 'gpt-4o-2024-11-20'
 
 default_llm_config_list = [
                     {
@@ -139,7 +139,7 @@ default_llm_config_list = [
 default_agent_llm_configs = {
                     'engineer': {
                         "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "high",
+                        "reasoning_effort": "medium", # high
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
@@ -209,22 +209,22 @@ default_agent_llm_configs = {
                         },
 
                     "classy_sz_response_formatter": {
-                        "model": "gpt-4o",
+                        "model": "gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
                     "camb_response_formatter": {
-                        "model": "gpt-4o",
+                        "model": "gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
                     "cobaya_response_formatter": {
-                        "model": "gpt-4o",
+                        "model": "gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
                     "engineer_response_formatter": {
-                        "model": "gpt-4o",
+                        "model": "gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
