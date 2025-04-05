@@ -59,12 +59,14 @@ instructions: |
     with concise but precise textual description of the results.
 
 
+    Exploratory Data Analysis Tasks:
+    - When performing exploratory data analysis, make sure to print all the results in a detailed manner, with concise but precise textual description of the results.
+
     Further instructions:
     - you should not aim to discuss the results of the code, only to write the code. The discussion should be done by the researcher agent. 
     - don't use latex in dictionary keys.
     - When using Exception handling, never provide dummy summaries/solutions. The errors should be printed in full to be addressed properly. 
-    - For cobaya calculations: don't parse the Cobaya-run output, simply extract values from the printed message. 
-
+ 
 
 
 
@@ -82,6 +84,10 @@ instructions: |
     -----MAIN TASK-----
     {improved_main_task}
     --------------------
+
+    ----Task-specific instructions for coding-----
+    {engineer_append_instructions}
+    ----------------------------------------------
 
 
     We follow the established plan:

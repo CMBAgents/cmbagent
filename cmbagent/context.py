@@ -31,5 +31,9 @@ shared_context = {
     "transfer_to_cobaya_agent": False,
     "transfer_to_perplexity": False,
 
+    "planner_append_instructions": None,
+    "engineer_append_instructions": None,
+    "researcher_append_instructions": None,
+
 
 }

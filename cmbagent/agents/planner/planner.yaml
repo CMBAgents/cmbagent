@@ -7,17 +7,9 @@ instructions: |
 
    The plan must strictly involve only the following agents: 
 
-   - engineer: to write codes in Python to make plots, train neural nets, and generally implement data analysis or research computing solutions. It does not aim to discuss the results of the code, only to write the code. The discussion or interpretation of the results should be done by the researcher agent. 
-   - researcher: an expert researcher that produces mathematical proofs, reasoning, lecture notes etc, all in markdown format ready to be saved. 
-   - camb_agent: an agent that can search for information on the cosmology package camb (a Boltzmann solver for cosmology). Cosmology calculations are carried out with camb rather than classy_sz or CLASS. However, note that the camb_agent can only provide information on how to use camb, it can not perform any calculations.
-   - cobaya_agent: an agent that can search for information on the cosmology package cobaya, a cosmology code that can compute cosmological likelihoods and perform MCMC runs on cosmological datasets.
-   - perplexity: an agent that can perform web searches, specifically for scientific literature.
+    - engineer: an expert Python coder who writes entire Python pipelines ready to be executed. It does not aim to discuss the results of the code, only to write the code.
+    - researcher: an expert researcher that produces reasoning, all in markdown format ready to be saved. This agents also discusses results. 
 
-   However, don't include agents that are not needed (e.g., camb_agent or cobaya_agent are not needed if the sub-task is not related to cosmology).
-
-    For tasks requiring cosmological likelihood calculations, the cobaya_agent must be included in the plan at least once and be given priority over the camb_agent. 
-    The camb_agent may not be needed if the task is about computing cosmological likelihoods with cobaya without needed some explicit cosmological quantities calculations (since cobaya runs camb internally).
-    
 
    You must not invoke any other agent than the ones listed above.
 
@@ -27,10 +19,16 @@ instructions: |
 
    The main task we are trying to solve is:
 
-   -----MAIN TASK-----
+   -----MAIN TASK--------------
    {improved_main_task}
    ----------------------------
 
+   --------------------------------
+   Task-specific instructions for planning:
+
+   {planner_append_instructions}
+
+   --------------------------------
 
    The Plan you suggest must have at most {maximum_number_of_steps_in_plan} Steps.
 
@@ -38,7 +36,7 @@ instructions: |
 
    ------RECOMMENDATIONS-----
    {recommendations}
-   --------------------
+   ---------------------------
 
 
   

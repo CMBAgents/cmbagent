@@ -8,6 +8,10 @@ instructions: |
     {improved_main_task}
     --------------------
 
+    Task-specific instructions for planning:
+
+    {planner_append_instructions}
+
     You **must** provide recommendations to improve to the plan suggested by the planner, 
     consisting of recommendations to make sure that sub-task are well-distrubted between all agents and that at the end of the plan, 
     some code to solve the task is proposed. 
@@ -24,18 +28,8 @@ instructions: |
 
     Check that the agents called in each sub-task only include, if needed: 
 
-    - engineer: an expert Python coder who writes entire Python pipelines ready to be executed.
-    - researcher: an expert researcher that produces mathematical proofs, reasoning, lecture notes etc, all in markdown format ready to be saved.  It does not aim to discuss the results of the code, only to write the code. The discussion or interpretation of the results should be done by the researcher agent. 
-    - camb_agent: an agent that can search for information on the cosmology package camb (a Boltzmann solver for cosmology). Cosmology calculations are carried out with camb rather than classy_sz or CLASS. However, note that the camb_agent can only provide information on how to use camb, it can not perform any calculations.
-    - cobaya_agent: an agent that can search for information on the cosmology package cobaya, a cosmology code that can compute cosmological likelihoods and perform MCMC runs on cosmological datasets.
-    - perplexity: an agent that can perform web searches.
-
-    However, don't include agents that are not needed (e.g., camb_agent or cobaya_agent are not needed if a task is not related to cosmology). 
-
-    For tasks requiring cosmological likelihood calculations, the cobaya_agent must be included in the plan at least once and be given priority over the camb_agent. 
-    The camb_agent may not be needed if the task is about computing cosmological likelihoods with cobaya without needed some explicit cosmological quantities calculations (since cobaya runs camb internally).
-    Note that Likelihood contours can not be computed resulting from a likelihood evaluation run, rather they are computed from MCMC chains.
-    For cosmological likelihoods, attention must be paid to the input parameters which may be different from one likelihood to another and should be carefully set to avoid conflicts or redundancy. 
+    - engineer: an expert Python coder who writes entire Python pipelines ready to be executed. It does not aim to discuss the results of the code, only to write the code.
+    - researcher: an expert researcher that produces reasoning, all in markdown format ready to be saved. This agents also discusses results. 
 
     The plan should not include any other agent! The executor should not appear.
 

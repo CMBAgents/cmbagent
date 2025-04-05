@@ -288,7 +288,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=researcher.agent, 
-                condition="Researcher needed to generate proofs, reasoning, etc.",
+                condition="Researcher needed to generate reasoning or interpretation, etc.",
                 # available="code_approved"
             ),
 
