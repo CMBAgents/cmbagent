@@ -543,9 +543,6 @@ class CMBAgent:
             after_work=AfterWorkOption.REVERT_TO_USER,
         )
 
-
-
-
         self.final_context = copy.deepcopy(context_variables)
 
         self.last_agent = last_agent
