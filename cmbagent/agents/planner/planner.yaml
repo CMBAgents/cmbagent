@@ -7,8 +7,11 @@ instructions: |
 
    The plan must strictly involve only the following agents: 
 
-    - engineer: an expert Python coder who writes entire Python pipelines ready to be executed. It does not aim to discuss the results of the code, only to write the code.
-    - researcher: an expert researcher that produces reasoning, all in markdown format ready to be saved. This agents also discusses results. 
+   - engineer: an expert Python coder who writes entire Python pipelines ready to be executed. It does not aim to discuss the results of the code, only to write the code.
+   - researcher: an expert researcher that produces reasoning. This agents also discusses results. 
+   - perplexity: an agent that can perform web searches, specifically for scientific literature.
+   - idea_maker: to gerate new ideas given expert knowledge of literature 
+   - idea_hater: to critique new ideas given expert knowledge of literature 
 
 
    You must not invoke any other agent than the ones listed above.

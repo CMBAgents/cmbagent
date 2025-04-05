@@ -24,6 +24,10 @@ def register_all_hand_offs(cmbagent_instance):
     plan_reviewer = cmbagent_instance.get_agent_object_from_name('plan_reviewer')
     reviewer_response_formatter = cmbagent_instance.get_agent_object_from_name('reviewer_response_formatter')
     review_recorder = cmbagent_instance.get_agent_object_from_name('review_recorder')
+    idea_maker = cmbagent_instance.get_agent_object_from_name('idea_maker')
+    idea_maker_response_formatter = cmbagent_instance.get_agent_object_from_name('idea_maker_response_formatter')
+    idea_hater = cmbagent_instance.get_agent_object_from_name('idea_hater')
+    idea_hater_response_formatter = cmbagent_instance.get_agent_object_from_name('idea_hater_response_formatter')
     researcher = cmbagent_instance.get_agent_object_from_name('researcher')
     researcher_response_formatter = cmbagent_instance.get_agent_object_from_name('researcher_response_formatter')
     engineer = cmbagent_instance.get_agent_object_from_name('engineer')
@@ -47,6 +51,10 @@ def register_all_hand_offs(cmbagent_instance):
         print('\nplan_reviewer: ', plan_reviewer)
         print('\nreviewer_response_formatter: ', reviewer_response_formatter)
         print('\nreview_recorder: ', review_recorder)
+        print('\nidea_maker: ', idea_maker)
+        print('\nidea_maker_response_formatter: ', idea_maker_response_formatter)
+        print('\nidea_hater: ', idea_hater)
+        print('\nidea_hater_response_formatter: ', idea_hater_response_formatter)
         print('\nresearcher: ', researcher)
         print('\nresearcher_response_formatter: ', researcher_response_formatter)
         print('\nengineer: ', engineer)
@@ -309,6 +317,24 @@ def register_all_hand_offs(cmbagent_instance):
                 condition="Executor needed to execute code",
                 # available="code_approved"
             ),
+
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=idea_maker.agent, 
+                condition="idea_maker needed to make new ideas",
+                # available="code_approved"
+            ),
+
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=idea_hater.agent, 
+                condition="idea_hater needed to critique ideas",
+                # available="code_approved"
+            ),
             
             # AfterWork(AfterWorkOption.TERMINATE), # Handles the next step in the conversation when an agent doesn't suggest a tool call or a handoff
             AfterWork(terminator.agent)
@@ -403,5 +429,37 @@ def register_all_hand_offs(cmbagent_instance):
         agent = executor.agent,
         hand_to = [
             AfterWork(control.agent),
+        ]
+    )
+
+    #idea maker 
+    register_hand_off(
+        agent = idea_maker.agent,
+        hand_to = [
+            AfterWork(idea_maker_response_formatter.agent),
+        ]
+    )
+
+    #idea maker response formatter
+    register_hand_off(
+        agent = idea_maker_response_formatter.agent,
+        hand_to = [
+            AfterWork(control.agent),     # control?
+        ]
+    )
+
+    #idea hater 
+    register_hand_off(
+        agent = idea_hater.agent,
+        hand_to = [
+            AfterWork(idea_hater_response_formatter.agent),
+        ]
+    )
+
+    #idea hater response formatter
+    register_hand_off(
+        agent = idea_hater_response_formatter.agent,
+        hand_to = [
+            AfterWork(control.agent),     # control?
         ]
     )
