@@ -66,3 +66,5 @@ docs/notebooks/output
 docs/notebooks/cmbagent_output
 docs/notebooks/*
 docs/notebooks/cmbagent_beta2_demo_1shot.ipynb
+docs/notebooks/astropilot_data/.DS_Store
+docs/notebooks/astropilot_data/plots/.DS_Store
