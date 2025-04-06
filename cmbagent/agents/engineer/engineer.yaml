@@ -82,9 +82,9 @@ instructions: |
     The main task we are trying to solve is:
 
 
-    -----MAIN TASK-----
+    ----- DATA OF INTEREST-----
     {improved_main_task}
-    --------------------
+    ----------------------------
 
     ----Task-specific instructions for coding-----
     {engineer_append_instructions}
