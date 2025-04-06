@@ -19,7 +19,7 @@ from IPython.display import Image
 
 import importlib
 import sys
-import urllib.parse
+import pickle
 
 import logging
 from ruamel.yaml import YAML
@@ -255,7 +255,7 @@ def update_yaml_preserving_format(yaml_file, agent_name, new_id, field = 'vector
     with open(yaml_file, 'w') as file:
         yaml.dump(yaml_content, file)
 
-def aas_keyword_to_url(keyword: str) -> str:
+def aas_keyword_to_url(keyword):
     """
     Given an AAS keyword, return its IAU Thesaurus URL.
     
