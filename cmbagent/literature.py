@@ -40,32 +40,32 @@ def arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
     return bib_keys, bib_strs
 
 def replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
-        """
-        Replaces runs like [1][2][3] with a single sorted \cite{key1,key2,key3}, sorted by year.
-        Works for single refs like [1] too.
+    """
+    Replaces runs like [1][2][3] with a single sorted \cite{key1,key2,key3}, sorted by year.
+    Works for single refs like [1] too.
 
-        Args:
-            content (str): The paragraph containing [N] citation markers (1-indexed).
-            bib_keys (List[str]): List of BibTeX keys corresponding to citations (0-indexed).
+    Args:
+        content (str): The paragraph containing [N] citation markers (1-indexed).
+        bib_keys (List[str]): List of BibTeX keys corresponding to citations (0-indexed).
 
-        Returns:
-            str: Updated content with grouped citations merged and sorted by year.
-        """
+    Returns:
+        str: Updated content with grouped citations merged and sorted by year.
+    """
 
-        def extract_year(key: str) -> int:
-            """Extracts a 4-digit year from a BibTeX key (or returns a large number if missing)."""
-            match = re.search(r'\d{4}', key)
-            return int(match.group()) if match else float('inf')
+    def extract_year(key: str) -> int:
+        """Extracts a 4-digit year from a BibTeX key (or returns a large number if missing)."""
+        match = re.search(r'\d{4}', key)
+        return int(match.group()) if match else float('inf')
 
-        def replacer(match):
-            numbers = re.findall(r'\[(\d+)\]', match.group())  # ['1', '2', '3']
-            keys = [bib_keys[int(n) - 1] for n in numbers]     # adjust for 1-indexed
-            sorted_keys = sorted(keys, key=extract_year)
-            return f"\\cite{{{','.join(sorted_keys)}}}"
+    def replacer(match):
+        numbers = re.findall(r'\[(\d+)\]', match.group())  # ['1', '2', '3']
+        keys = [bib_keys[int(n) - 1] for n in numbers]     # adjust for 1-indexed
+        sorted_keys = sorted(keys, key=extract_year)
+        return f"\\cite{{{','.join(sorted_keys)}}}"
 
-        # Match sequences like [1][2][3]
-        pattern = r'(?:\[\d+\])+'
-        return re.sub(pattern, replacer, content)
+    # Match sequences like [1][2][3]
+    pattern = r'(?:\[\d+\])+'
+    return re.sub(pattern, replacer, content)
 
 def do_references(content: str, citations: List[str], bibtex_file_str: str) -> Tuple[str, str]:
     """
