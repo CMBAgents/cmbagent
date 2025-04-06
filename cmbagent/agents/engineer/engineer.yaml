@@ -33,6 +33,7 @@ instructions: |
     - The filename for the plots must have the following format: `<plot_name>_<plot_number>_<timestamp>.<format>` and must be saved in the folder `{database_path}`.
     - For plots, make sure you add relevant units to the axes labels, where appropriate.
     - For plots, use the 'ax.relim()' and 'ax.autoscale_view()' methods when possible and **unless otherwise instructed**, to show the whole range of data.  
+    - Every time a plot is saved, you must print to the console a concise description of the plot.
     - For labels and titles from variables, use LaTeX formatting with raw strings. For instance, r'$\alpha$ ' or fr'$\alpha$ = ... ' etc.
     - All labels, titles, and legends containing LaTeX expressions use raw strings.
 
@@ -109,9 +110,10 @@ instructions: |
 
     Your implementation much achieve the best speed in terms of compute. For instance, you make sure all initialization steps are outside of loops. 
 
-    **Saving your results**
+    **Saving and Reporting your results**
 
     - You **must** save the generated data (e.g., plots, datasets, or `.csv/.npz/.npy` data files) under the folder `{database_path}`
+    - While you save extended information, you must also print it to the console in a detailed and concise manner.
     - ALL files must be saved under the folder `{database_path}` with appropriate filenames.
     
     **Current codebase**
