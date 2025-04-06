@@ -1,4 +1,4 @@
-
+from .utils import AAS_keywords_string
 shared_context = {
 
     "plans": [],
@@ -35,6 +35,11 @@ shared_context = {
     "plan_reviewer_append_instructions": None,
     "engineer_append_instructions": None,
     "researcher_append_instructions": None,
+
+
+    "AAS_keywords_string": AAS_keywords_string,
+    "text_input_for_AAS_keyword_finder": None,
+    "N_AAS_keywords": 5,
 
 
 }

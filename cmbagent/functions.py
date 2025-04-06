@@ -9,6 +9,7 @@ from IPython.display import Markdown
 from autogen.cmbagent_utils import IMG_WIDTH
 import autogen
 from autogen.tools.experimental import PerplexitySearchTool
+from .utils import AAS_keywords_dict
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -39,7 +40,7 @@ def register_functions_to_agents(cmbagent_instance):
     control = cmbagent_instance.get_agent_from_name('control')
     admin = cmbagent_instance.get_agent_from_name('admin')
     perplexity = cmbagent_instance.get_agent_from_name('perplexity')
-
+    aas_keyword_finder = cmbagent_instance.get_agent_from_name('aas_keyword_finder')
 
     # print("Perplexity API key: ", os.getenv("PERPLEXITY_API_KEY"))
     perplexity_search_tool = PerplexitySearchTool(
@@ -92,6 +93,57 @@ def register_functions_to_agents(cmbagent_instance):
 
 
     task_recorder._add_single_function(record_improved_task)
+
+
+    def record_aas_keywords(aas_keywords: list[str], context_variables: dict) -> SwarmResult:
+        """
+        Extracts the relevant AAS keywords from the list, given the text input.
+        Args:
+            aas_keywords (list[str]): The list of AAS keywords to be recorded
+            context_variables (dict): A dictionary maintaining execution context, including previous plans, 
+                feedback tracking, and finalized plans.
+        """
+        
+        # print('aas_keywords: ', aas_keywords)
+
+        for keyword in aas_keywords:
+            if keyword not in AAS_keywords_dict:
+                return SwarmResult(agent=aas_keyword_finder, ## transfer to control
+                                values=f"Proposed keyword {keyword} not found in the list of AAS keywords. Extract keywords from provided AAS list!",
+                                context_variables=context_variables)
+            
+        context_variables["aas_keywords"] = {f'{aas_keyword}': AAS_keywords_dict[aas_keyword] for aas_keyword in aas_keywords}
+            
+        AAS_keyword_list = "\n".join(
+                            [f"- [{keyword}]({AAS_keywords_dict[keyword]})" for keyword in aas_keywords]
+                        )
+
+        return SwarmResult(agent=AfterWorkOption.TERMINATE, ## transfer to control
+                        values=f"""
+**AAS keywords**:\n
+{AAS_keyword_list}
+""",
+                        context_variables=context_variables)
+
+        # import sys
+        # sys.exit()
+
+        # context_variables["proposed_plan"] = plan_suggestion
+
+        # context_variables["number_of_steps_in_plan"] = number_of_steps_in_plan
+
+        # if context_variables["feedback_left"]==0:
+        #     context_variables["final_plan"] = context_variables["plans"][-1]
+        #     return SwarmResult(agent=AfterWorkOption.TERMINATE, ## transfer to control
+        #                     values="Planning stage complete. Exiting.",
+        #                     context_variables=context_variables)
+        # else:
+        #     return SwarmResult(agent=plan_reviewer, ## transfer to plan reviewer
+        #                     values="Plan has been logged.",
+        #                     context_variables=context_variables)
+
+
+    aas_keyword_finder._add_single_function(record_aas_keywords)
 
 
 
@@ -168,7 +220,7 @@ Now, update the plan accordingly, planner!""",
         current_plan_step_number: int,
         current_sub_task: str,
         current_instructions: str,
-        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater"],
+        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater", "aas_keyword_finder"],
         context_variables: dict
     ) -> SwarmResult:
         """

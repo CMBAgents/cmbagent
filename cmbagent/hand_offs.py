@@ -43,7 +43,7 @@ def register_all_hand_offs(cmbagent_instance):
     control = cmbagent_instance.get_agent_object_from_name('control')
     perplexity = cmbagent_instance.get_agent_object_from_name('perplexity')
     admin = cmbagent_instance.get_agent_object_from_name('admin')
-
+    aas_keyword_finder = cmbagent_instance.get_agent_object_from_name('aas_keyword_finder')
     if cmbagent_debug:
         print('\nplanner: ', planner)
         print('\nplanner_response_formatter: ', planner_response_formatter)
@@ -71,7 +71,7 @@ def register_all_hand_offs(cmbagent_instance):
         print('\nadmin: ', admin)
         print('\nperplexity: ', perplexity)
         print('\ntask_improver: ', task_improver)
-
+        print('\naas_keyword_finder: ', aas_keyword_finder)
 
     #task_improver agent
     register_hand_off(
@@ -172,6 +172,12 @@ def register_all_hand_offs(cmbagent_instance):
     # "max_turns": 1,  # Only one turn is necessary
     # }
     # chat_queue = [nested_chat_one]
+    register_hand_off(
+        agent = aas_keyword_finder.agent,
+        hand_to = [
+            AfterWork(control.agent),
+        ]
+    )
 
     register_hand_off(
         agent = perplexity.agent,

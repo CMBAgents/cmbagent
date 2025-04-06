@@ -144,6 +144,12 @@ default_agent_llm_configs = {
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
+                    'aas_keyword_finder': {
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "medium", # high
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
                     'classy_sz': {
                         "model": "gpt-4o-2024-11-20", 
                         "api_key": os.getenv("OPENAI_API_KEY"), # use oai models here only (this is a RAG agent, with an oai vector store attached. If you are not a cosmologist, ignore this, you will never need this agent.
@@ -290,3 +296,12 @@ def aas_keyword_to_url(keyword):
     with open('aas_kwd_to_url.pkl', 'rb') as f:
         dic = pickle.load(f)
     return dic[keyword]
+
+
+with open(path_to_basedir + '/aas_kwd_to_url.pkl', 'rb') as file:
+    AAS_keywords_dict = pickle.load(file)
+
+# print(my_dict)
+# Assuming you have already loaded your dictionary into `my_dict`
+AAS_keywords_string = ', '.join(AAS_keywords_dict.keys())
+
