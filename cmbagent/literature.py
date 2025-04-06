@@ -10,9 +10,8 @@ def arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
         citations (List[str]): List of arXiv URLs (abs, pdf, or html variants allowed).
 
     Returns:
-        Tuple[Dict[int, str], List[str]]:
-            - A dictionary mapping 1-indexed footnote reference numbers (e.g., 1, 2, ...)
-              to their corresponding BibTeX keys.
+        Tuple[List[str], List[str]]:
+            - A list of BibTeX keys (as strings).
             - A list of full BibTeX entries (as strings) suitable for inclusion in a .bib file.
     """
     bib_keys = []
