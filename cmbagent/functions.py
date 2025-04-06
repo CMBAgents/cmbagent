@@ -426,8 +426,16 @@ def load_plots(directory: str) -> list:
     """
     image_extensions = ('.png', '.jpg', '.jpeg', '.gif')
     image_files = []
-    if os.path.exists(directory):
-        for file in os.listdir(directory):
-            if file.lower().endswith(image_extensions):
-                image_files.append(os.path.join(directory, file))
+
+    # List of directories to search: base directory + specific subdirectories.
+    dirs_to_search = [directory,
+                      os.path.join(directory, "plots"),
+                      os.path.join(directory, "images"),
+                      os.path.join(directory, "figures")]
+
+    for dir_path in dirs_to_search:
+        if os.path.exists(dir_path) and os.path.isdir(dir_path):
+            for file in os.listdir(dir_path):
+                if file.lower().endswith(image_extensions):
+                    image_files.append(os.path.join(dir_path, file))
     return image_files
