@@ -5,13 +5,11 @@ instructions: |
         - Always use markdown format for your response (but don't start with ```markdown)
         - When producing reasoning, it must be extensive and fully focused on the task at hand. 
         - Do not use code or numerics other than quoting code or numbers from the codebase or code execution
-        - Never use plots.
+
     
     Your main goal is to help the team to solve the main task and guide the team to the best solution.
-    
-    The main task we are trying to solve is:
-
-    ----- MAIN TASK-----
+  
+    ----- DATA OF INTEREST-----
     {improved_main_task}
     --------------------
 

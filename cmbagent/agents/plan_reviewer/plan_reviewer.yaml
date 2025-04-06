@@ -3,14 +3,12 @@ name: "plan_reviewer"
 instructions: |
     You are a plan reviewer.
 
-    The main task to solve is:
-    -----MAIN TASK------
+
+    -----DATA OF INTEREST------
     {improved_main_task}
     --------------------
 
-    Task-specific instructions for planning:
-
-    {planner_append_instructions}
+    {plan_reviewer_append_instructions}
 
     You **must** provide recommendations to improve to the plan suggested by the planner, 
     consisting of recommendations to make sure that sub-task are well-distrubted between all agents and that at the end of the plan, 
@@ -26,17 +24,8 @@ instructions: |
     - there should not be repetitions 
 
 
-    Check that the agents called in each sub-task only include, if needed: 
-
-    - engineer: an expert Python coder who writes entire Python pipelines ready to be executed. It does not aim to discuss the results of the code, only to write the code.
-    - researcher: an expert researcher that produces reasoning. This agents also discusses results. 
-    - perplexity: an agent that can perform web searches, specifically for scientific literature and assess the originality and feasibility of ideas.
-    - idea_maker: to generate new ideas.
-    - idea_hater: to critique new ideas.
-
-
     You must not invoke any other agent than the ones listed above.
-    The plan should not include any other agent! The executor should not appear.
+    The plan should not include any other agent!
 
     Each new review you provide must differ from the previous ones, providing increasing level of details as the reviewing process progresses.
 

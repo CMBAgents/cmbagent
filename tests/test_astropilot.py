@@ -159,20 +159,90 @@ Deacription of the features:
 
 Note that Subhalo features are not available for groups (set to NaN) and group features are not available for subhalos (set to NaN).
 Groups and subhalos should be considered as separate objects (they dont have the same features). Within groups and within subhalos, there are no missing values.
+"""
 
-**Project Idea:** **Effects on Star Formation and Stellar Assembly in Different fNL Scenarios**
-This idea was selected because of the following reasons:
-- **Feasibility:** This project leverages the robust statistical samples available for star formation rates and stellar photometric properties. The datasets provide a solid basis for comparing GroupSFR, SubhaloSFR, and multiple photometric bands that are less affected by sparsity issues.
-- **Originality:** There is significant interest in linking early-universe conditions (captured by different fNL values) with the observable processes of star formation. The idea taps into a relatively under-explored aspect of how the primordial density fluctuations might impact baryonic processes, offering fresh insights into the connection between cosmological initial conditions and galaxy evolution.
-- **Scientific Impact:** Star formation is a cornerstone of galaxy evolution, and understanding its sensitivity to initial conditions can have far-reaching implications. This project could help constrain models of galaxy formation by providing measurable differences in luminosity, color, and star formation efficiency. Moreover, linking these observable properties to the theoretical framework of primordial non-Gaussianity may inform future observational strategies and cosmological parameter estimation.
+### IDEA 
+
+planner_append_instructions = r"""
+Given these datasets, and information, make a plan according to the following instructions: 
+
+- Ask idea_maker to generate 5 new research project ideas related to the datasets and primordial non-Gaussianity.
+- Ask idea_hater to critique these ideas.
+- Ask idea_maker to select and improve 2 out of the 5 research project ideas given the output of the idea_hater.
+- Ask idea_hater to critique the 2 improved ideas. 
+- Ask idea_maker to select the best idea out of the 2. 
+- Ask idea_maker to report the best idea in the form of a scientific paper title with a 1 sentence description. 
+
+
+   The plan must strictly involve only the following agents: 
+   - idea_maker: to generate new ideas    .
+   - idea_hater: to critique new ideas.
+
+   You must not invoke any other agent than the ones listed above.
+
+
+The goal of this task is to generate a research project idea based on the data of interest. Don't suggest to do EDA, code, or anything else than a research project idea
 
 """
 
+plan_reviewer_append_instructions = r"""
+
+    Check that the agents called in each sub-task only include, if needed: 
+    - idea_maker: to generate new ideas.
+    - idea_hater: to critique new ideas.
+
+The goal of this task is to generate a research project idea based on the data of interest. Don't suggest to do EDA, code, or anything else than a research project idea
+
+"""
+cmbagent.solve(task,
+               max_rounds=500,
+               initial_agent="planner",
+            #    initial_agent="researcher",
+            #    mode="one_shot"
+               shared_context = {'feedback_left': 1,
+                                 'maximum_number_of_steps_in_plan': 6,
+                                 'planner_append_instructions': planner_append_instructions,
+                                 'plan_reviewer_append_instructions': plan_reviewer_append_instructions}
+              )
+
+try:
+    for obj in cmbagent.chat_result.chat_history[::-1]:
+        if obj['name'] == 'idea_maker_response_formatter':
+            result = obj['content']
+            break
+    cmbagent.task_result = result
+except:
+    cmbagent.task_result = None
+
+# extracted_idea = re.findall(MD_CODE_BLOCK_PATTERN, cmbagent.task_result, flags=re.DOTALL)[0]
+# # print(extracted_methodology)
+# clean_idea = re.sub(r'^<!--.*?-->\s*\n', '', extracted_idea)
+# Regular expression pattern matching the target text block
+pattern = r'\*\*Ideas\*\*\s*\n- Idea 1:'
+
+# Replacement text
+replacement = "Project Idea:"
+
+# Replace the matching text with the replacement
+cmbagent.task_result = re.sub(pattern, replacement, cmbagent.task_result)
+
+astro_pilot.input.idea = cmbagent.task_result
+
+print(astro_pilot.input.idea)
+
+
+
+
 #### METHODOLOGY
 
-planner_append_instructions = r"""
+planner_append_instructions = rf"""
+
+{astro_pilot.input.idea}
+
+Instruction for planning:
+
 Given these datasets, and information on the features and project idea, we want to design a methodology to implement this idea.
-The goal of the task is to write a detailed description of the methodology that will be used to perform the project analysis.
+The goal of the task is to write a plan that will be used to generate a detailed description of the methodology that will be used to perform the project analysis.
 
 1. **Elicit Project-Specific Reasoning:**
    - Ask the *researcher* to provide reasoning for the exploratory data analysis (EDA) tasks relevant to the given project idea.
@@ -195,11 +265,31 @@ The goal of the task is to write a detailed description of the methodology that 
 
 The plan must end with the Methodology description generated by the researcher. It is in 4 steps with:
 researcher->engineer->researcher->researcher
+
+
+   The plan must strictly involve only the following agents: 
+
+   - engineer: an expert Python coder who writes entire Python pipelines ready to be executed. It does not aim to discuss the results of the code, only to write the code.
+   - researcher: an expert researcher that produces reasoning. This agents also discusses results. 
+
+   You must not invoke any other agent than the ones listed above.
 """
 
-engineer_append_instructions = r"""
+plan_reviewer_append_instructions = rf"""
+    {astro_pilot.input.idea}
+
+    Check that the agents called in each sub-task only include, if needed: 
+    - engineer: an expert Python coder who writes entire Python pipelines ready to be executed. It does not aim to discuss the results of the code, only to write the code.
+    - researcher: an expert researcher that produces reasoning. This agents also discusses results. 
+
+"""
+
+engineer_append_instructions = rf"""
+
+{astro_pilot.input.idea}
+
 Given these datasets, and information on the features and project idea, we want to design a methodology to implement this idea.
-The goal of the task is to write a detailed description of the methodology that will be used to perform the project analysis.
+The goal of the task is to generate a detailed description of the methodology that will be used to carry out the research project.
 
 Warnings: 
 Some feature columns have around 40k non-null entries. Although vectorized operations (like np.percentile, np.concatenate) are efficient, they do take longer on larger arrays. 
@@ -214,9 +304,11 @@ For histograms (if needed):
 """
 
 
-researcher_append_instructions = r"""
+researcher_append_instructions = rf"""
+{astro_pilot.input.idea}
+
 Given these datasets, and information on the features and project idea, we want to design a methodology to implement this idea.
-The goal of the task is to write a detailed description of the methodology that will be used to perform the project analysis.
+The goal of the task is to write a detailed description of the methodology that will be used to carry out the research project.
 
 - When asked about Elicit Project-Specific Reasoning, your goal is to clarify the specific hypotheses, assumptions, or questions the EDA should help investigate.
 - When asked about Synthesize EDA Insights, your goal is to focus on understanding how the findings inform modeling choices, preprocessing needs, or feature selection.
@@ -235,7 +327,8 @@ cmbagent.solve(task,
                                  'maximum_number_of_steps_in_plan': 4,
                                  'planner_append_instructions': planner_append_instructions,
                                  'engineer_append_instructions': engineer_append_instructions,
-                                 'researcher_append_instruction': researcher_append_instruction}
+                                 'researcher_append_instructions': researcher_append_instructions,
+                                 'plan_reviewer_append_instructions': plan_reviewer_append_instructions}
               )
 
 
@@ -261,7 +354,7 @@ astro_pilot.input.methodology = clean_methodology
 
 planner_append_instructions = rf"""
 
-METHODLOGY
+{astro_pilot.input.idea}
 
 {astro_pilot.input.methodology}
 
@@ -269,17 +362,34 @@ Given these datasets, and information on the features and project idea and metho
 The goal is to perform the in-depth research and analysis. 
 
 The plan must end with the insights generated by the researcher, including discussion of quantitative results and plots previously generated. It is in 2 steps with:
-engineer->researcher
+engineer->researcher->engineer->researcher
+
+   The plan must strictly involve only the following agents: 
+
+   - engineer: an expert Python coder who writes entire Python pipelines ready to be executed, and generates results, plots and key statistics. It does not aim to discuss the results of the code, only to write the code.
+   - researcher: an expert researcher that produces reasoning but does not run code. This agents also discusses results. 
+
+   You must not invoke any other agent than the ones listed above.
 """
 
+plan_reviewer_append_instructions = rf"""
+    {astro_pilot.input.idea}
+
+    {astro_pilot.input.methodology}
+
+    Check that the agents called in each sub-task only include, if needed: 
+    - engineer: an expert Python coder who writes entire Python pipelines ready to be executed, and generates results, plots and key statistics. It does not aim to discuss the results of the code, only to write the code.
+    - researcher: an expert researcher that produces reasoning but does not run code. This agents also discusses results. 
+
+"""
 
 engineer_append_instructions = rf"""
-METHODLOGY
+{astro_pilot.input.idea}
 
 {astro_pilot.input.methodology}
 
 Given these datasets, and information on the features and project idea and methodology, we want to perform the project analysis and generate the results, plots and key statistics.
-The goal is to perform the in-depth research and analysis. 
+The goal is to perform the in-depth research and analysis. This means that you must generate the results, plots and key statistics.
 
 Warnings: 
 Some feature columns have around 40k non-null entries. Although vectorized operations (like np.percentile, np.concatenate) are efficient, they do take longer on larger arrays. 
@@ -295,14 +405,12 @@ For histograms (if needed):
 
 
 researcher_append_instruction =  rf"""
-METHODLOGY
+{astro_pilot.input.idea}
 
 {astro_pilot.input.methodology}
 
 Given the results, plots and key statistics generated by the engineer, your task is to generate a detailed discussion of the results, plots and key statistics, including reporting meaningful quantitative results, tables and references to the plots.
-The goal is to perform the in-depth research and analysis. 
-
-At the end of the plan, you must include a discussion of the results, plots and key statistics. It must be an extensive 1000 words discussion. 
+The goal is to generate the in-depth research report based on the results, plots and key statistics provided by the engineer.
 """
 
 cmbagent = CMBAgent(
@@ -326,10 +434,11 @@ cmbagent.solve(task,
                initial_agent="planner",
             #    mode="one_shot"
                shared_context = {'feedback_left': 1,
-                                 'maximum_number_of_steps_in_plan': 2,
+                                 'maximum_number_of_steps_in_plan': 4,
                                  'planner_append_instructions': planner_append_instructions,
                                  'engineer_append_instructions': engineer_append_instructions,
-                                 'researcher_append_instruction': researcher_append_instruction}
+                                 'researcher_append_instructions': researcher_append_instructions,
+                                 'plan_reviewer_append_instructions': plan_reviewer_append_instructions}
               )
 
 try:
@@ -349,6 +458,11 @@ astro_pilot.input.plot_paths = cmbagent.final_context['displayed_images']
 
 
 print("\n\nCMBAGENT RUN DONE\n\n")
+print("Idea:")
+print('--------------------------------')
+print(astro_pilot.input.idea)
+print('--------------------------------')
+
 print("Methodology:")
 print('--------------------------------')
 print(astro_pilot.input.methodology)

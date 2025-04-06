@@ -19,7 +19,7 @@ class IdeaHaterResponse(BaseModel):
         for i, step in enumerate(self.sub_tasks):
             plan_output += f"\n- Idea {i + 1}:\n\t* description: {step.idea_description}\n"
             if step.bullet_points:
-                plan_output += f"\n\t* Critique:\n"
+                # plan_output += f"\n\t* :\n"
                 for bullet in step.bullet_points:
                     plan_output += f"\t\t- {bullet}\n"
         message = f"""

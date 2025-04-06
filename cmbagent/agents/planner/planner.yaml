@@ -5,35 +5,20 @@ instructions: |
 
    You must provide a full plan or an updated plan based on recommendations.
 
-   The plan must strictly involve only the following agents: 
 
-   - engineer: an expert Python coder who writes entire Python pipelines ready to be executed. It does not aim to discuss the results of the code, only to write the code.
-   - researcher: an expert researcher that produces reasoning. This agents also discusses results. 
-   - perplexity: an agent that can perform web searches, specifically for scientific literature and assess the originality and feasibility of ideas.
-   - idea_maker: to generate new ideas    .
-   - idea_hater: to critique new ideas.
-
-
-   You must not invoke any other agent than the ones listed above.
-
-   Each sub-task must be carried out by one and only one agent.
-
-
-
-   The main task we are trying to solve is:
-
-   -----MAIN TASK--------------
+   -----DATA OF INTEREST--------------
    {improved_main_task}
    ----------------------------
 
    --------------------------------
-   Task-specific instructions for planning:
 
    {planner_append_instructions}
 
    --------------------------------
 
    The Plan you suggest must have at most {maximum_number_of_steps_in_plan} Steps.
+   Each step must be carried out by one and only one agent.
+
 
    Here are the current recommendations:
 

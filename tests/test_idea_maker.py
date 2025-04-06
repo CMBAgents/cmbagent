@@ -126,9 +126,10 @@ Given these datasets, and information. We want to implement the following workfl
 
 Instructions for planner: 
 - Ask idea_maker to generate 5 new research project ideas related to the datasets and primordial non-Gaussianity.
-- Ask idea_hater to critique these ideas and improve them.
-- Ask idea_maker to select 2 out of the 5 Research project ideas given the output of the idea_hater.
-- Ask idea_hater to select the best idea out of the 2. It should be the only one to be reported. 
+- Ask idea_hater to critique these ideas.
+- Ask idea_maker to select and improve 2 out of the 5 research project ideas given the output of the idea_hater.
+- Ask idea_hater to critique the 2 improved ideas. 
+- Ask idea_maker to select the best idea out of the 2. It should be the only one to be reported. 
 
 """
 

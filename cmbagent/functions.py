@@ -256,6 +256,8 @@ Now, update the plan accordingly, planner!""",
         context_variables["transfer_to_camb_agent"] = False
         context_variables["transfer_to_cobaya_agent"] = False
         context_variables["transfer_to_perplexity"] = False
+        context_variables["transfer_to_idea_maker"] = False
+        context_variables["transfer_to_idea_hater"] = False
 
         agent_to_transfer_to = None
         if "in progress" in context_variables["current_status"]:
@@ -269,6 +271,10 @@ Now, update the plan accordingly, planner!""",
                 context_variables["transfer_to_cobaya_agent"] = True
             elif context_variables["agent_for_sub_task"] == "perplexity":
                 context_variables["transfer_to_perplexity"] = True
+            elif context_variables["agent_for_sub_task"] == "idea_maker":
+                context_variables["transfer_to_idea_maker"] = True
+            elif context_variables["agent_for_sub_task"] == "idea_hater":
+                context_variables["transfer_to_idea_hater"] = True
 
         
             if context_variables["transfer_to_engineer"]:
@@ -281,6 +287,10 @@ Now, update the plan accordingly, planner!""",
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('cobaya_agent')
             elif context_variables["transfer_to_perplexity"]:
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('perplexity')
+            elif context_variables["transfer_to_idea_maker"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
+            elif context_variables["transfer_to_idea_hater"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
 
         if "completed" in context_variables["current_status"]:
             if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
