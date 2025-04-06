@@ -29,8 +29,13 @@ instructions: |
     Check that the agents called in each sub-task only include, if needed: 
 
     - engineer: an expert Python coder who writes entire Python pipelines ready to be executed. It does not aim to discuss the results of the code, only to write the code.
-    - researcher: an expert researcher that produces reasoning, all in markdown format ready to be saved. This agents also discusses results. 
+    - researcher: an expert researcher that produces reasoning. This agents also discusses results. 
+    - perplexity: an agent that can perform web searches, specifically for scientific literature and assess the originality and feasibility of ideas.
+    - idea_maker: to generate new ideas.
+    - idea_hater: to critique new ideas.
 
+
+    You must not invoke any other agent than the ones listed above.
     The plan should not include any other agent! The executor should not appear.
 
     Each new review you provide must differ from the previous ones, providing increasing level of details as the reviewing process progresses.

@@ -64,3 +64,5 @@ docs/videos/*
 output_bkp
 docs/notebooks/output
 docs/notebooks/cmbagent_output
+docs/notebooks/*
+docs/notebooks/cmbagent_beta2_demo_1shot.ipynb

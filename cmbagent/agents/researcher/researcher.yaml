@@ -16,7 +16,7 @@ instructions: |
     --------------------
 
     ---task specific instructions---
-    {researcher_append_instruction}
+    {researcher_append_instructions}
     -------------------------------
 
 

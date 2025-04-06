@@ -509,7 +509,13 @@ class CMBAgent:
                               'agent_for_sub_task': initial_agent,
                               'feedback_left': 0,
                               "number_of_steps_in_plan": 1,
-                              'maximum_number_of_steps_in_plan': 1}
+                              'maximum_number_of_steps_in_plan': 1,
+                              'researcher_append_instructions': '',
+                              'engineer_append_instructions': '',
+                              'perplexity_append_instructions': '',
+                              'idea_maker_append_instructions': '',
+                              'idea_hater_append_instructions': '',
+                              }
             
         
         if shared_context is not None:

@@ -200,7 +200,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=perplexity.agent, 
-                condition="Need perplexity to find information on existing scientific literature.",
+                condition="Need perplexity agent to find information on existing scientific literature.",
                 # available="review_recorded"
             ),
 

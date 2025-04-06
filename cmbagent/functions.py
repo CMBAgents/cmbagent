@@ -45,7 +45,7 @@ def register_functions_to_agents(cmbagent_instance):
     perplexity_search_tool = PerplexitySearchTool(
                         api_key=os.getenv("PERPLEXITY_API_KEY"),
                         max_tokens=1000,
-                        # search_domain_filter=["arxiv.org"], # doest seem to work
+                        search_domain_filter=["arxiv.org"], # doest seem to work
                     )
     
     # perplexity_search_tool.register_for_llm(perplexity)
@@ -168,7 +168,7 @@ Now, update the plan accordingly, planner!""",
         current_plan_step_number: int,
         current_sub_task: str,
         current_instructions: str,
-        agent_for_sub_task: Literal["engineer", "researcher"],
+        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater"],
         context_variables: dict
     ) -> SwarmResult:
         """

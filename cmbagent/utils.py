@@ -209,6 +209,19 @@ default_agent_llm_configs = {
                         "api_type": "anthropic",
                         },
 
+
+                    'idea_hater': {
+                        "model": "claude-3-7-sonnet-20250219",
+                        "api_key": os.getenv("ANTHROPIC_API_KEY"),
+                        "api_type": "anthropic",
+                        },
+
+                    'idea_maker': {
+                        "model": "gemini-2.5-pro-exp-03-25",
+                        "api_key": os.getenv("GEMINI_API_KEY"),
+                        "api_type": "google",
+                        },
+
                     "classy_sz_response_formatter": {
                         "model": "gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),

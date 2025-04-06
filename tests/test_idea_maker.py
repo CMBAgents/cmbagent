@@ -1,59 +1,23 @@
 import os
 import re
-from autogen.code_utils import MD_CODE_BLOCK_PATTERN
-from pydantic import BaseModel, Field
-from typing import List
+
 
 os.environ["CMBAGENT_DEBUG"] = "false"
 os.environ["CMBAGENT_DISABLE_DISPLAY"] = "true"
 
 from cmbagent import CMBAgent
 
-class AstroPilot:
-    class Input(BaseModel):
-        idea: str = Field(description="The idea of the project")
-        methodology: str = Field(description="The methodology of the project")
-        results: str = Field(description="The results of the project")
-        plot_paths: List[str] = Field(description="The plot paths of the project")
 
-    def __init__(self, input_data: 'AstroPilot.Input' = None):
-        self.input = input_data
-
-
-
-# astro_pilot = AstroPilot()
-
-input_data = AstroPilot.Input(idea="Your idea here", 
-                              methodology="Your methodology here", 
-                              results="Your results here",
-                              plot_paths=['/path/to/plot1.png', '/path/to/plot2.png']) 
-
-astro_pilot = AstroPilot(input_data=input_data) 
-
-print(astro_pilot.input.model_dump_json(indent=4))
-
-
-cmbagent = CMBAgent(
-agent_llm_configs = {
-                    'engineer': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "medium",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai"},
-                    'researcher': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "medium",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai"},
-})
-   
+cmbagent = CMBAgent()
 
 
 task = r"""
-Here are two datasets. These datasets contain subhalo and group-level properties from two different CAMELS simulations (A and B). The goal is to compare the distributions of these properties across both datasets.
 
-groups_and_subhalos_A_df = pd.read_pickle('/Users/boris/CMBAgents/cmbagent/project_data/data/CAMELS/LOCAL/groups_and_subhalos_200_mcut5e9.pkl')
-groups_and_subhalos_B_df = pd.read_pickle('/Users/boris/CMBAgents/cmbagent/project_data/data/CAMELS/LOCAL/groups_and_subhalos_n200_mcut5e9.pkl')
+Here are two datasets. These datasets contain subhalo and group-level properties from two different CAMELS simulations (A and B). 
+The goal is to perform innovative science, by taking ideas from other fields of research, and applying them here to compare the distributions of these properties across both datasets.
+
+groups_and_subhalos_A_df = pd.read_pickle('/mnt/home/abayer/source/cmbagent/output/data/CAMELS/LOCAL/groups_and_subhalos_200_mcut5e9.pkl')
+groups_and_subhalos_B_df = pd.read_pickle('/mnt/home/abayer/source/cmbagent/output/data/CAMELS/LOCAL/groups_and_subhalos_n200_mcut5e9.pkl')
 
 <Info on DATASET A>
 output of groups_and_subhalos_A_df.describe().to_markdown():
@@ -129,7 +93,7 @@ dtypes: float32(23)
 memory usage: 6.2 MB
 </Info on DATASET B>
 
-Datasets A and B are catalogs of objects (groups and subhalos) that inherently depend the local primordial non-Gaussianity parameter values fNL=200 for A and fNL=-200 for B.
+Datasets A and B inherently depend the local primordial non-Gaussianity parameter values fNL=200 for A and fNL=-200 for B.
 
 
 Deacription of the features: 
@@ -157,213 +121,26 @@ Deacription of the features:
  21  SubhaloVelDisp                One-dimensional velocity dispersion of all the member particles/cells (the 3D dispersion divided by sqrt(3))
  22  SubhaloVmaxRad                Maximum value of the spherically-averaged rotation curve. All available particle types (e.g. gas, stars, DM, and SMBHs) are included in this calculation.
 
-Note that Subhalo features are not available for groups (set to NaN) and group features are not available for subhalos (set to NaN).
-Groups and subhalos should be considered as separate objects (they dont have the same features). Within groups and within subhalos, there are no missing values.
 
-**Project Idea:** **Effects on Star Formation and Stellar Assembly in Different fNL Scenarios**
-This idea was selected because of the following reasons:
-- **Feasibility:** This project leverages the robust statistical samples available for star formation rates and stellar photometric properties. The datasets provide a solid basis for comparing GroupSFR, SubhaloSFR, and multiple photometric bands that are less affected by sparsity issues.
-- **Originality:** There is significant interest in linking early-universe conditions (captured by different fNL values) with the observable processes of star formation. The idea taps into a relatively under-explored aspect of how the primordial density fluctuations might impact baryonic processes, offering fresh insights into the connection between cosmological initial conditions and galaxy evolution.
-- **Scientific Impact:** Star formation is a cornerstone of galaxy evolution, and understanding its sensitivity to initial conditions can have far-reaching implications. This project could help constrain models of galaxy formation by providing measurable differences in luminosity, color, and star formation efficiency. Moreover, linking these observable properties to the theoretical framework of primordial non-Gaussianity may inform future observational strategies and cosmological parameter estimation.
+Given these datasets, and information. We want to implement the following workflow.
 
-"""
-
-#### METHODOLOGY
-
-planner_append_instructions = r"""
-Given these datasets, and information on the features and project idea, we want to design a methodology to implement this idea.
-The goal of the task is to write a detailed description of the methodology that will be used to perform the project analysis.
-
-1. **Elicit Project-Specific Reasoning:**
-   - Ask the *researcher* to provide reasoning for the exploratory data analysis (EDA) tasks relevant to the given project idea.
-   - Clarify the specific hypotheses, assumptions, or questions the EDA should help investigate.
-
-2. **Conduct Exploratory Data Analysis:**
-   - Collaborate with the *engineer* to perform the EDA on the provided datasets.
-   - Ensure the analysis is comprehensive, covering distributions, correlations, missing data patterns, outliers, and relevant domain-specific features.
-
-3. **Synthesize EDA Insights:**
-   - Analyze the EDA results with the *researcher*.
-   - Focus on understanding how the findings inform modeling choices, preprocessing needs, or feature selection.
-
-4. **Write the Methodology description:**
-   - With the *researcher*, write a **detailed description (approximately 500 words)** describing the methodology that will be used to perform the project analysis.
-   - The description should clearly outline the steps, techniques, and rationale derived from the exploratory data analysis.
-   - Include relevant results from the EDA in the form of key statistics or tables (no plots and no references to saved files).
-   - The focus should be strictly on the methods and workflow for this specific project to be performed. **do not include** any discussion of future directions, future work, project extensions, or limitations.
-   - The description should be written as if it were a senior researcher explaining to her research assistant how to perform the project.
-
-The plan must end with the Methodology description generated by the researcher. It is in 4 steps with:
-researcher->engineer->researcher->researcher
-"""
-
-engineer_append_instructions = r"""
-Given these datasets, and information on the features and project idea, we want to design a methodology to implement this idea.
-The goal of the task is to write a detailed description of the methodology that will be used to perform the project analysis.
-
-Warnings: 
-Some feature columns have around 40k non-null entries. Although vectorized operations (like np.percentile, np.concatenate) are efficient, they do take longer on larger arrays. 
-You must make sure the code is well optimized for operations on large arrays. 
-For plots involving features: 
-- making sure dynamical ranges are well captured (carefully adjust the binning, and log or linear axes scales, for each feature).
-For histograms (if needed):
--Use log-scale for features with values spanning several orders of magnitudes. 
--Use linear scale for Photometrics feature, but in general log-log in both x and y axes will be useful! 
--Don't include null or nan values in the histogram counts, nonetheless, although the NaN entries are useless, it might be useful to keep track of the zero counts for some features.
+Instructions for planner: 
+- Ask idea_maker to generate 5 new research project ideas related to the datasets and primordial non-Gaussianity.
+- Ask idea_hater to critique these ideas and improve them.
+- Ask idea_maker to select 2 out of the 5 Research project ideas given the output of the idea_hater.
+- Ask idea_hater to select the best idea out of the 2. It should be the only one to be reported. 
 
 """
-
-
-researcher_append_instructions = r"""
-Given these datasets, and information on the features and project idea, we want to design a methodology to implement this idea.
-The goal of the task is to write a detailed description of the methodology that will be used to perform the project analysis.
-
-- When asked about Elicit Project-Specific Reasoning, your goal is to clarify the specific hypotheses, assumptions, or questions the EDA should help investigate.
-- When asked about Synthesize EDA Insights, your goal is to focus on understanding how the findings inform modeling choices, preprocessing needs, or feature selection.
-- When asked about generating the Methodology description, your focus should be strictly on the statistical and machine learning methods for this specific project to be performed. **Do not include** any discussion of future directions, future work, project extensions, or limitations.
-the methodology description should be written as if it were a senior researcher explaining to her research assistant how to perform the project. 
-
-"""
-
 
 cmbagent.solve(task,
+            #    max_rounds=10,
+            #    initial_agent='planner',
+            #    mode = "one_shot",
+
                max_rounds=500,
                initial_agent="planner",
-            #    initial_agent="researcher",
-            #    mode="one_shot"
-               shared_context = {'feedback_left': 1,
-                                 'maximum_number_of_steps_in_plan': 4,
-                                 'planner_append_instructions': planner_append_instructions,
-                                 'engineer_append_instructions': engineer_append_instructions,
-                                 'researcher_append_instruction': researcher_append_instruction}
+               # mode="one_shot"
+               shared_context = {'feedback_left': 0,
+                                 # "number_of_steps_in_plan": 1,
+                                 'maximum_number_of_steps_in_plan': 6}
               )
-
-
-# template for one-shot eval
-# Extract the task result from the chat history, assuming we are interested in the executor's output
-try:
-    for obj in cmbagent.chat_result.chat_history[::-1]:
-        if obj['name'] == 'researcher_response_formatter':
-            result = obj['content']
-            break
-    cmbagent.task_result = result
-except:
-    cmbagent.task_result = None
-
-extracted_methodology = re.findall(MD_CODE_BLOCK_PATTERN, cmbagent.task_result, flags=re.DOTALL)[0]
-# print(extracted_methodology)
-clean_methodology = re.sub(r'^<!--.*?-->\s*\n', '', extracted_methodology)
-astro_pilot.input.methodology = clean_methodology
-
-
-## RESEARCH
-
-
-planner_append_instructions = rf"""
-
-METHODLOGY
-
-{astro_pilot.input.methodology}
-
-Given these datasets, and information on the features and project idea and methodology, we want to perform the project analysis and generate the results, plots and insights.
-The goal is to perform the in-depth research and analysis. 
-
-The plan must end with the insights generated by the researcher, including discussion of quantitative results and plots previously generated. It is in 2 steps with:
-engineer->researcher
-"""
-
-
-engineer_append_instructions = rf"""
-METHODLOGY
-
-{astro_pilot.input.methodology}
-
-Given these datasets, and information on the features and project idea and methodology, we want to perform the project analysis and generate the results, plots and key statistics.
-The goal is to perform the in-depth research and analysis. 
-
-Warnings: 
-Some feature columns have around 40k non-null entries. Although vectorized operations (like np.percentile, np.concatenate) are efficient, they do take longer on larger arrays. 
-You must make sure the code is well optimized for operations on large arrays. 
-For plots involving features: 
-- making sure dynamical ranges are well captured (carefully adjust the binning, and log or linear axes scales, for each feature).
-For histograms (if needed):
--Use log-scale for features with values spanning several orders of magnitudes. 
--Use linear scale for Photometrics feature, but in general log-log in both x and y axes will be useful! 
--Don't include null or nan values in the histogram counts, nonetheless, although the NaN entries are useless, it might be useful to keep track of the zero counts for some features.
-
-"""
-
-
-researcher_append_instruction =  rf"""
-METHODLOGY
-
-{astro_pilot.input.methodology}
-
-Given the results, plots and key statistics generated by the engineer, your task is to generate a detailed discussion of the results, plots and key statistics, including reporting meaningful quantitative results, tables and references to the plots.
-The goal is to perform the in-depth research and analysis. 
-
-At the end of the plan, you must include a discussion of the results, plots and key statistics. It must be an extensive 1000 words discussion. 
-"""
-
-cmbagent = CMBAgent(
-agent_llm_configs = {
-                    'engineer': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "high",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai"},
-                    'researcher': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "high",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai"},
-})
-   
-
-
-cmbagent.solve(task,
-               max_rounds=500,
-               initial_agent="planner",
-            #    mode="one_shot"
-               shared_context = {'feedback_left': 1,
-                                 'maximum_number_of_steps_in_plan': 2,
-                                 'planner_append_instructions': planner_append_instructions,
-                                 'engineer_append_instructions': engineer_append_instructions,
-                                 'researcher_append_instruction': researcher_append_instruction}
-              )
-
-try:
-    for obj in cmbagent.chat_result.chat_history[::-1]:
-        if obj['name'] == 'researcher_response_formatter':
-            result = obj['content']
-            break
-    cmbagent.task_result = result
-except:
-    cmbagent.task_result = None
-    
-extracted_results = re.findall(MD_CODE_BLOCK_PATTERN, cmbagent.task_result, flags=re.DOTALL)[0]
-# print(extracted_methodology)
-clean_results = re.sub(r'^<!--.*?-->\s*\n', '', extracted_results)
-astro_pilot.input.results = clean_results
-astro_pilot.input.plot_paths = cmbagent.final_context['displayed_images']
-
-
-print("\n\nCMBAGENT RUN DONE\n\n")
-print("Methodology:")
-print('--------------------------------')
-print(astro_pilot.input.methodology)
-print('--------------------------------')
-
-print("\n\nResults:")
-print('--------------------------------')
-print(astro_pilot.input.results)
-print('--------------------------------')
-
-print("\n\nPlots:")
-print('--------------------------------')
-print(astro_pilot.input.plot_paths)
-print('--------------------------------')
-
-
-
-print(astro_pilot.input.model_dump_json(indent=4))

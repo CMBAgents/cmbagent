@@ -42,7 +42,6 @@ instructions: |
 
     If a code execution has failed, it must be fixed before moving to subsequent step in the plan!
 
-
 description: |
     Plan implementer agent, to implement the plan.
 

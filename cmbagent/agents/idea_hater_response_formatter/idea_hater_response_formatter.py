@@ -5,10 +5,9 @@ from typing import List, Optional
 
 
 class Subtasks(BaseModel):
-    sub_task: str = Field(..., description="The sub-task to be performed")
-    sub_task_agent: str = Field(..., description="The name of the agent in charge of the sub-task")
+    idea_description: str = Field(..., description="The description of the idea")
     bullet_points: List[str] = Field(
-        ..., description="A list of bullet points explaining what the sub-task should do"
+        ..., description="A list of bullet points explaining what you think about the idea"
     )
 
 class IdeaHaterResponse(BaseModel):
@@ -18,13 +17,13 @@ class IdeaHaterResponse(BaseModel):
     def format(self) -> str:
         plan_output = ""
         for i, step in enumerate(self.sub_tasks):
-            plan_output += f"\n- Idea {i + 1}:\n\t* -: {step.sub_task}\n"
+            plan_output += f"\n- Idea {i + 1}:\n\t* description: {step.idea_description}\n"
             if step.bullet_points:
-                plan_output += f"\n\t* instructions:\n"
+                plan_output += f"\n\t* Critique:\n"
                 for bullet in step.bullet_points:
                     plan_output += f"\t\t- {bullet}\n"
         message = f"""
-**PLAN**
+**IDEA CRITIQUE**
 {plan_output}
         """
         return message

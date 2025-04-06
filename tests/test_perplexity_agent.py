@@ -15,7 +15,7 @@ task = r"""
 What is the difference between CAMB and CLASS?
 
 - Instructions:
-    - Use perplexity agent to find the answer.
+    - Use the perplexity agent to find the answer.
 
 - Output:
     - A list of the differences between CAMB and CLASS
