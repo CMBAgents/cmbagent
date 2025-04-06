@@ -39,6 +39,34 @@ def arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
 
     return bib_keys, bib_strs
 
+def replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
+        """
+        Replaces runs like [1][2][3] with a single sorted \cite{key1,key2,key3}, sorted by year.
+        Works for single refs like [1] too.
+
+        Args:
+            content (str): The paragraph containing [N] citation markers (1-indexed).
+            bib_keys (List[str]): List of BibTeX keys corresponding to citations (0-indexed).
+
+        Returns:
+            str: Updated content with grouped citations merged and sorted by year.
+        """
+
+        def extract_year(key: str) -> int:
+            """Extracts a 4-digit year from a BibTeX key (or returns a large number if missing)."""
+            match = re.search(r'\d{4}', key)
+            return int(match.group()) if match else float('inf')
+
+        def replacer(match):
+            numbers = re.findall(r'\[(\d+)\]', match.group())  # ['1', '2', '3']
+            keys = [bib_keys[int(n) - 1] for n in numbers]     # adjust for 1-indexed
+            sorted_keys = sorted(keys, key=extract_year)
+            return f"\\cite{{{','.join(sorted_keys)}}}"
+
+        # Match sequences like [1][2][3]
+        pattern = r'(?:\[\d+\])+'
+        return re.sub(pattern, replacer, content)
+
 def do_references(content: str, citations: List[str], bibtex_file_str: str) -> Tuple[str, str]:
     """
     Replaces numeric reference markers like [1] in the content with LaTeX-style \cite{...},
@@ -53,17 +81,11 @@ def do_references(content: str, citations: List[str], bibtex_file_str: str) -> T
         Tuple[str, str]:
             - The updated content with [N] replaced by \cite{BibTeXKey}.
             - The updated BibTeX string with new entries appended.
-
-    FIXME:
-        This assumes citations appear as individual markers like [1], [2].
-        If the LLM generates things like [1][2], you might want to combine them into \cite{key1,key2}.
     """
     bib_keys, bib_strs = arxiv_url_to_bib(citations)
 
-    # Replace all [N] references with \cite{bibkey}
-    for i, bib_key in enumerate(bib_keys):
-        # Use word boundary to avoid accidental matches inside words
-        content = re.sub(fr"\[{i+1}\]", r" \\cite{" + bib_key + "}",  content)   # note: 1-index
+    # Replace all references with \cite{bibkey}
+    content = replace_grouped_citations(content, bib_keys)
 
     # Append all BibTeX entries to the .bib string
     bibtex_file_str = bibtex_file_str.rstrip() + '\n\n' + '\n\n'.join(bib_strs)
