@@ -121,8 +121,8 @@ def register_functions_to_agents(cmbagent_instance):
 
         if context_variables["feedback_left"]==0:
             context_variables["final_plan"] = context_variables["plans"][-1]
-            return SwarmResult(agent=control, ## transfer to control
-                            values="Planning stage complete. Switching to control.",
+            return SwarmResult(agent=AfterWorkOption.TERMINATE, ## transfer to control
+                            values="Planning stage complete. Exiting.",
                             context_variables=context_variables)
         else:
             return SwarmResult(agent=plan_reviewer, ## transfer to plan reviewer
