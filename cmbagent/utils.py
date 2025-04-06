@@ -19,6 +19,7 @@ from IPython.display import Image
 
 import importlib
 import sys
+import urllib.parse
 
 import logging
 from ruamel.yaml import YAML
@@ -253,3 +254,17 @@ def update_yaml_preserving_format(yaml_file, agent_name, new_id, field = 'vector
     # Write the changes back to the YAML file while preserving formatting
     with open(yaml_file, 'w') as file:
         yaml.dump(yaml_content, file)
+
+def aas_keyword_to_url(keyword: str) -> str:
+    """
+    Given an AAS keyword, return its IAU Thesaurus URL.
+    
+    Args:
+        keyword (str): The AAS keyword (e.g., "H II regions")
+        
+    Returns:
+        str: The corresponding IAU Thesaurus URL
+    """
+    with open('aas_kwd_to_url.pkl', 'rb') as f:
+        dic = pickle.load(f)
+    return dic[keyword]
