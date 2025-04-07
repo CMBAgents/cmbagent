@@ -2,7 +2,96 @@ import re
 import requests
 from typing import List, Dict, Tuple
 
-def arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
+def process_tex_file_with_references(fname_tex):
+    """
+    Processes a LaTeX file by inserting \cite{} references and generating a corresponding .bib file.
+
+    This pipeline:
+    - Loads a .tex file as a string.
+    - Extracts paragraph-like lines using `_extract_paragraphs_from_tex_content()`.
+    - Applies a `perplexity()` function to each paragraph to generate updated text and arXiv citations.
+    - Uses `_replace_references_with_cite()` to insert \cite{} commands and update the BibTeX content.
+    - Replaces the corresponding lines in the original LaTeX string.
+    - Saves the modified .tex file (overwrites original).
+    - Writes a BibTeX file named `bibliography.bib`.
+
+    Args:
+        fname_tex (str): Path to the input .tex file. Example: 'main.tex'
+
+    Notes:
+        The BibTeX file name is hardcoded to 'bibliography.bib' to match the citation style expected in the LaTeX source.
+
+    TODO:
+        Replace perplexity placeholder.
+    """
+
+    with open(fname_tex, "r", encoding="utf-8") as f:
+        str_tex = f.read()
+    
+    fname_bib = 'bibliography.bib'
+    str_bib = ''                             # initialize str that will beocme the .bib file
+
+    para_dict = _extract_paragraphs_from_tex_content(str_tex)
+
+    for kpara, para in para_dict.items():
+        # FIXME replace with real perplexity
+        perplexity = lambda x : (x, ['https://arxiv.org/abs/1708.01913', 'https://arxiv.org/html/2408.07749v1', 'http://arxiv.org/pdf/1307.1847', 'https://arxiv.org/abs/2407.12090', 'https://arxiv.org/abs/2111.01154', 'http://www.arxiv.org/pdf/2409.03523', 'https://arxiv.org/abs/1410.3485', 'https://arxiv.org/html/2410.00795v1', 'http://arxiv.org/pdf/1512.05356', 'https://arxiv.org/abs/2008.08582'])
+        para, citations = perplexity(para)    # para is the paragprah after being passed thru perplexity. citations is list of citations
+        para, str_bib = _replace_references_with_cite(para, citations, str_bib)
+
+        # replace para in tex file with the new para
+        lines = str_tex.splitlines(keepends=True)
+        lines[kpara] = para
+        str_tex = ''.join(lines)
+    
+    # (over)write files
+    with open(fname_tex, 'w', encoding='utf-8') as f:
+        f.write(str_tex)
+    with open(fname_bib, 'w', encoding='utf-8') as f:
+        f.write(str_bib)
+
+
+def _extract_paragraphs_from_tex_content(tex_content: str) -> dict:
+    """
+    Returns a dictionary mapping 0-indexed line numbers to lines that are likely part of a paragraph.
+    
+    Args:
+        tex_content (str): LaTeX source as a string.
+
+    Returns:
+        dict: {line_number: line_text} for lines considered paragraph content.
+    """
+    paragraph_lines = {}
+    lines = tex_content.splitlines()
+
+    for i, raw_line in enumerate(lines):
+        line = raw_line.strip()
+
+        if not line:
+            continue
+
+        if line.startswith('%'):
+            continue
+
+        if re.match(r'\\(begin|end|section|subsection|label|caption|ref|title|author|documentclass|usepackage|newcommand|section|subsection|subsubsection|affiliation|keywords|bibliography|centering|includegraphics)', line):
+            continue
+
+        if re.search(r'\\(item|enumerate)', line):    # consider removing?
+            continue
+
+        if re.search(r'(figure|table|equation|align|tabular)', line):
+            continue
+
+        if re.match(r'^\$.*\$$', line) or re.match(r'^\\\[.*\\\]$', line):
+            continue
+
+        paragraph_lines[i] = raw_line   # append the raw_line
+
+    return paragraph_lines
+
+#### ARXIV AND REFERENCES ####
+
+def _arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
     """
     Given a list of arXiv URLs, returns BibTeX keys and entries.
 
@@ -39,7 +128,7 @@ def arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
 
     return bib_keys, bib_strs
 
-def replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
+def _replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
     """
     Replaces runs like [1][2][3] with a single sorted \cite{key1,key2,key3}, sorted by year.
     Works for single refs like [1] too.
@@ -61,13 +150,13 @@ def replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
         numbers = re.findall(r'\[(\d+)\]', match.group())  # ['1', '2', '3']
         keys = [bib_keys[int(n) - 1] for n in numbers]     # adjust for 1-indexed
         sorted_keys = sorted(keys, key=extract_year)
-        return f"\\cite{{{','.join(sorted_keys)}}}"
+        return f" \\cite{{{','.join(sorted_keys)}}}"
 
     # Match sequences like [1][2][3]
     pattern = r'(?:\[\d+\])+'
     return re.sub(pattern, replacer, content)
 
-def do_references(content: str, citations: List[str], bibtex_file_str: str) -> Tuple[str, str]:
+def _replace_references_with_cite(content: str, citations: List[str], bibtex_file_str: str) -> Tuple[str, str]:
     """
     Replaces numeric reference markers like [1] in the content with LaTeX-style \cite{...},
     and appends corresponding BibTeX entries to the bibtex string.
@@ -82,12 +171,14 @@ def do_references(content: str, citations: List[str], bibtex_file_str: str) -> T
             - The updated content with [N] replaced by \cite{BibTeXKey}.
             - The updated BibTeX string with new entries appended.
     """
-    bib_keys, bib_strs = arxiv_url_to_bib(citations)
+    bib_keys, bib_strs = _arxiv_url_to_bib(citations)
 
     # Replace all references with \cite{bibkey}
-    content = replace_grouped_citations(content, bib_keys)
+    content = _replace_grouped_citations(content, bib_keys)
 
     # Append all BibTeX entries to the .bib string
     bibtex_file_str = bibtex_file_str.rstrip() + '\n\n' + '\n\n'.join(bib_strs)
 
     return content, bibtex_file_str
+
+### END OF ARXIV AND REFERENCES ###
