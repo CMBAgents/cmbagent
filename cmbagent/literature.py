@@ -62,7 +62,7 @@ def _extract_paragraphs_from_tex_content(tex_content: str) -> dict:
         dict: {line_number: line_text} for lines considered paragraph content.
     """
     paragraph_lines = {}
-    lines = tex_content.splitlines()
+    lines = tex_content.splitlines(keepends=True)
 
     for i, raw_line in enumerate(lines):
         line = raw_line.strip()
