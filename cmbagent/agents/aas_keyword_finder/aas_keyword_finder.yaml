@@ -33,6 +33,8 @@ instructions: |
 
       You should find {N_AAS_keywords} keywords that best describe the text input.
 
+      You must find the keywords that are most relevant to the details and specilization topics of the text input.
+
 
 
 

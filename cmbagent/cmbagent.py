@@ -502,30 +502,35 @@ class CMBAgent:
         
         if mode == "one_shot":
             one_shot_shared_context = {'final_plan': "Step 1: solve the main task.",
-                              'current_status': "In progress",
-                              'current_plan_step_number': 1,
-                              'current_sub_task' : "solve the main task.",
-                              'current_instructions': "solve the main task.",
-                              'agent_for_sub_task': initial_agent,
-                              'feedback_left': 0,
-                              "number_of_steps_in_plan": 1,
-                              'maximum_number_of_steps_in_plan': 1,
-                              'researcher_append_instructions': '',
-                              'engineer_append_instructions': '',
-                              'perplexity_append_instructions': '',
-                              'idea_maker_append_instructions': '',
-                              'idea_hater_append_instructions': '',
-                              }
-            if shared_context is not None:
-                shared_context.update(one_shot_shared_context)
+                                        'current_status': "In progress",
+                                        'current_plan_step_number': 1,
+                                        'current_sub_task' : "solve the main task.",
+                                        'current_instructions': "solve the main task.",
+                                        'agent_for_sub_task': initial_agent,
+                                        'feedback_left': 0,
+                                        "number_of_steps_in_plan": 1,
+                                        'maximum_number_of_steps_in_plan': 1,
+                                        'researcher_append_instructions': '',
+                                        'engineer_append_instructions': '',
+                                        'perplexity_append_instructions': '',
+                                        'idea_maker_append_instructions': '',
+                                        'idea_hater_append_instructions': '',
+                                        }
+            if initial_agent == 'perplexity':
+                one_shot_shared_context['perplexity_query'] = self.get_agent_object_from_name('perplexity').info['instructions'].format(main_task=task)
+                # print('one_shot_shared_context: ', one_shot_shared_context)
+
+
+            this_shared_context.update(one_shot_shared_context)
+            this_shared_context.update(shared_context or {})
 
             # print('one_shot_shared_context: ', one_shot_shared_context)
             # print('shared_context: ', shared_context)
             # sys.exit()
             
-        
-        if shared_context is not None:
-            this_shared_context.update(shared_context)
+        else:
+            if shared_context is not None:
+                this_shared_context.update(shared_context)
         
 
         self.clear_cache() ## obsolete
@@ -544,6 +549,9 @@ class CMBAgent:
 
         this_shared_context['main_task'] = task
         this_shared_context['improved_main_task'] = task # initialize improved main task
+
+        # print('this_shared_context: ', this_shared_context)
+        # sys.exit()
 
         chat_result, context_variables, last_agent = initiate_swarm_chat(
             initial_agent=self.get_agent_from_name(initial_agent),

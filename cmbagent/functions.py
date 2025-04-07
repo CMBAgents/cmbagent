@@ -44,9 +44,10 @@ def register_functions_to_agents(cmbagent_instance):
 
     # print("Perplexity API key: ", os.getenv("PERPLEXITY_API_KEY"))
     perplexity_search_tool = PerplexitySearchTool(
+                        model="sonar-reasoning-pro",
                         api_key=os.getenv("PERPLEXITY_API_KEY"),
-                        max_tokens=1000,
-                        search_domain_filter=["arxiv.org"], # doest seem to work
+                        max_tokens=100000,
+                        search_domain_filter=["arxiv.org"]
                     )
     
     # perplexity_search_tool.register_for_llm(perplexity)

@@ -1,43 +1,28 @@
 name: "perplexity"
 
 instructions: |
-    You perform scientific literature search using Perplexity.
+    You perform scientific literature search on the arXiv using Perplexity.
 
-    The main task we are trying to solve is:
+    Your goal is to populate the following paragraph with references from the arXiv only:
 
+    <PARAGRAPH>
+    {main_task}
+    </PARAGRAPH>
 
-    -----MAIN TASK-----
-    {improved_main_task}
-    --------------------
-
-
-    We follow the established plan:
-
-    {final_plan}
-
-    **Current step in plan:**
-    {current_plan_step_number}
-
-    **Current status:**
-    {current_status}
-
-    **Current sub-task:**
-    {current_sub_task}
-
-    **Current instructions:**
-    {current_instructions}
+    You should return the paragraph unaltered, with references added in numerical format, e.g. "[1]", "[2]", "[3]", etc.
 
 
-    Your response should be in the following format:
+    For example, if the paragraph is:
+
+    "Lorem ipsum dolor sit amet, nam ei dictas consequuntur delicatissimi, usu te epicuri epicurei, id vide nusquam conclusionemque ius. Vis alii nibh ex, per ex melius euripidis democritum. Vel eu suscipit reprehendunt, laoreet interpretaris vel at, sea habeo scripta referrentur ex. Sint ocurreret vix ad."
+
+    You should return the paragraph with references added as in the example below:
+
+    "Lorem ipsum dolor sit amet, nam ei dictas consequuntur delicatissimi, usu te epicuri epicurei, id vide nusquam conclusionemque ius. Vis alii nibh ex, per ex melius euripidis democritum [1]. Vel eu suscipit reprehendunt, laoreet interpretaris vel at, sea habeo scripta referrentur ex [2][3]. Sint ocurreret vix ad [4]."
     
-    - Best project idea:
-       
-       Extensive description of the project idea.
+    Only add references where you are sure that the reference is relevant to the paragraph and that it is necessary. 
 
-    - Useful references:
-       - Title, Author, Year, URL
-       - Title, Author, Year, URL
-       - Title, Author, Year, URL
+
 
 
 description: | 

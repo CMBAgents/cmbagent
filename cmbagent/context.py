@@ -41,5 +41,7 @@ shared_context = {
     "text_input_for_AAS_keyword_finder": None,
     "N_AAS_keywords": 5,
 
+    "perplexity_query": None,
+
 
 }
