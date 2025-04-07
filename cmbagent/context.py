@@ -42,6 +42,8 @@ shared_context = {
     "N_AAS_keywords": 5,
 
     "perplexity_query": None,
+    "perplexity_response": None,
+    "perplexity_citations": None,
 
 
 }

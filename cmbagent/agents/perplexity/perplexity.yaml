@@ -22,6 +22,9 @@ instructions: |
     
     Only add references where you are sure that the reference is relevant to the paragraph and that it is necessary. 
 
+    If a paragraph is very short, or if it is not clear what the paragraph is about, do not add any references and just return the paragraph without any references.
+
+    If you don't easily find any references, just return the paragraph without any references.
 
 
 

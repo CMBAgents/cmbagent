@@ -560,8 +560,14 @@ class CMBAgent:
             user_agent=self.get_agent_from_name("admin"),
             context_variables=this_shared_context,
             max_rounds = max_rounds,
-            after_work=AfterWorkOption.REVERT_TO_USER,
+            after_work=AfterWorkOption.TERMINATE,
         )
+
+        # if mode == "one_shot" and initial_agent == 'perplexity':
+        #     if context_variables['perplexity_response'] is None:
+        #         print('perplexity search failed. Please try again.')
+        #         context_variables['perplexity_response'] = None
+        #         context_variables['perplexity_citations'] = None
 
         self.final_context = copy.deepcopy(context_variables)
 

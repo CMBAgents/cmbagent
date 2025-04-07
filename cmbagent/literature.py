@@ -38,7 +38,15 @@ def process_tex_file_with_references(fname_tex, fname_bib, perplexity, nparagrap
             count += 1
             continue  # skip the first paragraph
 
-        para, citations = perplexity(para)
+        # Try calling perplexity up to two times.
+        for attempt in range(2):
+            para, citations = perplexity(para)
+            if para is not None:
+                break  # exit the loop if the call was successful
+        else:
+            # If after two attempts it still fails, skip this paragraph.
+            count += 1
+            continue
         para, str_bib = _replace_references_with_cite(para, citations, str_bib)
 
         lines = str_tex.splitlines(keepends=True)
@@ -96,7 +104,44 @@ def _extract_paragraphs_from_tex_content(tex_content: str) -> dict:
 
 #### ARXIV AND REFERENCES ####
 
-def _arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
+# def _arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
+#     """
+#     Given a list of arXiv URLs, returns BibTeX keys and entries.
+
+#     Args:
+#         citations (List[str]): List of arXiv URLs (abs, pdf, or html variants allowed).
+
+#     Returns:
+#         Tuple[List[str], List[str]]:
+#             - A list of BibTeX keys (as strings).
+#             - A list of full BibTeX entries (as strings) suitable for inclusion in a .bib file.
+#     """
+#     bib_keys = []
+#     bib_strs = []
+
+#     for i, url in enumerate(citations):
+#         # Convert URL to bibtex url (e.g., from /abs/ or /html/ to /bibtex/)
+#         bib_url = re.sub(r'\b(abs|html|pdf)\b', 'bibtex', url)
+
+#         # Fetch BibTeX entry
+#         response = requests.get(bib_url)
+#         if response.status_code != 200:
+#             raise ValueError(f"Failed to fetch BibTeX for URL: {url}")
+
+#         bib_str = response.text.strip()
+
+#         # Extract BibTeX key using regex
+#         match = re.match(r'@[\w]+\{([^,]+),', bib_str)
+#         if not match:
+#             raise ValueError(f"Could not extract BibTeX key from: {bib_str[:100]}")
+
+#         bib_key = match.group(1)
+#         bib_keys.append(bib_key)
+#         bib_strs.append(bib_str)
+
+#     return bib_keys, bib_strs
+
+def _arxiv_url_to_bib(citations: List[str]) -> Tuple[List[str], List[str]]:
     """
     Given a list of arXiv URLs, returns BibTeX keys and entries.
 
@@ -111,14 +156,23 @@ def _arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
     bib_keys = []
     bib_strs = []
 
-    for i, url in enumerate(citations):
+    for url in citations:
         # Convert URL to bibtex url (e.g., from /abs/ or /html/ to /bibtex/)
         bib_url = re.sub(r'\b(abs|html|pdf)\b', 'bibtex', url)
-
-        # Fetch BibTeX entry
         response = requests.get(bib_url)
+
+        # If fetching fails, try the fallback using the arXiv ID
         if response.status_code != 200:
-            raise ValueError(f"Failed to fetch BibTeX for URL: {url}")
+            # Extract arXiv id from the URL (matches patterns like 2010.07487)
+            match_id = re.search(r'(\d{4}\.\d+)', url)
+            if match_id:
+                arxiv_id = match_id.group(1)
+                fallback_url = f"https://arxiv.org/bibtex/{arxiv_id}"
+                response = requests.get(fallback_url)
+                if response.status_code != 200:
+                    raise ValueError(f"Failed to fetch BibTeX for fallback URL: {fallback_url}")
+            else:
+                raise ValueError(f"Could not extract arXiv id from URL: {url}")
 
         bib_str = response.text.strip()
 
