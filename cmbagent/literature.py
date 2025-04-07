@@ -32,19 +32,23 @@ def process_tex_file_with_references(fname_tex, fname_bib, perplexity, nparagrap
 
     para_dict = _extract_paragraphs_from_tex_content(str_tex)
 
+    count = 0
     for kpara, para in para_dict.items():
-        # FIXME replace with real perplexity
-        # perplexity = lambda x : (x, ['https://arxiv.org/abs/1708.01913', 'https://arxiv.org/html/2408.07749v1', 'http://arxiv.org/pdf/1307.1847', 'https://arxiv.org/abs/2407.12090', 'https://arxiv.org/abs/2111.01154', 'http://www.arxiv.org/pdf/2409.03523', 'https://arxiv.org/abs/1410.3485', 'https://arxiv.org/html/2410.00795v1', 'http://arxiv.org/pdf/1512.05356', 'https://arxiv.org/abs/2008.08582'])
-        para, citations = perplexity(para)    # para is the paragprah after being passed thru perplexity. citations is list of citations
+        if count == 0:
+            count += 1
+            continue  # skip the first paragraph
+
+        para, citations = perplexity(para)
         para, str_bib = _replace_references_with_cite(para, citations, str_bib)
 
-        # replace para in tex file with the new para
         lines = str_tex.splitlines(keepends=True)
         lines[kpara] = para
         str_tex = ''.join(lines)
-        if nparagraphs is not None and kpara >= nparagraphs:
+
+        count += 1
+        if count >= nparagraphs:
             break
-    
+        
     # (over)write files
     with open(fname_tex, 'w', encoding='utf-8') as f:
         f.write(str_tex)
