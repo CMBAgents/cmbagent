@@ -2,15 +2,15 @@ import re
 import requests
 from typing import List, Dict, Tuple
 
-def process_tex_file_with_references(fname_tex):
+def process_tex_file_with_references(fname_tex, fname_bib, perplexity, nparagraphs=None):
     """
-    Processes a LaTeX file by inserting \cite{} references and generating a corresponding .bib file.
+    Processes a LaTeX file by inserting `\\cite{}` references and generating a corresponding .bib file.
 
     This pipeline:
     - Loads a .tex file as a string.
     - Extracts paragraph-like lines using `_extract_paragraphs_from_tex_content()`.
     - Applies a `perplexity()` function to each paragraph to generate updated text and arXiv citations.
-    - Uses `_replace_references_with_cite()` to insert \cite{} commands and update the BibTeX content.
+    - Uses `_replace_references_with_cite()` to insert `\\cite{}` commands and update the BibTeX content.
     - Replaces the corresponding lines in the original LaTeX string.
     - Saves the modified .tex file (overwrites original).
     - Writes a BibTeX file named `bibliography.bib`.
@@ -28,14 +28,13 @@ def process_tex_file_with_references(fname_tex):
     with open(fname_tex, "r", encoding="utf-8") as f:
         str_tex = f.read()
     
-    fname_bib = 'bibliography.bib'
     str_bib = ''                             # initialize str that will beocme the .bib file
 
     para_dict = _extract_paragraphs_from_tex_content(str_tex)
 
     for kpara, para in para_dict.items():
         # FIXME replace with real perplexity
-        perplexity = lambda x : (x, ['https://arxiv.org/abs/1708.01913', 'https://arxiv.org/html/2408.07749v1', 'http://arxiv.org/pdf/1307.1847', 'https://arxiv.org/abs/2407.12090', 'https://arxiv.org/abs/2111.01154', 'http://www.arxiv.org/pdf/2409.03523', 'https://arxiv.org/abs/1410.3485', 'https://arxiv.org/html/2410.00795v1', 'http://arxiv.org/pdf/1512.05356', 'https://arxiv.org/abs/2008.08582'])
+        # perplexity = lambda x : (x, ['https://arxiv.org/abs/1708.01913', 'https://arxiv.org/html/2408.07749v1', 'http://arxiv.org/pdf/1307.1847', 'https://arxiv.org/abs/2407.12090', 'https://arxiv.org/abs/2111.01154', 'http://www.arxiv.org/pdf/2409.03523', 'https://arxiv.org/abs/1410.3485', 'https://arxiv.org/html/2410.00795v1', 'http://arxiv.org/pdf/1512.05356', 'https://arxiv.org/abs/2008.08582'])
         para, citations = perplexity(para)    # para is the paragprah after being passed thru perplexity. citations is list of citations
         para, str_bib = _replace_references_with_cite(para, citations, str_bib)
 
@@ -43,6 +42,8 @@ def process_tex_file_with_references(fname_tex):
         lines = str_tex.splitlines(keepends=True)
         lines[kpara] = para
         str_tex = ''.join(lines)
+        if nparagraphs is not None and kpara >= nparagraphs:
+            break
     
     # (over)write files
     with open(fname_tex, 'w', encoding='utf-8') as f:
@@ -130,7 +131,7 @@ def _arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
 
 def _replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
     """
-    Replaces runs like [1][2][3] with a single sorted \cite{key1,key2,key3}, sorted by year.
+    Replaces runs like [1][2][3] with a single sorted `\\cite{key1,key2,key3}`, sorted by year.
     Works for single refs like [1] too.
 
     Args:
@@ -158,7 +159,7 @@ def _replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
 
 def _replace_references_with_cite(content: str, citations: List[str], bibtex_file_str: str) -> Tuple[str, str]:
     """
-    Replaces numeric reference markers like [1] in the content with LaTeX-style \cite{...},
+    Replaces numeric reference markers like [1] in the content with LaTeX-style `\\cite{...}`,
     and appends corresponding BibTeX entries to the bibtex string.
 
     Args:
@@ -168,7 +169,7 @@ def _replace_references_with_cite(content: str, citations: List[str], bibtex_fil
 
     Returns:
         Tuple[str, str]:
-            - The updated content with [N] replaced by \cite{BibTeXKey}.
+            - The updated content with [N] replaced by `\\cite{BibTeXKey}`.
             - The updated BibTeX string with new entries appended.
     """
     bib_keys, bib_strs = _arxiv_url_to_bib(citations)

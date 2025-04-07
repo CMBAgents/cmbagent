@@ -179,22 +179,22 @@ def register_all_hand_offs(cmbagent_instance):
         ]
     )
 
-    register_hand_off(
-        agent = perplexity.agent,
-        hand_to = [
-            AfterWork(control.agent),
-            #  OnCondition(
-            #             target={
-            #                     "chat_queue": chat_queue,
-            #                     },
-            #             condition="TRUE"
-            #             )
-            OnCondition(
-                target=control.agent,
-                condition="Literature search completed.", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
-            ),
-        ]
-    )
+    # register_hand_off(
+    #     agent = perplexity.agent,
+    #     hand_to = [
+    #         AfterWork(control.agent),
+    #         #  OnCondition(
+    #         #             target={
+    #         #                     "chat_queue": chat_queue,
+    #         #                     },
+    #         #             condition="TRUE"
+    #         #             )
+    #         OnCondition(
+    #             target=control.agent,
+    #             condition="Literature search completed.", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
+    #         ),
+    #     ]
+    # )
 
     # control agent
     register_hand_off(
