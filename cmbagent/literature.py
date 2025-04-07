@@ -4,13 +4,13 @@ from typing import List, Dict, Tuple
 
 def process_tex_file_with_references(fname_tex, fname_bib, perplexity, nparagraphs=None):
     """
-    Processes a LaTeX file by inserting `\\cite{}` references and generating a corresponding .bib file.
+    Processes a LaTeX file by inserting `\\citep{}` references and generating a corresponding .bib file.
 
     This pipeline:
     - Loads a .tex file as a string.
     - Extracts paragraph-like lines using `_extract_paragraphs_from_tex_content()`.
     - Applies a `perplexity()` function to each paragraph to generate updated text and arXiv citations.
-    - Uses `_replace_references_with_cite()` to insert `\\cite{}` commands and update the BibTeX content.
+    - Uses `_replace_references_with_cite()` to insert `\\citep{}` commands and update the BibTeX content.
     - Replaces the corresponding lines in the original LaTeX string.
     - Saves the modified .tex file (overwrites original).
     - Writes a BibTeX file named `bibliography.bib`.
@@ -46,7 +46,7 @@ def process_tex_file_with_references(fname_tex, fname_bib, perplexity, nparagrap
         str_tex = ''.join(lines)
 
         count += 1
-        if count >= nparagraphs:
+        if nparagraphs is not None and count >= nparagraphs:
             break
         
     # (over)write files
@@ -135,7 +135,7 @@ def _arxiv_url_to_bib(citations: List[str]) -> Tuple[Dict[int, str], List[str]]:
 
 def _replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
     """
-    Replaces runs like [1][2][3] with a single sorted `\\cite{key1,key2,key3}`, sorted by year.
+    Replaces runs like [1][2][3] with a single sorted `\\citep{key1,key2,key3}`, sorted by year.
     Works for single refs like [1] too.
 
     Args:
@@ -155,7 +155,7 @@ def _replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
         numbers = re.findall(r'\[(\d+)\]', match.group())  # ['1', '2', '3']
         keys = [bib_keys[int(n) - 1] for n in numbers]     # adjust for 1-indexed
         sorted_keys = sorted(keys, key=extract_year)
-        return f" \\cite{{{','.join(sorted_keys)}}}"
+        return f" \\citep{{{','.join(sorted_keys)}}}"
 
     # Match sequences like [1][2][3]
     pattern = r'(?:\[\d+\])+'
@@ -163,7 +163,7 @@ def _replace_grouped_citations(content: str, bib_keys: List[str]) -> str:
 
 def _replace_references_with_cite(content: str, citations: List[str], bibtex_file_str: str) -> Tuple[str, str]:
     """
-    Replaces numeric reference markers like [1] in the content with LaTeX-style `\\cite{...}`,
+    Replaces numeric reference markers like [1] in the content with LaTeX-style `\\citep{...}`,
     and appends corresponding BibTeX entries to the bibtex string.
 
     Args:
@@ -173,12 +173,12 @@ def _replace_references_with_cite(content: str, citations: List[str], bibtex_fil
 
     Returns:
         Tuple[str, str]:
-            - The updated content with [N] replaced by `\\cite{BibTeXKey}`.
+            - The updated content with [N] replaced by `\\citep{BibTeXKey}`.
             - The updated BibTeX string with new entries appended.
     """
     bib_keys, bib_strs = _arxiv_url_to_bib(citations)
 
-    # Replace all references with \cite{bibkey}
+    # Replace all references with \citep{bibkey}
     content = _replace_grouped_citations(content, bib_keys)
 
     # Append all BibTeX entries to the .bib string
