@@ -42,6 +42,8 @@ instructions: |
 
     If a code execution has failed, it must be fixed before moving to subsequent step in the plan!
 
+    You don't repsond. You should call record_status and transition to appropriate agent. 
+
 description: |
     Plan implementer agent, to implement the plan.
 

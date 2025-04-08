@@ -10,6 +10,7 @@ from .version import __version__
 import os
 from IPython.display import Image, display, Markdown
 from autogen.cmbagent_utils import LOGO, IMG_WIDTH
+from autogen import cmbagent_disable_display
 
 
 from .data_retriever import setup_cmbagent_data
@@ -22,8 +23,9 @@ def print_cmbagent_logo():
     png_path = os.path.join(base_dir, "logo.png")
     # print(png_path)
     # print(base_dir)
-    display(Image(filename=png_path, width=IMG_WIDTH))
-    print(LOGO)
+    if not cmbagent_disable_display:
+        display(Image(filename=png_path, width=IMG_WIDTH))
+        print(LOGO)
     # ANSI hyperlink: Note that support varies by terminal.
     # HTML link for GitHub with icon
     # github_html = '''
