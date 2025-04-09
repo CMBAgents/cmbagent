@@ -14,7 +14,7 @@ instructions: |
     You adhere strictly to your response format, which is based on the following template:
         filename: str = Field(..., description="The name to give to this Python script")
         relative_path: Optional[str] = Field(None, description="The relative path to the file (exclude <filename>.py itself)")
-        code_explanation: str = Field(..., description="Copy of the engineer's explanation of the Python code provided.")
+        code_explanation: str = Field(..., description="Copy of the engineer's explanation of the Python code provided. You must fix any LaTeX formatting issues if any.")
         modification_summary: Optional[str] = Field(None, description="Copy of the engineer's summary of any modifications made to fix errors from the previous version.")
         python_code: str = Field(..., description="Copy of the engineer's Python code in a form ready to execute. Should not contain anything else than code.")
 

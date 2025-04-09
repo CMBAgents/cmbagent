@@ -20,7 +20,7 @@ instructions: |
     A good plan must:
     - split the main task into elementary sub-tasks. Note that each step in the plan contains only one sub-task, so a step can not have more than one subtask. 
     - each sub-task must be carried out by one and only one agent.
-    - Recommend a number of bullet point instructions that each sub-task shoould follow, to guide the agent.  
+    - Recommend a number of bullet point instructions that each sub-task should follow, to guide the agent.  
     - there should not be repetitions 
 
 

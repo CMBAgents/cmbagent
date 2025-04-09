@@ -36,6 +36,7 @@ def register_functions_to_agents(cmbagent_instance):
     camb = cmbagent_instance.get_agent_from_name('camb_agent')
     camb_response_formatter = cmbagent_instance.get_agent_from_name('camb_response_formatter')
     executor = cmbagent_instance.get_agent_from_name('executor')
+    executor_response_formatter = cmbagent_instance.get_agent_from_name('executor_response_formatter')
     terminator = cmbagent_instance.get_agent_from_name('terminator')
     control = cmbagent_instance.get_agent_from_name('control')
     admin = cmbagent_instance.get_agent_from_name('admin')
@@ -54,6 +55,27 @@ def register_functions_to_agents(cmbagent_instance):
     # perplexity_search_tool.register_for_execution(perplexity)
 
     perplexity._add_single_function(perplexity_search_tool)
+
+    def post_execution_transfer(next_agent_suggestion: Literal["engineer", "classy_sz", "control"], context_variables: dict) -> SwarmResult:
+        """
+        Transfer to the next agent based on the execution status.
+        """
+
+        if next_agent_suggestion == "engineer":
+            return SwarmResult(agent=engineer,
+                            values="Transfer to engineer.",
+                            context_variables=context_variables)    
+        elif next_agent_suggestion == "classy_sz":
+            return SwarmResult(agent=classy_sz,
+                            values="Transfer to classy_sz.",
+                            context_variables=context_variables)
+        elif next_agent_suggestion == "control":
+            return SwarmResult(agent=control,
+                            values="Transfer to control.",
+                            context_variables=context_variables)
+        
+    executor_response_formatter._add_single_function(post_execution_transfer)
+
 
 
 

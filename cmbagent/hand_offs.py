@@ -44,6 +44,7 @@ def register_all_hand_offs(cmbagent_instance):
     perplexity = cmbagent_instance.get_agent_object_from_name('perplexity')
     admin = cmbagent_instance.get_agent_object_from_name('admin')
     aas_keyword_finder = cmbagent_instance.get_agent_object_from_name('aas_keyword_finder')
+    executor_response_formatter = cmbagent_instance.get_agent_object_from_name('executor_response_formatter')
     if cmbagent_debug:
         print('\nplanner: ', planner)
         print('\nplanner_response_formatter: ', planner_response_formatter)
@@ -72,6 +73,7 @@ def register_all_hand_offs(cmbagent_instance):
         print('\nperplexity: ', perplexity)
         print('\ntask_improver: ', task_improver)
         print('\naas_keyword_finder: ', aas_keyword_finder)
+        print('\nexecutor_response_formatter: ', executor_response_formatter)
 
     #task_improver agent
     register_hand_off(
@@ -221,16 +223,16 @@ def register_all_hand_offs(cmbagent_instance):
                 # available="review_recorded"
             ),
 
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=engineer.agent, 
-                condition="Failed code execution. Fix this!",
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=engineer.agent, 
+            #     condition="Failed code execution.",
 
-                # condition="Failed code execution that looks like a generic Python error. Fix this!",
-                # available="review_recorded"
-            ),
+            #     # condition="Failed code execution that looks like a generic Python error. Fix this!",
+            #     # available="review_recorded"
+            # ),
             
             # OnCondition( 
             #     # condition (str): 
@@ -327,14 +329,14 @@ def register_all_hand_offs(cmbagent_instance):
                 condition="Engineer needed to write code",
                 # available="code_approved"
             ),
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=executor.agent, 
-                condition="Executor needed to execute code",
-                # available="code_approved"
-            ),
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=executor.agent, 
+            #     condition="Executor needed to execute code",
+            #     # available="code_approved"
+            # ),
 
             OnCondition( 
                 # condition (str): 
@@ -445,6 +447,14 @@ def register_all_hand_offs(cmbagent_instance):
     #executor
     register_hand_off(
         agent = executor.agent,
+        hand_to = [
+            AfterWork(executor_response_formatter.agent),
+        ]
+    )
+
+    #executor_response_formatter
+    register_hand_off(
+        agent = executor_response_formatter.agent,
         hand_to = [
             AfterWork(control.agent),
         ]
