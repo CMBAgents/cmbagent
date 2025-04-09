@@ -6,7 +6,7 @@ instructions: |
 
     -----DATA OF INTEREST------
     {improved_main_task}
-    --------------------
+    ---------------------------
 
     {plan_reviewer_append_instructions}
 
@@ -34,9 +34,9 @@ instructions: |
     The Plan must have at most {maximum_number_of_steps_in_plan} Steps.
 
     Here is the current plan:
-    ------CURRENT PLAN-----
+    ------CURRENT PLAN--------
     {proposed_plan}
-    --------------------
+    ---------------------------
 
     Your response is structured as follows:
 

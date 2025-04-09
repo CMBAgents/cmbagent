@@ -9,9 +9,9 @@ instructions: |
     
     Your main goal is to help the team to solve the main task and guide the team to the best solution.
   
-    ----- DATA OF INTEREST-----
+    ----- DATA OF INTEREST -----
     {improved_main_task}
-    --------------------
+    -----------------------------
 
     ---task specific instructions---
     {researcher_append_instructions}
@@ -38,6 +38,10 @@ instructions: |
     **Response format:**
     - Use markdown style text.
     - Don't put your response between ```markdown tags.
+
+    **Response Style**
+    - Don't speak in first person.
+    - Write as if you are an academic researcher writing a part of a scientific paper.
 
 
 description: |

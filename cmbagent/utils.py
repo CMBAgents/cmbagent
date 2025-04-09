@@ -185,7 +185,7 @@ default_agent_llm_configs = {
                     'control': {
                         "model": "gpt-4o-2024-11-20",
                         # "model": "o3-mini-2025-01-31",
-                        # "reasoning_effort": "high",
+                        # "reasoning_effort": "medium",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
@@ -254,7 +254,14 @@ default_agent_llm_configs = {
                         "api_type": "openai",
                         },
                     "engineer_response_formatter": {
-                        "model": "gpt-4o-2024-11-20",
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "low",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    "researcher_response_formatter": {
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "low",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },

@@ -210,82 +210,94 @@ def register_all_hand_offs(cmbagent_instance):
                 # available="review_recorded"
             ),
 
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=engineer.agent, 
+                condition="Execution failed.",
+
+                # condition="Failed code execution that looks like a generic Python error. Fix this!",
+                # available="review_recorded"
+            ),
 
             OnCondition( 
                 # condition (str): 
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=engineer.agent, 
-                condition="Failed code execution that looks like a generic Python error. Fix this!",
+                condition="Failed code execution. Fix this!",
+
+                # condition="Failed code execution that looks like a generic Python error. Fix this!",
                 # available="review_recorded"
             ),
             
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=cobaya.agent, 
-                condition="Need information on the cosmolology code cobaya.",
-                # available="review_recorded"
-            ),
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=cobaya.agent, 
+            #     condition="Need information on the cosmolology code cobaya.",
+            #     # available="review_recorded"
+            # ),
             
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=cobaya.agent, 
-                condition="Code execution failed and error message that seems to involve the cosmolology code cobaya specifically, rather than a generic Python error.",
-                # available="review_recorded"
-            ),
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=cobaya.agent, 
+            #     condition="Code execution failed and error message that seems to involve the cosmolology code cobaya specifically, rather than a generic Python error.",
+            #     # available="review_recorded"
+            # ),
 
 
 
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=camb.agent, 
-                condition="Need information on the cosmolology code camb.",
-                # available="review_recorded"
-            ),
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=camb.agent, 
+            #     condition="Need information on the cosmolology code camb.",
+            #     # available="review_recorded"
+            # ),
 
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=camb.agent, 
-                condition="Code execution failed and error message from COBAYA but which refers to the cosmolology code CAMB specifically.",
-                # available="review_recorded"
-            ),
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=camb.agent, 
+            #     condition="Code execution failed and error message from COBAYA but which refers to the cosmolology code CAMB specifically.",
+            #     # available="review_recorded"
+            # ),
 
 
 
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=camb.agent, 
-                condition="Code execution failed and error message that seems to involve the cosmolology code CAMB specifically (like CAMBError), rather than a generic Python error.",
-                # available="review_recorded"
-            ),
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=camb.agent, 
+            #     condition="Code execution failed and error message that seems to involve the cosmolology code CAMB specifically (like CAMBError), rather than a generic Python error.",
+            #     # available="review_recorded"
+            # ),
 
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=classy_sz.agent, 
-                condition="Need information on the cosmolology code classy_sz.",
-                # available="review_recorded"
-            ),
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=classy_sz.agent, 
+            #     condition="Need information on the cosmolology code classy_sz.",
+            #     # available="review_recorded"
+            # ),
             
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=classy_sz.agent, 
-                condition="Code execution failed and error message that seems to involve the cosmolology code classy_sz specifically, rather than a generic Python error.",
-                # available="review_recorded"
-            ),
+            # OnCondition( 
+            #     # condition (str): 
+            #     # The condition for transitioning to the target agent, 
+            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+            #     target=classy_sz.agent, 
+            #     condition="Code execution failed and error message that seems to involve the cosmolology code classy_sz specifically, rather than a generic Python error.",
+            #     # available="review_recorded"
+            # ),
 
             
             # OnCondition( 
@@ -302,7 +314,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=researcher.agent, 
-                condition="Researcher needed to generate reasoning or interpretation, etc.",
+                condition="Researcher needed to generate reasoning, write report, or interpret results",
                 # available="code_approved"
             ),
 

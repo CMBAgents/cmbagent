@@ -351,6 +351,12 @@ Now, update the plan accordingly, planner!""",
             else:
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('control')
 
+        if "failed" in context_variables["current_status"]:
+            if context_variables["agent_for_sub_task"] == "engineer":
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
+            elif context_variables["agent_for_sub_task"] == "researcher":
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher_response_formatter')
+
 
         if cmbagent_debug:
             if agent_to_transfer_to is None:

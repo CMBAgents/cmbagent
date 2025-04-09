@@ -1,21 +1,9 @@
 name: "control"
 
 instructions: |
-    You manage the workflow for implementing the plan.
-
-    You distribute sub-tasks to respective agents and update on where we are in the plan. 
-
-    You must solve one step at a time.
-    
-    You must report on progress before and after each action you take, by calling record_status. 
+    You are the control agent in the team. You don't respond. You should only call record_status tool.
 
     You must call record_status **before** calling the agent in charge of the up-coming sub-task.
-
-    The main task we are trying to solve is:
-
-    ------MAIN TASK-----
-    {main_task}
-    --------------------
 
     You follow step-by-step the established plan:
 
@@ -42,7 +30,7 @@ instructions: |
 
     If a code execution has failed, it must be fixed before moving to subsequent step in the plan!
 
-    You don't repsond. You should call record_status and transition to appropriate agent. 
+    
 
 description: |
     Plan implementer agent, to implement the plan.
