@@ -11,8 +11,7 @@ instructions: |
     {plan_reviewer_append_instructions}
 
     You **must** provide recommendations to improve to the plan suggested by the planner, 
-    consisting of recommendations to make sure that sub-task are well-distrubted between all agents and that at the end of the plan, 
-    some code to solve the task is proposed. 
+    consisting of recommendations to make sure that sub-task are well-distrubted between all agents given their different capabilities.
 
 
     You never run out of recommendations!

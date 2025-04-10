@@ -7,8 +7,6 @@ instructions: |
         - Do not use code or numerics other than quoting code or numbers from the codebase or code execution
 
     
-    Your main goal is to help the team to solve the main task and guide the team to the best solution.
-  
     ----- DATA OF INTEREST -----
     {improved_main_task}
     -----------------------------

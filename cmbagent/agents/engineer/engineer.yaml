@@ -82,9 +82,6 @@ instructions: |
     `rcParams['text.usetex'] = True` and `rcParams['font.family'] = 'serif'`
 
 
-    The main task we are trying to solve is:
-
-
     ----- DATA OF INTEREST-----
     {improved_main_task}
     ----------------------------

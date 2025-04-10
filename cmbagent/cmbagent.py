@@ -593,6 +593,61 @@ class CMBAgent:
         self.output = self.task_result
 
         # return self.task_result
+
+    def planning_and_control(self, 
+                             task,
+                             max_rounds_planning = 50,
+                             max_rounds_control = 50,
+                             max_plan_steps = 3,
+                             n_plan_reviews = 1,
+                             plan_instructions = '',
+                             engineer_instructions = '',
+                             researcher_instructions = '',
+                             engineer_model = 'o3-mini-2025-01-31',
+                             researcher_model = 'o3-mini-2025-01-31'):
+
+        ## planning
+        cmbagent = CMBAgent()
+
+        cmbagent.solve(task,
+                    max_rounds=max_rounds_planning,
+                    initial_agent="planner",
+                    shared_context = {'feedback_left': n_plan_reviews,
+                                        'maximum_number_of_steps_in_plan': max_plan_steps,
+                                        'planner_append_instructions': plan_instructions,
+                                        'engineer_append_instructions': engineer_instructions,
+                                        'researcher_append_instructions': researcher_instructions,
+                                        'plan_reviewer_append_instructions': plan_instructions}
+                    )
+        
+        planning_output = copy.deepcopy(cmbagent.final_context)
+
+        ## control
+
+        cmbagent = CMBAgent(
+            agent_llm_configs = {
+                                'engineer': {
+                                    "model": engineer_model,
+                                    "reasoning_effort": "high",
+                                    "api_key": os.getenv("OPENAI_API_KEY"),
+                                    "api_type": "openai"},
+                                'researcher': {
+                                    "model": researcher_model,
+                                    "reasoning_effort": "high",
+                                    "api_key": os.getenv("OPENAI_API_KEY"),
+                                    "api_type": "openai"},
+            })
+            
+
+        cmbagent.solve(task,
+                        max_rounds=max_rounds_control,
+                        initial_agent="control",
+                        shared_context = planning_output
+                        )
+
+
+    def one_shot(self):
+        pass
             
 
         
