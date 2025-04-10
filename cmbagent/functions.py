@@ -56,7 +56,7 @@ def register_functions_to_agents(cmbagent_instance):
 
     perplexity._add_single_function(perplexity_search_tool)
 
-    def post_execution_transfer(next_agent_suggestion: Literal["engineer", "classy_sz", "control"], context_variables: dict) -> SwarmResult:
+    def post_execution_transfer(next_agent_suggestion: Literal["engineer", "classy_sz_agent", "control"], context_variables: dict) -> SwarmResult:
         """
         Transfer to the next agent based on the execution status.
         """
@@ -65,9 +65,9 @@ def register_functions_to_agents(cmbagent_instance):
             return SwarmResult(agent=engineer,
                             values="Transfer to engineer.",
                             context_variables=context_variables)    
-        elif next_agent_suggestion == "classy_sz":
+        elif next_agent_suggestion == "classy_sz_agent":
             return SwarmResult(agent=classy_sz,
-                            values="Transfer to classy_sz.",
+                            values="Transfer to classy_sz_agent.",
                             context_variables=context_variables)
         elif next_agent_suggestion == "control":
             return SwarmResult(agent=control,
@@ -243,7 +243,7 @@ Now, update the plan accordingly, planner!""",
         current_plan_step_number: int,
         current_sub_task: str,
         current_instructions: str,
-        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater", "aas_keyword_finder"],
+        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater", "classy_sz_agent", "aas_keyword_finder"],
         context_variables: dict
     ) -> SwarmResult:
         """
@@ -333,6 +333,7 @@ Now, update the plan accordingly, planner!""",
         context_variables["transfer_to_perplexity"] = False
         context_variables["transfer_to_idea_maker"] = False
         context_variables["transfer_to_idea_hater"] = False
+        context_variables["transfer_to_classy_sz_agent"] = False
 
         agent_to_transfer_to = None
         if "in progress" in context_variables["current_status"]:
@@ -350,6 +351,8 @@ Now, update the plan accordingly, planner!""",
                 context_variables["transfer_to_idea_maker"] = True
             elif context_variables["agent_for_sub_task"] == "idea_hater":
                 context_variables["transfer_to_idea_hater"] = True
+            elif context_variables["agent_for_sub_task"] == "classy_sz_agent":
+                context_variables["transfer_to_classy_sz_agent"] = True
 
         
             if context_variables["transfer_to_engineer"]:
@@ -366,6 +369,8 @@ Now, update the plan accordingly, planner!""",
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
             elif context_variables["transfer_to_idea_hater"]:
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
+            elif context_variables["transfer_to_classy_sz_agent"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
 
         if "completed" in context_variables["current_status"]:
             if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:

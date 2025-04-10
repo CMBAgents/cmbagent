@@ -283,14 +283,14 @@ def register_all_hand_offs(cmbagent_instance):
             #     # available="review_recorded"
             # ),
 
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=classy_sz.agent, 
-            #     condition="Need information on the cosmolology code classy_sz.",
-            #     # available="review_recorded"
-            # ),
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=classy_sz.agent, 
+                condition="Need information on the cosmolology code classy_sz.",
+                # available="review_recorded"
+            ),
             
             # OnCondition( 
             #     # condition (str): 

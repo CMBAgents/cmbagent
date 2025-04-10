@@ -30,12 +30,12 @@ class ExecutorResponseFormatterAgent(BaseAgent):
         execution_status: Literal["success", "failure"] = Field(
             ..., description="Status of the execution."
         )
-        next_agent_suggestion: Literal["engineer", "classy_sz", "control"] = Field(
+        next_agent_suggestion: Literal["engineer", "classy_sz_agent", "control"] = Field(
             None, ## default value
             description=r"""
             Suggestion for the next agent to call. 
             Suggest the engineer agent if error related to generic Python code.
-            Suggest the classy_sz agent if error related to classy_sz code.
+            Suggest the classy_sz_agent if error is an internal classy_sz error.
             Suggest the control agent if execution was successful.
             """
         )
