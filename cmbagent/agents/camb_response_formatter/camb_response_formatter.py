@@ -33,9 +33,13 @@ class CambResponseFormatterAgent(BaseAgent):
             ...,
             description="List of files consulted during the task."
         )
+        docstrings: List[str] = Field(
+            ...,
+            description="List of full complete docstrings of the camb methods needed, not just the function names. These are generally in the documentation in your prompt."
+        )
         results: str = Field(
             ...,
-            description="Results of the file search."
+            description="Results of the file search. Include the full complete docstrings of the camb methods you used in your response, not just the function names. These are generally in the documentation in your prompt."
         )
         
         python_code: "CambResponseFormatterAgent.PythonCode" = Field(..., description="Python code snippet related to the task (for guidance only).")
@@ -48,6 +52,7 @@ class CambResponseFormatterAgent(BaseAgent):
                 f"**File Search Task:**\n\n{self.file_search_task}\n\n"
                 f"**Files Consulted:**\n{consulted_files}\n\n"
                 f"**Results:**\n{self.results}\n\n"
+                f"**Docstrings:**\n{self.docstrings}\n\n"
                 f"**Rough Python Code (for guidance only):**\n\n```python\n{code_text}\n```"
             )
 

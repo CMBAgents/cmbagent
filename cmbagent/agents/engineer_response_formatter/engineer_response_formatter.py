@@ -27,7 +27,7 @@ class EngineerResponseFormatterAgent(BaseAgent):
             None, description="The relative path to the file (exclude <filename>.py itself)"
         )
         code_explanation: str = Field(
-            ..., description="Copy of the engineer's explanation of the Python code provided."
+            ..., description="Copy of the engineer's explanation of the Python code provided. Including the docstrings of the methods used."
         )
         modification_summary: Optional[str] = Field(
             None,

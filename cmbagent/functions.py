@@ -1,5 +1,6 @@
 from autogen import SwarmResult, AfterWorkOption
 from typing import Literal
+from pydantic import Field
 import os
 import re
 import ast
@@ -42,7 +43,9 @@ def register_functions_to_agents(cmbagent_instance):
     admin = cmbagent_instance.get_agent_from_name('admin')
     perplexity = cmbagent_instance.get_agent_from_name('perplexity')
     aas_keyword_finder = cmbagent_instance.get_agent_from_name('aas_keyword_finder')
-
+    plan_setter = cmbagent_instance.get_agent_from_name('plan_setter')
+    idea_maker = cmbagent_instance.get_agent_from_name('idea_maker')
+    installer = cmbagent_instance.get_agent_from_name('installer')
     # print("Perplexity API key: ", os.getenv("PERPLEXITY_API_KEY"))
     perplexity_search_tool = PerplexitySearchTool(
                         model="sonar-reasoning-pro",
@@ -56,23 +59,73 @@ def register_functions_to_agents(cmbagent_instance):
 
     perplexity._add_single_function(perplexity_search_tool)
 
-    def post_execution_transfer(next_agent_suggestion: Literal["engineer", "classy_sz_agent", "control"], context_variables: dict) -> SwarmResult:
+    def post_execution_transfer(next_agent_suggestion: Literal["engineer", 
+                                                               "classy_sz_agent", 
+                                                               "installer",
+                                                               "camb_agent", 
+                                                               "cobaya_agent",
+                                                               "control"], 
+                                context_variables: dict,
+                                execution_status: Literal["success", "failure"] 
+                                ) -> SwarmResult:
         """
         Transfer to the next agent based on the execution status.
+        For the next agent suggestion, follow these rules:
+            - Suggest the engineer agent if error related to generic Python code.
+            - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError).
+            - Suggest the classy_sz_agent if error is an internal classy_sz error.
+            - Suggest the camb_agent if error related to internal camb code.
+            - Suggest the cobaya_agent if error related to internal cobaya code.
+            - Suggest the control agent only if execution was successful.
         """
 
-        if next_agent_suggestion == "engineer":
-            return SwarmResult(agent=engineer,
-                            values="Transfer to engineer.",
-                            context_variables=context_variables)    
-        elif next_agent_suggestion == "classy_sz_agent":
-            return SwarmResult(agent=classy_sz,
-                            values="Transfer to classy_sz_agent.",
-                            context_variables=context_variables)
-        elif next_agent_suggestion == "control":
-            return SwarmResult(agent=control,
-                            values="Transfer to control.",
-                            context_variables=context_variables)
+        workflow_status_str = rf"""
+xxxxxxxxxxxxxxxxxxxxxxxxxx
+
+Workflow status:
+
+Plan step number: {context_variables["current_plan_step_number"]}
+
+Agent for sub-task: {context_variables["agent_for_sub_task"]}
+
+Current status: {context_variables["current_status"]}
+
+xxxxxxxxxxxxxxxxxxxxxxxxxx
+"""
+        
+        if context_variables["agent_for_sub_task"] == "engineer":
+            
+            if context_variables["n_attempts"] >= context_variables["max_n_attempts"]:
+                return SwarmResult(agent=AfterWorkOption.TERMINATE,
+                                values=f"Max number of code execution attempts ({context_variables['max_n_attempts']}) reached. Exiting.",
+                                context_variables=context_variables)
+
+            if next_agent_suggestion == "engineer":
+                context_variables["n_attempts"] += 1
+                return SwarmResult(agent=engineer,
+                                values="Execution status: " + execution_status + ". Transfer to engineer.\n" + f"{workflow_status_str}\n",
+                                context_variables=context_variables)    
+            elif next_agent_suggestion == "classy_sz_agent":
+                context_variables["n_attempts"] += 1
+                return SwarmResult(agent=classy_sz,
+                                values="Execution status: " + execution_status + ". Transfer to classy_sz_agent.\n" + f"{workflow_status_str}\n",
+                                context_variables=context_variables)
+            
+            elif next_agent_suggestion == "control":
+                context_variables["n_attempts"] += 1
+                return SwarmResult(agent=control,
+                                values="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
+                                context_variables=context_variables)
+            
+            elif next_agent_suggestion == "installer":
+                context_variables["n_attempts"] += 1
+                return SwarmResult(agent=installer,
+                                values="Execution status: " + execution_status + ". Transfer to installer.\n" + f"{workflow_status_str}\n",
+                                context_variables=context_variables)
+        else:
+                return SwarmResult(agent=control,
+                                values="Transfer to control.\n" + workflow_status_str,
+                                context_variables=context_variables)
         
     executor_response_formatter._add_single_function(post_execution_transfer)
 
@@ -208,6 +261,51 @@ def register_functions_to_agents(cmbagent_instance):
     plan_recorder._add_single_function(record_plan)
 
 
+    def record_plan_constraints(needed_agents: list[Literal["engineer", 
+                                                       "researcher", 
+                                                       "perplexity", 
+                                                       "idea_maker", 
+                                                       "idea_hater", 
+                                                       "camb_agent",
+                                                       "classy_sz_agent", 
+                                                       "aas_keyword_finder"]],
+                                context_variables: dict) -> SwarmResult:
+        """
+        Records the constraints on the plan.
+        """
+        # print('needed_agents: ', needed_agents)
+        context_variables["needed_agents"] = needed_agents
+        # print('planner_append_instructions before update: ', context_variables["planner_append_instructions"])
+        # print('plan_reviewer_append_instructions before update: ', context_variables["plan_reviewer_append_instructions"])
+        # print(dir(idea_maker))
+
+        str_to_append = f"The plan must strictly involve only the following agents: {', '.join(needed_agents)}\n"
+        
+        str_to_append += r"""
+**AGENT ROLES**
+Here are the descriptions of the agents that are needed to carry out the plan:
+"""
+        for agent in needed_agents:
+            agent_object = cmbagent_instance.get_agent_from_name(agent)
+
+            str_to_append += f'- {agent}: {agent_object.description}'
+
+        str_to_append += "\n"
+
+        str_to_append += r"""
+You must not invoke any other agent than the ones listed above.
+"""
+        context_variables["planner_append_instructions"] += str_to_append
+        context_variables["plan_reviewer_append_instructions"] += str_to_append
+
+        # print('planner_append_instructions after update: ', context_variables["planner_append_instructions"])
+        # print('plan_reviewer_append_instructions after update: ', context_variables["plan_reviewer_append_instructions"])
+        return SwarmResult(agent=planner,
+                           values="Plan constraints have been logged.",
+                           context_variables=context_variables)
+
+    plan_setter._add_single_function(record_plan_constraints)
+
 
     def record_review(plan_review: str, context_variables: dict) -> SwarmResult:
         """ Record reviews of the plan."""
@@ -243,7 +341,7 @@ Now, update the plan accordingly, planner!""",
         current_plan_step_number: int,
         current_sub_task: str,
         current_instructions: str,
-        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater", "classy_sz_agent", "aas_keyword_finder"],
+        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater", "classy_sz_agent", "camb_agent", "aas_keyword_finder"],
         context_variables: dict
     ) -> SwarmResult:
         """
@@ -373,11 +471,19 @@ Now, update the plan accordingly, planner!""",
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
 
         if "completed" in context_variables["current_status"]:
+
             if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
             else:
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('control')
 
+
+            # if context_variables["agent_for_sub_task"] == "engineer":
+            #     print("\n successfully ran the code after ", context_variables["n_attempts"], " attempts!")
+            
+            ## reset the number of code execution attempts
+            ## (the markdown execution always works)
+            context_variables["n_attempts"] = 0
         if "failed" in context_variables["current_status"]:
             if context_variables["agent_for_sub_task"] == "engineer":
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')

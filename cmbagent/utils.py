@@ -127,7 +127,9 @@ file_search_max_num_results = autogen.file_search_max_num_results
 
 default_max_round = 50
 
-default_llm_model = 'gpt-4o-2024-11-20'
+# default_llm_model = 'gpt-4o-2024-11-20'
+default_llm_model = 'gpt-4.1-2025-04-14'
+# "gpt-4o-mini"
 
 default_llm_config_list = [
                     {
@@ -151,12 +153,14 @@ default_agent_llm_configs = {
                         "api_type": "openai",
                         },
                     'classy_sz': {
-                        "model": "gpt-4o-2024-11-20", 
+                        # "model": "gpt-4o-2024-11-20", 
+                        "model": default_llm_model,
                         "api_key": os.getenv("OPENAI_API_KEY"), # use oai models here only (this is a RAG agent, with an oai vector store attached. If you are not a cosmologist, ignore this, you will never need this agent.
                         "api_type": "openai",
                         },
                     'camb': {
-                        "model": "gpt-4o-2024-11-20",
+                        # "model": "gpt-4o-2024-11-20",
+                        "model": default_llm_model,
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         # "check_every_ms": 500, # does not do anything
                         "api_type": "openai",
@@ -178,12 +182,13 @@ default_agent_llm_configs = {
                         "api_type": "openai",
                         },
                     'planner': {
-                        "model": "gpt-4o-2024-11-20",
+                        "model": default_llm_model,#"gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
                     'control': {
-                        "model": "gpt-4o-2024-11-20",
+                        # "model": "gpt-4o-2024-11-20",
+                        "model": default_llm_model,
                         # "model": "o3-mini-2025-01-31",
                         # "reasoning_effort": "medium",
                         "api_key": os.getenv("OPENAI_API_KEY"),
@@ -244,7 +249,8 @@ default_agent_llm_configs = {
                         "api_type": "openai",
                         },
                     "camb_response_formatter": {
-                        "model": "gpt-4o-2024-11-20",
+                        # "model": "gpt-4o-2024-11-20", 
+                        "model": default_llm_model,
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },

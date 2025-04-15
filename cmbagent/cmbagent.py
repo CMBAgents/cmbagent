@@ -594,56 +594,76 @@ class CMBAgent:
 
         # return self.task_result
 
-    def planning_and_control(self, 
-                             task,
-                             max_rounds_planning = 50,
-                             max_rounds_control = 50,
-                             max_plan_steps = 3,
-                             n_plan_reviews = 1,
-                             plan_instructions = '',
-                             engineer_instructions = '',
-                             researcher_instructions = '',
-                             engineer_model = 'o3-mini-2025-01-31',
-                             researcher_model = 'o3-mini-2025-01-31'):
+    # def planning_and_control(self, 
+    #                          task,
+    #                          max_rounds_planning = 50,
+    #                          max_rounds_control = 50,
+    #                          max_plan_steps = 3,
+    #                          n_plan_reviews = 1,
+    #                          plan_instructions = '',
+    #                          engineer_instructions = '',
+    #                          researcher_instructions = '',
+    #                          engineer_model = 'o3-mini-2025-01-31',
+    #                          researcher_model = 'o3-mini-2025-01-31'):
 
-        ## planning
-        cmbagent = CMBAgent()
+    #     ## planning
+    #     cmbagent = CMBAgent()
 
-        cmbagent.solve(task,
-                    max_rounds=max_rounds_planning,
-                    initial_agent="planner",
-                    shared_context = {'feedback_left': n_plan_reviews,
-                                        'maximum_number_of_steps_in_plan': max_plan_steps,
-                                        'planner_append_instructions': plan_instructions,
-                                        'engineer_append_instructions': engineer_instructions,
-                                        'researcher_append_instructions': researcher_instructions,
-                                        'plan_reviewer_append_instructions': plan_instructions}
-                    )
+    #     cmbagent.solve(task,
+    #                 max_rounds=max_rounds_planning,
+    #                 initial_agent="plan_setter",
+    #                 shared_context = {'feedback_left': n_plan_reviews,
+    #                                     'maximum_number_of_steps_in_plan': max_plan_steps,
+    #                                     'planner_append_instructions': plan_instructions,
+    #                                     'engineer_append_instructions': engineer_instructions,
+    #                                     'researcher_append_instructions': researcher_instructions,
+    #                                     'plan_reviewer_append_instructions': plan_instructions}
+    #                 )
         
-        planning_output = copy.deepcopy(cmbagent.final_context)
+    #     planning_output = copy.deepcopy(cmbagent.final_context)
 
-        ## control
+    #     ## control
 
-        cmbagent = CMBAgent(
-            agent_llm_configs = {
-                                'engineer': {
-                                    "model": engineer_model,
-                                    "reasoning_effort": "high",
-                                    "api_key": os.getenv("OPENAI_API_KEY"),
-                                    "api_type": "openai"},
-                                'researcher': {
-                                    "model": researcher_model,
-                                    "reasoning_effort": "high",
-                                    "api_key": os.getenv("OPENAI_API_KEY"),
-                                    "api_type": "openai"},
-            })
+    #     if 'o3' in engineer_model:
+    #         engineer_config = {
+    #             "model": engineer_model,
+    #             "reasoning_effort": "high",
+    #             "api_key": os.getenv("OPENAI_API_KEY"),
+    #             "api_type": "openai"
+    #         }
+    #     else:
+    #         engineer_config = {
+    #             "model": engineer_model,
+    #             "api_key": os.getenv("OPENAI_API_KEY"),
+    #             "api_type": "openai"
+    #         }
+
+    #     if 'o3' in researcher_model:
+    #         researcher_config = {
+    #             "model": researcher_model,
+    #             "reasoning_effort": "high",
+    #             "api_key": os.getenv("OPENAI_API_KEY"),
+    #             "api_type": "openai"
+    #         }
+    #     else:
+    #         researcher_config = {
+    #             "model": researcher_model,
+    #             "api_key": os.getenv("OPENAI_API_KEY"),
+    #             "api_type": "openai"
+    #         }
+
+    #     cmbagent = CMBAgent(
+    #         agent_llm_configs = {
+    #                             'engineer': engineer_config,
+    #                             'researcher': researcher_config,
+    #         })
             
 
-        cmbagent.solve(task,
-                        max_rounds=max_rounds_control,
-                        initial_agent="control",
-                        shared_context = planning_output
-                        )
+    #     cmbagent.solve(task,
+    #                     max_rounds=max_rounds_control,
+    #                     initial_agent="control",
+    #                     shared_context = planning_output
+    #                     )
 
 
     def one_shot(self):
@@ -1015,5 +1035,85 @@ class CMBAgent:
 
 
 
+
+
+def planning_and_control(task,
+                            max_rounds_planning = 50,
+                            max_rounds_control = 50,
+                            max_plan_steps = 3,
+                            n_plan_reviews = 1,
+                            plan_instructions = '',
+                            engineer_instructions = '',
+                            researcher_instructions = '',
+                            max_n_attempts = 3,
+                            engineer_model = 'o3-mini-2025-01-31',
+                            researcher_model = 'o3-mini-2025-01-31'):
+
+    ## planning
+    cmbagent = CMBAgent()
+
+    cmbagent.solve(task,
+                max_rounds=max_rounds_planning,
+                initial_agent="plan_setter",
+                shared_context = {'feedback_left': n_plan_reviews,
+                                    'max_n_attempts': max_n_attempts,
+                                    'maximum_number_of_steps_in_plan': max_plan_steps,
+                                    'planner_append_instructions': plan_instructions,
+                                    'engineer_append_instructions': engineer_instructions,
+                                    'researcher_append_instructions': researcher_instructions,
+                                    'plan_reviewer_append_instructions': plan_instructions}
+                )
+    
+    planning_output = copy.deepcopy(cmbagent.final_context)
+
+    ## control
+
+    if 'o3' in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    else:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+
+    if 'o3' in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    elif "gemini" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+    else:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+        
+
+    cmbagent = CMBAgent(
+        agent_llm_configs = {
+                            'engineer': engineer_config,
+                            'researcher': researcher_config,
+        })
+        
+
+    cmbagent.solve(task,
+                    max_rounds=max_rounds_control,
+                    initial_agent="control",
+                    shared_context = planning_output
+                    )
 
 

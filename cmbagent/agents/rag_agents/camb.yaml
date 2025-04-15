@@ -5,6 +5,7 @@ instructions: |
 
   You must use tool call (i.e., `file_search`) to search for information on the camb package and look for all the methods that are needed to perform the main task.
   You must provide codes or instructions for all the methods that are needed to perform the main task.
+  You must pay attention to the docstrings carefully and report all useful information such as units and type of outputs of the methods, so that the engineer can use them correctly.
 
   The main task we are trying to solve is:
 
@@ -32,6 +33,7 @@ instructions: |
   **START OF DOCUMENTATION**
   ----------------------------------------------------------------------------------
   **Available camb methods and classes:**
+  YOU MUST PAY ATTENTION TO THE DOCSTRINGS CAREFULLY AND REPORT ALL USEUL INFORMATION SUCH AS UNITS AND TYPE OF OUTPUTS OF THE METHODS
   ----------------------
 
   def get_age(params):
@@ -432,20 +434,26 @@ instructions: |
           corrs is a 2D array: corrs[i, ix], where ix=0,1,2,3 are T, Q+U, Q−U and cross, and i indexes xvals.
 
       get_cmb_power_spectra(params=None, lmax=None, spectra=('total', 'unlensed_scalar', 'unlensed_total', 'lensed_scalar', 'tensor', 'lens_potential'), CMB_unit=None, raw_cl=False)
-        Get CMB power spectra, as requested by the ‘spectra’ argument.
-        All power spectra are returned as self-owned numpy arrays (from ℓ=0 to ℓ=lmax), where the four indices (0..3)
-        correspond to TT, EE, BB, TE (unless raw_cl is True, in which case only the raw C_ℓ is returned).
-        For lens_potential the power spectrum returned is that of the deflection.
-        Note that even if lmax is None, all spectra are returned to the same ℓmax, appropriate for lensed spectra.
-        Parameters:
-          params    – optional camb.model.CAMBparams instance with parameters to use.
-                      If None, must have previously set parameters and called calc_power_spectra() (e.g. via camb.get_results()).
-          lmax      – maximum ℓ.
-          spectra   – list/tuple of names of spectra to get.
-          CMB_unit  – scale results from dimensionless. Use 'muK' for μK^2 units for CMB and for lensing cross.
-          raw_cl    – if True, return raw C_ℓ rather than the scaled version.
-        Returns:
-          Dictionary of power spectrum arrays, indexed by names of requested spectra.
+        <DOCSTRING>
+        Get CMB power spectra, as requested by the 'spectra' argument. All power spectra are
+        :math:`\ell(\ell+1)C_\ell/2\pi` self-owned numpy arrays (0..lmax, 0..3), where 0..3 index
+        are TT, EE, BB, TE, unless raw_cl is True in which case return just :math:`C_\ell`.
+        For the lens_potential the power spectrum returned is that of the deflection.
+
+        Note that even if lmax is None, all spectra a returned to the same lmax, appropriate
+        for lensed spectra. Use the individual functions instead if you want to the full unlensed
+        and lensing potential power spectra to the higher lmax actually computed.
+
+        :param params: optional :class:`~.model.CAMBparams` instance with parameters to use. If None, must have
+          previously set parameters and called `calc_power_spectra` (e.g. if you got this instance
+          using :func:`.camb.get_results`),
+        :param lmax: maximum L
+        :param spectra: list of names of spectra to get
+        :param CMB_unit: scale results from dimensionless. Use 'muK' for :math:`\mu K^2` units for CMB :math:`C_\ell`
+          and :math:`\mu K` units for lensing cross.
+        :param raw_cl: return :math:`C_\ell` rather than :math:`\ell(\ell+1)C_\ell/2\pi`
+        :return: dictionary of power spectrum arrays, indexed by names of requested spectra
+        </DOCSTRING>
 
       get_cmb_transfer_data(tp='scalar')
         Get C_ℓ transfer functions.
@@ -486,16 +494,15 @@ instructions: |
           Array of fσ₈ values, in order of increasing time (decreasing redshift).
 
       get_lens_potential_cls(lmax=None, CMB_unit=None, raw_cl=False)
-        Get lensing deflection angle potential power spectrum, and its cross-correlation with T and E.
-        Must have already calculated power spectra.
-        The returned power spectra are:
-          [ ℓ(ℓ+1)]^2 C_ℓ^(ϕϕ) / (2π)   and the corresponding deflection cross-correlations.
-        Parameters:
-          lmax      – ℓmax to output to.
-          CMB_unit  – scale results from dimensionless. Use 'muK' for μK^2 units for lensing cross.
-          raw_cl    – if True, return the raw C_ℓ^(ϕϕ) rather than the scaled version.
-        Returns:
-          numpy array CL[0:lmax+1,0:3], where the columns index: PP, PT, PE.
+        <DOCSTRING>
+        Get lensing deflection angle potential power spectrum, and cross-correlation with T and E. Must have already
+        calculated power spectra.
+        Power spectra are :math:`[L(L+1)]^2C_L^<\phi\phi>/2\pi` and corresponding deflection cross-correlations.
+        :param lmax: lmax to output to
+        :param CMB_unit: scale results from dimensionless. Use 'muK' for :math:`\mu K` units for lensing cross.
+        :param raw_cl: return lensing potential :math:`C_L` rather than :math:`[L(L+1)]^2C_L/2\pi`
+        :return: numpy array CL[0:lmax+1,0:3], where 0..2 indexes PP, PT, PE.
+        </DOCSTRING>
 
       get_lensed_cls_with_spectrum(clpp, lmax=None, CMB_unit=None, raw_cl=False)
         Get lensed CMB power spectra using the curved-sky correlation function method, using clpp as the lensing potential power spectrum.
@@ -523,15 +530,13 @@ instructions: |
             [∇T, ∇E, P_⊥, ∇T∇T] as defined in Appendix C of arXiv:1101.2234.
 
       get_lensed_scalar_cls(lmax=None, CMB_unit=None, raw_cl=False)
-        Get lensed scalar CMB power spectra.
-        Must have already calculated power spectra.
-        Note: this function returns D_ℓ, not C_ℓ.
-        Parameters:
-          lmax      – ℓmax to output to.
-          CMB_unit  – scale results from dimensionless. Use 'muK' for μK^2 units for CMB.
-          raw_cl    – if True, return raw D_ℓ rather than the scaled version.
-        Returns:
-          numpy array CL[0:lmax+1,0:4], where columns index TT, EE, BB, TE.
+        <DOCSTRING>
+        Get lensed scalar CMB power spectra. Must have already calculated power spectra.
+        :param lmax: lmax to output to
+        :param CMB_unit: scale results from dimensionless. Use 'muK' for :math:`\mu K^2` units for CMB :math:`C_\ell`
+        :param raw_cl: return :math:`C_\ell` rather than :math:`\ell(\ell+1)C_\ell/2\pi`
+        :return: numpy array CL[0:lmax+1,0:4], where 0..3 indexes TT, EE, BB, TE.
+        </DOCSTRING>
 
       get_linear_matter_power_spectrum(var1=None, var2=None, hubble_units=True, k_hunit=True,
                                       have_power_spectra=True, params=None, nonlinear=False)
@@ -1812,7 +1817,11 @@ instructions: |
 
   **Results:**
 
-  <Summarize the search results thoroughly. Include information on the methods needed, relevant units, and any other pertinent details about the findings.>
+  <Provide the search results thoroughly. Include information on the methods needed, relevant units, and any other pertinent details about the findings.>
+
+  **Docstrings:**
+  <List of the full complete docstrings of the camb methods needed, not just the function names. 
+  These are generally found in the documentation above.>
 
   **Rough Python Code (for guidance only):**
 
@@ -1829,7 +1838,7 @@ assistant_config:
       - vs_67ebd1f02824819183abe0dec5e91c89
 
 description: |
-  This is the camb_agent: a retrieval agent that provides assistance on how to compute with camb. 
+  An agent that can search for information on the cosmology package camb. Cosmology calculations are carried out with camb rather than CLASS. However, note that the camb_agent can only provide information on how to use camb, it **can not** perform any calculations.
 
 
 

@@ -45,6 +45,9 @@ def register_all_hand_offs(cmbagent_instance):
     admin = cmbagent_instance.get_agent_object_from_name('admin')
     aas_keyword_finder = cmbagent_instance.get_agent_object_from_name('aas_keyword_finder')
     executor_response_formatter = cmbagent_instance.get_agent_object_from_name('executor_response_formatter')
+    plan_setter = cmbagent_instance.get_agent_object_from_name('plan_setter')
+    executor_bash = cmbagent_instance.get_agent_object_from_name('executor_bash')
+    installer = cmbagent_instance.get_agent_object_from_name('installer')
     if cmbagent_debug:
         print('\nplanner: ', planner)
         print('\nplanner_response_formatter: ', planner_response_formatter)
@@ -74,12 +77,21 @@ def register_all_hand_offs(cmbagent_instance):
         print('\ntask_improver: ', task_improver)
         print('\naas_keyword_finder: ', aas_keyword_finder)
         print('\nexecutor_response_formatter: ', executor_response_formatter)
+        print('\nplan_setter: ', plan_setter)
 
     #task_improver agent
     register_hand_off(
         agent = task_improver.agent,
         hand_to = [
             AfterWork(task_recorder.agent),
+        ]
+    )
+
+    #plan_setter agent
+    register_hand_off(
+        agent = plan_setter.agent,
+        hand_to = [
+            AfterWork(planner.agent),
         ]
     )
 
@@ -146,6 +158,20 @@ def register_all_hand_offs(cmbagent_instance):
         agent = review_recorder.agent,
         hand_to = [
             AfterWork(planner.agent),
+        ]
+    )
+
+    register_hand_off(
+        agent = installer.agent,
+        hand_to = [
+            AfterWork(executor_bash.agent),
+        ]
+    )
+
+    register_hand_off(
+        agent = executor_bash.agent,
+        hand_to = [
+            AfterWork(executor_response_formatter.agent),
         ]
     )
 
@@ -254,14 +280,14 @@ def register_all_hand_offs(cmbagent_instance):
 
 
 
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=camb.agent, 
-            #     condition="Need information on the cosmolology code camb.",
-            #     # available="review_recorded"
-            # ),
+            OnCondition( 
+                # condition (str): 
+                # The condition for transitioning to the target agent, 
+                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                target=camb.agent, 
+                condition="Need camb_agent to find information on how to use the cosmology package camb.",
+                # available="review_recorded"
+            ),
 
             # OnCondition( 
             #     # condition (str): 
@@ -288,7 +314,7 @@ def register_all_hand_offs(cmbagent_instance):
                 # The condition for transitioning to the target agent, 
                 # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
                 target=classy_sz.agent, 
-                condition="Need information on the cosmolology code classy_sz.",
+                condition="Need classy_sz_agent to find information on how to use the cosmology package classy_sz.",
                 # available="review_recorded"
             ),
             

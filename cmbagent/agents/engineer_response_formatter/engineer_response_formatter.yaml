@@ -8,6 +8,9 @@ instructions: |
     You should only structure the input text into the output response format.
 
     Additionaly, make sure your LaTeX strings are written on a single line. Fix LaTeX or raw strings if needed.
+    Make sure that whenever latex is used, it is enclosed in dollar signs and in raw strings. Check for missing $ signs and fix them. Check for anything that could raise SyntaxError: unterminated string literal.
+    Make sure to escape all backslashes properly (e.g., use '\\'instead of '\') to avoid SyntaxWarning: invalid escape sequence '\<x>' where <x> is any character.
+    Make sure you avoid SyntaxWarning: invalid escape sequence '\(' and '\)'.
 
     For setting relative_path, remember that:
     - all generated data (e.g., plots, datasets, CSV files, etc.) is saved in the root folder `{database_path}`

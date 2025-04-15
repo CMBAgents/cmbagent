@@ -46,4 +46,8 @@ shared_context = {
     "perplexity_citations": None,
 
 
+    "n_attempts": 0,
+    "max_n_attempts": 3,
+
+
 }

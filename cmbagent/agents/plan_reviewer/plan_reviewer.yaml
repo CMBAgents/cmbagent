@@ -8,7 +8,10 @@ instructions: |
     {improved_main_task}
     ---------------------------
 
+
+    -------------PLAN INSTRUCTIONS -------------------
     {plan_reviewer_append_instructions}
+    --------------------------------------------------
 
     You **must** provide recommendations to improve to the plan suggested by the planner, 
     consisting of recommendations to make sure that sub-task are well-distrubted between all agents given their different capabilities.
@@ -32,7 +35,7 @@ instructions: |
      
     The Plan must have at most {maximum_number_of_steps_in_plan} Steps.
 
-    Here is the current plan:
+    Here is the current plan suggested by the planner:
     ------CURRENT PLAN--------
     {proposed_plan}
     ---------------------------

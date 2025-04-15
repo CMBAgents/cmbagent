@@ -321,5 +321,6 @@ assistant_config:
       - vs_67ebd1e8996c8191a096035f12076647
 
 
-description: |
-  This is the classy_sz_agent: a retrieval agent that provides assistance on how to compute with classy_sz. 
+description: | 
+  An agent that can search for information on the cosmology package classy_sz (a machine learning accelerated Boltzmann solver for cosmology). Cosmology calculations are carried out with classy_sz rather than CAMB or CLASS. However, note that the classy_sz_agent can only provide information on how to use classy_sz, it **can not** perform any calculations.
+

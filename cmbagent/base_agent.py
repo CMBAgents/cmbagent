@@ -196,7 +196,7 @@ class BaseAgent:
         self.agent = GPTAssistantAgent(
             name=self.name,
             instructions= self.info["instructions"], # UpdateSystemMessage is in autogen/gpt_assistant_agent.py
-            # description=self.info["description"],
+            description=self.info["description"],
             assistant_config=self.info["assistant_config"],
             llm_config=self.llm_config,
             overwrite_tools=True,
@@ -250,7 +250,7 @@ class BaseAgent:
             name=self.name,
             # system_message=self.info["instructions"],
             update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
-            # description=self.info["description"],
+            description=self.info["description"],
             llm_config=self.llm_config,
             cmbagent_debug=cmbagent_debug,
             )
@@ -268,6 +268,34 @@ class BaseAgent:
         for key, value in self.info.items():
             logger.info(f"{key}: {value}")
 
+        execution_policies = {
+            "python": True,
+            "bash": False,
+            "shell": False,
+            "sh": False,
+            "pwsh": False,
+            "powershell": False,
+            "ps1": False,
+            "javascript": False,
+            "html": False,
+            "css": False,
+            }
+
+        if 'bash' in self.name:
+            execution_policies = {
+                "python": False,
+                "bash": True,
+                "shell": False,
+                "sh": False,
+                "pwsh": False,
+                "powershell": False,
+                "ps1": False,
+                "javascript": False,
+                "html": False,
+                "css": False,
+            }
+
+
         self.agent = CmbAgentSwarmAgent(
             name= self.name,
             system_message= self.info["instructions"],
@@ -278,21 +306,10 @@ class BaseAgent:
         is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
         code_execution_config={
             "executor": LocalCommandLineCodeExecutor(work_dir=self.work_dir,
-                                                        timeout=self.info["timeout"],
-                                                        execution_policies = {
-                                                        "python": True,
-                                                        "bash": False,
-                                                        "shell": False,
-                                                        "sh": False,
-                                                        "pwsh": False,
-                                                        "powershell": False,
-                                                        "ps1": False,
-                                                        "javascript": False,
-                                                        "html": False,
-                                                        "css": False,
-                                                        }
-                                                        ),
-            "last_n_messages": 3,
+                                                    timeout=self.info["timeout"],
+                                                    execution_policies = execution_policies
+                                                    ),
+            "last_n_messages": 2,
         },
         cmbagent_debug=cmbagent_debug,
         )
