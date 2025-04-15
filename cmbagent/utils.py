@@ -147,8 +147,9 @@ default_agent_llm_configs = {
                         "api_type": "openai",
                         },
                     'aas_keyword_finder': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "medium", # high
+                        # "model": "o3-mini-2025-01-31",
+                        "model": default_llm_model,
+                        # "reasoning_effort": "medium", # high
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
@@ -234,7 +235,7 @@ default_agent_llm_configs = {
                     #     "api_type": "google",
                     #     },
                     "idea_maker": {
-                        "model": "gpt-4o-2024-11-20",
+                        "model": default_llm_model,
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
@@ -244,7 +245,7 @@ default_agent_llm_configs = {
                     #     "api_type": "google",
                     #     },
                     "classy_sz_response_formatter": {
-                        "model": "gpt-4o-2024-11-20",
+                        "model": default_llm_model,
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },

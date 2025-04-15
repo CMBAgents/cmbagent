@@ -1046,8 +1046,8 @@ def planning_and_control(task,
                             engineer_instructions = '',
                             researcher_instructions = '',
                             max_n_attempts = 3,
-                            engineer_model = 'o3-mini-2025-01-31',
-                            researcher_model = 'o3-mini-2025-01-31'):
+                            engineer_model = 'gpt-4.1-2025-04-14',
+                            researcher_model = 'gpt-4.1-2025-04-14'):
 
     ## planning
     cmbagent = CMBAgent()
@@ -1115,5 +1115,8 @@ def planning_and_control(task,
                     initial_agent="control",
                     shared_context = planning_output
                     )
+    
+    return cmbagent.chat_result.chat_history,cmbagent.final_context
+
 
 

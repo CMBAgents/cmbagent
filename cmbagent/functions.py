@@ -285,7 +285,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
 **AGENT ROLES**
 Here are the descriptions of the agents that are needed to carry out the plan:
 """
-        for agent in needed_agents:
+        for agent in set(needed_agents):
             agent_object = cmbagent_instance.get_agent_from_name(agent)
 
             str_to_append += f'- {agent}: {agent_object.description}'
