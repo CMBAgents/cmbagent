@@ -176,6 +176,8 @@ class CMBAgent:
 
         self.skip_memory = skip_memory
 
+        self.results = {}
+
         if not self.skip_memory and 'memory' not in agent_list:
             self.agent_list.append('memory')
 
@@ -1037,9 +1039,10 @@ class CMBAgent:
 
 
 
-def planning_and_control(task,
+def planning_and_control(
+                            task,
                             max_rounds_planning = 50,
-                            max_rounds_control = 50,
+                            max_rounds_control = 100,
                             max_plan_steps = 3,
                             n_plan_reviews = 1,
                             plan_instructions = '',
@@ -1116,7 +1119,11 @@ def planning_and_control(task,
                     shared_context = planning_output
                     )
     
-    return cmbagent.chat_result.chat_history,cmbagent.final_context
+    results = {'chat_history': cmbagent.chat_result.chat_history,
+               'final_context': cmbagent.final_context}
+
+
+    return results
 
 
 
