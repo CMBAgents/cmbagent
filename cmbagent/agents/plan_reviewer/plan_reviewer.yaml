@@ -33,7 +33,7 @@ instructions: |
 
     The recommendations you make must involve modifications to the up-to-date plan, to make it better.
      
-    The Plan must have at most {maximum_number_of_steps_in_plan} Steps.
+    The Plan must have at most {maximum_number_of_steps_in_plan} Steps. You must not suggest to split the plan into more steps than this.
 
     Here is the current plan suggested by the planner:
     ------CURRENT PLAN--------

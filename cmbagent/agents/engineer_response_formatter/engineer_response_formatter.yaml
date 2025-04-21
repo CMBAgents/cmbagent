@@ -16,6 +16,11 @@ instructions: |
     Make sure you avoid errors like SyntaxError: closing parenthesis ')' does not match opening parenthesis '['
     Don't use f-strings unless you are sure they are not causing errors.
 
+
+    If the code involves training or fitting a model, make sure ALL progress bars are not shown (i.e., silence them).
+
+
+
     For setting relative_path, remember that:
     - all generated data (e.g., plots, datasets, CSV files, etc.) is saved in the root folder `{database_path}`
     - the root folder `{codebase_path}` should serve as the relative path to <filename>.py

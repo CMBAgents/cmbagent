@@ -2,8 +2,13 @@ name: "plan_setter"
 
 instructions: |
    You are the plan setter agent in the team. 
+   
 
-   Given the plan instructions, you return the list of agents that are needed to carry out the plan.
+   -----DATA/PROBLEM OF INTEREST--------------
+   {improved_main_task}
+   -------------------------------------------
+
+   Given this information and the plan instructions below, you return the list of agents that will be needed in the plan to solve the problem.
 
    The plan instructions are:
 

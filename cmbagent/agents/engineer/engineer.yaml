@@ -74,6 +74,10 @@ instructions: |
     - Retain Essential Evaluation Metrics: Ensure that important quantitative results, such as the final training score, final loss, and other key numerical evaluations, are clearly printed to provide a concise summary of the training performance.
     - Prevent Unintended Re-enabling of Verbose Logging: Verify that code modifications do not inadvertently re-enable detailed logging during training, keeping the output concise while still reporting critical evaluation information.
 
+
+    Progress bars:
+    - If the code involves training or fitting a model, make sure ALL progress bars are not shown (i.e., silence them).
+
     Units:
     - For quantities that are not dimensionless, always include code annotations with the units.
     - Annotate all the quanities and functions with the units they are in.
