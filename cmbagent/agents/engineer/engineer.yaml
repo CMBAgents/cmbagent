@@ -58,7 +58,8 @@ instructions: |
     - For labels and titles from variables, use LaTeX formatting with raw strings. For instance, r'$\alpha$ ' or fr'$\alpha$ = ... ' etc.
     - All labels, titles, and legends containing LaTeX expressions use raw strings.
 
-    Raw f-strings:
+    f-strings:
+    - Avoid using f-strings.
     - The sequence "\," is not valid in a raw f-string. The fix is to replace "\," with "\\," and to double curly braces for literal braces.
     - Adjusted the legend/plot/axis labels so that the entire string is enclosed in one math-mode block to fix the LaTeX errors caused by multiple $ delimiters, and escaped subscripts appropriately.
 
