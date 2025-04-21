@@ -1829,7 +1829,7 @@ instructions: |
   ---------------------------------------------
 
 assistant_config:
-  assistant_id: asst_eaE0lbLwHwwz50WO2FSala9k
+  assistant_id: asst_8aK3FmiAMu8DP4TmDUS1imKJ
   tools:
   - type: file_search
   tool_resources:

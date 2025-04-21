@@ -547,7 +547,10 @@ class CMBAgent:
         os.makedirs(codebase_full_path, exist_ok=True)
 
         for agent in self.agents:
-            agent.agent.reset()
+            try:
+                agent.agent.reset()
+            except:
+                pass
 
         this_shared_context['main_task'] = task
         this_shared_context['improved_main_task'] = task # initialize improved main task
