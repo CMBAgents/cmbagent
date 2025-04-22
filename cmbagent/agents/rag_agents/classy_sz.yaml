@@ -312,13 +312,13 @@ instructions: |
   ---------------------------------------------
 
 assistant_config:
-  assistant_id: asst_jY718W0i6Y8FExVoZ9NMj7Ob
+  assistant_id: asst_ertrQDyc168ULiPVnjdR7HST
   tools:
   - type: file_search
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_67ebd1e8996c8191a096035f12076647
+      - vs_68069d4571588191a15c269d06c702bf
 
 
 description: |

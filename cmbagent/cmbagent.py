@@ -527,7 +527,7 @@ class CMBAgent:
             this_shared_context.update(shared_context or {})
 
             # print('one_shot_shared_context: ', one_shot_shared_context)
-            # print('shared_context: ', shared_context)
+            # print('shared_context: ', this_shared_context)
             # sys.exit()
             
         else:
@@ -1120,6 +1120,76 @@ def planning_and_control(
                     max_rounds=max_rounds_control,
                     initial_agent="control",
                     shared_context = planning_output
+                    )
+    
+    results = {'chat_history': cmbagent.chat_result.chat_history,
+               'final_context': cmbagent.final_context}
+
+
+    return results
+
+
+
+
+
+
+
+def one_shot(
+            task,
+            max_rounds = 50,
+            max_n_attempts = 3,
+            engineer_model = 'gpt-4o-2024-11-20',
+            researcher_model = 'gpt-4o-2024-11-20',
+            initial_agent = 'engineer'):
+    ## control
+
+    if 'o3' in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    else:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+
+    if 'o3' in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    elif "gemini" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+    else:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+        
+
+    cmbagent = CMBAgent(
+        agent_llm_configs = {
+                            'engineer': engineer_config,
+                            'researcher': researcher_config,
+        })
+        
+
+    cmbagent.solve(task,
+                    max_rounds=max_rounds,
+                    initial_agent=initial_agent,
+                    mode = "one_shot",
+                    shared_context = {'max_n_attempts': max_n_attempts}
                     )
     
     results = {'chat_history': cmbagent.chat_result.chat_history,

@@ -14,6 +14,7 @@ instructions: |
     Make sure to escape all backslashes properly (e.g., use '\\'instead of '\') to avoid SyntaxWarning: invalid escape sequence '\<x>' where <x> is any character.
     Make sure you avoid SyntaxWarning: invalid escape sequence '\(' and '\)'.
     Make sure you avoid errors like SyntaxError: closing parenthesis ')' does not match opening parenthesis '['
+    If errors are caused by LaTeX, try to fix them by simplifying the LaTeX expression to the bare minimum.
     Don't use f-strings unless you are sure they are not causing errors.
 
 

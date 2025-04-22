@@ -55,7 +55,7 @@ instructions: |
     - For plots, make sure you add relevant units to the axes labels, where appropriate.
     - For plots, use the 'ax.relim()' and 'ax.autoscale_view()' methods when possible and **unless otherwise instructed**, to show the whole range of data.  
     - Every time a plot is saved, you must print to the console a concise description of the plot.
-    - For labels and titles from variables, use LaTeX formatting with raw strings. For instance, r'$\alpha$ ' or fr'$\alpha$ = ... ' etc.
+    - For labels and titles from variables, use LaTeX formatting with raw strings. 
     - All labels, titles, and legends containing LaTeX expressions use raw strings.
 
     f-strings:
@@ -67,6 +67,8 @@ instructions: |
     - For LaTeX expressions, use raw strings and math mode: e.g., r'$X$'. Make sure to use '$' to start and end the math mode.
     - IMPORTANT: \mathrm is allowed **only in math mode** with '$'.
     - Update labels and titles to handle underscores properly by escaping them: string_latex = string.replace('_', r'\_')
+    - Prefer simple LaTeX expressions for labels and titles to avoid errors.
+    - If errors are caused by LaTeX, try to fix them by simplifying the LaTeX expression to the bare minimum.
 
     For training ML models (e.g., neural networks):
     - Disable Verbose Output for Training: Configure any training routines (e.g., using Keras, TensorFlow, etc.) to disable ongoing progress messages. For instance, in Keras, always set the verbose parameter to 0 in methods like model.fit().

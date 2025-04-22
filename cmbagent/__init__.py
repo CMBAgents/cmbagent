@@ -16,7 +16,7 @@ from autogen import cmbagent_disable_display
 from .data_retriever import setup_cmbagent_data
 setup_cmbagent_data()
 
-from .cmbagent import planning_and_control
+from .cmbagent import planning_and_control, one_shot
 
 
 
