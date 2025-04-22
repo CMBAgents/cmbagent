@@ -1150,6 +1150,12 @@ def one_shot(
             "api_key": os.getenv("OPENAI_API_KEY"),
             "api_type": "openai"
         }
+    elif "claude" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
     else:
         engineer_config = {
             "model": engineer_model,

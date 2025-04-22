@@ -45,7 +45,8 @@ instructions: |
     - Do not install new packages.
     - Write very detailed docstrings for all methods or classes using raw string literals (prefix with r).
     - Avoid f-strings.
-    - Do not use `\,'` in raw f-strings. Replace with `\\,` and double square brackets for literal braces if needed.
+    - Do not use `\,` in raw f-strings. Replace with `\\,` and double square brackets for literal braces if needed.
+    - NEVER use .format, use string concatenation instead. Prefer simple strings for your prints.
 
 
     Workflow involving creating several Python files or modules:
@@ -57,7 +58,6 @@ instructions: |
     - Use math mode with dollar signs: e.g., r'$X$'
     - Avoid multiple dollar signs within one label.
     - Do not use nested math mode.
-    - Always escape underscores in LaTeX: use `string.replace('_', r'\_')`
     - Do not use `\mathrm` outside math mode.
     - Do not use LaTeX expressions with optional arguments or complex macros.
     - Keep LaTeX in labels as short and simple as possible.
@@ -67,14 +67,22 @@ instructions: |
 
     f-strings:
     - Avoid using f-strings.
-    - The sequence "\," is not valid in a raw f-string. The fix is to replace "\," with "\\," and to double curly braces for literal braces.
-    - Adjusted the legend/plot/axis labels so that the entire string is enclosed in one math-mode block to fix the LaTeX errors caused by multiple $ delimiters, and escaped subscripts appropriately.
+
+
+    NEVER use .format, use string concatenation instead.
+    Check for LaTeX-style escape sequences in regular strings (e.g., "\(" or "\Lambda"). These raise `SyntaxWarning: invalid escape sequence`. Fix by using a raw string (prefix with `r`, e.g., `r"\(\Lambda\)"`) or by escaping each backslash (e.g., `"\\(\\Lambda\\)"`). Prefer raw strings.
+
+    - All LaTeX-containing strings (e.g., titles, axis labels, legends, plot descriptions) must be raw strings using the `r""` or `r''` syntax to avoid invalid escape sequence errors (e.g., r"$\Lambda$CDM").
+    - Never use normal strings with backslashes like `"$\Lambda$"` — these must be rewritten as raw strings: `r"$\Lambda$"`.
+    - Any print statements that include LaTeX content (e.g., plot descriptions) must use raw string syntax to prevent `SyntaxWarning: invalid escape sequence`.
+    - Avoid escape sequences not handled by LaTeX (e.g., `\L`, `\P`) outside math mode or raw strings.
+
 
 
     Math mode and LaTeX:
     - For LaTeX expressions, use raw strings and math mode: e.g., r'$X$'. Make sure to use '$' to start and end the math mode.
     - IMPORTANT: \mathrm and similar LaTeX commands are allowed **only in math mode** with r'$' (note the raw string!).
-    - Update labels and titles to handle underscores properly by escaping them: string_latex = string.replace('_', r'\_')
+    - Update labels to handle underscores properly by escaping them: string_latex = string.replace('_', r'\_')
     - Prefer simple LaTeX expressions for labels and titles to avoid errors.
     - If errors are caused by LaTeX, try to fix them by simplifying the LaTeX expression to the bare minimum.
 
