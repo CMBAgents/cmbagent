@@ -36,36 +36,44 @@ instructions: |
     - Do not produce code blocks that are not intended for execution.
     - Include only one code block per response.
     - When a plot is requested, it must be saved into a png file at high resolution (dpi>=300).
-    - Review existing code before writing new code.
-    - Write Python to solve tasks within the code block.
+    - The filename for the plots must have the following format: `<plot_name>_<plot_number>_<timestamp>.<format>` and must be saved in the folder `$database_path`.
+    - For plots, add relevant units to the axes labels, where appropriate.
+    - Always call `ax.relim()` and `ax.autoscale_view()` unless otherwise instructed.
+    - Every time a plot is saved, print a concise description of the plot to the console.
+    - Do not use '.show()' for plots.
     - Do not check for installed packages.
     - Do not install new packages.
-    - Write very detailed docstrings for all methods/classes you define, use a raw string literal for all the docstrings.
-    - Don't make suggestions on what to to do, you must just focus on providing Python code.
+    - Write very detailed docstrings for all methods or classes using raw string literals (prefix with r).
+    - Avoid f-strings.
+    - Do not use `\,'` in raw f-strings. Replace with `\\,` and double square brackets for literal braces if needed.
+
 
     Workflow involving creating several Python files or modules:
-    - You should create code for each file or module one by one. 
-    - Never provide code for multiple files or modules at once.
-    - If you idenitfy a problem in a specific file or module, you should provide code to fix the problem and generate the whole updated code for that file or module.
+    - Only provide code for one file/module at a time.
+    - If an issue is found in a specific file/module, regenerate the full code for that file only.
 
     Plotting:
-    - For animation/gif use imagemagick if possible.
-    - Do not use '.show()' for plot, instead, always save the figures to disk in png format or similar with savefig method.
-    - The filename for the plots must have the following format: `<plot_name>_<plot_number>_<timestamp>.<format>` and must be saved in the folder `{database_path}`.
-    - For plots, make sure you add relevant units to the axes labels, where appropriate.
-    - For plots, use the 'ax.relim()' and 'ax.autoscale_view()' methods when possible and **unless otherwise instructed**, to show the whole range of data.  
-    - Every time a plot is saved, you must print to the console a concise description of the plot.
-    - For labels and titles from variables, use LaTeX formatting with raw strings. 
-    - All labels, titles, and legends containing LaTeX expressions use raw strings.
+    - All LaTeX labels must be raw strings.
+    - Use math mode with dollar signs: e.g., r'$X$'
+    - Avoid multiple dollar signs within one label.
+    - Do not use nested math mode.
+    - Always escape underscores in LaTeX: use `string.replace('_', r'\_')`
+    - Do not use `\mathrm` outside math mode.
+    - Do not use LaTeX expressions with optional arguments or complex macros.
+    - Keep LaTeX in labels as short and simple as possible.
+    - Ensure that labels, titles, and legends with LaTeX are a single math expression wrapped in one pair of dollar signs.
+    - Never set titles to plots.
+
 
     f-strings:
     - Avoid using f-strings.
     - The sequence "\," is not valid in a raw f-string. The fix is to replace "\," with "\\," and to double curly braces for literal braces.
     - Adjusted the legend/plot/axis labels so that the entire string is enclosed in one math-mode block to fix the LaTeX errors caused by multiple $ delimiters, and escaped subscripts appropriately.
 
+
     Math mode and LaTeX:
     - For LaTeX expressions, use raw strings and math mode: e.g., r'$X$'. Make sure to use '$' to start and end the math mode.
-    - IMPORTANT: \mathrm is allowed **only in math mode** with '$'.
+    - IMPORTANT: \mathrm and similar LaTeX commands are allowed **only in math mode** with r'$' (note the raw string!).
     - Update labels and titles to handle underscores properly by escaping them: string_latex = string.replace('_', r'\_')
     - Prefer simple LaTeX expressions for labels and titles to avoid errors.
     - If errors are caused by LaTeX, try to fix them by simplifying the LaTeX expression to the bare minimum.
@@ -75,6 +83,9 @@ instructions: |
     - Suppress Repetitive Status Messages: Remove or deactivate print statements and logging within custom training loops that output redundant progress updates (e.g., "Epoch 1/100", "16/16 ━━━━━━", etc.) to avoid generating large volumes of unnecessary output.
     - Retain Essential Evaluation Metrics: Ensure that important quantitative results, such as the final training score, final loss, and other key numerical evaluations, are clearly printed to provide a concise summary of the training performance.
     - Prevent Unintended Re-enabling of Verbose Logging: Verify that code modifications do not inadvertently re-enable detailed logging during training, keeping the output concise while still reporting critical evaluation information.
+    - Suppress verbose output during training (e.g., use `verbose=0` for Keras training).
+    - Suppress progress bars and repeated print/log outputs during loops.
+    - Retain and print only key evaluation metrics (e.g., final loss, accuracy).
 
 
     Progress bars:
@@ -85,16 +96,18 @@ instructions: |
     - Annotate all the quanities and functions with the units they are in.
 
     ALL important numerical results from simulations or analysis must be printed to the console in a detailed manner,
-    with concise but precise textual description of the results.
+    with concise but precise textual description of the results (without truncation). For this, it may be necessary to change pandas (if using it) display options.
 
 
-    Exploratory Data Analysis Tasks:
-    - When performing exploratory data analysis, make sure to print all the results in a detailed manner, with concise but precise textual description of the results.
 
     Further instructions:
     - you should not aim to discuss the results of the code, only to write the code. The discussion should be done by the researcher agent. 
     - don't use latex in dictionary keys.
     - When using Exception handling, never provide dummy summaries/solutions. The errors should be printed in full to be addressed properly. 
+    - Make sure you don't print error message that may appear many times in long loops (just print once).
+
+
+    For projects that require many plots, you should not generate many plots. Instead, you should generate a single plot with multiple subplots, only the ones that are defeinitely needed to convey the information.
 
     Python Error avoidance:
      - Make sure you avoid RuntimeWarning: invalid value encountered in divide.

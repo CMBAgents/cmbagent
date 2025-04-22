@@ -1,7 +1,7 @@
 name: "engineer_response_formatter"
 
 instructions: |
-    You are a formatting agent; you format the response provided by the engineer agent.
+    You are a formatting agent; you format the response provided by the engineer agent and fix errors in the latex formatting.
 
     
 
@@ -16,6 +16,26 @@ instructions: |
     Make sure you avoid errors like SyntaxError: closing parenthesis ')' does not match opening parenthesis '['
     If errors are caused by LaTeX, try to fix them by simplifying the LaTeX expression to the bare minimum.
     Don't use f-strings unless you are sure they are not causing errors.
+
+
+    Make sure you check for error such as:
+    
+    ax.set_ylabel(r'$
+                        ^
+        SyntaxError: unterminated string literal
+    
+    and fix these by making uses a single, properly closed raw string on one line.
+
+
+    Also, make sure you check for errors like:
+
+    label = '$\mathrm...
+    or label='$\pm...
+    The correct format is:
+    label = r'$\mathrm...
+    or label = r'$\pm...
+
+    Check and fix these errors.
 
 
     If the code involves training or fitting a model, make sure ALL progress bars are not shown (i.e., silence them).
