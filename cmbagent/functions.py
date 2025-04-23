@@ -86,9 +86,9 @@ Workflow status:
 
 Plan step number: {context_variables["current_plan_step_number"]}
 
-Agent for sub-task: {context_variables["agent_for_sub_task"]}
+Agent for sub-task (might be different from the next agent suggestion for debugging): {context_variables["agent_for_sub_task"]}
 
-Current status: {context_variables["current_status"]}
+Current status (before execution): {context_variables["current_status"]}
 
 xxxxxxxxxxxxxxxxxxxxxxxxxx
 """
@@ -98,6 +98,11 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
             if context_variables["n_attempts"] >= context_variables["max_n_attempts"]:
                 return SwarmResult(agent=AfterWorkOption.TERMINATE,
                                 values=f"Max number of code execution attempts ({context_variables['max_n_attempts']}) reached. Exiting.",
+                                context_variables=context_variables)
+            
+            if execution_status == "success":
+                return SwarmResult(agent=control,
+                                values="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
 
             if next_agent_suggestion == "engineer":

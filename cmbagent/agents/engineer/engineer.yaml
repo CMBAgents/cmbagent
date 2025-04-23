@@ -62,7 +62,7 @@ instructions: |
     - Do not use LaTeX expressions with optional arguments or complex macros.
     - Keep LaTeX in labels as short and simple as possible.
     - Ensure that labels, titles, and legends with LaTeX are a single math expression wrapped in one pair of dollar signs.
-    - Never set titles to plots.
+    - Always set concise and informative titles to plots.
 
 
     f-strings:
