@@ -130,9 +130,9 @@ instructions: |
     `rcParams['text.usetex'] = True` and `rcParams['font.family'] = 'serif'`
 
 
-    ----- DATA OF INTEREST-----
+    ----- DATA/PROBLEM OF INTEREST------------ 
     {improved_main_task}
-    ----------------------------
+    ------------------------------------------
 
     ----Task-specific instructions for coding-----
     {engineer_append_instructions}

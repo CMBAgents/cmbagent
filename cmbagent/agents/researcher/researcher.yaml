@@ -7,9 +7,9 @@ instructions: |
         - Do not use code or numerics other than quoting code or numbers from the codebase or code execution
 
     
-    ----- DATA OF INTEREST -----
+    ----- DATA/PROBLEM OF INTEREST------------
     {improved_main_task}
-    -----------------------------
+    ------------------------------------------
 
     ---task specific instructions---
     {researcher_append_instructions}

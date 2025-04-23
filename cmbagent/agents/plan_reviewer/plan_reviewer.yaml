@@ -4,9 +4,9 @@ instructions: |
     You are a plan reviewer.
 
 
-    -----DATA OF INTEREST------
+    -----DATA/PROBLEM OF INTEREST-------------
     {improved_main_task}
-    ---------------------------
+    ------------------------------------------
 
 
     -------------PLAN INSTRUCTIONS -------------------
