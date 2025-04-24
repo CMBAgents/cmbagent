@@ -128,8 +128,8 @@ file_search_max_num_results = autogen.file_search_max_num_results
 default_max_round = 50
 
 # default_llm_model = 'gpt-4o-2024-11-20'
-# default_llm_model = 'gpt-4.1-2025-04-14'
-default_llm_model = 'gpt-4o-mini'
+default_llm_model = 'gpt-4.1-2025-04-14'
+# default_llm_model = 'gpt-4o-mini'
 # "gpt-4o-mini"
 
 default_llm_config_list = [
@@ -239,6 +239,7 @@ default_agent_llm_configs = {
                         "model": default_llm_model,
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
+                        'temperature': 0.5,
                         },
                     # 'idea_maker': {
                     #     "model": "gemini-2.5-pro-exp-03-25",

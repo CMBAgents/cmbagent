@@ -101,6 +101,17 @@ class BaseAgent:
 
         self.name = self.info["name"]
 
+        # if self.name == 'idea_maker':
+        #     print('idea_maker: ', self.info)
+        #     print('llm_config: ', self.llm_config)
+        if 'temperature' in self.llm_config['config_list'][0]:
+            temperature = self.llm_config['config_list'][0]['temperature']
+            self.llm_config['config_list'][0].pop('temperature')
+            self.llm_config['temperature'] = temperature
+            # print('llm_config: ', self.llm_config)
+
+            # import sys; sys.exit()
+
         self.work_dir = work_dir
 
         self.agent_type = agent_type
