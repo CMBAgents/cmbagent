@@ -555,6 +555,7 @@ class CMBAgent:
         this_shared_context['main_task'] = task
         this_shared_context['improved_main_task'] = task # initialize improved main task
 
+        this_shared_context['work_dir'] = self.work_dir
         # print('this_shared_context: ', this_shared_context)
         # sys.exit()
 
@@ -1155,6 +1156,13 @@ def one_shot(
             "model": engineer_model,
             "api_key": os.getenv("ANTHROPIC_API_KEY"),
             "api_type": "anthropic"
+        }
+
+    elif "gemini" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
         }
     else:
         engineer_config = {
