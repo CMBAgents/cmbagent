@@ -239,7 +239,7 @@ default_agent_llm_configs = {
                         "model": default_llm_model,
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
-                        'temperature': 0.5,
+                        'temperature': 0.99,
                         },
                     # 'idea_maker': {
                     #     "model": "gemini-2.5-pro-exp-03-25",
