@@ -1142,6 +1142,28 @@ def planning_and_control(
             "api_key": os.getenv("OPENAI_API_KEY"),
             "api_type": "openai"
         }
+
+    elif "gemini" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+
+    elif "claude" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    elif "sonar" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("PERPLEXITY_API_KEY"),
+            "api_type": "sonar"
+        }
+
     else:
         engineer_config = {
             "model": engineer_model,
@@ -1162,6 +1184,21 @@ def planning_and_control(
             "api_key": os.getenv("GEMINI_API_KEY"),
             "api_type": "google"
         }
+
+    elif "claude" in researcher_model:
+        researcher_config = {
+            "model": researcher_config,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    elif "sonar" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("PERPLEXITY_API_KEY"),
+            "api_type": "sonar"
+        }
+
     else:
         researcher_config = {
             "model": researcher_model,
@@ -1232,6 +1269,21 @@ def one_shot(
             "api_key": os.getenv("GEMINI_API_KEY"),
             "api_type": "google"
         }
+
+    elif "claude" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    elif "sonar" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("PERPLEXITY_API_KEY"),
+            "api_type": "sonar"
+        }
+
     else:
         engineer_config = {
             "model": engineer_model,
@@ -1252,6 +1304,22 @@ def one_shot(
             "api_key": os.getenv("GEMINI_API_KEY"),
             "api_type": "google"
         }
+
+    elif "claude" in researcher_model:
+        researcher_config = {
+            "model": researcher_config,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    elif "sonar" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("PERPLEXITY_API_KEY"),
+            "api_type": "sonar"
+        }
+
+
     else:
         researcher_config = {
             "model": researcher_model,
