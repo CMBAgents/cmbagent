@@ -843,6 +843,7 @@ else:
         from IPython.display import Image as IPyImage
         from PIL.Image import Image as PILImage
 
+
         history        = results.get("chat_history", [])
         tool_responses = results.get("tool_responses", [])
 
@@ -858,38 +859,7 @@ else:
             else:
                 text = str(content)
             return f"{name}::{text.strip()}"
-        
-        # to_display = []
-        # seen = set()
 
-        # 1) scan chat_history for formatter outputs AND inline images
-        # for turn in history:
-        #     name    = turn.get("name","")
-        #     content = turn.get("content")
-        #     # print("NAME:", name)
-        #     # print("CONTENT:", content)
-
-        #     # if it's an image object in chat_history, show it as "control"
-        #     if isinstance(content, (IPyImage, PILImage)):
-        #         to_display.append(("control", content))
-        #         continue
-
-        #     # otherwise only pick the _response_formatter turns
-        #     if not name.endswith("_response_formatter"):
-        #         continue
-        #     if content is None:
-        #         continue
-
-        #     # de-dupe purely identical formatter outputs
-        #     key = extract_key(name, content)
-        #     if not key.split("::", 1)[1]:
-        #         continue
-        #     if key in seen:
-        #         continue
-        #     seen.add(key)
-
-        #     who = name.split("_")[0]  # "engineer" or "executor"
-        #     to_display.append((who, content))
 
         to_display = []
         seen = set()
@@ -924,41 +894,6 @@ else:
 
 
         # --- after your history‐scan that builds to_display: ---
-
-        # Check if we saw any researcher_response_formatter turns
-        # has_researcher_md = any(who == "researcher" for who, _ in to_display)
-
-        # if has_researcher_md:
-        #     # throw away everything we captured so far
-        #     to_display = []
-
-        #     # look in ../output for .md files
-        #     md_dir   = os.path.join(os.path.dirname(__file__), "output")
-        #     md_paths = sorted(glob.glob(os.path.join(md_dir, "*.md")))
-
-        #     for md_path in md_paths:
-        #         # prevent duplicates
-        #         if md_path in seen:
-        #             continue
-        #         seen.add(md_path)
-
-        #         # load the markdown file
-        #         try:
-        #             with open(md_path, "r", encoding="utf-8") as f:
-        #                 md_text = f.read()
-        #         except Exception as e:
-        #             print(f"⚠️ Could not read {md_path}: {e}")
-        #             continue
-
-        #         filename = os.path.basename(md_path)
-        #         # treat this as coming from "researcher"
-        #         to_display.append((
-        #             "researcher",
-        #             f"### Contents of `{filename}`\n\n" + md_text
-        #         ))
-
-
-
         # 2) also scan tool_responses (just in case your agent returned an image there)
         for tr in tool_responses:
             c = tr.get("content")
@@ -1002,12 +937,26 @@ else:
                 f"### Contents of `{os.path.basename(md_path)}`\n\n{md_text}"
             ))
 
+        # ── 1.  clear the cursor that was blinking during streaming
+        output_placeholder.markdown(handler.text)      # ← keeps the text!
+
+        # ── 2.  show only the image(s) and markdown you just collected
+        for who, content in to_display:
+            if who == "file":                 # <- PIL image from ./output/data
+                st.image(content, use_container_width=True)
+            else:
+                pass
+            # elif who == "researcher":         # <- markdown file you loaded
+            #     st.markdown(content, unsafe_allow_html=True)
+
+
 
         # ── finish up: save reasoning + elapsed time ─────────────────────────
         elapsed = time.perf_counter() - start_ts
         status_placeholder.markdown(f"**Complete thinking – {elapsed:.2f}s**")
 
         reasoning_text = handler.text          # everything StreamHandler captured
+        full_content = [("assistant", reasoning_text)] + to_display  # ← NEW
 
         st.session_state.messages.append({
             "role": "assistant",

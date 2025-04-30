@@ -1157,12 +1157,12 @@ def planning_and_control(
             "api_type": "anthropic"
         }
 
-    elif "sonar" in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("PERPLEXITY_API_KEY"),
-            "api_type": "sonar"
-        }
+    # elif "sonar" in engineer_model:
+    #     engineer_config = {
+    #         "model": engineer_model,
+    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
+    #         "api_type": "sonar"
+    #     }
 
     else:
         engineer_config = {
@@ -1187,17 +1187,17 @@ def planning_and_control(
 
     elif "claude" in researcher_model:
         researcher_config = {
-            "model": researcher_config,
+            "model": researcher_model,
             "api_key": os.getenv("ANTHROPIC_API_KEY"),
             "api_type": "anthropic"
         }
 
-    elif "sonar" in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("PERPLEXITY_API_KEY"),
-            "api_type": "sonar"
-        }
+    # elif "sonar" in researcher_model:
+    #     researcher_config = {
+    #         "model": researcher_model,
+    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
+    #         "api_type": "sonar"
+    #     }
 
     else:
         researcher_config = {
@@ -1277,12 +1277,12 @@ def one_shot(
             "api_type": "anthropic"
         }
 
-    elif "sonar" in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("PERPLEXITY_API_KEY"),
-            "api_type": "sonar"
-        }
+    # elif "sonar" in engineer_model:
+    #     engineer_config = {
+    #         "model": engineer_model,
+    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
+    #         "api_type": "sonar"
+    #     }
 
     else:
         engineer_config = {
@@ -1307,17 +1307,17 @@ def one_shot(
 
     elif "claude" in researcher_model:
         researcher_config = {
-            "model": researcher_config,
+            "model": researcher_model,
             "api_key": os.getenv("ANTHROPIC_API_KEY"),
             "api_type": "anthropic"
         }
 
-    elif "sonar" in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("PERPLEXITY_API_KEY"),
-            "api_type": "sonar"
-        }
+    # elif "sonar" in researcher_model:
+    #     researcher_config = {
+    #         "model": researcher_model,
+    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
+    #         "api_type": "sonar"
+    #     }
 
 
     else:
