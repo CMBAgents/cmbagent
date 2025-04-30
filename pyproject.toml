@@ -24,7 +24,6 @@ dependencies = [
     "mcfit",
     "pyDOE",
     "cobaya",
-    "classy_sz",
     "ruamel.yaml",
     "pandas",
     "ipython",
