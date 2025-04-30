@@ -30,7 +30,7 @@ dependencies = [
     "shapely",
     "statsmodels",
     "google-api-core",
-    "google-cloud-aiplatform==1.85.0",
+    "google-cloud-aiplatform==1.91.0",
     "google-genai==1.10.0",
     "google-auth",
     "pillow",
