@@ -1,0 +1,139 @@
+{
+  "page": "one_shot",
+  "chat_mode": "one-shot",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Plot y=sin(x)"
+    },
+    {
+      "role": "assistant",
+      "content": [
+        [
+          "admin",
+          "Plot y=sin(x)"
+        ],
+        [
+          "engineer",
+          "**Code Explanation:**\n\nThis code generates a plot of the function \\( y = \\sin(x) \\) over the range of \\( x \\) from \\( 0 \\) to \\( 2\\pi \\). The plot is saved as a PNG file in the `data/` directory with a high resolution of 300 DPI. The axes are labeled with appropriate units, and a grid is included for better visualization.\n\n**Modifications:** (Optional)\n\nNo modifications were necessary as this is the initial implementation.\n\n**Python Code:**\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport time\n\n# Set up the parameters for the plot\nx = np.linspace(0, 2 * np.pi, 100)  # x values from 0 to 2π\ny = np.sin(x)  # y values as sin(x)\n\n# Create the plot\nplt.figure(figsize=(10, 6))\nplt.plot(x, y, label=r'$y = \\sin(x)$', color='blue')\nplt.title(r'Sine Function Plot')\nplt.xlabel(r'$x \\, (radians)$')\nplt.ylabel(r'$y$')\nplt.grid(True)\nplt.legend()\n\n# Save the plot\ntimestamp = time.strftime(\"%Y%m%d-%H%M%S\")\nplt.savefig('data/sine_function_plot_1_' + timestamp + '.png', dpi=300)\nplt.close()\n\n# Print the description of the plot\nprint(\"The plot of y = sin(x) has been saved as a PNG file in the data/ directory.\")\n```"
+        ],
+        [
+          "engineer_response_formatter",
+          "**Code Explanation:**\n\nThis code generates a plot of the function $y = \\sin(x)$ over the range of $x$ from $0$ to $2\\pi$. The plot is saved as a PNG file in the `data/` directory with a high resolution of 300 DPI. The axes are labeled with appropriate units, and a grid is included for better visualization.\n\n**Modifications:**\n\nNo modifications were necessary as this is the initial implementation. All LaTeX strings are now raw strings to avoid invalid escape sequence errors.\n\n**Python Code:**\n\n```python\n# filename: codebase/plot_sine_function.py\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport time\n\n# Set up the parameters for the plot\nx = np.linspace(0, 2 * np.pi, 100)  # x values from 0 to 2π\ny = np.sin(x)  # y values as sin(x)\n\n# Create the plot\nplt.figure(figsize=(10, 6))\nplt.plot(x, y, label=r'$y = \\sin(x)$', color='blue')\nplt.title(r'Sine Function Plot')\nplt.xlabel(r'$x \\, (radians)$')\nplt.ylabel(r'$y$')\nplt.grid(True)\nplt.legend()\n\n# Save the plot\ntimestamp = time.strftime(\"%Y%m%d-%H%M%S\")\nplt.savefig('data/sine_function_plot_1_' + timestamp + '.png', dpi=300)\nplt.close()\n\n# Print the description of the plot\nprint(r\"The plot of $y = \\sin(x)$ has been saved as a PNG file in the data/ directory.\")\n\n```"
+        ],
+        [
+          "executor",
+          "execution results:\nExecution output: The plot of $y = \\sin(x)$ has been saved as a PNG file in the data/ directory.\n"
+        ],
+        [
+          "executor_response_formatter",
+          "None"
+        ],
+        [
+          "_Swarm_Tool_Executor",
+          "Execution status: success. Transfer to control.\n\nxxxxxxxxxxxxxxxxxxxxxxxxxx\n\nWorkflow status:\n\nPlan step number: 1\n\nAgent for sub-task (might be different from the next agent suggestion for debugging): engineer\n\nCurrent status (before execution): In progress\n\nxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n"
+        ],
+        [
+          "control",
+          "None"
+        ],
+        [
+          "_Swarm_Tool_Executor",
+          "\n**Step number:** 1 out of 1.\n \n**Sub-task:** solve the main task.\n \n**Agent in charge of sub-task:** `engineer`\n \n**Instructions:**\n \nsolve the main task.\n \n**Status:** completed ✅\n    "
+        ],
+        [
+          "terminator",
+          "None"
+        ],
+        [
+          "_Swarm_Tool_Executor",
+          "Session terminated."
+        ],
+        [
+          "file",
+          {
+            "_type": "image_path",
+            "path": "output/data/sine_function_plot_1_20250429-025300.png"
+          }
+        ]
+      ],
+      "reasoning": "\nMessage from admin:\n\nPlot y=sin(x)\n\nCalling engineer...\n\n                 Model    agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\ngpt-4o-mini-2024-07-18 engineer 0.00048           1885                321          2206\n\nMessage from engineer:\n\n**Code Explanation:**\n\nThis code generates a plot of the function \\( y = \\sin(x) \\) over the range of \\( x \\) from \\( 0 \\) to \\( 2\\pi \\). The plot is saved as a PNG file in the `data/` directory with a high resolution of 300 DPI. The axes are labeled with appropriate units, and a grid is included for better visualization.\n\n**Modifications:** (Optional)\n\nNo modifications were necessary as this is the initial implementation.\n\n**Python Code:**\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport time\n\n# Set up the parameters for the plot\nx = np.linspace(0, 2 * np.pi, 100)  # x values from 0 to 2π\ny = np.sin(x)  # y values as sin(x)\n\n# Create the plot\nplt.figure(figsize=(10, 6))\nplt.plot(x, y, label=r'$y = \\sin(x)$', color='blue')\nplt.title(r'Sine Function Plot')\nplt.xlabel(r'$x \\, (radians)$')\nplt.ylabel(r'$y$')\nplt.grid(True)\nplt.legend()\n\n# Save the plot\ntimestamp = time.strftime(\"%Y%m%d-%H%M%S\")\nplt.savefig('data/sine_function_plot_1_' + timestamp + '.png', dpi=300)\nplt.close()\n\n# Print the description of the plot\nprint(\"The plot of y = sin(x) has been saved as a PNG file in the data/ directory.\")\n```\n\nCalling engineer_response_formatter...\n\n             Model                       agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\ngpt-4.1-2025-04-14 engineer_response_formatter 0.03215           1434                366          1800\n\nMessage from engineer_response_formatter:\n\n**Code Explanation:**\n\nThis code generates a plot of the function $y = \\sin(x)$ over the range of $x$ from $0$ to $2\\pi$. The plot is saved as a PNG file in the `data/` directory with a high resolution of 300 DPI. The axes are labeled with appropriate units, and a grid is included for better visualization.\n\n**Modifications:**\n\nNo modifications were necessary as this is the initial implementation. All LaTeX strings are now raw strings to avoid invalid escape sequence errors.\n\n**Python Code:**\n\n```python\n# filename: codebase/plot_sine_function.py\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport time\n\n# Set up the parameters for the plot\nx = np.linspace(0, 2 * np.pi, 100)  # x values from 0 to 2π\ny = np.sin(x)  # y values as sin(x)\n\n# Create the plot\nplt.figure(figsize=(10, 6))\nplt.plot(x, y, label=r'$y = \\sin(x)$', color='blue')\nplt.title(r'Sine Function Plot')\nplt.xlabel(r'$x \\, (radians)$')\nplt.ylabel(r'$y$')\nplt.grid(True)\nplt.legend()\n\n# Save the plot\ntimestamp = time.strftime(\"%Y%m%d-%H%M%S\")\nplt.savefig('data/sine_function_plot_1_' + timestamp + '.png', dpi=300)\nplt.close()\n\n# Print the description of the plot\nprint(r\"The plot of $y = \\sin(x)$ has been saved as a PNG file in the data/ directory.\")\n\n```\n\nCalling executor...\n\n\nMessage from executor:\n\nexecution results:\nExecution output: The plot of $y = \\sin(x)$ has been saved as a PNG file in the data/ directory.\n\n\nCalling executor_response_formatter...\n\n             Model                       agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\ngpt-4.1-2025-04-14 executor_response_formatter 0.00402           1450                 14          1464\n\nMessage from executor_response_formatter:\n\nExecution status: success. Transfer to control.\n\nxxxxxxxxxxxxxxxxxxxxxxxxxx\n\nWorkflow status:\n\nPlan step number: 1\n\nAgent for sub-task (might be different from the next agent suggestion for debugging): engineer\n\nCurrent status (before execution): In progress\n\nxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n\n\nCalling control...\n\n             Model   agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\ngpt-4.1-2025-04-14 control 0.00613           1466                 40          1506\n\nMessage from control:\n\n/Users/licongxu/Work/astropilot/cmbagent/cmbagent/../output/data/sine_function_plot_1_20250429-025300.png\n\n**Step number:** 1 out of 1.\n \n**Sub-task:** solve the main task.\n \n**Agent in charge of sub-task:** `engineer`\n \n**Instructions:**\n \nsolve the main task.\n \n**Status:** completed ✅\n    \n\nCalling terminator...\n\n            Model      agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\ngpt-4o-2024-11-20 terminator 0.00250            990                  2           992\n\nMessage from terminator:\n\nSession terminated.\n| Agent                       | Cost                  | Prompt Tokens | Completion Tokens | Total Tokens |\n|-----------------------------|-----------------------|---------------|-------------------|--------------|\n| executor response formatter | 0.004019999999999999  | 1450.0        | 14.0              | 1464.0       |\n| engineer response formatter | 0.032148              | 1434.0        | 366.0             | 1800.0       |\n| terminator                  | 0.0024950000000000003 | 990.0         | 2.0               | 992.0        |\n| control                     | 0.006131999999999999  | 1466.0        | 40.0              | 1506.0       |\n| engineer                    | 0.00047535            | 1885.0        | 321.0             | 2206.0       |\n| Total                       | 0.04527035            | 7225.0        | 743.0             | 7968.0       |\n",
+      "elapsed": "26.08s"
+    },
+    {
+      "role": "user",
+      "content": "What is CMB?"
+    },
+    {
+      "role": "assistant",
+      "content": [],
+      "reasoning": "Error: API key or AWS credentials or GCP credentials are required to use the Anthropic API.\n",
+      "elapsed": "8.64s"
+    },
+    {
+      "role": "user",
+      "content": "What is CMB?"
+    },
+    {
+      "role": "assistant",
+      "content": [],
+      "reasoning": "Message from admin:\n\nWhat is CMB?\n\nCalling researcher...\n\nError: Error code: 404 - {'error': {'message': 'The model `claude-3-7-sonnet-20250219` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}\n",
+      "elapsed": "12.52s"
+    },
+    {
+      "role": "user",
+      "content": "What is CMB?"
+    },
+    {
+      "role": "assistant",
+      "content": [
+        [
+          "admin",
+          "What is CMB?"
+        ],
+        [
+          "researcher",
+          "The Cosmic Microwave Background (CMB) is a critical remnant radiation from the early universe, providing a wealth of information about its origins, structure, and evolution. It is a form of electromagnetic radiation that fills the universe and is detectable in all directions. The CMB is a key piece of evidence supporting the Big Bang theory, which posits that the universe began as a hot, dense state and has been expanding ever since.\n\nThe CMB was first predicted in the 1940s by George Gamow and his colleagues, who theorized that the universe, shortly after the Big Bang, was filled with a hot plasma of particles. As the universe expanded and cooled, this plasma eventually transitioned into neutral hydrogen atoms, allowing photons to travel freely. This event, known as \"recombination,\" occurred approximately 380,000 years after the Big Bang, leading to the decoupling of matter and radiation.\n\nThe CMB was first detected in 1965 by Arno Penzias and Robert Wilson, who observed a uniform background radiation at microwave wavelengths. This discovery provided strong empirical support for the Big Bang model and earned the researchers the Nobel Prize in Physics in 1978. The CMB has a nearly perfect blackbody spectrum with a temperature of about 2.7 Kelvin, which corresponds to the peak of the microwave region of the electromagnetic spectrum.\n\nThe CMB is not entirely uniform; it exhibits slight fluctuations in temperature and polarization, which are indicative of the density variations in the early universe. These fluctuations are crucial for understanding the formation of large-scale structures, such as galaxies and galaxy clusters. Detailed measurements of the CMB, particularly from missions such as the Wilkinson Microwave Anisotropy Probe (WMAP) and the Planck satellite, have provided insights into fundamental cosmological parameters, including the age of the universe, the rate of its expansion, and the composition of its matter and energy.\n\nIn summary, the Cosmic Microwave Background serves as a cornerstone of modern cosmology, offering a snapshot of the universe when it was just a few hundred thousand years old. Its study continues to yield significant insights into the fundamental processes that shaped the cosmos and the underlying physics governing its evolution."
+        ],
+        [
+          "researcher_response_formatter",
+          "**Markdown:**\n\n```markdown\n<!-- filename: CMB.md -->\nThe Cosmic Microwave Background (CMB) is a critical remnant radiation from the early universe, providing a wealth of information about its origins, structure, and evolution. It is a form of electromagnetic radiation that fills the universe and is detectable in all directions. The CMB is a key piece of evidence supporting the Big Bang theory, which posits that the universe began as a hot, dense state and has been expanding ever since.\n\nThe CMB was first predicted in the 1940s by George Gamow and his colleagues, who theorized that the universe, shortly after the Big Bang, was filled with a hot plasma of particles. As the universe expanded and cooled, this plasma eventually transitioned into neutral hydrogen atoms, allowing photons to travel freely. This event, known as \"recombination,\" occurred approximately 380,000 years after the Big Bang, leading to the decoupling of matter and radiation.\n\nThe CMB was first detected in 1965 by Arno Penzias and Robert Wilson, who observed a uniform background radiation at microwave wavelengths. This discovery provided strong empirical support for the Big Bang model and earned the researchers the Nobel Prize in Physics in 1978. The CMB has a nearly perfect blackbody spectrum with a temperature of about 2.7 Kelvin, which corresponds to the peak of the microwave region of the electromagnetic spectrum.\n\nThe CMB is not entirely uniform; it exhibits slight fluctuations in temperature and polarization, which are indicative of the density variations in the early universe. These fluctuations are crucial for understanding the formation of large-scale structures, such as galaxies and galaxy clusters. Detailed measurements of the CMB, particularly from missions such as the Wilkinson Microwave Anisotropy Probe (WMAP) and the Planck satellite, have provided insights into fundamental cosmological parameters, including the age of the universe, the rate of its expansion, and the composition of its matter and energy.\n\nIn summary, the Cosmic Microwave Background serves as a cornerstone of modern cosmology, offering a snapshot of the universe when it was just a few hundred thousand years old. Its study continues to yield significant insights into the fundamental processes that shaped the cosmos and the underlying physics governing its evolution.\n```"
+        ],
+        [
+          "executor",
+          "execution results:\nExecution output: Content saved to /Users/licongxu/Work/astropilot/cmbagent/output/CMB.md\n"
+        ],
+        [
+          "executor_response_formatter",
+          "None"
+        ],
+        [
+          "_Swarm_Tool_Executor",
+          "Transfer to control.\n\nxxxxxxxxxxxxxxxxxxxxxxxxxx\n\nWorkflow status:\n\nPlan step number: 1\n\nAgent for sub-task (might be different from the next agent suggestion for debugging): researcher\n\nCurrent status (before execution): In progress\n\nxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+        ],
+        [
+          "control",
+          "None"
+        ],
+        [
+          "_Swarm_Tool_Executor",
+          "\n**Step number:** 1 out of 1.\n \n**Sub-task:** solve the main task.\n \n**Agent in charge of sub-task:** `researcher`\n \n**Instructions:**\n \nsolve the main task.\n \n**Status:** completed ✅\n    "
+        ],
+        [
+          "terminator",
+          "None"
+        ],
+        [
+          "_Swarm_Tool_Executor",
+          "Session terminated."
+        ],
+        [
+          "researcher",
+          "### Contents of `CMB.md`\n\n<!-- filename: CMB.md -->\nThe Cosmic Microwave Background (CMB) is a critical remnant radiation from the early universe, providing a wealth of information about its origins, structure, and evolution. It is a form of electromagnetic radiation that fills the universe and is detectable in all directions. The CMB is a key piece of evidence supporting the Big Bang theory, which posits that the universe began as a hot, dense state and has been expanding ever since.\n\nThe CMB was first predicted in the 1940s by George Gamow and his colleagues, who theorized that the universe, shortly after the Big Bang, was filled with a hot plasma of particles. As the universe expanded and cooled, this plasma eventually transitioned into neutral hydrogen atoms, allowing photons to travel freely. This event, known as \"recombination,\" occurred approximately 380,000 years after the Big Bang, leading to the decoupling of matter and radiation.\n\nThe CMB was first detected in 1965 by Arno Penzias and Robert Wilson, who observed a uniform background radiation at microwave wavelengths. This discovery provided strong empirical support for the Big Bang model and earned the researchers the Nobel Prize in Physics in 1978. The CMB has a nearly perfect blackbody spectrum with a temperature of about 2.7 Kelvin, which corresponds to the peak of the microwave region of the electromagnetic spectrum.\n\nThe CMB is not entirely uniform; it exhibits slight fluctuations in temperature and polarization, which are indicative of the density variations in the early universe. These fluctuations are crucial for understanding the formation of large-scale structures, such as galaxies and galaxy clusters. Detailed measurements of the CMB, particularly from missions such as the Wilkinson Microwave Anisotropy Probe (WMAP) and the Planck satellite, have provided insights into fundamental cosmological parameters, including the age of the universe, the rate of its expansion, and the composition of its matter and energy.\n\nIn summary, the Cosmic Microwave Background serves as a cornerstone of modern cosmology, offering a snapshot of the universe when it was just a few hundred thousand years old. Its study continues to yield significant insights into the fundamental processes that shaped the cosmos and the underlying physics governing its evolution."
+        ]
+      ],
+      "reasoning": "Message from admin:\n\nWhat is CMB?\n\nCalling researcher...\n\n                 Model      agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\ngpt-4o-mini-2024-07-18 researcher 0.00030            227                440           667\nMessage from researcher:\n\nThe Cosmic Microwave Background (CMB) is a critical remnant radiation from the early universe, providing a wealth of information about its origins, structure, and evolution. It is a form of electromagnetic radiation that fills the universe and is detectable in all directions. The CMB is a key piece of evidence supporting the Big Bang theory, which posits that the universe began as a hot, dense state and has been expanding ever since.\n\nThe CMB was first predicted in the 1940s by George Gamow and his colleagues, who theorized that the universe, shortly after the Big Bang, was filled with a hot plasma of particles. As the universe expanded and cooled, this plasma eventually transitioned into neutral hydrogen atoms, allowing photons to travel freely. This event, known as \"recombination,\" occurred approximately 380,000 years after the Big Bang, leading to the decoupling of matter and radiation.\n\nThe CMB was first detected in 1965 by Arno Penzias and Robert Wilson, who observed a uniform background radiation at microwave wavelengths. This discovery provided strong empirical support for the Big Bang model and earned the researchers the Nobel Prize in Physics in 1978. The CMB has a nearly perfect blackbody spectrum with a temperature of about 2.7 Kelvin, which corresponds to the peak of the microwave region of the electromagnetic spectrum.\n\nThe CMB is not entirely uniform; it exhibits slight fluctuations in temperature and polarization, which are indicative of the density variations in the early universe. These fluctuations are crucial for understanding the formation of large-scale structures, such as galaxies and galaxy clusters. Detailed measurements of the CMB, particularly from missions such as the Wilkinson Microwave Anisotropy Probe (WMAP) and the Planck satellite, have provided insights into fundamental cosmological parameters, including the age of the universe, the rate of its expansion, and the composition of its matter and energy.\n\nIn summary, the Cosmic Microwave Background serves as a cornerstone of modern cosmology, offering a snapshot of the universe when it was just a few hundred thousand years old. Its study continues to yield significant insights into the fundamental processes that shaped the cosmos and the underlying physics governing its evolution.\n\nCalling researcher_response_formatter...\n\n             Model                         agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\no3-mini-2025-01-31 researcher_response_formatter 0.00305            615                539          1154\nMessage from researcher_response_formatter:\n\n**Markdown:**\n\n```markdown\n<!-- filename: CMB.md -->\nThe Cosmic Microwave Background (CMB) is a critical remnant radiation from the early universe, providing a wealth of information about its origins, structure, and evolution. It is a form of electromagnetic radiation that fills the universe and is detectable in all directions. The CMB is a key piece of evidence supporting the Big Bang theory, which posits that the universe began as a hot, dense state and has been expanding ever since.\n\nThe CMB was first predicted in the 1940s by George Gamow and his colleagues, who theorized that the universe, shortly after the Big Bang, was filled with a hot plasma of particles. As the universe expanded and cooled, this plasma eventually transitioned into neutral hydrogen atoms, allowing photons to travel freely. This event, known as \"recombination,\" occurred approximately 380,000 years after the Big Bang, leading to the decoupling of matter and radiation.\n\nThe CMB was first detected in 1965 by Arno Penzias and Robert Wilson, who observed a uniform background radiation at microwave wavelengths. This discovery provided strong empirical support for the Big Bang model and earned the researchers the Nobel Prize in Physics in 1978. The CMB has a nearly perfect blackbody spectrum with a temperature of about 2.7 Kelvin, which corresponds to the peak of the microwave region of the electromagnetic spectrum.\n\nThe CMB is not entirely uniform; it exhibits slight fluctuations in temperature and polarization, which are indicative of the density variations in the early universe. These fluctuations are crucial for understanding the formation of large-scale structures, such as galaxies and galaxy clusters. Detailed measurements of the CMB, particularly from missions such as the Wilkinson Microwave Anisotropy Probe (WMAP) and the Planck satellite, have provided insights into fundamental cosmological parameters, including the age of the universe, the rate of its expansion, and the composition of its matter and energy.\n\nIn summary, the Cosmic Microwave Background serves as a cornerstone of modern cosmology, offering a snapshot of the universe when it was just a few hundred thousand years old. Its study continues to yield significant insights into the fundamental processes that shaped the cosmos and the underlying physics governing its evolution.\n```\n\nCalling executor...\n\nMessage from executor:\n\nexecution results:\nExecution output: Content saved to /Users/licongxu/Work/astropilot/cmbagent/output/CMB.md\n\n\nCalling executor_response_formatter...\n\n             Model                       agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\ngpt-4.1-2025-04-14 executor_response_formatter 0.00448           1680                 14          1694\nMessage from executor_response_formatter:\n\nTransfer to control.\n\nxxxxxxxxxxxxxxxxxxxxxxxxxx\n\nWorkflow status:\n\nPlan step number: 1\n\nAgent for sub-task (might be different from the next agent suggestion for debugging): researcher\n\nCurrent status (before execution): In progress\n\nxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n\nCalling control...\n\n             Model   agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\ngpt-4.1-2025-04-14 control 0.00658           1691                 40          1731\nMessage from control:\n\n\n**Step number:** 1 out of 1.\n \n**Sub-task:** solve the main task.\n \n**Agent in charge of sub-task:** `researcher`\n \n**Instructions:**\n \nsolve the main task.\n \n**Status:** completed ✅\n    \n\nCalling terminator...\n\n            Model      agent    Cost  Prompt Tokens  Completion Tokens  Total Tokens\ngpt-4o-2024-11-20 terminator 0.00306           1215                  2          1217\nMessage from terminator:\n\nSession terminated.\n| Agent                         | Cost                  | Prompt Tokens | Completion Tokens | Total Tokens |\n|-------------------------------|-----------------------|---------------|-------------------|--------------|\n| executor response formatter   | 0.0044800000000000005 | 1680.0        | 14.0              | 1694.0       |\n| researcher response formatter | 0.0030480999999999998 | 615.0         | 539.0             | 1154.0       |\n| terminator                    | 0.0030575000000000003 | 1215.0        | 2.0               | 1217.0       |\n| researcher                    | 0.0002980499999999999 | 227.0         | 440.0             | 667.0        |\n| control                       | 0.006582000000000001  | 1691.0        | 40.0              | 1731.0       |\n| Total                         | 0.01746565            | 5428.0        | 1035.0            | 6463.0       |\n",
+      "elapsed": "30.74s"
+    }
+  ]
+}

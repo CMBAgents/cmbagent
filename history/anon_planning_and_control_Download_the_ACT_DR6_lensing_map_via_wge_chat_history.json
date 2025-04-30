@@ -1,0 +1,10 @@
+{
+  "page": "planning_and_control",
+  "chat_mode": "planning-and-control",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Download the ACT DR6 lensing map via: wget -q -t 5 -nc -w 3 https://lambda.gsfc.nasa.gov/data/suborbital/ACT/ACT_dr6/dr6_lensing_release.tar.gz\nShow me the plot of this map and analyse some key properties of this lensing map, like the angular power spectrum, etc."
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "page": "one_shot",
+  "chat_mode": "one-shot",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is the Black Scholes option pricing"
+    },
+    {
+      "role": "assistant",
+      "content": [],
+      "reasoning": "Message from admin:\n\nWhat is the Black Scholes option pricing\n\nCalling researcher...\n\nError: Error code: 404 - {'error': {'message': 'The model `claude-3-7-sonnet-20250219` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}\n",
+      "elapsed": "13.52s"
+    },
+    {
+      "role": "user",
+      "content": "What is the Black Scholes option pricing"
+    },
+    {
+      "role": "assistant",
+      "content": [],
+      "reasoning": "Message from admin:\n\nWhat is the Black Scholes option pricing\n\nCalling researcher...\n\nError: Unable to find your project. Please provide a project ID by:\n- Passing a constructor argument\n- Using vertexai.init()\n- Setting project using 'gcloud config set project my-project'\n- Setting a GCP environment variable\n- To create a Google Cloud project, please follow guidance at https://developers.google.com/workspace/guides/create-project\n",
+      "elapsed": "17.31s"
+    },
+    {
+      "role": "user",
+      "content": "What is CMB?\n"
+    },
+    {
+      "role": "assistant",
+      "content": [],
+      "reasoning": "Message from admin:\n\nWhat is CMB?\n\n\nCalling researcher...\n\nError: Unable to find your project. Please provide a project ID by:\n- Passing a constructor argument\n- Using vertexai.init()\n- Setting project using 'gcloud config set project my-project'\n- Setting a GCP environment variable\n- To create a Google Cloud project, please follow guidance at https://developers.google.com/workspace/guides/create-project\n",
+      "elapsed": "19.92s"
+    },
+    {
+      "role": "user",
+      "content": "What is MCP?"
+    },
+    {
+      "role": "assistant",
+      "content": [],
+      "reasoning": "Message from admin:\n\nWhat is MCP?\n\nCalling researcher...\n\nError: Error code: 404 - {'error': {'message': 'The model `sonar-pro` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}\n",
+      "elapsed": "10.02s"
+    },
+    {
+      "role": "user",
+      "content": "What is CMB?"
+    },
+    {
+      "role": "assistant",
+      "content": [],
+      "reasoning": "Message from admin:\n\nWhat is CMB?\n\nCalling researcher...\n\nError: Error code: 404 - {'error': {'message': 'The model `sonar` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'param': None, 'code': 'model_not_found'}}\n",
+      "elapsed": "9.84s"
+    }
+  ]
+}

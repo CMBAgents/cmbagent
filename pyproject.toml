@@ -15,11 +15,10 @@ description = "multi-agent system for autonomous discovery, made by cosmologists
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.6"  # Specify the Python version requirement here
 dependencies = [
-    "numpy>=1.19.0",
+    "numpy==1.26.4",
     "anthropic",
     "astropy",
-    "camb",
-    "geopandas",
+    "camb==1.5.9",
     "getdist",
     "healpy",
     "mcfit",
@@ -29,18 +28,15 @@ dependencies = [
     "ruamel.yaml",
     "pandas",
     "ipython",
-    "cmbagent-autogen @ git+https://github.com/CMBAgents/ag2.git@before_gemini_modif#egg=cmbagent-autogen",
     "shapely",
     "statsmodels",
-    "kaleido",
-    "google-genai==0.6.0",
     "google-api-core",
-    "google-cloud-aiplatform",
+    "google-cloud-aiplatform==1.85.0",
+    "google-genai==1.10.0",
     "google-auth",
     "pillow",
     "jsonschema",
     "jsonref==1.1.0",
-    "vertexai==1.71.1"
 ]
 
 [tool.setuptools.package-data]

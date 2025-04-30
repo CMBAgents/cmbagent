@@ -1,0 +1,22 @@
+name: "executor_bash"
+
+human_input_mode: "NEVER"
+          # conversable_agent.py
+          #  When "NEVER", the agent will never prompt for human input. 
+          #  Under this mode, the conversation stops
+          #  when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
+          #  "NEVER": "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks).",
+
+
+
+max_consecutive_auto_reply: 50
+
+
+instructions: |
+  You execute bash code provided to you by the engineer or save content provided by the researcher.
+
+description: |
+  Executes bash code provided by the installer agent.
+
+
+timeout: 7200

@@ -1,0 +1,16 @@
+{
+  "page": "one_shot",
+  "chat_mode": "one-shot",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is CMB?"
+    },
+    {
+      "role": "assistant",
+      "content": [],
+      "reasoning": "Message from admin:\n\nWhat is CMB?\n\nCalling researcher...\n\nError: Unable to find your project. Please provide a project ID by:\n- Passing a constructor argument\n- Using vertexai.init()\n- Setting project using 'gcloud config set project my-project'\n- Setting a GCP environment variable\n- To create a Google Cloud project, please follow guidance at https://developers.google.com/workspace/guides/create-project\n",
+      "elapsed": "21.56s"
+    }
+  ]
+}
