@@ -125,6 +125,8 @@ class CMBAgent:
                  agent_type = 'swarm',# None,# 'swarm',
                  shared_context = shared_context_default,
                  work_dir = work_dir_default,
+                 mode = "planning_and_control", # can be "one_shot" or "chat" (default is planning and control)
+                 chat_agent = None,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
@@ -177,6 +179,9 @@ class CMBAgent:
         self.skip_memory = skip_memory
 
         self.results = {}
+
+        self.mode = mode
+        self.chat_agent = chat_agent
 
         if not self.skip_memory and 'memory' not in agent_list:
             self.agent_list.append('memory')
@@ -672,10 +677,6 @@ class CMBAgent:
     #                     )
 
 
-    def one_shot(self):
-        pass
-            
-
         
 
     def restore(self):
@@ -1131,8 +1132,84 @@ def planning_and_control(
 
 
 
+def human_in_the_loop(task,
+         max_rounds = 50,
+         max_n_attempts = 3,
+         engineer_model = 'gpt-4o-2024-11-20',
+         researcher_model = 'gpt-4o-2024-11-20',
+         agent = 'engineer'):
+
+    ## control
+
+    if 'o3' in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    elif "claude" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    elif "gemini" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+    else:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+
+    if 'o3' in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    elif "gemini" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+    else:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+        
+
+    cmbagent = CMBAgent(
+        agent_llm_configs = {
+                            'engineer': engineer_config,
+                            'researcher': researcher_config,
+        
+        },
+        mode = "chat",
+        chat_agent = agent)
+        
+
+    cmbagent.solve(task,
+                    max_rounds=max_rounds,
+                    initial_agent=agent,
+                    shared_context = {'max_n_attempts': max_n_attempts}
+                    )
+    
+    results = {'chat_history': cmbagent.chat_result.chat_history,
+               'final_context': cmbagent.final_context}
 
 
+    return results
 
 
 

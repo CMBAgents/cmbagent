@@ -3,12 +3,10 @@ import re
 
 
 os.environ["CMBAGENT_DEBUG"] = "false"
-os.environ["CMBAGENT_DISABLE_DISPLAY"] = "true"
+os.environ["ASTROPILOT_DISABLE_DISPLAY"] = "true"
 
 
-
-from cmbagent import CMBAgent
-cmbagent = CMBAgent()
+import cmbagent 
 
 
 
@@ -20,7 +18,7 @@ Instructions:
 """,
          "metadata": {"target_file_path": f"targets/target_x_sinx.csv",
                       "initial_agent": "engineer",
-                      "mode": "one_shot"}
+                      }
          }
 
 task2 = {"input":r"""
@@ -31,7 +29,7 @@ Instructions:
 """,
          "metadata": {"target_file_path": f"targets/target_x_sinx.csv",
                       "initial_agent": "engineer",
-                      "mode": "one_shot"}
+                      }
          }
 
 
@@ -43,43 +41,45 @@ Instructions:
 """,
          "metadata": {"target_file_path": f"targets/target_x_sinx.csv",
                       "initial_agent": "engineer",
-                      "mode": "one_shot"}
+                      }
          }
 
-task4 = {"input":r"""
-Compute temperature cls for l=np.arange(2,2000) and the following cosmological
-parameter values assuming flat LCDM cosmology:
+# task4 = {"input":r"""
+# Compute temperature cls for l=np.arange(2,2000) and the following cosmological
+# parameter values assuming flat LCDM cosmology:
 
-omega_cdm: 0.125
-omega_b: 0.0224
-ln(10^10 A_s) : 3.05321
-n_s: 0.96
-100*theta_star: 1.0411
-
-
-Instructions: 
- - use camb_agent and engineer
- - Save results in a csv file named result.csv with columns "l" and "cl"
- - the file must be saved under the appropriate folder
- - cls should be in uK^2
-""",
-         "metadata": {"target_file_path": f"targets/target_x_sinx.csv",
-                      "initial_agent": "planner",
-                      "mode": "default",
-                      "shared_context": {'feedback_left': 0,
-                                          'maximum_number_of_steps_in_plan': 2}
-                      }
-}
+# omega_cdm: 0.125
+# omega_b: 0.0224
+# ln(10^10 A_s) : 3.05321
+# n_s: 0.96
+# 100*theta_star: 1.0411
 
 
+# Instructions: 
+#  - use camb_agent and engineer
+#  - Save results in a csv file named result.csv with columns "l" and "cl"
+#  - the file must be saved under the appropriate folder
+#  - cls should be in uK^2
+# """,
+#          "metadata": {"target_file_path": f"targets/target_x_sinx.csv",
+#                       "initial_agent": "planner",
+#                       "mode": "default",
+#                       "shared_context": {'feedback_left': 0,
+#                                           'maximum_number_of_steps_in_plan': 2}
+#                       }
+# }
 
-mytasks = [task1, task2, task3, task4]
+
+
+mytasks = [task1, task2, task3] #, task4]
 
 
 from openai import AsyncOpenAI
 from typing import Any
 import os
-from cmbagent import CMBAgent
+# from cmbagent import CMBAgent
+
+import cmbagent 
 from inspect_ai.solver import solver
 
 from inspect_ai import Task, task
@@ -91,21 +91,29 @@ from inspect_ai import eval
 async def my_agent(task, metadata):
 
         # cmbagent = CMBAgent()
-        cmbagent = CMBAgent(agent_llm_configs = {
-                            'engineer': {
-                                "model": "gemini-2.5-pro-exp-03-25",
-                                "api_key": os.getenv("GEMINI_API_KEY"),
-                                "api_type": "google"}})
+        # cmbagent = CMBAgent(agent_llm_configs = {
+        #                     'engineer': {
+        #                         "model": "gemini-2.5-pro-exp-03-25",
+        #                         "api_key": os.getenv("GEMINI_API_KEY"),
+        #                         "api_type": "google"}})
 
 
-        cmbagent.solve(task,
-                       max_rounds=50,
-                       initial_agent=metadata['initial_agent'],
-                       mode = metadata['mode'],
-                       shared_context = metadata['shared_context'] if 'shared_context' in metadata else None
-                       )
+        # cmbagent.solve(task,
+        #                max_rounds=50,
+        #                initial_agent=metadata['initial_agent'],
+        #                mode = metadata['mode'],
+        #                shared_context = metadata['shared_context'] if 'shared_context' in metadata else None
+        #                )
+
+        results = cmbagent.one_shot(task,
+                                    max_rounds=10,
+                                    initial_agent=metadata['initial_agent'],
+                                    )
+
         
-        def get_solution():
+        def get_solution(cmbagent_results):
+            chat_history = cmbagent_results['chat_history']
+            final_context = cmbagent_results['final_context']
             import numpy as np
             import pandas as pd
             
@@ -114,8 +122,8 @@ async def my_agent(task, metadata):
             df_target = pd.read_csv(target_file)
             
             database_full_path = os.path.join(
-                cmbagent.work_dir,
-                cmbagent.final_context['database_path'],
+                final_context['work_dir'],
+                final_context['database_path'],
                 "result.csv"
             )
             resolved_path = os.path.abspath(database_full_path)  # resolves the '..'

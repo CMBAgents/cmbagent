@@ -13,6 +13,9 @@ cmbagent_debug = autogen.cmbagent_debug
 
 def register_all_hand_offs(cmbagent_instance):
 
+
+
+
     if cmbagent_debug:
         print('\nregistering all hand_offs...')
 
@@ -79,441 +82,743 @@ def register_all_hand_offs(cmbagent_instance):
         print('\nexecutor_response_formatter: ', executor_response_formatter)
         print('\nplan_setter: ', plan_setter)
 
-    #task_improver agent
-    register_hand_off(
-        agent = task_improver.agent,
-        hand_to = [
-            AfterWork(task_recorder.agent),
-        ]
-    )
 
-    #plan_setter agent
-    register_hand_off(
-        agent = plan_setter.agent,
-        hand_to = [
-            AfterWork(planner.agent),
-        ]
-    )
+    mode = cmbagent_instance.mode
+    if mode == "chat":
+        print(f"Chat mode is on. Chat agent is {cmbagent_instance.chat_agent}")
+        agent_on = cmbagent_instance.get_agent_object_from_name(cmbagent_instance.chat_agent)
+        
+        #task_improver agent
+        register_hand_off(
+            agent = task_improver.agent,
+            hand_to = [
+                AfterWork(task_recorder.agent),
+            ]
+        )
 
-    #task_recorder agent
-    register_hand_off(
-        agent = task_recorder.agent,
-        hand_to = [
-            AfterWork(planner.agent),
-        ]
-    )
-    register_hand_off(
-        agent = planner.agent,
-        hand_to = [
-            AfterWork(planner_response_formatter.agent),
-        ]
-    )
+        #plan_setter agent
+        register_hand_off(
+            agent = plan_setter.agent,
+            hand_to = [
+                AfterWork(planner.agent),
+            ]
+        )
 
-    #planner_response_formatter agent
-    register_hand_off(
-        agent = planner_response_formatter.agent,
-        hand_to = 
-        [AfterWork(plan_recorder.agent)])
+        #task_recorder agent
+        register_hand_off(
+            agent = task_recorder.agent,
+            hand_to = [
+                AfterWork(planner.agent),
+            ]
+        )
+        register_hand_off(
+            agent = planner.agent,
+            hand_to = [
+                AfterWork(planner_response_formatter.agent),
+            ]
+        )
 
-    #plan_recorder agent
+        #planner_response_formatter agent
+        register_hand_off(
+            agent = planner_response_formatter.agent,
+            hand_to = 
+            [AfterWork(plan_recorder.agent)])
 
-    register_hand_off(
-        agent = plan_recorder.agent,
-        hand_to = [
-            AfterWork(plan_reviewer.agent),
-        ]
-    )
+        #plan_recorder agent
+
+        register_hand_off(
+            agent = plan_recorder.agent,
+            hand_to = [
+                AfterWork(plan_reviewer.agent),
+            ]
+        )
 
 
-    #plan_reviewer agent
-    def no_feedback_left(agent: ConversableAgent, messages: List[Dict[str, Any]]) -> bool:
-        feedback_left = agent.get_context("feedback_left")
-        # print(f"evaluating condition....{feedback_left}")
-        return feedback_left <= 0
+        #plan_reviewer agent
+        def no_feedback_left(agent: ConversableAgent, messages: List[Dict[str, Any]]) -> bool:
+            feedback_left = agent.get_context("feedback_left")
+            # print(f"evaluating condition....{feedback_left}")
+            return feedback_left <= 0
 
-    register_hand_off(
-        agent = plan_reviewer.agent,
-        hand_to = [
-            ## example to force a function call 
-            ## see get_function_name_if_description_true in ag2 client.py
-            OnCondition(
-                target=control.agent,
-                condition="TRUE", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
-                available=no_feedback_left,
-            ),
-            AfterWork(reviewer_response_formatter.agent)
-        ]
-    )
+        register_hand_off(
+            agent = plan_reviewer.agent,
+            hand_to = [
+                ## example to force a function call 
+                ## see get_function_name_if_description_true in ag2 client.py
+                OnCondition(
+                    target=control.agent,
+                    condition="TRUE", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
+                    available=no_feedback_left,
+                ),
+                AfterWork(reviewer_response_formatter.agent)
+            ]
+        )
 
-    #reviewer_response_formatter agent
-    register_hand_off(
-        agent = reviewer_response_formatter.agent,
-        hand_to = [
-            AfterWork(review_recorder.agent)
-        ]
-    )
+        #reviewer_response_formatter agent
+        register_hand_off(
+            agent = reviewer_response_formatter.agent,
+            hand_to = [
+                AfterWork(review_recorder.agent)
+            ]
+        )
 
-    #review_recorder agent
-    register_hand_off(
-        agent = review_recorder.agent,
-        hand_to = [
-            AfterWork(planner.agent),
-        ]
-    )
+        #review_recorder agent
+        register_hand_off(
+            agent = review_recorder.agent,
+            hand_to = [
+                AfterWork(planner.agent),
+            ]
+        )
 
-    register_hand_off(
-        agent = installer.agent,
-        hand_to = [
-            AfterWork(executor_bash.agent),
-        ]
-    )
+        register_hand_off(
+            agent = installer.agent,
+            hand_to = [
+                AfterWork(executor_bash.agent),
+            ]
+        )
 
-    register_hand_off(
-        agent = executor_bash.agent,
-        hand_to = [
-            AfterWork(executor_response_formatter.agent),
-        ]
-    )
+        register_hand_off(
+            agent = executor_bash.agent,
+            hand_to = [
+                AfterWork(executor_response_formatter.agent),
+            ]
+        )
 
-    #perplexity agent
-    # config_list = LLMConfig(check_every_ms = None,api_type="openai", model="gpt-4o-mini")
-    # perplexity_search_agent = AssistantAgent(
-    # name="perplexity_search_agent",
-    # llm_config=config_list,
-    # )
+        #perplexity agent
+        # config_list = LLMConfig(check_every_ms = None,api_type="openai", model="gpt-4o-mini")
+        # perplexity_search_agent = AssistantAgent(
+        # name="perplexity_search_agent",
+        # llm_config=config_list,
+        # )
 
-    # perplexity_search_tool = PerplexitySearchTool(
-    #                     api_key=os.getenv("PERPLEXITY_API_KEY"),
-    #                     max_tokens=1000,
-    #                     # search_domain_filter=["arxiv.org", "towardsdatascience.com"],
-    #                 )
+        # perplexity_search_tool = PerplexitySearchTool(
+        #                     api_key=os.getenv("PERPLEXITY_API_KEY"),
+        #                     max_tokens=1000,
+        #                     # search_domain_filter=["arxiv.org", "towardsdatascience.com"],
+        #                 )
 
-    # perplexity_search_tool.register_for_execution(perplexity.agent)
-    # perplexity_search_tool.register_for_llm(perplexity.agent)
+        # perplexity_search_tool.register_for_execution(perplexity.agent)
+        # perplexity_search_tool.register_for_llm(perplexity.agent)
 
-    # print(cmbagent_instance.agents)
+        # print(cmbagent_instance.agents)
 
-    # nested_chat_one = {
-    # "carryover_config": {"summary_method": "last_msg"},  # Bring the last message into the chat
-    # "recipient": perplexity.agent,
-    # "message": "perform the search",  # Retrieve the status details of the order using the order id
-    # "max_turns": 1,  # Only one turn is necessary
-    # }
-    # chat_queue = [nested_chat_one]
-    register_hand_off(
-        agent = aas_keyword_finder.agent,
-        hand_to = [
-            AfterWork(control.agent),
-        ]
-    )
+        # nested_chat_one = {
+        # "carryover_config": {"summary_method": "last_msg"},  # Bring the last message into the chat
+        # "recipient": perplexity.agent,
+        # "message": "perform the search",  # Retrieve the status details of the order using the order id
+        # "max_turns": 1,  # Only one turn is necessary
+        # }
+        # chat_queue = [nested_chat_one]
+        register_hand_off(
+            agent = aas_keyword_finder.agent,
+            hand_to = [
+                AfterWork(control.agent),
+            ]
+        )
 
-    # register_hand_off(
-    #     agent = perplexity.agent,
-    #     hand_to = [
-    #         AfterWork(control.agent),
-    #         #  OnCondition(
-    #         #             target={
-    #         #                     "chat_queue": chat_queue,
-    #         #                     },
-    #         #             condition="TRUE"
-    #         #             )
-    #         OnCondition(
-    #             target=control.agent,
-    #             condition="Literature search completed.", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
-    #         ),
-    #     ]
-    # )
+        # register_hand_off(
+        #     agent = perplexity.agent,
+        #     hand_to = [
+        #         AfterWork(control.agent),
+        #         #  OnCondition(
+        #         #             target={
+        #         #                     "chat_queue": chat_queue,
+        #         #                     },
+        #         #             condition="TRUE"
+        #         #             )
+        #         OnCondition(
+        #             target=control.agent,
+        #             condition="Literature search completed.", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
+        #         ),
+        #     ]
+        # )
 
-    # control agent
-    register_hand_off(
-        agent = control.agent,
-        hand_to = [
-
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=perplexity.agent, 
-                condition="Need perplexity agent to find information on existing scientific literature.",
-                # available="review_recorded"
-            ),
-
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=engineer.agent, 
-                condition="Execution failed.",
-
-                # condition="Failed code execution that looks like a generic Python error. Fix this!",
-                # available="review_recorded"
-            ),
-
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=engineer.agent, 
-            #     condition="Failed code execution.",
-
-            #     # condition="Failed code execution that looks like a generic Python error. Fix this!",
-            #     # available="review_recorded"
-            # ),
-            
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=cobaya.agent, 
-            #     condition="Need information on the cosmolology code cobaya.",
-            #     # available="review_recorded"
-            # ),
-            
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=cobaya.agent, 
-            #     condition="Code execution failed and error message that seems to involve the cosmolology code cobaya specifically, rather than a generic Python error.",
-            #     # available="review_recorded"
+        # control agent
+        register_hand_off(
+            agent = control.agent,
+            hand_to = [
+                # AfterWork(AfterWorkOption.TERMINATE), # Handles the next step in the conversation when an agent doesn't suggest a tool call or a handoff
+                # AfterWork(AfterWorkOption.REVERT_TO_USER),
+                AfterWork(admin.agent)
+            ]
+        )
+            # # If the user is not logged in, transfer to the authentication agent
+            # OnCondition(
+            #     target=authentication_agent,
+            #     condition="The customer is not logged in, authenticate the customer.",
+            #     available=ContextExpression("!(${logged_in})"),
             # ),
 
-
-
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=camb.agent, 
-                condition="Need camb_agent to find information on how to use the cosmology package camb.",
-                # available="review_recorded"
-            ),
-
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=camb.agent, 
-            #     condition="Code execution failed and error message from COBAYA but which refers to the cosmolology code CAMB specifically.",
-            #     # available="review_recorded"
+            # OnContextCondition(
+            #     target=order_triage_agent,
+            #     condition="logged_in",
             # ),
 
+        #engineer
+        register_hand_off(
+            agent = engineer.agent,
+            hand_to = [
+                AfterWork(engineer_response_formatter.agent),
+            ]
+        )
+
+        #engineer_response_formatter
+        register_hand_off(
+            agent = engineer_response_formatter.agent,
+            hand_to = 
+            [AfterWork(executor.agent)])
 
 
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=camb.agent, 
-            #     condition="Code execution failed and error message that seems to involve the cosmolology code CAMB specifically (like CAMBError), rather than a generic Python error.",
-            #     # available="review_recorded"
+        #classy_sz
+        register_hand_off(
+            agent = classy_sz.agent,
+            hand_to = [
+                AfterWork(classy_sz_response_formatter.agent),
+            ]
+        )
+
+        #classy_sz_response_formatter
+        register_hand_off(
+            agent = classy_sz_response_formatter.agent,
+            hand_to = 
+            [AfterWork(control.agent)])
+
+
+        #cobaya
+        register_hand_off(
+            agent = cobaya.agent,
+            hand_to = [
+                AfterWork(cobaya_response_formatter.agent),
+            ]
+        )
+
+        #camb_response_formatter
+        register_hand_off(
+            agent = cobaya_response_formatter.agent,
+            hand_to = 
+            [AfterWork(control.agent)])
+
+        #camb
+        register_hand_off(
+            agent = camb.agent,
+            hand_to = [
+                AfterWork(camb_response_formatter.agent),
+            ]
+        )
+
+        #camb_response_formatter
+        register_hand_off(
+            agent = camb_response_formatter.agent,
+            hand_to = 
+            [AfterWork(control.agent)])
+
+        #researcher 
+        register_hand_off(
+            agent = researcher.agent,
+            hand_to = [
+                AfterWork(researcher_response_formatter.agent),
+            ]
+        )
+
+        #researcher_response_formatter
+        register_hand_off(
+            agent = researcher_response_formatter.agent,
+            hand_to = 
+            [AfterWork(executor.agent)])
+
+        #executor
+        register_hand_off(
+            agent = executor.agent,
+            hand_to = [
+                AfterWork(executor_response_formatter.agent),
+            ]
+        )
+
+        #executor_response_formatter
+        register_hand_off(
+            agent = executor_response_formatter.agent,
+            hand_to = [
+                AfterWork(control.agent),
+            ]
+        )
+
+        #idea maker 
+        register_hand_off(
+            agent = idea_maker.agent,
+            hand_to = [
+                AfterWork(idea_maker_response_formatter.agent),
+            ]
+        )
+
+        #idea maker response formatter
+        register_hand_off(
+            agent = idea_maker_response_formatter.agent,
+            hand_to = [
+                AfterWork(control.agent),     # control?
+            ]
+        )
+
+        #idea hater 
+        register_hand_off(
+            agent = idea_hater.agent,
+            hand_to = [
+                AfterWork(idea_hater_response_formatter.agent),
+            ]
+        )
+
+        #idea hater response formatter
+        register_hand_off(
+            agent = idea_hater_response_formatter.agent,
+            hand_to = [
+                AfterWork(control.agent),     # control?
+            ]
+        )
+
+        register_hand_off(
+            agent = admin.agent,
+            hand_to = [
+                AfterWork(agent_on.agent)
+            ]
+        )
+
+
+
+    else:
+        #task_improver agent
+        register_hand_off(
+            agent = task_improver.agent,
+            hand_to = [
+                AfterWork(task_recorder.agent),
+            ]
+        )
+
+        #plan_setter agent
+        register_hand_off(
+            agent = plan_setter.agent,
+            hand_to = [
+                AfterWork(planner.agent),
+            ]
+        )
+
+        #task_recorder agent
+        register_hand_off(
+            agent = task_recorder.agent,
+            hand_to = [
+                AfterWork(planner.agent),
+            ]
+        )
+        register_hand_off(
+            agent = planner.agent,
+            hand_to = [
+                AfterWork(planner_response_formatter.agent),
+            ]
+        )
+
+        #planner_response_formatter agent
+        register_hand_off(
+            agent = planner_response_formatter.agent,
+            hand_to = 
+            [AfterWork(plan_recorder.agent)])
+
+        #plan_recorder agent
+
+        register_hand_off(
+            agent = plan_recorder.agent,
+            hand_to = [
+                AfterWork(plan_reviewer.agent),
+            ]
+        )
+
+
+        #plan_reviewer agent
+        def no_feedback_left(agent: ConversableAgent, messages: List[Dict[str, Any]]) -> bool:
+            feedback_left = agent.get_context("feedback_left")
+            # print(f"evaluating condition....{feedback_left}")
+            return feedback_left <= 0
+
+        register_hand_off(
+            agent = plan_reviewer.agent,
+            hand_to = [
+                ## example to force a function call 
+                ## see get_function_name_if_description_true in ag2 client.py
+                OnCondition(
+                    target=control.agent,
+                    condition="TRUE", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
+                    available=no_feedback_left,
+                ),
+                AfterWork(reviewer_response_formatter.agent)
+            ]
+        )
+
+        #reviewer_response_formatter agent
+        register_hand_off(
+            agent = reviewer_response_formatter.agent,
+            hand_to = [
+                AfterWork(review_recorder.agent)
+            ]
+        )
+
+        #review_recorder agent
+        register_hand_off(
+            agent = review_recorder.agent,
+            hand_to = [
+                AfterWork(planner.agent),
+            ]
+        )
+
+        register_hand_off(
+            agent = installer.agent,
+            hand_to = [
+                AfterWork(executor_bash.agent),
+            ]
+        )
+
+        register_hand_off(
+            agent = executor_bash.agent,
+            hand_to = [
+                AfterWork(executor_response_formatter.agent),
+            ]
+        )
+
+        #perplexity agent
+        # config_list = LLMConfig(check_every_ms = None,api_type="openai", model="gpt-4o-mini")
+        # perplexity_search_agent = AssistantAgent(
+        # name="perplexity_search_agent",
+        # llm_config=config_list,
+        # )
+
+        # perplexity_search_tool = PerplexitySearchTool(
+        #                     api_key=os.getenv("PERPLEXITY_API_KEY"),
+        #                     max_tokens=1000,
+        #                     # search_domain_filter=["arxiv.org", "towardsdatascience.com"],
+        #                 )
+
+        # perplexity_search_tool.register_for_execution(perplexity.agent)
+        # perplexity_search_tool.register_for_llm(perplexity.agent)
+
+        # print(cmbagent_instance.agents)
+
+        # nested_chat_one = {
+        # "carryover_config": {"summary_method": "last_msg"},  # Bring the last message into the chat
+        # "recipient": perplexity.agent,
+        # "message": "perform the search",  # Retrieve the status details of the order using the order id
+        # "max_turns": 1,  # Only one turn is necessary
+        # }
+        # chat_queue = [nested_chat_one]
+        register_hand_off(
+            agent = aas_keyword_finder.agent,
+            hand_to = [
+                AfterWork(control.agent),
+            ]
+        )
+
+        # register_hand_off(
+        #     agent = perplexity.agent,
+        #     hand_to = [
+        #         AfterWork(control.agent),
+        #         #  OnCondition(
+        #         #             target={
+        #         #                     "chat_queue": chat_queue,
+        #         #                     },
+        #         #             condition="TRUE"
+        #         #             )
+        #         OnCondition(
+        #             target=control.agent,
+        #             condition="Literature search completed.", ### keep this here as an example, will not actially be used because we bypass this now, as we transit to control via a different handoff. 
+        #         ),
+        #     ]
+        # )
+
+        # control agent
+        register_hand_off(
+            agent = control.agent,
+            hand_to = [
+
+                OnCondition( 
+                    # condition (str): 
+                    # The condition for transitioning to the target agent, 
+                    # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                    target=perplexity.agent, 
+                    condition="Need perplexity agent to find information on existing scientific literature.",
+                    # available="review_recorded"
+                ),
+
+                OnCondition( 
+                    # condition (str): 
+                    # The condition for transitioning to the target agent, 
+                    # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                    target=engineer.agent, 
+                    condition="Execution failed.",
+
+                    # condition="Failed code execution that looks like a generic Python error. Fix this!",
+                    # available="review_recorded"
+                ),
+
+                # OnCondition( 
+                #     # condition (str): 
+                #     # The condition for transitioning to the target agent, 
+                #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                #     target=engineer.agent, 
+                #     condition="Failed code execution.",
+
+                #     # condition="Failed code execution that looks like a generic Python error. Fix this!",
+                #     # available="review_recorded"
+                # ),
+                
+                # OnCondition( 
+                #     # condition (str): 
+                #     # The condition for transitioning to the target agent, 
+                #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                #     target=cobaya.agent, 
+                #     condition="Need information on the cosmolology code cobaya.",
+                #     # available="review_recorded"
+                # ),
+                
+                # OnCondition( 
+                #     # condition (str): 
+                #     # The condition for transitioning to the target agent, 
+                #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                #     target=cobaya.agent, 
+                #     condition="Code execution failed and error message that seems to involve the cosmolology code cobaya specifically, rather than a generic Python error.",
+                #     # available="review_recorded"
+                # ),
+
+
+
+                OnCondition( 
+                    # condition (str): 
+                    # The condition for transitioning to the target agent, 
+                    # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                    target=camb.agent, 
+                    condition="Need camb_agent to find information on how to use the cosmology package camb.",
+                    # available="review_recorded"
+                ),
+
+                # OnCondition( 
+                #     # condition (str): 
+                #     # The condition for transitioning to the target agent, 
+                #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                #     target=camb.agent, 
+                #     condition="Code execution failed and error message from COBAYA but which refers to the cosmolology code CAMB specifically.",
+                #     # available="review_recorded"
+                # ),
+
+
+
+                # OnCondition( 
+                #     # condition (str): 
+                #     # The condition for transitioning to the target agent, 
+                #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                #     target=camb.agent, 
+                #     condition="Code execution failed and error message that seems to involve the cosmolology code CAMB specifically (like CAMBError), rather than a generic Python error.",
+                #     # available="review_recorded"
+                # ),
+
+                OnCondition( 
+                    # condition (str): 
+                    # The condition for transitioning to the target agent, 
+                    # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                    target=classy_sz.agent, 
+                    condition="Need classy_sz_agent to find information on how to use the cosmology package classy_sz.",
+                    # available="review_recorded"
+                ),
+                
+                # OnCondition( 
+                #     # condition (str): 
+                #     # The condition for transitioning to the target agent, 
+                #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                #     target=classy_sz.agent, 
+                #     condition="Code execution failed and error message that seems to involve the cosmolology code classy_sz specifically, rather than a generic Python error.",
+                #     # available="review_recorded"
+                # ),
+
+                
+                # OnCondition( 
+                #     # condition (str): 
+                #     # The condition for transitioning to the target agent, 
+                #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                #     target=terminator.agent, 
+                #     condition="**ALL** steps in the plan have been fully and successfully implemented. Terminate.",
+                #     # available="code_approved"
+                # ),
+
+                OnCondition( 
+                    # condition (str): 
+                    # The condition for transitioning to the target agent, 
+                    # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                    target=researcher.agent, 
+                    condition="Researcher needed to generate reasoning, write report, or interpret results",
+                    # available="code_approved"
+                ),
+
+                
+                OnCondition( 
+                    # condition (str): 
+                    # The condition for transitioning to the target agent, 
+                    # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                    target=engineer.agent, 
+                    condition="Engineer needed to write code",
+                    # available="code_approved"
+                ),
+                # OnCondition( 
+                #     # condition (str): 
+                #     # The condition for transitioning to the target agent, 
+                #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                #     target=executor.agent, 
+                #     condition="Executor needed to execute code",
+                #     # available="code_approved"
+                # ),
+
+                OnCondition( 
+                    # condition (str): 
+                    # The condition for transitioning to the target agent, 
+                    # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                    target=idea_maker.agent, 
+                    condition="idea_maker needed to make new ideas",
+                    # available="code_approved"
+                ),
+
+                OnCondition( 
+                    # condition (str): 
+                    # The condition for transitioning to the target agent, 
+                    # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
+                    target=idea_hater.agent, 
+                    condition="idea_hater needed to critique ideas",
+                    # available="code_approved"
+                ),
+                
+                # AfterWork(AfterWorkOption.TERMINATE), # Handles the next step in the conversation when an agent doesn't suggest a tool call or a handoff
+                AfterWork(terminator.agent)
+            ]
+        )
+            # # If the user is not logged in, transfer to the authentication agent
+            # OnCondition(
+            #     target=authentication_agent,
+            #     condition="The customer is not logged in, authenticate the customer.",
+            #     available=ContextExpression("!(${logged_in})"),
             # ),
 
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=classy_sz.agent, 
-                condition="Need classy_sz_agent to find information on how to use the cosmology package classy_sz.",
-                # available="review_recorded"
-            ),
-            
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=classy_sz.agent, 
-            #     condition="Code execution failed and error message that seems to involve the cosmolology code classy_sz specifically, rather than a generic Python error.",
-            #     # available="review_recorded"
+            # OnContextCondition(
+            #     target=order_triage_agent,
+            #     condition="logged_in",
             # ),
 
-            
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=terminator.agent, 
-            #     condition="**ALL** steps in the plan have been fully and successfully implemented. Terminate.",
-            #     # available="code_approved"
-            # ),
+        #engineer
+        register_hand_off(
+            agent = engineer.agent,
+            hand_to = [
+                AfterWork(engineer_response_formatter.agent),
+            ]
+        )
 
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=researcher.agent, 
-                condition="Researcher needed to generate reasoning, write report, or interpret results",
-                # available="code_approved"
-            ),
-
-            
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=engineer.agent, 
-                condition="Engineer needed to write code",
-                # available="code_approved"
-            ),
-            # OnCondition( 
-            #     # condition (str): 
-            #     # The condition for transitioning to the target agent, 
-            #     # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-            #     target=executor.agent, 
-            #     condition="Executor needed to execute code",
-            #     # available="code_approved"
-            # ),
-
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=idea_maker.agent, 
-                condition="idea_maker needed to make new ideas",
-                # available="code_approved"
-            ),
-
-            OnCondition( 
-                # condition (str): 
-                # The condition for transitioning to the target agent, 
-                # evaluated by the LLM to determine whether to call the underlying function/tool which does the transition.
-                target=idea_hater.agent, 
-                condition="idea_hater needed to critique ideas",
-                # available="code_approved"
-            ),
-            
-            # AfterWork(AfterWorkOption.TERMINATE), # Handles the next step in the conversation when an agent doesn't suggest a tool call or a handoff
-            AfterWork(terminator.agent)
-        ]
-    )
-        # # If the user is not logged in, transfer to the authentication agent
-        # OnCondition(
-        #     target=authentication_agent,
-        #     condition="The customer is not logged in, authenticate the customer.",
-        #     available=ContextExpression("!(${logged_in})"),
-        # ),
-
-        # OnContextCondition(
-        #     target=order_triage_agent,
-        #     condition="logged_in",
-        # ),
-
-    #engineer
-    register_hand_off(
-        agent = engineer.agent,
-        hand_to = [
-            AfterWork(engineer_response_formatter.agent),
-        ]
-    )
-
-    #engineer_response_formatter
-    register_hand_off(
-        agent = engineer_response_formatter.agent,
-        hand_to = 
-        [AfterWork(executor.agent)])
+        #engineer_response_formatter
+        register_hand_off(
+            agent = engineer_response_formatter.agent,
+            hand_to = 
+            [AfterWork(executor.agent)])
 
 
-    #classy_sz
-    register_hand_off(
-        agent = classy_sz.agent,
-        hand_to = [
-            AfterWork(classy_sz_response_formatter.agent),
-        ]
-    )
+        #classy_sz
+        register_hand_off(
+            agent = classy_sz.agent,
+            hand_to = [
+                AfterWork(classy_sz_response_formatter.agent),
+            ]
+        )
 
-    #classy_sz_response_formatter
-    register_hand_off(
-        agent = classy_sz_response_formatter.agent,
-        hand_to = 
-        [AfterWork(control.agent)])
+        #classy_sz_response_formatter
+        register_hand_off(
+            agent = classy_sz_response_formatter.agent,
+            hand_to = 
+            [AfterWork(control.agent)])
 
 
-    #cobaya
-    register_hand_off(
-        agent = cobaya.agent,
-        hand_to = [
-            AfterWork(cobaya_response_formatter.agent),
-        ]
-    )
+        #cobaya
+        register_hand_off(
+            agent = cobaya.agent,
+            hand_to = [
+                AfterWork(cobaya_response_formatter.agent),
+            ]
+        )
 
-    #camb_response_formatter
-    register_hand_off(
-        agent = cobaya_response_formatter.agent,
-        hand_to = 
-        [AfterWork(control.agent)])
+        #camb_response_formatter
+        register_hand_off(
+            agent = cobaya_response_formatter.agent,
+            hand_to = 
+            [AfterWork(control.agent)])
 
-    #camb
-    register_hand_off(
-        agent = camb.agent,
-        hand_to = [
-            AfterWork(camb_response_formatter.agent),
-        ]
-    )
+        #camb
+        register_hand_off(
+            agent = camb.agent,
+            hand_to = [
+                AfterWork(camb_response_formatter.agent),
+            ]
+        )
 
-    #camb_response_formatter
-    register_hand_off(
-        agent = camb_response_formatter.agent,
-        hand_to = 
-        [AfterWork(control.agent)])
+        #camb_response_formatter
+        register_hand_off(
+            agent = camb_response_formatter.agent,
+            hand_to = 
+            [AfterWork(control.agent)])
 
-    #researcher 
-    register_hand_off(
-        agent = researcher.agent,
-        hand_to = [
-            AfterWork(researcher_response_formatter.agent),
-        ]
-    )
+        #researcher 
+        register_hand_off(
+            agent = researcher.agent,
+            hand_to = [
+                AfterWork(researcher_response_formatter.agent),
+            ]
+        )
 
-    #researcher_response_formatter
-    register_hand_off(
-        agent = researcher_response_formatter.agent,
-        hand_to = 
-        [AfterWork(executor.agent)])
+        #researcher_response_formatter
+        register_hand_off(
+            agent = researcher_response_formatter.agent,
+            hand_to = 
+            [AfterWork(executor.agent)])
 
-    #executor
-    register_hand_off(
-        agent = executor.agent,
-        hand_to = [
-            AfterWork(executor_response_formatter.agent),
-        ]
-    )
+        #executor
+        register_hand_off(
+            agent = executor.agent,
+            hand_to = [
+                AfterWork(executor_response_formatter.agent),
+            ]
+        )
 
-    #executor_response_formatter
-    register_hand_off(
-        agent = executor_response_formatter.agent,
-        hand_to = [
-            AfterWork(control.agent),
-        ]
-    )
+        #executor_response_formatter
+        register_hand_off(
+            agent = executor_response_formatter.agent,
+            hand_to = [
+                AfterWork(control.agent),
+            ]
+        )
 
-    #idea maker 
-    register_hand_off(
-        agent = idea_maker.agent,
-        hand_to = [
-            AfterWork(idea_maker_response_formatter.agent),
-        ]
-    )
+        #idea maker 
+        register_hand_off(
+            agent = idea_maker.agent,
+            hand_to = [
+                AfterWork(idea_maker_response_formatter.agent),
+            ]
+        )
 
-    #idea maker response formatter
-    register_hand_off(
-        agent = idea_maker_response_formatter.agent,
-        hand_to = [
-            AfterWork(control.agent),     # control?
-        ]
-    )
+        #idea maker response formatter
+        register_hand_off(
+            agent = idea_maker_response_formatter.agent,
+            hand_to = [
+                AfterWork(control.agent),     # control?
+            ]
+        )
 
-    #idea hater 
-    register_hand_off(
-        agent = idea_hater.agent,
-        hand_to = [
-            AfterWork(idea_hater_response_formatter.agent),
-        ]
-    )
+        #idea hater 
+        register_hand_off(
+            agent = idea_hater.agent,
+            hand_to = [
+                AfterWork(idea_hater_response_formatter.agent),
+            ]
+        )
 
-    #idea hater response formatter
-    register_hand_off(
-        agent = idea_hater_response_formatter.agent,
-        hand_to = [
-            AfterWork(control.agent),     # control?
-        ]
-    )
+        #idea hater response formatter
+        register_hand_off(
+            agent = idea_hater_response_formatter.agent,
+            hand_to = [
+                AfterWork(control.agent),     # control?
+            ]
+        )
