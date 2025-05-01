@@ -97,11 +97,11 @@ if [ ! -d "$CMBAGENT_DIR" ]; then
   git clone "$CMBAGENT_REPO" "$CMBAGENT_DIR"
 fi
 
-echo "Fetching, cleaning, and force-switching cmbagent → cmbagent_gui…"
+echo "Fetching, cleaning, and force-switching cmbagent → astrop…"
 cd "$CMBAGENT_DIR"
 git fetch origin
 git clean -fdx
-git switch -C cmbagent_gui origin/cmbagent_gui
+git switch -C astrop origin/astrop
 
 echo "Installing cmbagent in editable mode…"
 pip install -e .
