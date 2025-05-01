@@ -17,6 +17,7 @@ if [ "$1" == "clean" ]; then
   exit 0
 fi
 
+export GIT_LFS_SKIP_SMUDGE=1
 set -e  # stop on first error
 
 ###############################################################################
@@ -61,30 +62,51 @@ echo "Upgrading pip..."
 python -m pip install --upgrade pip
 
 ###############################################################################
+###############################################################################
 # 5. ag2
 ###############################################################################
 AG2_REPO="https://github.com/CMBAgents/ag2.git"
 AG2_DIR="ag2"
-clone_repo "$AG2_REPO" "$AG2_DIR"
 
-echo "Checking out branch 'ag2_v0.8.4_upgrade_astrop' and installing ag2..."
+# Clone once (skipping LFS blobs), then on every run fetch+clean+force-checkout
+if [ ! -d "$AG2_DIR" ]; then
+  echo "Cloning ag2 (skipping LFS downloads)…"
+  GIT_LFS_SKIP_SMUDGE=1 git clone "$AG2_REPO" "$AG2_DIR"
+fi
+
+echo "Fetching, cleaning, and force-switching ag2 → ag2_v0.8.4_upgrade_astrop…"
 cd "$AG2_DIR"
-git switch ag2_v0.8.4_upgrade_astrop
+git fetch origin
+git clean -fdx
+git switch -C ag2_v0.8.4_upgrade_astrop origin/ag2_v0.8.4_upgrade_astrop
+
+echo "Installing ag2 in editable mode…"
 pip install -e .
 cd ..
+
 
 ###############################################################################
 # 6. cmbagent
 ###############################################################################
 CMBAGENT_REPO="https://github.com/CMBAgents/cmbagent.git"
 CMBAGENT_DIR="cmbagent"
-clone_repo "$CMBAGENT_REPO" "$CMBAGENT_DIR"
 
-echo "Checking out branch 'cmbagent_gui' and installing cmbagent..."
+# Clone once, then always fetch+clean+force-checkout
+if [ ! -d "$CMBAGENT_DIR" ]; then
+  echo "Cloning cmbagent…"
+  git clone "$CMBAGENT_REPO" "$CMBAGENT_DIR"
+fi
+
+echo "Fetching, cleaning, and force-switching cmbagent → cmbagent_gui…"
 cd "$CMBAGENT_DIR"
-git switch cmbagent_gui
+git fetch origin
+git clean -fdx
+git switch -C cmbagent_gui origin/cmbagent_gui
+
+echo "Installing cmbagent in editable mode…"
 pip install -e .
 cd ..
+
 
 ###############################################################################
 # 7. environment variables → .env
