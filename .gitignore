@@ -50,6 +50,8 @@ cmbagent/data/classy/*.txt
 cmbagent/data/camb/*.yaml
 cmbagent/data/camb/*.txt 
 
+evals/
+logs/
 
 .env
 *bor11031990*
