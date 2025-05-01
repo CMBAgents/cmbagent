@@ -1276,7 +1276,7 @@ def planning_and_control(
                             max_rounds_control = 100,
                             max_plan_steps = 3,
                             n_plan_reviews = 1,
-                            plan_instructions = '',
+                            plan_instructions = 'Use researcher and engineer agent for the whole session',
                             engineer_instructions = '',
                             researcher_instructions = '',
                             max_n_attempts = 3,
