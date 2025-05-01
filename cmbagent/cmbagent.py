@@ -1268,8 +1268,6 @@ def one_shot(
 
     return results
 
-
-
 def human_in_the_loop(task,
          max_rounds = 50,
          max_n_attempts = 3,

@@ -1,0 +1,10 @@
+{
+  "page": "one_shot",
+  "chat_mode": "one-shot",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Plot y=x^2"
+    }
+  ]
+}
