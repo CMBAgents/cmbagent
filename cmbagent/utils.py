@@ -148,9 +148,9 @@ default_agent_llm_configs = {
                         "api_type": "openai",
                         },
                     'aas_keyword_finder': {
-                        # "model": "o3-mini-2025-01-31",
-                        "model": default_llm_model,
-                        # "reasoning_effort": "medium", # high
+                        "model": "o3-mini-2025-01-31",
+                        # "model": default_llm_model,
+                        "reasoning_effort": "medium", # high
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },

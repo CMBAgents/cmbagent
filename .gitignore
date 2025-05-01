@@ -30,7 +30,9 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
+evals/logs
+logs
+data
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -64,3 +66,7 @@ docs/videos/*
 output_bkp
 docs/notebooks/output
 docs/notebooks/cmbagent_output
+docs/notebooks/*
+docs/notebooks/cmbagent_beta2_demo_1shot.ipynb
+docs/notebooks/astropilot_data/.DS_Store
+docs/notebooks/astropilot_data/plots/.DS_Store

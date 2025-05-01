@@ -527,8 +527,10 @@ Now, update the plan accordingly, planner!""",
 **Status:** {context_variables["current_status"]} {icon}
     """,
             context_variables=context_variables)
-    
-    control._add_single_function(record_status)
+    if cmbagent_instance.mode == "chat":
+        pass
+    else:
+        control._add_single_function(record_status)
 
 
 
