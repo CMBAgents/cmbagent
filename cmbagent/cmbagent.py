@@ -178,6 +178,11 @@ class CMBAgent:
 
         self.skip_memory = skip_memory
 
+        self.results = {}
+
+        self.mode = mode
+        self.chat_agent = chat_agent
+
         if not self.skip_memory and 'memory' not in agent_list:
             self.agent_list.append('memory')
 
