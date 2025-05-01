@@ -684,6 +684,16 @@ else:
             max_plan_steps = st.slider(
                 "Max Plan Steps", min_value=1, max_value=20, value=7, step=1
             )
+            # ← NEW TEXT‐AREA FOR PLAN INSTRUCTIONS
+            plan_instructions = st.text_area(
+                "Plan Instructions",
+                value=(
+                    "Use engineer agent for the whole analysis, "
+                    "and researcher at the very end in the last step to comment on results."
+                ),
+                height=120
+        )
+
 
 
     # Render conversation history
@@ -828,6 +838,7 @@ else:
                             max_plan_steps= max_plan_steps,
                             engineer_model=engineer_model,
                             researcher_model=researcher_model,
+                            plan_instructions=plan_instructions,
                         )
 
                     # print(">>>>> RESULTS KEYS:", results.keys())
