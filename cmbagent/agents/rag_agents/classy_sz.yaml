@@ -318,7 +318,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_680b81758e9c81918f20d574275dc5ca
+      - vs_68135329ae608191a9749455e160469d
 
 
 description: |

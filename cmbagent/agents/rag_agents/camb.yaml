@@ -1835,7 +1835,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_680b817b20c88191a94aacda0bb3e2d1
+      - vs_6813533128e08191bc9632a1f15b5a9f
 
 description: |
   An agent that can search for information on the cosmology package camb. Cosmology calculations are carried out with camb rather than CLASS. However, note that the camb_agent can only provide information on how to use camb, it **can not** perform any calculations.
