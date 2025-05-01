@@ -509,24 +509,24 @@ Now, update the plan accordingly, planner!""",
                 return SwarmResult(
                     
                     values=f"""
-        **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-        **Sub-task:** {context_variables["current_sub_task"]}\n 
-        **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-        **Instructions:**\n 
-        {context_variables["current_instructions"]}\n 
-        **Status:** {context_variables["current_status"]} {icon}
+**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
+**Sub-task:** {context_variables["current_sub_task"]}\n 
+**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
+**Instructions:**\n 
+{context_variables["current_instructions"]}\n 
+**Status:** {context_variables["current_status"]} {icon}
             """,
                     context_variables=context_variables)
             else:
                 return SwarmResult(
                     agent=agent_to_transfer_to,
                     values=f"""
-    **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-    **Sub-task:** {context_variables["current_sub_task"]}\n 
-    **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-    **Instructions:**\n 
-    {context_variables["current_instructions"]}\n 
-    **Status:** {context_variables["current_status"]} {icon}
+**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
+**Sub-task:** {context_variables["current_sub_task"]}\n 
+**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
+**Instructions:**\n 
+{context_variables["current_instructions"]}\n 
+**Status:** {context_variables["current_status"]} {icon}
         """,
                 context_variables=context_variables)
 
@@ -673,24 +673,24 @@ Now, update the plan accordingly, planner!""",
                 return SwarmResult(
                     
                     values=f"""
-        **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-        **Sub-task:** {context_variables["current_sub_task"]}\n 
-        **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-        **Instructions:**\n 
-        {context_variables["current_instructions"]}\n 
-        **Status:** {context_variables["current_status"]} {icon}
+**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
+**Sub-task:** {context_variables["current_sub_task"]}\n 
+**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
+**Instructions:**\n 
+{context_variables["current_instructions"]}\n 
+**Status:** {context_variables["current_status"]} {icon}
             """,
                     context_variables=context_variables)
             else:
                 return SwarmResult(
                     agent=agent_to_transfer_to,
                     values=f"""
-    **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-    **Sub-task:** {context_variables["current_sub_task"]}\n 
-    **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-    **Instructions:**\n 
-    {context_variables["current_instructions"]}\n 
-    **Status:** {context_variables["current_status"]} {icon}
+**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
+**Sub-task:** {context_variables["current_sub_task"]}\n 
+**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
+**Instructions:**\n 
+{context_variables["current_instructions"]}\n 
+**Status:** {context_variables["current_status"]} {icon}
         """,
                 context_variables=context_variables)
         
