@@ -365,148 +365,162 @@ Now, update the plan accordingly, planner!""",
         Returns:
             SwarmResult: Contains a formatted status message and updated context.
         """
+
+        if cmbagent_instance.mode == "chat":
+
+            # Map statuses to icons
+            status_icons = {
+                "completed": "✅",
+                "failed": "❌",
+                "in progress": "⏳"  # or any other icon you prefer
+            }
+            
+            icon = status_icons.get(current_status, "")
+            
+            context_variables["current_plan_step_number"] = current_plan_step_number
+            context_variables["current_sub_task"] = current_sub_task
+            context_variables["agent_for_sub_task"] = agent_for_sub_task
+            context_variables["current_instructions"] = current_instructions
+            context_variables["current_status"] = current_status
+
+            codes = os.path.join(cmbagent_instance.work_dir, context_variables['codebase_path'])
+            docstrings = load_docstrings(codes)
+            output_str = ""
+            for module, info in docstrings.items():
+                output_str += "-----------\n"
+                output_str += f"Filename: {module}.py\n"
+                output_str += f"File path: {info['file_path']}\n\n"
+                output_str += f"Available functions:\n"
+                for func, doc in info['functions'].items():
+                    output_str += f"function name: {func}\n"
+                    output_str += "````\n"
+                    output_str += f"{doc}\n"
+                    output_str += "````\n\n"
+
+            # Store the full output string in your context variable.
+            context_variables["current_codebase"] = output_str
+
+            # Load image plots from the "data" directory.
+            data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
+            image_files = load_plots(data_directory)
     
+            # Retrieve the list of images that have been displayed so far.
+            displayed_images = context_variables.get("displayed_images", [])
 
-        # Map statuses to icons
-        status_icons = {
-            "completed": "✅",
-            "failed": "❌",
-            "in progress": "⏳"  # or any other icon you prefer
-        }
-        
-        icon = status_icons.get(current_status, "")
-        
-        context_variables["current_plan_step_number"] = current_plan_step_number
-        context_variables["current_sub_task"] = current_sub_task
-        context_variables["agent_for_sub_task"] = agent_for_sub_task
-        context_variables["current_instructions"] = current_instructions
-        context_variables["current_status"] = current_status
+            # Identify new images that haven't been displayed before.
+            new_images = [img for img in image_files if img not in displayed_images]
 
-        codes = os.path.join(cmbagent_instance.work_dir, context_variables['codebase_path'])
-        docstrings = load_docstrings(codes)
-        output_str = ""
-        for module, info in docstrings.items():
-            output_str += "-----------\n"
-            output_str += f"Filename: {module}.py\n"
-            output_str += f"File path: {info['file_path']}\n\n"
-            output_str += f"Available functions:\n"
-            for func, doc in info['functions'].items():
-                output_str += f"function name: {func}\n"
-                output_str += "````\n"
-                output_str += f"{doc}\n"
-                output_str += "````\n\n"
+            # Display only the new images.
+            for img_file in new_images:
+                if not cmbagent_disable_display:
+                    ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
+                else:
+                    print(img_file)
 
-        # Store the full output string in your context variable.
-        context_variables["current_codebase"] = output_str
+            # Update the context to include the newly displayed images.
+            context_variables["displayed_images"] = displayed_images + new_images
 
-        # Load image plots from the "data" directory.
-        data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
-        image_files = load_plots(data_directory)
- 
-        # Retrieve the list of images that have been displayed so far.
-        displayed_images = context_variables.get("displayed_images", [])
-
-        # Identify new images that haven't been displayed before.
-        new_images = [img for img in image_files if img not in displayed_images]
-
-        # Display only the new images.
-        for img_file in new_images:
-            if not cmbagent_disable_display:
-                ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
-            else:
-                print(img_file)
-
-        # Update the context to include the newly displayed images.
-        context_variables["displayed_images"] = displayed_images + new_images
-
-        
-        if cmbagent_debug:
-            print("\n\n in functions.py record_status: context_variables: ", context_variables)
-            import pprint
-            print('--'*70)
-            pprint.pprint(context_variables["current_status"])
-            pprint.pprint(context_variables["agent_for_sub_task"])
-            print('--'*70)
-
-
-        context_variables["transfer_to_engineer"] = False
-        context_variables["transfer_to_researcher"] = False
-        context_variables["transfer_to_camb_agent"] = False
-        context_variables["transfer_to_cobaya_agent"] = False
-        context_variables["transfer_to_perplexity"] = False
-        context_variables["transfer_to_idea_maker"] = False
-        context_variables["transfer_to_idea_hater"] = False
-        context_variables["transfer_to_classy_sz_agent"] = False
-
-        agent_to_transfer_to = None
-        if "in progress" in context_variables["current_status"]:
-            if context_variables["agent_for_sub_task"] == "engineer":
-                context_variables["transfer_to_engineer"] = True
-            elif context_variables["agent_for_sub_task"] == "researcher":
-                context_variables["transfer_to_researcher"] = True
-            elif context_variables["agent_for_sub_task"] == "camb_agent":
-                context_variables["transfer_to_camb_agent"] = True
-            elif context_variables["agent_for_sub_task"] == "cobaya_agent":
-                context_variables["transfer_to_cobaya_agent"] = True
-            elif context_variables["agent_for_sub_task"] == "perplexity":
-                context_variables["transfer_to_perplexity"] = True
-            elif context_variables["agent_for_sub_task"] == "idea_maker":
-                context_variables["transfer_to_idea_maker"] = True
-            elif context_variables["agent_for_sub_task"] == "idea_hater":
-                context_variables["transfer_to_idea_hater"] = True
-            elif context_variables["agent_for_sub_task"] == "classy_sz_agent":
-                context_variables["transfer_to_classy_sz_agent"] = True
-
-        
-            if context_variables["transfer_to_engineer"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
-            elif context_variables["transfer_to_researcher"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
-            elif context_variables["transfer_to_camb_agent"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_agent')
-            elif context_variables["transfer_to_cobaya_agent"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('cobaya_agent')
-            elif context_variables["transfer_to_perplexity"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('perplexity')
-            elif context_variables["transfer_to_idea_maker"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
-            elif context_variables["transfer_to_idea_hater"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
-            elif context_variables["transfer_to_classy_sz_agent"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
-
-        if "completed" in context_variables["current_status"]:
-
-            if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
-            else:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('control')
-
-
-            # if context_variables["agent_for_sub_task"] == "engineer":
-            #     print("\n successfully ran the code after ", context_variables["n_attempts"], " attempts!")
             
-            ## reset the number of code execution attempts
-            ## (the markdown execution always works)
-            context_variables["n_attempts"] = 0
-        if "failed" in context_variables["current_status"]:
-            if context_variables["agent_for_sub_task"] == "engineer":
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
-            elif context_variables["agent_for_sub_task"] == "researcher":
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher_response_formatter')
+            if cmbagent_debug:
+                print("\n\n in functions.py record_status: context_variables: ", context_variables)
+                import pprint
+                print('--'*70)
+                pprint.pprint(context_variables["current_status"])
+                pprint.pprint(context_variables["agent_for_sub_task"])
+                print('--'*70)
 
 
-        if cmbagent_debug:
-            if agent_to_transfer_to is None:
-                print("agent_to_transfer_to is None")
-            else:   
-                print("agent_to_transfer_to: ", agent_to_transfer_to.name)
+            context_variables["transfer_to_engineer"] = False
+            context_variables["transfer_to_researcher"] = False
+            context_variables["transfer_to_camb_agent"] = False
+            context_variables["transfer_to_cobaya_agent"] = False
+            context_variables["transfer_to_perplexity"] = False
+            context_variables["transfer_to_idea_maker"] = False
+            context_variables["transfer_to_idea_hater"] = False
+            context_variables["transfer_to_classy_sz_agent"] = False
+
+            agent_to_transfer_to = None
+            if "in progress" in context_variables["current_status"]:
+                if context_variables["agent_for_sub_task"] == "engineer":
+                    context_variables["transfer_to_engineer"] = True
+                elif context_variables["agent_for_sub_task"] == "researcher":
+                    context_variables["transfer_to_researcher"] = True
+                elif context_variables["agent_for_sub_task"] == "camb_agent":
+                    context_variables["transfer_to_camb_agent"] = True
+                elif context_variables["agent_for_sub_task"] == "cobaya_agent":
+                    context_variables["transfer_to_cobaya_agent"] = True
+                elif context_variables["agent_for_sub_task"] == "perplexity":
+                    context_variables["transfer_to_perplexity"] = True
+                elif context_variables["agent_for_sub_task"] == "idea_maker":
+                    context_variables["transfer_to_idea_maker"] = True
+                elif context_variables["agent_for_sub_task"] == "idea_hater":
+                    context_variables["transfer_to_idea_hater"] = True
+                elif context_variables["agent_for_sub_task"] == "classy_sz_agent":
+                    context_variables["transfer_to_classy_sz_agent"] = True
+
             
+                if context_variables["transfer_to_engineer"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
+                elif context_variables["transfer_to_researcher"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
+                elif context_variables["transfer_to_camb_agent"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_agent')
+                elif context_variables["transfer_to_cobaya_agent"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('cobaya_agent')
+                elif context_variables["transfer_to_perplexity"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('perplexity')
+                elif context_variables["transfer_to_idea_maker"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
+                elif context_variables["transfer_to_idea_hater"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
+                elif context_variables["transfer_to_classy_sz_agent"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
 
-        if agent_to_transfer_to is None:
-            return SwarmResult(
+
+            if "completed" in context_variables["current_status"]:
+
+                if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('admin')
+                else:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('admin')
+
+
+                # if context_variables["agent_for_sub_task"] == "engineer":
+                #     print("\n successfully ran the code after ", context_variables["n_attempts"], " attempts!")
                 
-                values=f"""
+                ## reset the number of code execution attempts
+                ## (the markdown execution always works)
+                context_variables["n_attempts"] = 0
+            if "failed" in context_variables["current_status"]:
+                if context_variables["agent_for_sub_task"] == "engineer":
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
+                elif context_variables["agent_for_sub_task"] == "researcher":
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher_response_formatter')
+
+
+            if cmbagent_debug:
+                if agent_to_transfer_to is None:
+                    print("agent_to_transfer_to is None")
+                else:   
+                    print("agent_to_transfer_to: ", agent_to_transfer_to.name)
+                
+
+            if agent_to_transfer_to is None:
+                return SwarmResult(
+                    
+                    values=f"""
+        **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
+        **Sub-task:** {context_variables["current_sub_task"]}\n 
+        **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
+        **Instructions:**\n 
+        {context_variables["current_instructions"]}\n 
+        **Status:** {context_variables["current_status"]} {icon}
+            """,
+                    context_variables=context_variables)
+            else:
+                return SwarmResult(
+                    agent=agent_to_transfer_to,
+                    values=f"""
     **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
     **Sub-task:** {context_variables["current_sub_task"]}\n 
     **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
@@ -515,22 +529,174 @@ Now, update the plan accordingly, planner!""",
     **Status:** {context_variables["current_status"]} {icon}
         """,
                 context_variables=context_variables)
+
+
         else:
-            return SwarmResult(
-                agent=agent_to_transfer_to,
-                values=f"""
-**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-**Sub-task:** {context_variables["current_sub_task"]}\n 
-**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-**Instructions:**\n 
-{context_variables["current_instructions"]}\n 
-**Status:** {context_variables["current_status"]} {icon}
-    """,
-            context_variables=context_variables)
-    if cmbagent_instance.mode == "chat":
-        pass
-    else:
-        control._add_single_function(record_status)
+
+            # Map statuses to icons
+            status_icons = {
+                "completed": "✅",
+                "failed": "❌",
+                "in progress": "⏳"  # or any other icon you prefer
+            }
+            
+            icon = status_icons.get(current_status, "")
+            
+            context_variables["current_plan_step_number"] = current_plan_step_number
+            context_variables["current_sub_task"] = current_sub_task
+            context_variables["agent_for_sub_task"] = agent_for_sub_task
+            context_variables["current_instructions"] = current_instructions
+            context_variables["current_status"] = current_status
+
+            codes = os.path.join(cmbagent_instance.work_dir, context_variables['codebase_path'])
+            docstrings = load_docstrings(codes)
+            output_str = ""
+            for module, info in docstrings.items():
+                output_str += "-----------\n"
+                output_str += f"Filename: {module}.py\n"
+                output_str += f"File path: {info['file_path']}\n\n"
+                output_str += f"Available functions:\n"
+                for func, doc in info['functions'].items():
+                    output_str += f"function name: {func}\n"
+                    output_str += "````\n"
+                    output_str += f"{doc}\n"
+                    output_str += "````\n\n"
+
+            # Store the full output string in your context variable.
+            context_variables["current_codebase"] = output_str
+
+            # Load image plots from the "data" directory.
+            data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
+            image_files = load_plots(data_directory)
+    
+            # Retrieve the list of images that have been displayed so far.
+            displayed_images = context_variables.get("displayed_images", [])
+
+            # Identify new images that haven't been displayed before.
+            new_images = [img for img in image_files if img not in displayed_images]
+
+            # Display only the new images.
+            for img_file in new_images:
+                if not cmbagent_disable_display:
+                    ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
+                else:
+                    print(img_file)
+
+            # Update the context to include the newly displayed images.
+            context_variables["displayed_images"] = displayed_images + new_images
+
+            
+            if cmbagent_debug:
+                print("\n\n in functions.py record_status: context_variables: ", context_variables)
+                import pprint
+                print('--'*70)
+                pprint.pprint(context_variables["current_status"])
+                pprint.pprint(context_variables["agent_for_sub_task"])
+                print('--'*70)
+
+
+            context_variables["transfer_to_engineer"] = False
+            context_variables["transfer_to_researcher"] = False
+            context_variables["transfer_to_camb_agent"] = False
+            context_variables["transfer_to_cobaya_agent"] = False
+            context_variables["transfer_to_perplexity"] = False
+            context_variables["transfer_to_idea_maker"] = False
+            context_variables["transfer_to_idea_hater"] = False
+            context_variables["transfer_to_classy_sz_agent"] = False
+
+            agent_to_transfer_to = None
+            if "in progress" in context_variables["current_status"]:
+                if context_variables["agent_for_sub_task"] == "engineer":
+                    context_variables["transfer_to_engineer"] = True
+                elif context_variables["agent_for_sub_task"] == "researcher":
+                    context_variables["transfer_to_researcher"] = True
+                elif context_variables["agent_for_sub_task"] == "camb_agent":
+                    context_variables["transfer_to_camb_agent"] = True
+                elif context_variables["agent_for_sub_task"] == "cobaya_agent":
+                    context_variables["transfer_to_cobaya_agent"] = True
+                elif context_variables["agent_for_sub_task"] == "perplexity":
+                    context_variables["transfer_to_perplexity"] = True
+                elif context_variables["agent_for_sub_task"] == "idea_maker":
+                    context_variables["transfer_to_idea_maker"] = True
+                elif context_variables["agent_for_sub_task"] == "idea_hater":
+                    context_variables["transfer_to_idea_hater"] = True
+                elif context_variables["agent_for_sub_task"] == "classy_sz_agent":
+                    context_variables["transfer_to_classy_sz_agent"] = True
+
+            
+                if context_variables["transfer_to_engineer"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
+                elif context_variables["transfer_to_researcher"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
+                elif context_variables["transfer_to_camb_agent"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_agent')
+                elif context_variables["transfer_to_cobaya_agent"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('cobaya_agent')
+                elif context_variables["transfer_to_perplexity"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('perplexity')
+                elif context_variables["transfer_to_idea_maker"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
+                elif context_variables["transfer_to_idea_hater"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
+                elif context_variables["transfer_to_classy_sz_agent"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
+
+            if "completed" in context_variables["current_status"]:
+
+                if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
+                else:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('control')
+
+
+                # if context_variables["agent_for_sub_task"] == "engineer":
+                #     print("\n successfully ran the code after ", context_variables["n_attempts"], " attempts!")
+                
+                ## reset the number of code execution attempts
+                ## (the markdown execution always works)
+                context_variables["n_attempts"] = 0
+            if "failed" in context_variables["current_status"]:
+                if context_variables["agent_for_sub_task"] == "engineer":
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
+                elif context_variables["agent_for_sub_task"] == "researcher":
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher_response_formatter')
+
+
+            if cmbagent_debug:
+                if agent_to_transfer_to is None:
+                    print("agent_to_transfer_to is None")
+                else:   
+                    print("agent_to_transfer_to: ", agent_to_transfer_to.name)
+                
+
+            if agent_to_transfer_to is None:
+                return SwarmResult(
+                    
+                    values=f"""
+        **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
+        **Sub-task:** {context_variables["current_sub_task"]}\n 
+        **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
+        **Instructions:**\n 
+        {context_variables["current_instructions"]}\n 
+        **Status:** {context_variables["current_status"]} {icon}
+            """,
+                    context_variables=context_variables)
+            else:
+                return SwarmResult(
+                    agent=agent_to_transfer_to,
+                    values=f"""
+    **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
+    **Sub-task:** {context_variables["current_sub_task"]}\n 
+    **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
+    **Instructions:**\n 
+    {context_variables["current_instructions"]}\n 
+    **Status:** {context_variables["current_status"]} {icon}
+        """,
+                context_variables=context_variables)
+        
+
+
+    control._add_single_function(record_status)
 
 
 

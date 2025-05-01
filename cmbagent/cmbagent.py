@@ -567,7 +567,7 @@ class CMBAgent:
         
         this_shared_context = copy.deepcopy(self.shared_context)
         
-        if mode == "one_shot":
+        if mode == "one_shot" or mode == "chat":
             one_shot_shared_context = {'final_plan': "Step 1: solve the main task.",
                                         'current_status': "In progress",
                                         'current_plan_step_number': 1,
@@ -583,6 +583,7 @@ class CMBAgent:
                                         'idea_maker_append_instructions': '',
                                         'idea_hater_append_instructions': '',
                                         }
+            
             if initial_agent == 'perplexity':
                 one_shot_shared_context['perplexity_query'] = self.get_agent_object_from_name('perplexity').info['instructions'].format(main_task=task)
                 # print('one_shot_shared_context: ', one_shot_shared_context)
@@ -628,7 +629,7 @@ class CMBAgent:
             initial_agent=self.get_agent_from_name(initial_agent),
             agents=[agent.agent for agent in self.agents],
             messages=this_shared_context['main_task'],
-            user_agent=self.get_agent_from_name("admin"),
+            # user_agent=self.get_agent_from_name("admin"),
             context_variables=this_shared_context,
             max_rounds = max_rounds,
             after_work=AfterWorkOption.TERMINATE,
@@ -1428,8 +1429,8 @@ def human_in_the_loop(task,
     cmbagent.solve(task,
                     max_rounds=max_rounds,
                     initial_agent=agent,
-                    shared_context = {'max_n_attempts': max_n_attempts}
-                    )
+                    shared_context = {'max_n_attempts': max_n_attempts},
+                    mode = "chat")
     
     results = {'chat_history': cmbagent.chat_result.chat_history,
                'final_context': cmbagent.final_context}

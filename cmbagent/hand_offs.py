@@ -85,7 +85,7 @@ def register_all_hand_offs(cmbagent_instance):
 
     mode = cmbagent_instance.mode
     if mode == "chat":
-        print(f"Chat mode is on. Chat agent is {cmbagent_instance.chat_agent}")
+        # print(f"Chat mode is on. Chat agent is {cmbagent_instance.chat_agent}")
         agent_on = cmbagent_instance.get_agent_object_from_name(cmbagent_instance.chat_agent)
         
         #task_improver agent
