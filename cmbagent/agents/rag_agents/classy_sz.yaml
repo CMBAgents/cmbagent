@@ -312,7 +312,7 @@ instructions: |
   ---------------------------------------------
 
 assistant_config:
-  assistant_id: asst_aALZlfTA8QdehcD1N9KIHSZh
+  assistant_id: asst_oFBu3pGQZkRAslkDSsjQmOC3
   tools:
   - type: file_search
   tool_resources:
