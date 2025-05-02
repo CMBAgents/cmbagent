@@ -409,6 +409,7 @@ class CMBAgent:
 
     def display_cost(self):
         '''display full cost dictionary'''
+        print('displaying cost...')
         cost_dict = defaultdict(list)
 
         # Collect all agents, safely handling when groupchat isn’t set
@@ -567,7 +568,7 @@ class CMBAgent:
         
         this_shared_context = copy.deepcopy(self.shared_context)
         
-        if mode == "one_shot":
+        if mode == "one_shot" or mode == "chat":
             one_shot_shared_context = {'final_plan': "Step 1: solve the main task.",
                                         'current_status': "In progress",
                                         'current_plan_step_number': 1,
@@ -583,6 +584,7 @@ class CMBAgent:
                                         'idea_maker_append_instructions': '',
                                         'idea_hater_append_instructions': '',
                                         }
+            
             if initial_agent == 'perplexity':
                 one_shot_shared_context['perplexity_query'] = self.get_agent_object_from_name('perplexity').info['instructions'].format(main_task=task)
                 # print('one_shot_shared_context: ', one_shot_shared_context)
@@ -628,7 +630,7 @@ class CMBAgent:
             initial_agent=self.get_agent_from_name(initial_agent),
             agents=[agent.agent for agent in self.agents],
             messages=this_shared_context['main_task'],
-            user_agent=self.get_agent_from_name("admin"),
+            # user_agent=self.get_agent_from_name("admin"),
             context_variables=this_shared_context,
             max_rounds = max_rounds,
             after_work=AfterWorkOption.TERMINATE,
@@ -1161,6 +1163,9 @@ def one_shot(
             researcher_model = 'gpt-4o-2024-11-20',
             initial_agent = 'engineer'):
     ## control
+    # print('initializing CMBAgent...')
+    # import sys
+    # sys.exit()
 
     if 'o3' in engineer_model:
         engineer_config = {
@@ -1259,14 +1264,20 @@ def one_shot(
                'final_context': cmbagent.final_context}
     
     # Create a dummy groupchat attribute if it doesn't exist
+    # print('creating groupchat for cost display...')
     if not hasattr(cmbagent, 'groupchat'):
         Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
         cmbagent.groupchat = Dummy()
-
+    # print('groupchat created for cost display')
     # Now call display_cost without triggering the AttributeError
+    # print('displaying cost...')
     cmbagent.display_cost()
+    # print('cost displayed')
 
     return results
+
+
+
 
 def human_in_the_loop(task,
          max_rounds = 50,
@@ -1338,14 +1349,24 @@ def human_in_the_loop(task,
     cmbagent.solve(task,
                     max_rounds=max_rounds,
                     initial_agent=agent,
-                    shared_context = {'max_n_attempts': max_n_attempts}
-                    )
+                    shared_context = {'max_n_attempts': max_n_attempts},
+                    mode = "chat")
     
     results = {'chat_history': cmbagent.chat_result.chat_history,
                'final_context': cmbagent.final_context}
 
 
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+    # print('groupchat created for cost display')
+    # Now call display_cost without triggering the AttributeError
+    # print('displaying cost...')
+    cmbagent.display_cost()
+    # print('cost displayed')
+
     return results
+
 
 
 
