@@ -11,6 +11,8 @@ import copy
 import datetime
 from typing import Any, Dict
 from IPython.display import display
+from pathlib import Path
+from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
 from collections import defaultdict
 from .utils import work_dir as work_dir_default
 from .utils import path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
@@ -1029,10 +1031,16 @@ def planning_and_control(
                             researcher_instructions = '',
                             max_n_attempts = 3,
                             engineer_model = 'gpt-4.1-2025-04-14',
-                            researcher_model = 'gpt-4.1-2025-04-14'):
+                            researcher_model = 'gpt-4.1-2025-04-14',
+                            work_dir = work_dir_default
+                            ):
 
     ## planning
-    cmbagent = CMBAgent()
+    planning_dir = Path(work_dir).expanduser().resolve() / "planning"
+    cmbagent = CMBAgent(work_dir = planning_dir)
+
+
+
 
     cmbagent.solve(task,
                 max_rounds=max_rounds_planning,
@@ -1046,7 +1054,17 @@ def planning_and_control(
                                     'plan_reviewer_append_instructions': plan_instructions}
                 )
     
+    # Create a dummy groupchat attribute if it doesn't exist
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+
+    # Now call display_cost without triggering the AttributeError
+    cmbagent.display_cost()
+
     planning_output = copy.deepcopy(cmbagent.final_context)
+    outfile = save_final_plan(planning_output, planning_dir)
+    print(f"Structured plan written to {outfile}")
 
     ## control
 
@@ -1121,8 +1139,9 @@ def planning_and_control(
             "api_type": "openai"
         }
         
-
+    control_dir = Path(work_dir).expanduser().resolve() / "control"
     cmbagent = CMBAgent(
+        work_dir = control_dir,
         agent_llm_configs = {
                             'engineer': engineer_config,
                             'researcher': researcher_config,
@@ -1138,7 +1157,7 @@ def planning_and_control(
     results = {'chat_history': cmbagent.chat_result.chat_history,
                'final_context': cmbagent.final_context}
     
-        # Create a dummy groupchat attribute if it doesn't exist
+    # Create a dummy groupchat attribute if it doesn't exist
     if not hasattr(cmbagent, 'groupchat'):
         Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
         cmbagent.groupchat = Dummy()
@@ -1161,7 +1180,9 @@ def one_shot(
             max_n_attempts = 3,
             engineer_model = 'gpt-4o-2024-11-20',
             researcher_model = 'gpt-4o-2024-11-20',
-            initial_agent = 'engineer'):
+            initial_agent = 'engineer',
+            work_dir = work_dir_default
+            ):
     ## control
     # print('initializing CMBAgent...')
     # import sys
@@ -1247,6 +1268,7 @@ def one_shot(
         
 
     cmbagent = CMBAgent(
+        work_dir = work_dir,
         agent_llm_configs = {
                             'engineer': engineer_config,
                             'researcher': researcher_config,
@@ -1280,6 +1302,7 @@ def one_shot(
 
 
 def human_in_the_loop(task,
+         work_dir = work_dir_default,
          max_rounds = 50,
          max_n_attempts = 3,
          engineer_model = 'gpt-4o-2024-11-20',
@@ -1337,6 +1360,7 @@ def human_in_the_loop(task,
         
 
     cmbagent = CMBAgent(
+        work_dir = work_dir,
         agent_llm_configs = {
                             'engineer': engineer_config,
                             'researcher': researcher_config,
@@ -1372,7 +1396,7 @@ def human_in_the_loop(task,
 
 
 
-def get_keywords(input_text: str, n_keywords: int = 5, **kwargs):
+def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_default):
     """
     Get AAS keywords from input text using astropilot.
 
@@ -1384,7 +1408,7 @@ def get_keywords(input_text: str, n_keywords: int = 5, **kwargs):
     Returns:
         dict: Dictionary mapping AAS keywords to their URLs
     """
-    cmbagent = CMBAgent()
+    cmbagent = CMBAgent(work_dir = work_dir)
     PROMPT = f"""
     {input_text}
     """
@@ -1398,4 +1422,12 @@ def get_keywords(input_text: str, n_keywords: int = 5, **kwargs):
                             }
             )
     aas_keywords = cmbagent.final_context['aas_keywords'] ## here you get the dict with urls
+
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+    # print('groupchat created for cost display')
+    # Now call display_cost without triggering the AttributeError
+    # print('displaying cost...')
+    cmbagent.display_cost()
     return aas_keywords
