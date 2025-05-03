@@ -135,6 +135,5 @@ python -m ipykernel install --user --name astrop_env --display-name "Python (ast
 echo "Kernel registered. You can now select 'Python (astrop_env)' in Jupyter Notebook."
 echo "Installing streamlit..."
 pip install streamlit
-pip install classy_sz
 
 echo "Installation complete!"
