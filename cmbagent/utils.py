@@ -127,8 +127,8 @@ file_search_max_num_results = autogen.file_search_max_num_results
 
 default_max_round = 50
 
-# default_llm_model = 'gpt-4o-2024-11-20'
-default_llm_model = 'gpt-4.1-2025-04-14'
+default_llm_model = 'gpt-4o-2024-11-20'
+# default_llm_model = 'gpt-4.1-2025-04-14'
 # default_llm_model = 'gpt-4o-mini'
 # "gpt-4o-mini"
 
