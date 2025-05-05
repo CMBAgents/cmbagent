@@ -63,16 +63,18 @@ instructions: |
       ```
   - **Part 4**: According to the plan, we will now solve <sub-task> with <agent name>.
 
+  If you have other instructions for your response given for a specific task, you should follow them with precedence.
+
 
 assistant_config:
-  assistant_id: asst_yzyosJ6scUqh7dAjT45MdWD4
+  assistant_id: asst_LkCgE6xIIZ27hXcF0pJIhTSe
   tools:
   - type: file_search
 
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_FFZCnTPzmS4Wp6BM8AquJlzB
+      - vs_68189bfe13a0819181c58a6536003371
 
   temperature: 0.0001234
 

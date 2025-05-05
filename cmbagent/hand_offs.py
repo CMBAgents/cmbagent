@@ -39,6 +39,7 @@ def register_all_hand_offs(cmbagent_instance):
     classy_sz_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_sz_response_formatter')
     camb = cmbagent_instance.get_agent_object_from_name('camb_agent')
     camb_response_formatter = cmbagent_instance.get_agent_object_from_name('camb_response_formatter')
+    planck = cmbagent_instance.get_agent_object_from_name('planck_agent')
     cobaya = cmbagent_instance.get_agent_object_from_name('cobaya_agent')
     cobaya_response_formatter = cmbagent_instance.get_agent_object_from_name('cobaya_response_formatter')
     executor = cmbagent_instance.get_agent_object_from_name('executor')
@@ -312,6 +313,13 @@ def register_all_hand_offs(cmbagent_instance):
             hand_to = 
             [AfterWork(control.agent)])
 
+        #planck
+        register_hand_off(
+            agent = planck.agent,
+            hand_to = [
+                AfterWork(control.agent),
+            ]
+        )
         #researcher 
         register_hand_off(
             agent = researcher.agent,
@@ -760,6 +768,14 @@ def register_all_hand_offs(cmbagent_instance):
             agent = camb_response_formatter.agent,
             hand_to = 
             [AfterWork(control.agent)])
+        
+        #planck
+        register_hand_off(
+            agent = planck.agent,
+            hand_to = [
+                AfterWork(control.agent),
+            ]
+        )
 
         #researcher 
         register_hand_off(

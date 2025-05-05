@@ -36,6 +36,7 @@ def register_functions_to_agents(cmbagent_instance):
     classy_sz_response_formatter = cmbagent_instance.get_agent_from_name('classy_sz_response_formatter')
     camb = cmbagent_instance.get_agent_from_name('camb_agent')
     camb_response_formatter = cmbagent_instance.get_agent_from_name('camb_response_formatter')
+    planck = cmbagent_instance.get_agent_from_name('planck_agent')
     executor = cmbagent_instance.get_agent_from_name('executor')
     executor_response_formatter = cmbagent_instance.get_agent_from_name('executor_response_formatter')
     terminator = cmbagent_instance.get_agent_from_name('terminator')
@@ -64,6 +65,7 @@ def register_functions_to_agents(cmbagent_instance):
                                                                "installer",
                                                                "camb_agent", 
                                                                "cobaya_agent",
+                                                            #    "planck_agent", no need for paper agents
                                                                "control"], 
                                 context_variables: dict,
                                 execution_status: Literal["success", "failure"] 
@@ -273,6 +275,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                                        "idea_hater", 
                                                        "camb_agent",
                                                        "classy_sz_agent", 
+                                                       "planck_agent",
                                                        "aas_keyword_finder"]],
                                 context_variables: dict) -> SwarmResult:
         """
@@ -346,7 +349,7 @@ Now, update the plan accordingly, planner!""",
         current_plan_step_number: int,
         current_sub_task: str,
         current_instructions: str,
-        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater", "classy_sz_agent", "camb_agent", "aas_keyword_finder"],
+        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater", "classy_sz_agent", "camb_agent", "aas_keyword_finder", "planck_agent"],
         context_variables: dict
     ) -> SwarmResult:
         """
@@ -433,6 +436,7 @@ Now, update the plan accordingly, planner!""",
             context_variables["transfer_to_engineer"] = False
             context_variables["transfer_to_researcher"] = False
             context_variables["transfer_to_camb_agent"] = False
+            context_variables["transfer_to_planck_agent"] = False
             context_variables["transfer_to_cobaya_agent"] = False
             context_variables["transfer_to_perplexity"] = False
             context_variables["transfer_to_idea_maker"] = False
@@ -457,6 +461,8 @@ Now, update the plan accordingly, planner!""",
                     context_variables["transfer_to_idea_hater"] = True
                 elif context_variables["agent_for_sub_task"] == "classy_sz_agent":
                     context_variables["transfer_to_classy_sz_agent"] = True
+                elif context_variables["agent_for_sub_task"] == "planck_agent":
+                    context_variables["transfer_to_planck_agent"] = True
 
             
                 if context_variables["transfer_to_engineer"]:
@@ -475,6 +481,8 @@ Now, update the plan accordingly, planner!""",
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
                 elif context_variables["transfer_to_classy_sz_agent"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
+                elif context_variables["transfer_to_planck_agent"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('planck_agent')
 
 
             if "completed" in context_variables["current_status"]:
@@ -622,6 +630,8 @@ Now, update the plan accordingly, planner!""",
                     context_variables["transfer_to_idea_hater"] = True
                 elif context_variables["agent_for_sub_task"] == "classy_sz_agent":
                     context_variables["transfer_to_classy_sz_agent"] = True
+                elif context_variables["agent_for_sub_task"] == "planck_agent":
+                    context_variables["transfer_to_planck_agent"] = True
 
             
                 if context_variables["transfer_to_engineer"]:
@@ -640,6 +650,8 @@ Now, update the plan accordingly, planner!""",
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
                 elif context_variables["transfer_to_classy_sz_agent"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
+                elif context_variables["transfer_to_planck_agent"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('planck_agent')
 
             if "completed" in context_variables["current_status"]:
 
