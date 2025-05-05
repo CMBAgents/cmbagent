@@ -16,7 +16,6 @@ import time
 import copy
 import cmbagent
 from cmbagent.cmbagent import CMBAgent, planning_and_control, one_shot, human_in_the_loop
-from cmbagent.cmbagent import human_in_the_loop_gui
 import requests
 import sys
 from contextlib import redirect_stdout
