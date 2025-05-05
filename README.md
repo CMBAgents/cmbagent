@@ -56,8 +56,14 @@ python -m ipykernel install --user --name cmbagent_env --display-name "Python (c
 
 Here is a one-liner you can run in terminal:
 
-```python
+```bash
 python -c "import os, re; os.environ['CMBAGENT_DEBUG']='false'; os.environ['ASTROPILOT_DISABLE_DISPLAY']='true'; import cmbagent; task='''Draw two random numbers and give me their sum'''; results=cmbagent.one_shot(task, max_rounds=50, initial_agent='engineer', engineer_model='gpt-4o-mini');"
+```
+
+Is this works, go ahead and run the GUI. In a terminal, type:
+
+```bash
+cmbagent
 ```
 
 
