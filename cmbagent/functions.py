@@ -48,17 +48,17 @@ def register_functions_to_agents(cmbagent_instance):
     idea_maker = cmbagent_instance.get_agent_from_name('idea_maker')
     installer = cmbagent_instance.get_agent_from_name('installer')
     # print("Perplexity API key: ", os.getenv("PERPLEXITY_API_KEY"))
-    perplexity_search_tool = PerplexitySearchTool(
-                        model="sonar-reasoning-pro",
-                        api_key=os.getenv("PERPLEXITY_API_KEY"),
-                        max_tokens=100000,
-                        search_domain_filter=["arxiv.org"]
-                    )
+    # perplexity_search_tool = PerplexitySearchTool(
+    #                     model="sonar-reasoning-pro",
+    #                     api_key=os.getenv("PERPLEXITY_API_KEY"),
+    #                     max_tokens=100000,
+    #                     search_domain_filter=["arxiv.org"]
+    #                 )
     
     # perplexity_search_tool.register_for_llm(perplexity)
     # perplexity_search_tool.register_for_execution(perplexity)
 
-    perplexity._add_single_function(perplexity_search_tool)
+    # perplexity._add_single_function(perplexity_search_tool)
 
     def post_execution_transfer(next_agent_suggestion: Literal["engineer", 
                                                                "classy_sz_agent", 
@@ -270,7 +270,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
 
     def record_plan_constraints(needed_agents: list[Literal["engineer", 
                                                        "researcher", 
-                                                       "perplexity", 
+                                                    #    "perplexity", 
                                                        "idea_maker", 
                                                        "idea_hater", 
                                                        "camb_agent",
@@ -349,7 +349,8 @@ Now, update the plan accordingly, planner!""",
         current_plan_step_number: int,
         current_sub_task: str,
         current_instructions: str,
-        agent_for_sub_task: Literal["engineer", "researcher", "perplexity", "idea_maker", "idea_hater", "classy_sz_agent", "camb_agent", "aas_keyword_finder", "planck_agent"],
+        agent_for_sub_task: Literal["engineer", "researcher", #"perplexity", 
+                                    "idea_maker", "idea_hater", "classy_sz_agent", "camb_agent", "aas_keyword_finder", "planck_agent"],
         context_variables: dict
     ) -> SwarmResult:
         """

@@ -529,7 +529,7 @@ def main():
         provider_oai        = st.text_input("OpenAI API Key",      type="password", key="api_key_oai")
         provider_anthropic  = st.text_input("Anthropic API Key",    type="password", key="api_key_anthropic")
         provider_gemini     = st.text_input("Gemini API Key",       type="password", key="api_key_gemini")
-        provider_perplexity = st.text_input("Perplexity API Key",   type="password", key="api_key_perplexity")
+        # provider_perplexity = st.text_input("Perplexity API Key",   type="password", key="api_key_perplexity")
 
         # 📝  Tell users they can skip the boxes if their keys are already exported
         st.markdown(
@@ -553,8 +553,8 @@ def main():
             os.environ["ANTHROPIC_API_KEY"] = provider_anthropic
         if provider_gemini:
             os.environ["GEMINI_API_KEY"] = provider_gemini
-        if provider_perplexity:
-            os.environ["PERPLEXITY_API_KEY"] = provider_perplexity
+        # if provider_perplexity:
+        #     os.environ["PERPLEXITY_API_KEY"] = provider_perplexity
 
         # --- API Key Validation ---
         def validate_openai_key(api_key):
@@ -653,11 +653,11 @@ def main():
                 st.success("Gemini API Key is valid.")
             else:
                 st.error("Invalid Gemini API Key.")
-        if provider_perplexity:
-            if validate_perplexity_key(provider_perplexity):
-                st.success("Perplexity API Key is valid.")
-            else:
-                st.error("Invalid Perplexity API Key.")
+        # if provider_perplexity:
+        #     if validate_perplexity_key(provider_perplexity):
+        #         st.success("Perplexity API Key is valid.")
+        #     else:
+        #         st.error("Invalid Perplexity API Key.")
 
         st.markdown("---")
         # st.header("📂 Agents in charge")
@@ -678,19 +678,19 @@ def main():
             "engineer": {
                 "label": "Engineer",
                 "models": [
-                    "gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "gpt-4o", "gpt-4o-mini", "o3", "o4-mini", "o3-mini",
+                    "gpt-4o", "gpt-4o-mini","gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
                     "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
                     "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash",
-                    "sonar-pro", "sonar"
+                    # "sonar-pro", "sonar"
                 ]
             },
             "researcher": {
                 "label": "Researcher",
                 "models": [
-                    "gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "gpt-4o", "gpt-4o-mini", "o3", "o4-mini", "o3-mini",
+                    "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
                     "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
                     "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash",
-                    "sonar-pro", "sonar"
+                    # "sonar-pro", "sonar"
                 ]
             }
         }
@@ -699,7 +699,7 @@ def main():
             oai = {"gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "gpt-4o", "gpt-4o-mini", "o3", "o4-mini", "o3-mini"}
             anth = {"Claude 3.7 Sonnet", "Claude 3.5 Haiku", "Claude 3.5 Sonnet"}
             gem = {"gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash"}
-            per = {"sonar-pro", "sonar"}
+            # per = {"sonar-pro", "sonar"}
 
             if model in oai:
                 return "OpenAI"
@@ -707,8 +707,8 @@ def main():
                 return "Anthropic"
             if model in gem:
                 return "Gemini"
-            if model in per:
-                return "Perplexity"
+            # if model in per:
+            #     return "Perplexity"
             return None
 
         # Initialize session_state.agent_models once
@@ -1304,7 +1304,7 @@ def main():
 
             # --- Model/provider selection logic for engineer and researcher ---
 
-            def get_config_for_model(model, provider_oai, provider_anthropic, provider_gemini, provider_perplexity):
+            def get_config_for_model(model, provider_oai, provider_anthropic, provider_gemini):
                 model_lower = model.lower()
                 # print("MODEL LOWER:", model_lower)
                 if any(x in model_lower for x in ["gpt", "o3", "o4"]):
@@ -1316,13 +1316,11 @@ def main():
                     return {"model": model, "api_key": os.environ["ANTHROPIC_API_KEY"], "api_type": "anthropic"}
                 elif "gemini" in model_lower:
                     return {"model": model, "api_key": os.environ["GEMINI_API_KEY"], "api_type": "google"}
-                elif "sonar" in model_lower:
-                    return {"model": model, "api_key": os.environ["PERPLEXITY_API_KEY"], "api_type": "perplexity"}
                 else:
                     return {"model": model, "api_key": "", "api_type": "openai"}
 
-            engineer_config   = get_config_for_model(engineer_model, provider_oai, provider_anthropic, provider_gemini, provider_perplexity)
-            researcher_config = get_config_for_model(researcher_model, provider_oai, provider_anthropic, provider_gemini, provider_perplexity)
+            engineer_config   = get_config_for_model(engineer_model, provider_oai, provider_anthropic, provider_gemini)
+            researcher_config = get_config_for_model(researcher_model, provider_oai, provider_anthropic, provider_gemini)
 
     
 
