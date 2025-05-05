@@ -21,6 +21,8 @@ dependencies = [
     # "google-cloud-aiplatform==1.91.0",
     "jsonref==1.1.0",
 
+    "streamlit",
+
     # astronomy/astrophysics
     "cobaya", # to use yaml_load_file function
     "astropy >=6.0",          # core astronomy library
@@ -89,3 +91,7 @@ GitHub = "https://github.com/CMBAgents/cmbagent"
 
 [tool.setuptools.packages.find]
 exclude = ["output"]
+
+
+[project.scripts]
+cmbagent = "cmbagent.cli:run"
