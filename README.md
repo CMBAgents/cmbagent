@@ -48,11 +48,12 @@ You give a task to solve, then:
 ```bash
 python3 -m venv cmbagent_env
 source cmbagent_env/bin/activate
-pip install cmbagent>=0.0.1.post6
-python -m ipykernel install --user --name cmbagent_env --display-name "Python (cmbagent_env)"
+pip install cmbagent
 ```
 
 ## Run
+
+We assume you are in the virtual environment where you installed cmbagent. 
 
 Here is a one-liner you can run in terminal:
 
@@ -63,8 +64,22 @@ python -c "import os, re; os.environ['CMBAGENT_DEBUG']='false'; os.environ['ASTR
 Is this works, go ahead and run the GUI. In a terminal, type:
 
 ```bash
-cmbagent
+cmbagent run
 ```
+
+If you want to run the notebooks, first create the ipykernel (assuming your virtual environment is called cmbagent_env):
+
+```bash
+python -m ipykernel install --user --name cmbagent_env --display-name "Python (cmbagent_env)"
+```
+
+Then launch jupyterlab:
+
+```bash
+jupyter-lab
+```
+
+Select the cmbagent kernel, and run the the notebook. 
 
 
 ## API Keys
