@@ -46,7 +46,7 @@ You give a task to solve, then:
 ## Install 
 
 ```bash
-python3 -venv cmbagent_env
+python3 -m venv cmbagent_env
 source cmbagent_env/bin/activate
 pip install cmbagent==0.0.1.post5
 python -m ipykernel install --user --name cmbagent_env --display-name "Python (cmbagent_env)"
