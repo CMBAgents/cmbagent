@@ -729,7 +729,7 @@ def main():
         import os, base64
         # somewhere near the top of your file, right after you define `agents = {...}`
         current_path = os.path.dirname(__file__)
-        print(current_path)
+        # print(current_path)
         logo_path    = os.path.join(current_path, "..", "Robot-MS-Aqua.png")
         with open(logo_path, "rb") as f:
             logo_b64 = base64.b64encode(f.read()).decode()
