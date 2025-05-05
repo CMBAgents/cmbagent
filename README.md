@@ -48,6 +48,8 @@ You give a task to solve, then:
 ```bash
 python3 -venv cmbagent_env
 source cmbagent_env/bin/activate
+pip install cmbagent==0.0.1.post5
+python -m ipykernel install --user --name cmbagent_env --display-name "Python (cmbagent_env)"
 python -c "import os, re; os.environ['CMBAGENT_DEBUG']='false'; os.environ['ASTROPILOT_DISABLE_DISPLAY']='true'; import cmbagent; task='''Draw two random numbers and give me their sum'''; results=cmbagent.one_shot(task, max_rounds=50, initial_agent='engineer', engineer_model='gpt-4o-mini');"
 ```
 
