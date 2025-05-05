@@ -8,34 +8,63 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1b2"
+version = "0.0.1post4"
 name = "cmbagent"
 maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
 description = "multi-agent system for autonomous discovery, made by cosmologists, powered by ag2"
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.6"  # Specify the Python version requirement here
+requires-python = ">=3.12"  # Specify the Python version requirement here
 dependencies = [
-    "numpy==1.26.4",
     "anthropic",
-    "astropy",
-    "camb==1.5.9",
-    "getdist",
-    "healpy",
-    "mcfit",
-    "pyDOE",
-    "cobaya",
     "ruamel.yaml",
-    "pandas",
-    "ipython",
-    "shapely",
-    "statsmodels",
-    "google-api-core",
-    "google-cloud-aiplatform==1.91.0",
-    "google-genai==1.10.0",
-    "google-auth",
-    "pillow",
-    "jsonschema",
+    "cmbagent_autogen",
+    # "google-cloud-aiplatform==1.91.0",
     "jsonref==1.1.0",
+
+    # astronomy/astrophysics
+    "cobaya", # to use yaml_load_file function
+    "astropy >=6.0",          # core astronomy library
+    "healpy >=1.16",          # HEALPix maps (CMB, large-scale structure)
+    "emcee >=3.1",
+
+   # Core numerical and scientific stack
+    "numpy >=1.26",
+    "scipy >=1.12",
+    "pandas >=2.2",
+    "xarray >=2024.3",
+    "h5py >=3.10",
+
+    # Plotting and visualization
+    "matplotlib >=3.8",
+    "seaborn >=0.13",
+    "plotly >=5.21",
+
+    # Data formats and storage
+    "openpyxl >=3.1",
+    "pyarrow >=15.0",
+
+    # Stats and econometrics
+    "scikit-learn >=1.4",
+    "statsmodels >=0.14",
+    "linearmodels >=5.1",
+
+    # Financial and economic data
+    "yfinance >=0.2",
+    "pandas-datareader >=0.10",
+    "quandl >=3.7",
+
+    # Performance and scaling
+    "numba >=0.59",
+    "dask >=2024.4",
+    "joblib >=1.4",  # for parallel ML workloads
+
+    # Machine Learning & Deep Learning
+    "xgboost >=2.0",
+    "lightgbm >=4.3",
+    "catboost >=1.2",
+    #"tensorflow",    # or comment out if not using DL
+    "torch >=2.2",          # optional: PyTorch for DL
+    "keras >=3.3",          # optional: Keras with TensorFlow backend
 ]
 
 [tool.setuptools.package-data]
