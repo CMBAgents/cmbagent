@@ -48,7 +48,7 @@ You give a task to solve, then:
 ```bash
 python3 -m venv cmbagent_env
 source cmbagent_env/bin/activate
-pip install cmbagent==0.0.1.post5
+pip install cmbagent>=0.0.1.post6
 python -m ipykernel install --user --name cmbagent_env --display-name "Python (cmbagent_env)"
 ```
 
