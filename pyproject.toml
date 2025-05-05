@@ -8,7 +8,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1post4"
+version = "0.0.1post5"
 name = "cmbagent"
 maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
 description = "multi-agent system for autonomous discovery, made by cosmologists, powered by ag2"
@@ -40,8 +40,8 @@ dependencies = [
     "plotly >=5.21",
 
     # Data formats and storage
-    "openpyxl >=3.1",
-    "pyarrow >=15.0",
+    #"openpyxl >=3.1",
+    #"pyarrow >=15.0",
 
     # Stats and econometrics
     "scikit-learn >=1.4",
@@ -50,21 +50,21 @@ dependencies = [
 
     # Financial and economic data
     "yfinance >=0.2",
-    "pandas-datareader >=0.10",
-    "quandl >=3.7",
+    #"pandas-datareader >=0.10",
+    #"quandl >=3.7",
 
     # Performance and scaling
-    "numba >=0.59",
-    "dask >=2024.4",
-    "joblib >=1.4",  # for parallel ML workloads
+    #"numba >=0.59",
+    #"dask >=2024.4",
+    #"joblib >=1.4",  # for parallel ML workloads
 
     # Machine Learning & Deep Learning
     "xgboost >=2.0",
-    "lightgbm >=4.3",
-    "catboost >=1.2",
+    #"lightgbm >=4.3",
+    #"catboost >=1.2",
     #"tensorflow",    # or comment out if not using DL
-    "torch >=2.2",          # optional: PyTorch for DL
-    "keras >=3.3",          # optional: Keras with TensorFlow backend
+    #"torch >=2.2",          # optional: PyTorch for DL
+    #"keras >=3.3",          # optional: Keras with TensorFlow backend
 ]
 
 [tool.setuptools.package-data]
