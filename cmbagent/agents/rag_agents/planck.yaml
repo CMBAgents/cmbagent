@@ -67,7 +67,7 @@ instructions: |
 
 
 assistant_config:
-  assistant_id: asst_WSTIQx2u22xPdyVFxWwAdDcB
+  assistant_id: asst_LkCgE6xIIZ27hXcF0pJIhTSe
   tools:
   - type: file_search
 
