@@ -10,7 +10,7 @@
 
 Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://github.com/ag2ai/ag2).
 
-Try **cmbagent** in [Colab](https://colab.research.google.com/github/CMBAgents/cmbagent/blob/main/docs/notebooks/cmbagent_colab_demo.ipynb) and check our [demo video](https://www.youtube.com/watch?v=XE0Eu-tMpgs&t=1s) on YouTube!
+Check our [demo videos](https://www.youtube.com/@cmbagent) on YouTube!
 
 This is **open-source research-ready software**.  **Please star the  repo ⭐ and cite [Laverick et al (2024)](#reference) to support our open-source work**. 
 
