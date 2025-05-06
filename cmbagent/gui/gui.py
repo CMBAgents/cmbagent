@@ -7,7 +7,7 @@ import io
 from PIL import Image
 import pandas as pd
 from IPython.display import Markdown as IPyMarkdown, Image as IPyImage
-from PIL.Image import Image as PILImage  # <-- this is the actual class
+# from PIL.Image import Image as PILImage  # <-- this is the actual class
 from pandas.io.formats.style import Styler
 os.environ["CMBAGENT_DEBUG"] = "false"
 os.environ["ASTROPILOT_DISABLE_DISPLAY"] = "true"
@@ -25,6 +25,7 @@ from streamlit import components
 import glob          # <-- NEW
 import traceback
 import base64
+from pathlib import Path
 # import builtins, uuid
 
 # from langchain_community.chat_message_histories import ChatMessageHistory
@@ -34,6 +35,7 @@ import base64
 from collections import deque
 
 def main():
+    from PIL.Image import Image as PILImage
     MEMORY_WINDOW = None                     # keep last 12 exchanges
     def ensure_memory() -> None:
         """
@@ -1450,7 +1452,7 @@ def main():
     # … right after your redirect_stdout(...) block …
 
             from IPython.display import Image as IPyImage
-            from PIL.Image import Image as PILImage
+            # from PIL.Image import Image as PILImage
 
 
             history        = results.get("chat_history", [])
@@ -1518,7 +1520,8 @@ def main():
             
             # --- NEW: sweep ./output/data for images -------------------------------
             # image_dir = os.path.join(os.path.dirname(__file__), "output", "data")
-            image_dir = results['final_context']['work_dir']+'/data'
+            # image_dir = results['final_context']['work_dir']+'/data'
+            image_dir = Path(results['final_context']['work_dir'])/ 'data'   # ← preferred
             img_paths = sorted(glob.glob(os.path.join(image_dir, "*")))    # natural order
 
             img_ext_pattern = re.compile(r"\.(png|jpe?g|gif|bmp|tiff)$", re.I)
