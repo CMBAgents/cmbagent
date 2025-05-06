@@ -146,9 +146,17 @@ def main():
         with open(path, 'r') as f:
             return f.read()
 
+    # st.set_page_config(
+    #     page_title="CMBAgent",
+    #     page_icon=":cmbagent:",
+    #     layout="wide",
+    #     initial_sidebar_state="auto"
+    # )
+
+    cmbagent_logo_path = os.path.join(os.path.dirname(__file__), "..", "logo.png")
     st.set_page_config(
-        page_title="CMB Agent",
-        page_icon="🪐",
+        page_title="CMBAGENT",
+        page_icon=cmbagent_logo_path,          # or page_icon=logo_img
         layout="wide",
         initial_sidebar_state="auto"
     )
@@ -642,17 +650,16 @@ def main():
             """
             <span style="font-size:0.9rem;">
             <em>If you’ve already set your API keys as environment variables
-            (for example in <code>~/.bashrc</code>, <code>~/.zshrc</code> or
-            your OS key‑manager), you can leave these fields blank.</em>
+            (e.g., in <code>~/.bashrc</code>), leave these fields blank.</em>
             </span>
             """,
             unsafe_allow_html=True,
         )
         st.markdown("<br>", unsafe_allow_html=True)
 
-        provider_oai        = st.text_input("OpenAI API Key",      type="password", key="api_key_oai")
-        provider_anthropic  = st.text_input("Anthropic API Key",    type="password", key="api_key_anthropic")
-        provider_gemini     = st.text_input("Gemini API Key",       type="password", key="api_key_gemini")
+        provider_oai        = st.text_input("OpenAI",      type="password", key="api_key_oai")
+        provider_anthropic  = st.text_input("Anthropic",    type="password", key="api_key_anthropic")
+        provider_gemini     = st.text_input("Gemini",       type="password", key="api_key_gemini")
         # provider_perplexity = st.text_input("Perplexity API Key",   type="password", key="api_key_perplexity")
 
         username = None
