@@ -540,7 +540,7 @@ def main():
         st.markdown(
             """
             <span style="font-size:0.9rem;">
-            <em>Chose a model for each agent. Click on the dropdown menu.</em>
+            <em>Chose a model for each agent. Click on the dropdown menus.</em>
             </span>
             """,
             unsafe_allow_html=True,
@@ -772,7 +772,7 @@ def main():
         #     else:
         #         st.error("Invalid Perplexity API Key.")
 
-        st.markdown("---")
+        # st.markdown("---")
 
         
 
@@ -939,7 +939,7 @@ def main():
     #         st.rerun()
         # -------------------------------------------------------------------
 
-        st.markdown("---")
+        # st.markdown("---")
         if st.button("Reset Session", key="reset_session"):
             st.session_state.clear()
             st.rerun()
@@ -1061,7 +1061,7 @@ def main():
                 ensure_memory()              # ← add this single line
                 st.rerun()
 
-        st.markdown("---")
+        # st.markdown("---")
 
 
     else:
