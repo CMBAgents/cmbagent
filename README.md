@@ -45,6 +45,8 @@ You give a task to solve, then:
 
 ## Install 
 
+With Python 3.9 or above:
+
 ```bash
 python3 -m venv cmbagent_env
 source cmbagent_env/bin/activate
