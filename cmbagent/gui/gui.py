@@ -24,6 +24,7 @@ from contextlib import redirect_stdout
 from streamlit import components
 import glob          # <-- NEW
 import traceback
+import base64
 # import builtins, uuid
 
 # from langchain_community.chat_message_histories import ChatMessageHistory
@@ -510,8 +511,106 @@ def main():
             "<link href='https://fonts.googleapis.com/css?family=Jersey+10&display=swap' rel='stylesheet'>",
             unsafe_allow_html=True
         )
+    
+    current_path = os.path.dirname(__file__)
+    logo_path    = os.path.join(current_path, "..", "Robot-MS-Aqua.png")
+    with open(logo_path, "rb") as f:
+        logo_b64 = base64.b64encode(f.read()).decode()
     # --- Sidebar: Always visible controls ---
     with st.sidebar:
+
+        # st.header("📂 Agents in charge")
+        st.markdown(
+        f"""
+        <h3 style="
+            font-family: 'Jersey 10', sans-serif;
+            font-size: 30px;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+        ">
+          <img src="data:image/png;base64,{logo_b64}" 
+               alt="Agents" 
+               style="height:1.5em; vertical-align: middle; margin-right:0.5em;" />
+          Agents
+        </h3>
+        """,
+        unsafe_allow_html=True
+    )
+
+        agents = {
+            "engineer": {
+                "label": "Engineer",
+                "models": [
+                    "gpt-4o", "gpt-4o-mini","gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
+                    "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
+                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash",
+                    # "sonar-pro", "sonar"
+                ]
+            },
+            "researcher": {
+                "label": "Researcher",
+                "models": [
+                    "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
+                    "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
+                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash",
+                    # "sonar-pro", "sonar"
+                ]
+            }
+        }
+
+        def get_provider_for_model(model):
+            oai = {"gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "gpt-4o", "gpt-4o-mini", "o3", "o4-mini", "o3-mini"}
+            anth = {"Claude 3.7 Sonnet", "Claude 3.5 Haiku", "Claude 3.5 Sonnet"}
+            gem = {"gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash"}
+            # per = {"sonar-pro", "sonar"}
+
+            if model in oai:
+                return "OpenAI"
+            if model in anth:
+                return "Anthropic"
+            if model in gem:
+                return "Gemini"
+            # if model in per:
+            #     return "Perplexity"
+            return None
+
+        # Initialize session_state.agent_models once
+        if "agent_models" not in st.session_state:
+            st.session_state.agent_models = {
+                name: info["models"][0] for name, info in agents.items()
+            }
+
+        # for key, info in agents.items():
+        #     with st.expander(f"🧑‍💻 {info['label']}"):
+        #         choice = st.selectbox(
+        #             f"Select LLM model for {info['label']}",
+        #             info["models"],
+        #             key=f"{key}_model",
+        #             index=info["models"].index(st.session_state.agent_models[key])
+        #         )
+        #         st.session_state.agent_models[key] = choice
+
+        # somewhere near the top of your file, right after you define `agents = {...}`
+        current_path = os.path.dirname(__file__)
+        # print(current_path)
+        logo_path    = os.path.join(current_path, "..", "Robot-MS-Aqua.png")
+        with open(logo_path, "rb") as f:
+            logo_b64 = base64.b64encode(f.read()).decode()
+
+        # then further down, replace your old expander loop…
+        for key, info in agents.items():
+            # build a little markdown image tag
+            img_md = f"![logo](data:image/png;base64,{logo_b64})"
+            # use that instead of the 🧑‍💻 emoji
+            with st.expander(f"{img_md}  {info['label']}", expanded=False):
+                choice = st.selectbox(
+                    f"Select LLM model for {info['label']}",
+                    info["models"],
+                    key=f"{key}_model",
+                    index=info["models"].index(st.session_state.agent_models[key])
+                )
+                st.session_state.agent_models[key] = choice
         
         # st.header("🔐 API Provider")
         st.markdown(
@@ -527,11 +626,6 @@ def main():
             unsafe_allow_html=True
         )
 
-        provider_oai        = st.text_input("OpenAI API Key",      type="password", key="api_key_oai")
-        provider_anthropic  = st.text_input("Anthropic API Key",    type="password", key="api_key_anthropic")
-        provider_gemini     = st.text_input("Gemini API Key",       type="password", key="api_key_gemini")
-        # provider_perplexity = st.text_input("Perplexity API Key",   type="password", key="api_key_perplexity")
-
         # 📝  Tell users they can skip the boxes if their keys are already exported
         st.markdown(
             """
@@ -543,6 +637,13 @@ def main():
             """,
             unsafe_allow_html=True,
         )
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        provider_oai        = st.text_input("OpenAI API Key",      type="password", key="api_key_oai")
+        provider_anthropic  = st.text_input("Anthropic API Key",    type="password", key="api_key_anthropic")
+        provider_gemini     = st.text_input("Gemini API Key",       type="password", key="api_key_gemini")
+        # provider_perplexity = st.text_input("Perplexity API Key",   type="password", key="api_key_perplexity")
+
         username = None
         # username            = st.text_input("2. Username (for saving your files)", placeholder="Enter your username")
         # user_password       = st.text_input("3. Password to encrypt/decrypt API key", type="password")
@@ -661,93 +762,6 @@ def main():
         #         st.error("Invalid Perplexity API Key.")
 
         st.markdown("---")
-        # st.header("📂 Agents in charge")
-        st.markdown(
-            """
-            <h3 style="
-            font-family: 'Jersey 10', sans-serif;
-            font-size: 30px;
-            margin-top: 1rem;
-            ">
-            📂 Agents
-            </h3>
-            """,
-            unsafe_allow_html=True
-        )
-
-        agents = {
-            "engineer": {
-                "label": "Engineer",
-                "models": [
-                    "gpt-4o", "gpt-4o-mini","gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
-                    "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
-                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash",
-                    # "sonar-pro", "sonar"
-                ]
-            },
-            "researcher": {
-                "label": "Researcher",
-                "models": [
-                    "gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
-                    "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
-                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash",
-                    # "sonar-pro", "sonar"
-                ]
-            }
-        }
-
-        def get_provider_for_model(model):
-            oai = {"gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "gpt-4o", "gpt-4o-mini", "o3", "o4-mini", "o3-mini"}
-            anth = {"Claude 3.7 Sonnet", "Claude 3.5 Haiku", "Claude 3.5 Sonnet"}
-            gem = {"gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash"}
-            # per = {"sonar-pro", "sonar"}
-
-            if model in oai:
-                return "OpenAI"
-            if model in anth:
-                return "Anthropic"
-            if model in gem:
-                return "Gemini"
-            # if model in per:
-            #     return "Perplexity"
-            return None
-
-        # Initialize session_state.agent_models once
-        if "agent_models" not in st.session_state:
-            st.session_state.agent_models = {
-                name: info["models"][0] for name, info in agents.items()
-            }
-
-        # for key, info in agents.items():
-        #     with st.expander(f"🧑‍💻 {info['label']}"):
-        #         choice = st.selectbox(
-        #             f"Select LLM model for {info['label']}",
-        #             info["models"],
-        #             key=f"{key}_model",
-        #             index=info["models"].index(st.session_state.agent_models[key])
-        #         )
-        #         st.session_state.agent_models[key] = choice
-        import os, base64
-        # somewhere near the top of your file, right after you define `agents = {...}`
-        current_path = os.path.dirname(__file__)
-        # print(current_path)
-        logo_path    = os.path.join(current_path, "..", "Robot-MS-Aqua.png")
-        with open(logo_path, "rb") as f:
-            logo_b64 = base64.b64encode(f.read()).decode()
-
-        # then further down, replace your old expander loop…
-        for key, info in agents.items():
-            # build a little markdown image tag
-            img_md = f"![logo](data:image/png;base64,{logo_b64})"
-            # use that instead of the 🧑‍💻 emoji
-            with st.expander(f"{img_md}  {info['label']}", expanded=False):
-                choice = st.selectbox(
-                    f"Select LLM model for {info['label']}",
-                    info["models"],
-                    key=f"{key}_model",
-                    index=info["models"].index(st.session_state.agent_models[key])
-                )
-                st.session_state.agent_models[key] = choice
 
         
 
@@ -1266,21 +1280,21 @@ def main():
         # … everything above stays the same until here …
         if user_input:
             # ── create chat-history file on very first prompt ────────────────────────────
-            if st.session_state.cur_hist is None:          # first message this session
-                # include the current page ("one_shot" or "planning_and_control") in the filename
-                page = st.session_state.page  # "one_shot" or "planning_and_control"
-                slug = _slugify(user_input)
-                hist_dir = os.path.join(os.path.dirname(__file__), "history")
-                fn = f"{page}_{slug}_chat_history.json"
+            # if st.session_state.cur_hist is None:          # first message this session
+            #     # include the current page ("one_shot" or "planning_and_control") in the filename
+            #     page = st.session_state.page  # "one_shot" or "planning_and_control"
+            #     slug = _slugify(user_input)
+            #     hist_dir = os.path.join(os.path.dirname(__file__), "history")
+            #     fn = f"{page}_{slug}_chat_history.json"
 
-                path    = os.path.join(hist_dir, fn)
+            #     path    = os.path.join(hist_dir, fn)
 
-                # avoid collisions: add _2, _3 … if necessary
-                counter = 2
-                base, ext = os.path.splitext(path)
-                while os.path.exists(path):
-                    path = f"{base}_{counter}{ext}"
-                    counter += 1
+            #     # avoid collisions: add _2, _3 … if necessary
+            #     counter = 2
+            #     base, ext = os.path.splitext(path)
+            #     while os.path.exists(path):
+            #         path = f"{base}_{counter}{ext}"
+            #         counter += 1
 
                 # st.session_state.cur_hist = path          # remember it
                 # save_chat_history(username, [])           # touch the file once

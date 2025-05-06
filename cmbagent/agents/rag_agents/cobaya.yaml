@@ -386,7 +386,7 @@ instructions: |
 
 
 assistant_config:
-  assistant_id: asst_kbb5Ffsg1ZnN9COEAi21sR80
+  assistant_id: asst_f0hY82Lce3soSRN8StM89JNv
   tools:
   - type: file_search
   tool_resources:
