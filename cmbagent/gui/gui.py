@@ -535,8 +535,19 @@ def main():
           Agents
         </h3>
         """,
-        unsafe_allow_html=True
-    )
+        unsafe_allow_html=True)
+
+        st.markdown(
+            """
+            <span style="font-size:0.9rem;">
+            <em>Chose a model for each agent. Click on the dropdown menu.</em>
+            </span>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+
 
         agents = {
             "engineer": {
@@ -1378,6 +1389,18 @@ def main():
                                 initial_agent=st.session_state.one_shot_selected_agent,
                             )
 
+                            # image_dir = results['final_context']['work_dir']+'/data'
+
+                            # # List any image files in the output directory
+                            # if os.path.exists(image_dir):
+                            #     image_files = glob.glob(os.path.join(image_dir, '*.png')) + \
+                            #                 glob.glob(os.path.join(image_dir, '*.jpg')) + \
+                            #                 glob.glob(os.path.join(image_dir, '*.jpeg'))
+                            #     if image_files:
+                            #         st.markdown("### Generated Images:")
+                            #         for img_path in image_files:
+                            #             st.image(img_path)
+
                         elif st.session_state.page == "planning_and_control":
                             results = planning_and_control(
                                 user_input,
@@ -1487,7 +1510,8 @@ def main():
                     to_display.append(("control", c))
             
             # --- NEW: sweep ./output/data for images -------------------------------
-            image_dir = os.path.join(os.path.dirname(__file__), "output", "data")
+            # image_dir = os.path.join(os.path.dirname(__file__), "output", "data")
+            image_dir = results['final_context']['work_dir']+'/data'
             img_paths = sorted(glob.glob(os.path.join(image_dir, "*")))    # natural order
 
             img_ext_pattern = re.compile(r"\.(png|jpe?g|gif|bmp|tiff)$", re.I)
