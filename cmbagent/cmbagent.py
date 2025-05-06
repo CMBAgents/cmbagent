@@ -408,64 +408,177 @@ class CMBAgent:
     #     display(df)
     #     return
 
-
     def display_cost(self):
-        '''display full cost dictionary'''
-        print('displaying cost...')
+        """Display a full cost report as a right‑aligned Markdown table with $ and a
+        rule above the total row."""
+        from collections import defaultdict
+        import pandas as pd
+
         cost_dict = defaultdict(list)
 
-        # Collect all agents, safely handling when groupchat isn’t set
-        all_agents = [agent.agent for agent in self.agents]
-        if hasattr(self, 'groupchat'):
+        # --- collect per‑agent costs ------------------------------------------------
+        all_agents = [a.agent for a in self.agents]
+        if hasattr(self, "groupchat"):
             all_agents += self.groupchat.new_conversable_agents
 
-        # Aggregate each agent’s cost entries
         for agent in all_agents:
-            if hasattr(agent, 'cost_dict') and agent.cost_dict.get('Agent'):
-                name = (agent.cost_dict['Agent'][0]
-                        .replace('admin (', '')
-                        .replace(')', '')
-                        .replace('_', ' '))
-                if name in cost_dict['Agent']:
-                    idx = cost_dict['Agent'].index(name)
-                    for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
-                        cost_dict[field][idx] += sum(agent.cost_dict[field])
+            if hasattr(agent, "cost_dict") and agent.cost_dict.get("Agent"):
+                name = (
+                    agent.cost_dict["Agent"][0]
+                    .replace("admin (", "")
+                    .replace(")", "")
+                    .replace("_", " ")
+                )
+                summed_cost   = round(sum(agent.cost_dict["Cost"]), 8)
+                summed_prompt = int(sum(agent.cost_dict["Prompt Tokens"]))
+                summed_comp   = int(sum(agent.cost_dict["Completion Tokens"]))
+                summed_total  = int(sum(agent.cost_dict["Total Tokens"]))
+
+                if name in cost_dict["Agent"]:
+                    i = cost_dict["Agent"].index(name)
+                    cost_dict["Cost ($)"][i]              += summed_cost
+                    cost_dict["Prompt Tokens"][i]     += summed_prompt
+                    cost_dict["Completion Tokens"][i] += summed_comp
+                    cost_dict["Total Tokens"][i]      += summed_total
                 else:
-                    cost_dict['Agent'].append(name)
-                    for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
-                        cost_dict[field].append(sum(agent.cost_dict[field]))
+                    cost_dict["Agent"].append(name)
+                    cost_dict["Cost ($)"].append(summed_cost)
+                    cost_dict["Prompt Tokens"].append(summed_prompt)
+                    cost_dict["Completion Tokens"].append(summed_comp)
+                    cost_dict["Total Tokens"].append(summed_total)
 
-        # Build DataFrame and add totals row
+        # --- build DataFrame & totals ----------------------------------------------
         df = pd.DataFrame(cost_dict)
-        numeric_cols = df.select_dtypes(include='number').columns
+        numeric_cols = df.select_dtypes(include="number").columns
         totals = df[numeric_cols].sum()
-        df.loc['Total'] = pd.concat([pd.Series({'Agent': 'Total'}), totals])
+        df.loc["Total"] = pd.concat([pd.Series({"Agent": "Total"}), totals])
 
-        # Manually render as Markdown table
-        columns = df.columns.tolist()
-        # Convert everything to string (and fill NaN)
-        rows = df.astype(str).fillna('').values.tolist()
+        # --- string formatting ------------------------------------------------------
+        df_str = df.copy()
+        df_str["Cost ($)"] = df_str["Cost ($)"].map(lambda x: f"${x:.8f}")
+        for col in ["Prompt Tokens", "Completion Tokens", "Total Tokens"]:
+            df_str[col] = df_str[col].astype(int).astype(str)
 
-        # Compute column widths
-        widths = []
+        columns = df_str.columns.tolist()
+        rows = df_str.fillna("").values.tolist()
+
+        # --- column widths ----------------------------------------------------------
+        widths = [
+            max(len(col), max(len(str(row[i])) for row in rows))
+            for i, col in enumerate(columns)
+        ]
+
+        # --- header with alignment markers -----------------------------------------
+        header   = "|" + "|".join(f" {columns[i].ljust(widths[i])} " for i in range(len(columns))) + "|"
+
+        # Markdown alignment row: left for text, right for numbers
+        align_row = []
         for i, col in enumerate(columns):
-            max_cell = max(len(str(row[i])) for row in rows)
-            widths.append(max(len(col), max_cell))
+            if col == "Agent":
+                align_row.append(":" + "-"*(widths[i]+1))      # :---- for left
+            else:
+                align_row.append("-"*(widths[i]+1) + ":")      # ----: for right
+        separator = "|" + "|".join(align_row) + "|"
 
-        # Header row
-        header = "|" + "|".join(f" {col.ljust(widths[i])} " for i, col in enumerate(columns)) + "|"
-        # Separator row (at least three dashes per column)
-        sep_cells = [ "-" * max(widths[i]+2, 3) for i in range(len(columns)) ]
-        separator = "|" + "|".join(sep_cells) + "|"
-
-        # Data rows
+        # --- build data lines -------------------------------------------------------
         lines = [header, separator]
-        for row in rows:
-            line = "|" + "|".join(f" {str(row[i]).ljust(widths[i])} " for i in range(len(columns))) + "|"
-            lines.append(line)
+        for idx, row in enumerate(rows):
+            # insert rule before the Total row
+            if row[0] == "Total":
+                lines.append("|" + "|".join("-"*(widths[i]+2) for i in range(len(columns))) + "|")
 
+            cell = []
+            for i, col in enumerate(columns):
+                s = str(row[i])
+                if col == "Agent":
+                    cell.append(f" {s.ljust(widths[i])} ")
+                else:
+                    cell.append(f" {s.rjust(widths[i])} ")
+            lines.append("|" + "|".join(cell) + "|")
+
+        print("\nDisplaying cost…\n")
         print("\n".join(lines))
-        return
+
+
+    # def display_cost(self):
+    #     """Display a full cost report as a Markdown table (rounded + int tokens)."""
+    #     from collections import defaultdict
+    #     import pandas as pd
+
+    #     print("\nDisplaying cost…")
+    #     cost_dict = defaultdict(list)
+
+    #     # Collect all agents – account for standalone + group‑chat
+    #     all_agents = [a.agent for a in self.agents]
+    #     if hasattr(self, "groupchat"):
+    #         all_agents += self.groupchat.new_conversable_agents
+
+    #     # Aggregate per‑agent costs
+    #     for agent in all_agents:
+    #         if hasattr(agent, "cost_dict") and agent.cost_dict.get("Agent"):
+    #             name = (
+    #                 agent.cost_dict["Agent"][0]
+    #                 .replace("admin (", "")
+    #                 .replace(")", "")
+    #                 .replace("_", " ")
+    #             )
+
+    #             # Prepare summed values, with rounding / int‑cast
+    #             summed_cost   = round(sum(agent.cost_dict["Cost"]), 8)
+    #             summed_prompt = int(sum(agent.cost_dict["Prompt Tokens"]))
+    #             summed_comp   = int(sum(agent.cost_dict["Completion Tokens"]))
+    #             summed_total  = int(sum(agent.cost_dict["Total Tokens"]))
+
+    #             if name in cost_dict["Agent"]:
+    #                 i = cost_dict["Agent"].index(name)
+    #                 cost_dict["Cost (\$)"][i]              += summed_cost
+    #                 cost_dict["Prompt Tokens"][i]     += summed_prompt
+    #                 cost_dict["Completion Tokens"][i] += summed_comp
+    #                 cost_dict["Total Tokens"][i]      += summed_total
+    #             else:
+    #                 cost_dict["Agent"].append(name)
+    #                 cost_dict["Cost"].append(summed_cost)
+    #                 cost_dict["Prompt Tokens"].append(summed_prompt)
+    #                 cost_dict["Completion Tokens"].append(summed_comp)
+    #                 cost_dict["Total Tokens"].append(summed_total)
+
+    #     # Build DataFrame and totals row
+    #     df = pd.DataFrame(cost_dict)
+    #     numeric_cols = df.select_dtypes(include="number").columns
+    #     totals = df[numeric_cols].sum()
+    #     df.loc["Total"] = pd.concat([pd.Series({"Agent": "Total"}), totals])
+
+    #     # ------- manual Markdown table rendering ---------------------------------
+    #     df_str = df.copy()
+
+    #     # Format: cost with 8 dp, tokens as int
+    #     if "Cost" in df_str.columns:
+    #         df_str["Cost"] = df_str["Cost"].map(lambda x: f"{x:.8f}")
+    #     for col in ["Prompt Tokens", "Completion Tokens", "Total Tokens"]:
+    #         if col in df_str.columns:
+    #             df_str[col] = df_str[col].astype(int).astype(str)
+
+    #     columns = df_str.columns.tolist()
+    #     rows = df_str.fillna("").values.tolist()
+
+    #     # Compute column widths
+    #     widths = [
+    #         max(len(col), max(len(str(row[i])) for row in rows))
+    #         for i, col in enumerate(columns)
+    #     ]
+
+    #     # Header & separator
+    #     header = "|" + "|".join(f" {col.ljust(widths[i])} " for i, col in enumerate(columns)) + "|"
+    #     separator = "|" + "|".join("-" * max(widths[i] + 2, 3) for i in range(len(columns))) + "|"
+
+    #     # Data rows
+    #     lines = [header, separator]
+    #     for row in rows:
+    #         line = "|" + "|".join(f" {str(row[i]).ljust(widths[i])} " for i in range(len(columns))) + "|"
+    #         lines.append(line)
+
+    #     print("\n".join(lines))
+
 
 
     

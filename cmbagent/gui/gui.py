@@ -11,6 +11,7 @@ from PIL.Image import Image as PILImage  # <-- this is the actual class
 from pandas.io.formats.style import Styler
 os.environ["CMBAGENT_DEBUG"] = "false"
 os.environ["ASTROPILOT_DISABLE_DISPLAY"] = "true"
+os.environ["STREAMLIT_ON"] = "true"
 import json
 import time
 import copy
