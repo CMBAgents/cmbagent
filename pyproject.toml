@@ -8,7 +8,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1post10"
+version = "0.0.1post11"
 name = "cmbagent"
 maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
 description = "multi-agent system for autonomous discovery, made by cosmologists, powered by ag2"
@@ -24,6 +24,7 @@ dependencies = [
     "jsonref==1.1.0",
 
     "streamlit",
+    "ipython", ## needed for streamlit
     
 
     # astronomy/astrophysics
