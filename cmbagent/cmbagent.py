@@ -11,6 +11,8 @@ import copy
 import datetime
 from typing import Any, Dict
 from IPython.display import display
+from pathlib import Path
+from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
 from collections import defaultdict
 from .utils import work_dir as work_dir_default
 from .utils import path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
@@ -62,7 +64,7 @@ from pydantic import BaseModel
 from ruamel.yaml import YAML
 from typing import List
 from autogen import  AfterWorkOption, AFTER_WORK, ON_CONDITION, SwarmResult, initiate_swarm_chat, SwarmAgent
-from autogen.cmbagent_utils import cmbagent_debug
+from autogen import cmbagent_debug
 from cmbagent.cmbagent_swarm_agent import initiate_cmbagent_swarm_chat
 from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse, RagSoftwareFormatterResponse
 from cmbagent.context import shared_context as shared_context_default
@@ -75,6 +77,7 @@ import shutil
 class CMBAgent:
 
     logging.disable(logging.CRITICAL)
+    cmbagent_debug = autogen.cmbagent_debug
 
 
 
@@ -89,7 +92,7 @@ class CMBAgent:
                  llm_api_key=None,
                  llm_api_type=None,
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
-                 agent_list = ['classy_sz'],
+                 agent_list = ['camb','classy_sz','cobaya','planck'],
                  verbose = False,
                  reset_assistant = False,
                  agent_instructions = {
@@ -103,7 +106,7 @@ class CMBAgent:
                  agent_top_p = None,
                 #  vector_store_ids = None,
                  chunking_strategy = {
-                    'classy_sz_agent': 
+                    'camb_agent': 
                     {
                     "type": "static",
                     "static": {
@@ -124,6 +127,8 @@ class CMBAgent:
                  agent_type = 'swarm',# None,# 'swarm',
                  shared_context = shared_context_default,
                  work_dir = work_dir_default,
+                 mode = "planning_and_control", # can be "one_shot" or "chat" (default is planning and control)
+                 chat_agent = None,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
@@ -138,34 +143,6 @@ class CMBAgent:
             make_vector_stores (bool or list of strings, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb'].
             agent_list (list of strings, optional): List of agents to include in the conversation. Defaults to all agents.
             chunking_strategy (dict, optional): Chunking strategy for vector stores. Defaults to None.
-            #  example:
-            #  chunking_strategy = {
-            # 'planck_agent': 
-            #     {
-            #     "type": "static",
-            #     "static": {
-            #       "max_chunk_size_tokens": 3300, # reduce size to ensure better context integrity
-            #       "chunk_overlap_tokens": 1000 # increase overlap to maintain context across chunks
-            #     }
-            # }
-            # }
-            # example for agent_temperature and agent_top_p:
-            # agent_temperature = {
-            # 'planck_agent': 0.000001
-            # }
-            # agent_top_p = {
-            # 'planck_agent': 0.1,
-            # }
-            # agent instruction example:
-            # agent_instructions = {
-            # 'classy_sz_agent': "You are a clown. "
-            # }
-            reset_assistant (List of strings, optional): List of agents to reset the assistant. Defaults to False.
-            # example:
-            # reset_assistant = [
-            # 'classy_sz',
-            # ]
-            
             make_new_rag_agents (list of strings, optional): List of names for new rag agents to be created. Defaults to False.
             
             **kwargs: Additional keyword arguments.
@@ -202,6 +179,11 @@ class CMBAgent:
         self.agent_list = agent_list
 
         self.skip_memory = skip_memory
+
+        self.results = {}
+
+        self.mode = mode
+        self.chat_agent = chat_agent
 
         if not self.skip_memory and 'memory' not in agent_list:
             self.agent_list.append('memory')
@@ -241,9 +223,10 @@ class CMBAgent:
                         "top_p": top_p,
                         "config_list": llm_config_list,
                         "timeout": timeout,
+                        "check_every_ms": None,
                     }
         
-        if cmbagent_debug:
+        if autogen.cmbagent_debug:
             print('\n\n\n\nin cmbagent.py self.llm_config: ',self.llm_config)
 
         # self.llm_config =  {"model": "gpt-4o-mini", "cache_seed": None}
@@ -328,7 +311,9 @@ class CMBAgent:
 
                 # cmbagent debug --> removed this option, pass in make_vector_stores=True in kwargs
                 # #### the files list is appended twice to the instructions.... TBD!!!
-                if agent.set_agent(**agent_kwargs) == 1:
+                setagent = agent.set_agent(**agent_kwargs)
+
+                if setagent == 1:
 
                     if cmbagent_debug:
                         print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
@@ -342,7 +327,7 @@ class CMBAgent:
 
                 # else:
                 # see above for trick on how to make vector store if it is not found. 
-                agent.set_agent(**agent_kwargs)
+                # agent.set_agent(**agent_kwargs)
 
             else: ## set all non-rag agents
                 
@@ -401,27 +386,201 @@ class CMBAgent:
 
     
 
+    # def display_cost(self):
+    #     '''display full cost dictionary'''
+    #     cost_dict = defaultdict(list)
+    #     all_agents = [agent.agent for agent in self.agents] + self.groupchat.new_conversable_agents
+    #     for agent in all_agents:
+    #         if hasattr(agent, 'cost_dict') and agent.cost_dict['Agent']:
+    #             name = agent.cost_dict['Agent'][0].replace('admin (', '').replace(')', '').replace('_', ' ')
+    #             if name in cost_dict['Agent']:
+    #                 idx = cost_dict['Agent'].index(name)
+    #                 for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
+    #                     cost_dict[field][idx] += sum(agent.cost_dict[field])
+    #             else:
+    #                 cost_dict['Agent'].append(name)
+    #                 for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
+    #                     cost_dict[field].append(sum(agent.cost_dict[field]))
+    #     df = pd.DataFrame(cost_dict)
+    #     columns_to_sum = df.select_dtypes(include='number').columns
+    #     totals = df[columns_to_sum].sum()
+    #     df.loc['Total'] = pd.concat([pd.Series({'Name': 'Total'}), totals])
+    #     display(df)
+    #     return
+
     def display_cost(self):
-        '''display full cost dictionary'''
+        """Display a full cost report as a right‑aligned Markdown table with $ and a
+        rule above the total row."""
+        from collections import defaultdict
+        import pandas as pd
+
         cost_dict = defaultdict(list)
-        all_agents = [agent.agent for agent in self.agents] + self.groupchat.new_conversable_agents
+
+        # --- collect per‑agent costs ------------------------------------------------
+        all_agents = [a.agent for a in self.agents]
+        if hasattr(self, "groupchat"):
+            all_agents += self.groupchat.new_conversable_agents
+
         for agent in all_agents:
-            if hasattr(agent, 'cost_dict') and agent.cost_dict['Agent']:
-                name = agent.cost_dict['Agent'][0].replace('admin (', '').replace(')', '').replace('_', ' ')
-                if name in cost_dict['Agent']:
-                    idx = cost_dict['Agent'].index(name)
-                    for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
-                        cost_dict[field][idx] += sum(agent.cost_dict[field])
+            if hasattr(agent, "cost_dict") and agent.cost_dict.get("Agent"):
+                name = (
+                    agent.cost_dict["Agent"][0]
+                    .replace("admin (", "")
+                    .replace(")", "")
+                    .replace("_", " ")
+                )
+                summed_cost   = round(sum(agent.cost_dict["Cost"]), 8)
+                summed_prompt = int(sum(agent.cost_dict["Prompt Tokens"]))
+                summed_comp   = int(sum(agent.cost_dict["Completion Tokens"]))
+                summed_total  = int(sum(agent.cost_dict["Total Tokens"]))
+
+                if name in cost_dict["Agent"]:
+                    i = cost_dict["Agent"].index(name)
+                    cost_dict["Cost ($)"][i]              += summed_cost
+                    cost_dict["Prompt Tokens"][i]     += summed_prompt
+                    cost_dict["Completion Tokens"][i] += summed_comp
+                    cost_dict["Total Tokens"][i]      += summed_total
                 else:
-                    cost_dict['Agent'].append(name)
-                    for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
-                        cost_dict[field].append(sum(agent.cost_dict[field]))
+                    cost_dict["Agent"].append(name)
+                    cost_dict["Cost ($)"].append(summed_cost)
+                    cost_dict["Prompt Tokens"].append(summed_prompt)
+                    cost_dict["Completion Tokens"].append(summed_comp)
+                    cost_dict["Total Tokens"].append(summed_total)
+
+        # --- build DataFrame & totals ----------------------------------------------
         df = pd.DataFrame(cost_dict)
-        columns_to_sum = df.select_dtypes(include='number').columns
-        totals = df[columns_to_sum].sum()
-        df.loc['Total'] = pd.concat([pd.Series({'Name': 'Total'}), totals])
-        display(df)
-        return
+        numeric_cols = df.select_dtypes(include="number").columns
+        totals = df[numeric_cols].sum()
+        df.loc["Total"] = pd.concat([pd.Series({"Agent": "Total"}), totals])
+
+        # --- string formatting ------------------------------------------------------
+        df_str = df.copy()
+        df_str["Cost ($)"] = df_str["Cost ($)"].map(lambda x: f"${x:.8f}")
+        for col in ["Prompt Tokens", "Completion Tokens", "Total Tokens"]:
+            df_str[col] = df_str[col].astype(int).astype(str)
+
+        columns = df_str.columns.tolist()
+        rows = df_str.fillna("").values.tolist()
+
+        # --- column widths ----------------------------------------------------------
+        widths = [
+            max(len(col), max(len(str(row[i])) for row in rows))
+            for i, col in enumerate(columns)
+        ]
+
+        # --- header with alignment markers -----------------------------------------
+        header   = "|" + "|".join(f" {columns[i].ljust(widths[i])} " for i in range(len(columns))) + "|"
+
+        # Markdown alignment row: left for text, right for numbers
+        align_row = []
+        for i, col in enumerate(columns):
+            if col == "Agent":
+                align_row.append(":" + "-"*(widths[i]+1))      # :---- for left
+            else:
+                align_row.append("-"*(widths[i]+1) + ":")      # ----: for right
+        separator = "|" + "|".join(align_row) + "|"
+
+        # --- build data lines -------------------------------------------------------
+        lines = [header, separator]
+        for idx, row in enumerate(rows):
+            # insert rule before the Total row
+            if row[0] == "Total":
+                lines.append("|" + "|".join("-"*(widths[i]+2) for i in range(len(columns))) + "|")
+
+            cell = []
+            for i, col in enumerate(columns):
+                s = str(row[i])
+                if col == "Agent":
+                    cell.append(f" {s.ljust(widths[i])} ")
+                else:
+                    cell.append(f" {s.rjust(widths[i])} ")
+            lines.append("|" + "|".join(cell) + "|")
+
+        print("\nDisplaying cost…\n")
+        print("\n".join(lines))
+
+
+    # def display_cost(self):
+    #     """Display a full cost report as a Markdown table (rounded + int tokens)."""
+    #     from collections import defaultdict
+    #     import pandas as pd
+
+    #     print("\nDisplaying cost…")
+    #     cost_dict = defaultdict(list)
+
+    #     # Collect all agents – account for standalone + group‑chat
+    #     all_agents = [a.agent for a in self.agents]
+    #     if hasattr(self, "groupchat"):
+    #         all_agents += self.groupchat.new_conversable_agents
+
+    #     # Aggregate per‑agent costs
+    #     for agent in all_agents:
+    #         if hasattr(agent, "cost_dict") and agent.cost_dict.get("Agent"):
+    #             name = (
+    #                 agent.cost_dict["Agent"][0]
+    #                 .replace("admin (", "")
+    #                 .replace(")", "")
+    #                 .replace("_", " ")
+    #             )
+
+    #             # Prepare summed values, with rounding / int‑cast
+    #             summed_cost   = round(sum(agent.cost_dict["Cost"]), 8)
+    #             summed_prompt = int(sum(agent.cost_dict["Prompt Tokens"]))
+    #             summed_comp   = int(sum(agent.cost_dict["Completion Tokens"]))
+    #             summed_total  = int(sum(agent.cost_dict["Total Tokens"]))
+
+    #             if name in cost_dict["Agent"]:
+    #                 i = cost_dict["Agent"].index(name)
+    #                 cost_dict["Cost (\$)"][i]              += summed_cost
+    #                 cost_dict["Prompt Tokens"][i]     += summed_prompt
+    #                 cost_dict["Completion Tokens"][i] += summed_comp
+    #                 cost_dict["Total Tokens"][i]      += summed_total
+    #             else:
+    #                 cost_dict["Agent"].append(name)
+    #                 cost_dict["Cost"].append(summed_cost)
+    #                 cost_dict["Prompt Tokens"].append(summed_prompt)
+    #                 cost_dict["Completion Tokens"].append(summed_comp)
+    #                 cost_dict["Total Tokens"].append(summed_total)
+
+    #     # Build DataFrame and totals row
+    #     df = pd.DataFrame(cost_dict)
+    #     numeric_cols = df.select_dtypes(include="number").columns
+    #     totals = df[numeric_cols].sum()
+    #     df.loc["Total"] = pd.concat([pd.Series({"Agent": "Total"}), totals])
+
+    #     # ------- manual Markdown table rendering ---------------------------------
+    #     df_str = df.copy()
+
+    #     # Format: cost with 8 dp, tokens as int
+    #     if "Cost" in df_str.columns:
+    #         df_str["Cost"] = df_str["Cost"].map(lambda x: f"{x:.8f}")
+    #     for col in ["Prompt Tokens", "Completion Tokens", "Total Tokens"]:
+    #         if col in df_str.columns:
+    #             df_str[col] = df_str[col].astype(int).astype(str)
+
+    #     columns = df_str.columns.tolist()
+    #     rows = df_str.fillna("").values.tolist()
+
+    #     # Compute column widths
+    #     widths = [
+    #         max(len(col), max(len(str(row[i])) for row in rows))
+    #         for i, col in enumerate(columns)
+    #     ]
+
+    #     # Header & separator
+    #     header = "|" + "|".join(f" {col.ljust(widths[i])} " for i, col in enumerate(columns)) + "|"
+    #     separator = "|" + "|".join("-" * max(widths[i] + 2, 3) for i in range(len(columns))) + "|"
+
+    #     # Data rows
+    #     lines = [header, separator]
+    #     for row in rows:
+    #         line = "|" + "|".join(f" {str(row[i]).ljust(widths[i])} " for i in range(len(columns))) + "|"
+    #         lines.append(line)
+
+    #     print("\n".join(lines))
+
+
+
     
 
     def update_memory_agent(self):
@@ -517,13 +676,45 @@ class CMBAgent:
                     shutil.rmtree(item_path)
 
 
-    def solve(self, task, initial_agent='planner', 
+    def solve(self, task, initial_agent='task_improver', 
               shared_context=None,
+              mode = "default", # can be "one_shot" or "default" (default is planning and control)
               max_rounds=10):
         
         this_shared_context = copy.deepcopy(self.shared_context)
-        if shared_context is not None:
-            this_shared_context.update(shared_context)
+        
+        if mode == "one_shot" or mode == "chat":
+            one_shot_shared_context = {'final_plan': "Step 1: solve the main task.",
+                                        'current_status': "In progress",
+                                        'current_plan_step_number': 1,
+                                        'current_sub_task' : "solve the main task.",
+                                        'current_instructions': "solve the main task.",
+                                        'agent_for_sub_task': initial_agent,
+                                        'feedback_left': 0,
+                                        "number_of_steps_in_plan": 1,
+                                        'maximum_number_of_steps_in_plan': 1,
+                                        'researcher_append_instructions': '',
+                                        'engineer_append_instructions': '',
+                                        'perplexity_append_instructions': '',
+                                        'idea_maker_append_instructions': '',
+                                        'idea_hater_append_instructions': '',
+                                        }
+            
+            if initial_agent == 'perplexity':
+                one_shot_shared_context['perplexity_query'] = self.get_agent_object_from_name('perplexity').info['instructions'].format(main_task=task)
+                # print('one_shot_shared_context: ', one_shot_shared_context)
+
+
+            this_shared_context.update(one_shot_shared_context)
+            this_shared_context.update(shared_context or {})
+
+            # print('one_shot_shared_context: ', one_shot_shared_context)
+            # print('shared_context: ', this_shared_context)
+            # sys.exit()
+            
+        else:
+            if shared_context is not None:
+                this_shared_context.update(shared_context)
         
 
         self.clear_cache() ## obsolete
@@ -538,20 +729,33 @@ class CMBAgent:
         os.makedirs(codebase_full_path, exist_ok=True)
 
         for agent in self.agents:
-            agent.agent.reset()
+            try:
+                agent.agent.reset()
+            except:
+                pass
 
         this_shared_context['main_task'] = task
+        this_shared_context['improved_main_task'] = task # initialize improved main task
+
+        this_shared_context['work_dir'] = self.work_dir
+        # print('this_shared_context: ', this_shared_context)
+        # sys.exit()
 
         chat_result, context_variables, last_agent = initiate_swarm_chat(
             initial_agent=self.get_agent_from_name(initial_agent),
             agents=[agent.agent for agent in self.agents],
             messages=this_shared_context['main_task'],
-            user_agent=self.get_agent_from_name("admin"),
+            # user_agent=self.get_agent_from_name("admin"),
             context_variables=this_shared_context,
             max_rounds = max_rounds,
-            after_work=AfterWorkOption.REVERT_TO_USER,
+            after_work=AfterWorkOption.TERMINATE,
         )
 
+        # if mode == "one_shot" and initial_agent == 'perplexity':
+        #     if context_variables['perplexity_response'] is None:
+        #         print('perplexity search failed. Please try again.')
+        #         context_variables['perplexity_response'] = None
+        #         context_variables['perplexity_citations'] = None
 
         self.final_context = copy.deepcopy(context_variables)
 
@@ -710,9 +914,13 @@ class CMBAgent:
             if agent_name in agent_llm_configs:
                 llm_config = copy.deepcopy(self.llm_config)
                 llm_config['config_list'][0].update(agent_llm_configs[agent_name])
+
                 if "reasoning_effort" in llm_config['config_list'][0]:
                     llm_config.pop('temperature')
                     llm_config.pop('top_p')
+
+                if llm_config['config_list'][0]['api_type'] == 'google':
+                    llm_config.pop('top_p') 
                 
                 if cmbagent_debug:
                     print('in cmbagent.py: found agent_llm_configs for: ', agent_name)
@@ -865,8 +1073,12 @@ class CMBAgent:
 
 
     def clear_cache(self):
-        # return None
-        autogen.Completion.clear_cache(self.cache_seed) ## obsolete AttributeError: module 'autogen' has no attribute 'Completion'
+        cache_dir = autogen.oai.client.LEGACY_CACHE_DIR
+        if os.path.exists(cache_dir):
+            shutil.rmtree(cache_dir)
+        # sys.exit()s
+        return None
+        #  autogen.Completion.clear_cache(self.cache_seed) ## obsolete AttributeError: module 'autogen' has no attribute 'Completion'
 
 
 
@@ -881,25 +1093,26 @@ class CMBAgent:
 
 
     def set_planner_instructions(self):
+        ### this is a template. Currently not used.
 
         # available agents and their roles:
-        available_agents = "\n\n#### Available agents and their roles\n\n"
+        # available_agents = "\n\n#### Available agents and their roles\n\n"
         
-        for agent in self.agents:
+        # for agent in self.agents:
 
-            if agent.name in ['planner', 'engineer', 'executor', 'admin']:
-                continue
+        #     if agent.name in ['planner', 'engineer', 'executor', 'admin']:
+        #         continue
 
 
-            if 'description' in agent.info:
+        #     if 'description' in agent.info:
 
-                role = agent.info['description']
+        #         role = agent.info['description']
 
-            else:
+        #     else:
 
-                role = agent.info['instructions']
+        #         role = agent.info['instructions']
 
-            available_agents += f"- *{agent.name}* : {role}\n"
+        #     available_agents += f"- *{agent.name}* : {role}\n"
 
 
         # # collect allowed transitions
@@ -920,3 +1133,414 @@ class CMBAgent:
 
 
 
+def planning_and_control(
+                            task,
+                            max_rounds_planning = 50,
+                            max_rounds_control = 100,
+                            max_plan_steps = 3,
+                            n_plan_reviews = 1,
+                            plan_instructions = '',
+                            engineer_instructions = '',
+                            researcher_instructions = '',
+                            max_n_attempts = 3,
+                            engineer_model = 'gpt-4.1-2025-04-14',
+                            researcher_model = 'gpt-4.1-2025-04-14',
+                            work_dir = work_dir_default
+                            ):
+
+    ## planning
+    planning_dir = Path(work_dir).expanduser().resolve() / "planning"
+    cmbagent = CMBAgent(work_dir = planning_dir)
+
+
+
+
+    cmbagent.solve(task,
+                max_rounds=max_rounds_planning,
+                initial_agent="plan_setter",
+                shared_context = {'feedback_left': n_plan_reviews,
+                                    'max_n_attempts': max_n_attempts,
+                                    'maximum_number_of_steps_in_plan': max_plan_steps,
+                                    'planner_append_instructions': plan_instructions,
+                                    'engineer_append_instructions': engineer_instructions,
+                                    'researcher_append_instructions': researcher_instructions,
+                                    'plan_reviewer_append_instructions': plan_instructions}
+                )
+    
+    # Create a dummy groupchat attribute if it doesn't exist
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+
+    # Now call display_cost without triggering the AttributeError
+    cmbagent.display_cost()
+
+    planning_output = copy.deepcopy(cmbagent.final_context)
+    outfile = save_final_plan(planning_output, planning_dir)
+    print(f"Structured plan written to {outfile}")
+
+    ## control
+
+    if 'o3' in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+
+    elif "gemini" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+
+    elif "claude" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    # elif "sonar" in engineer_model:
+    #     engineer_config = {
+    #         "model": engineer_model,
+    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
+    #         "api_type": "sonar"
+    #     }
+
+    else:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+
+    if 'o3' in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    elif "gemini" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+
+    elif "claude" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    # elif "sonar" in researcher_model:
+    #     researcher_config = {
+    #         "model": researcher_model,
+    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
+    #         "api_type": "sonar"
+    #     }
+
+    else:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+        
+    control_dir = Path(work_dir).expanduser().resolve() / "control"
+    cmbagent = CMBAgent(
+        work_dir = control_dir,
+        agent_llm_configs = {
+                            'engineer': engineer_config,
+                            'researcher': researcher_config,
+        })
+        
+
+    cmbagent.solve(task,
+                    max_rounds=max_rounds_control,
+                    initial_agent="control",
+                    shared_context = planning_output
+                    )
+    
+    results = {'chat_history': cmbagent.chat_result.chat_history,
+               'final_context': cmbagent.final_context}
+    
+    # Create a dummy groupchat attribute if it doesn't exist
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+
+    # Now call display_cost without triggering the AttributeError
+    cmbagent.display_cost()
+
+
+    return results
+
+
+
+
+
+
+
+def one_shot(
+            task,
+            max_rounds = 50,
+            max_n_attempts = 3,
+            engineer_model = 'gpt-4o-2024-11-20',
+            researcher_model = 'gpt-4o-2024-11-20',
+            initial_agent = 'engineer',
+            work_dir = work_dir_default
+            ):
+    ## control
+    # print('initializing CMBAgent...')
+    # import sys
+    # sys.exit()
+
+    if 'o3' in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    elif "claude" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    elif "gemini" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+
+    elif "claude" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    # elif "sonar" in engineer_model:
+    #     engineer_config = {
+    #         "model": engineer_model,
+    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
+    #         "api_type": "sonar"
+    #     }
+
+    else:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+
+    if 'o3' in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    elif "gemini" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+
+    elif "claude" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    # elif "sonar" in researcher_model:
+    #     researcher_config = {
+    #         "model": researcher_model,
+    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
+    #         "api_type": "sonar"
+    #     }
+
+
+    else:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+        
+
+    cmbagent = CMBAgent(
+        work_dir = work_dir,
+        agent_llm_configs = {
+                            'engineer': engineer_config,
+                            'researcher': researcher_config,
+        })
+        
+
+    cmbagent.solve(task,
+                    max_rounds=max_rounds,
+                    initial_agent=initial_agent,
+                    mode = "one_shot",
+                    shared_context = {'max_n_attempts': max_n_attempts}
+                    )
+    
+    results = {'chat_history': cmbagent.chat_result.chat_history,
+               'final_context': cmbagent.final_context}
+    
+    # Create a dummy groupchat attribute if it doesn't exist
+    # print('creating groupchat for cost display...')
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+    # print('groupchat created for cost display')
+    # Now call display_cost without triggering the AttributeError
+    # print('displaying cost...')
+    cmbagent.display_cost()
+    # print('cost displayed')
+
+    return results
+
+
+
+
+def human_in_the_loop(task,
+         work_dir = work_dir_default,
+         max_rounds = 50,
+         max_n_attempts = 3,
+         engineer_model = 'gpt-4o-2024-11-20',
+         researcher_model = 'gpt-4o-2024-11-20',
+         agent = 'engineer'):
+
+    ## control
+
+    if 'o3' in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    elif "claude" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        }
+
+    elif "gemini" in engineer_model:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+    else:
+        engineer_config = {
+            "model": engineer_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+
+    if 'o3' in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+    elif "gemini" in researcher_model:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_type": "google"
+        }
+    else:
+        researcher_config = {
+            "model": researcher_model,
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        }
+        
+
+    cmbagent = CMBAgent(
+        work_dir = work_dir,
+        agent_llm_configs = {
+                            'engineer': engineer_config,
+                            'researcher': researcher_config,
+        
+        },
+        mode = "chat",
+        chat_agent = agent)
+        
+
+    cmbagent.solve(task,
+                    max_rounds=max_rounds,
+                    initial_agent=agent,
+                    shared_context = {'max_n_attempts': max_n_attempts},
+                    mode = "chat")
+    
+    results = {'chat_history': cmbagent.chat_result.chat_history,
+               'final_context': cmbagent.final_context}
+
+
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+    # print('groupchat created for cost display')
+    # Now call display_cost without triggering the AttributeError
+    # print('displaying cost...')
+    cmbagent.display_cost()
+    # print('cost displayed')
+
+    return results
+
+
+
+
+
+
+def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_default):
+    """
+    Get AAS keywords from input text using astropilot.
+
+    Args:
+        input_text (str): Text to extract keywords from
+        n_keywords (int, optional): Number of keywords to extract. Defaults to 5.
+        **kwargs: Additional keyword arguments
+
+    Returns:
+        dict: Dictionary mapping AAS keywords to their URLs
+    """
+    cmbagent = CMBAgent(work_dir = work_dir)
+    PROMPT = f"""
+    {input_text}
+    """
+    cmbagent.solve(task="Find the relevant AAS keywords",
+            max_rounds=50,
+            initial_agent='aas_keyword_finder',
+            mode = "one_shot",
+            shared_context={
+            'text_input_for_AAS_keyword_finder': PROMPT,
+            'N_AAS_keywords': n_keywords,
+                            }
+            )
+    aas_keywords = cmbagent.final_context['aas_keywords'] ## here you get the dict with urls
+
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+    # print('groupchat created for cost display')
+    # Now call display_cost without triggering the AttributeError
+    # print('displaying cost...')
+    cmbagent.display_cost()
+    return aas_keywords

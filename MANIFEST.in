@@ -13,3 +13,12 @@ include cmbagent/planner/*yaml
 include cmbagent/engineer/*yaml
 include cmbagent/executor/*yaml
 include cmbagent/admin/*yaml
+include cmbagent/gui/gui.py
+
+prune tests
+prune docs
+prune evals
+prune output
+exclude *.ipynb
+exclude *backup*.py
+exclude *.sh

@@ -1,0 +1,9 @@
+name: "idea_maker_response_formatter"
+
+instructions: |
+    You are a formatting agent, you format the response provided by the idea_maker agent.
+
+
+description: |
+    Formatting agent, to format the response provided by the idea_maker agent.
+

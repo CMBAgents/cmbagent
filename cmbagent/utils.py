@@ -19,6 +19,7 @@ from IPython.display import Image
 
 import importlib
 import sys
+import pickle
 
 import logging
 from ruamel.yaml import YAML
@@ -26,6 +27,8 @@ from ruamel.yaml import YAML
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
 
+import autogen
+cmbagent_debug = autogen.cmbagent_debug
 
 
 
@@ -50,7 +53,7 @@ path_to_agents = os.path.join(path_to_basedir, "agents/")
 # path_to_executor = os.path.join(path_to_basedir, "executor")
 # path_to_admin = os.path.join(path_to_basedir, "admin")
 
-if "site-packages" in path_to_basedir:
+if "site-packages" in path_to_basedir or "dist-packages" in path_to_basedir:
     work_dir = os.path.join(os.getcwd(), "cmbagent_output")
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
@@ -124,7 +127,10 @@ file_search_max_num_results = autogen.file_search_max_num_results
 
 default_max_round = 50
 
-default_llm_model = 'gpt-4o-mini'
+default_llm_model = 'gpt-4o-2024-11-20'
+# default_llm_model = 'gpt-4.1-2025-04-14'
+# default_llm_model = 'gpt-4o-mini'
+# "gpt-4o-mini"
 
 default_llm_config_list = [
                     {
@@ -137,21 +143,60 @@ default_llm_config_list = [
 default_agent_llm_configs = {
                     'engineer': {
                         "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "high",
+                        "reasoning_effort": "medium", # high
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    'aas_keyword_finder': {
+                        "model": "o3-mini-2025-01-31",
+                        # "model": default_llm_model,
+                        "reasoning_effort": "medium", # high
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
                     'classy_sz': {
-                        "model": "gpt-4o-2024-11-20", 
+                        # "model": "gpt-4o-2024-11-20", 
+                        "model": default_llm_model,
                         "api_key": os.getenv("OPENAI_API_KEY"), # use oai models here only (this is a RAG agent, with an oai vector store attached. If you are not a cosmologist, ignore this, you will never need this agent.
                         "api_type": "openai",
                         },
-                    'planner': {
+                    'camb': {
+                        # "model": "gpt-4o-2024-11-20",
+                        "model": default_llm_model,
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        # "check_every_ms": 500, # does not do anything
+                        "api_type": "openai",
+                        },
+                    'cobaya': {
                         "model": "gpt-4o-2024-11-20",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
+                    'task_improver': {
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "high",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    'task_recorder': {
+                        "model": "gpt-4o-2024-11-20",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    'planner': {
+                        "model": default_llm_model,#"gpt-4o-2024-11-20",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
                     'control': {
+                        # "model": "gpt-4o-2024-11-20",
+                        "model": default_llm_model,
+                        # "model": "o3-mini-2025-01-31",
+                        # "reasoning_effort": "medium",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    'terminator': {
                         "model": "gpt-4o-2024-11-20",
                         # "model": "o3-mini-2025-01-31",
                         # "reasoning_effort": "high",
@@ -160,23 +205,79 @@ default_agent_llm_configs = {
                         },
 
                     'researcher': {
-                        "model": "gemini-2.0-pro-exp-02-05",
+                        "model": "gemini-2.5-pro-exp-03-25",
                         "api_key": os.getenv("GEMINI_API_KEY"),
                         "api_type": "google",
                         },
+
+                    'perplexity': {
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "medium", # high
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+
                     'plan_reviewer': {
                         "model": "claude-3-7-sonnet-20250219",
                         "api_key": os.getenv("ANTHROPIC_API_KEY"),
                         "api_type": "anthropic",
                         },
 
+
+                    'idea_hater': {
+                        "model": "claude-3-7-sonnet-20250219",
+                        "api_key": os.getenv("ANTHROPIC_API_KEY"),
+                        "api_type": "anthropic",
+                        },
+
+                    # 'idea_maker': {
+                    #     "model": "gemini-2.5-pro-exp-03-25",
+                    #     "api_key": os.getenv("GEMINI_API_KEY"),
+                    #     "api_type": "google",
+                    #     },
+                    "idea_maker": {
+                        "model": default_llm_model,
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        'temperature': 0.99,
+                        },
+                    # 'idea_maker': {
+                    #     "model": "gemini-2.5-pro-exp-03-25",
+                    #     "api_key": os.getenv("GEMINI_API_KEY"),
+                    #     "api_type": "google",
+                    #     },
                     "classy_sz_response_formatter": {
-                        "model": "gpt-4o",
+                        "model": default_llm_model,
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
+                    "camb_response_formatter": {
+                        # "model": "gpt-4o-2024-11-20", 
+                        "model": default_llm_model,
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    "cobaya_response_formatter": {
+                        "model": "gpt-4o-2024-11-20",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+                    # "engineer_response_formatter": {
+                    #     "model": "o3-mini-2025-01-31",
+                    #     "reasoning_effort": "low",
+                    #     "api_key": os.getenv("OPENAI_API_KEY"),
+                    #     "api_type": "openai",
+                    #     },
                     "engineer_response_formatter": {
-                        "model": "gpt-4o",
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "medium",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        },
+
+                    "researcher_response_formatter": {
+                        "model": "o3-mini-2025-01-31",
+                        "reasoning_effort": "low",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
@@ -205,3 +306,26 @@ def update_yaml_preserving_format(yaml_file, agent_name, new_id, field = 'vector
     # Write the changes back to the YAML file while preserving formatting
     with open(yaml_file, 'w') as file:
         yaml.dump(yaml_content, file)
+
+def aas_keyword_to_url(keyword):
+    """
+    Given an AAS keyword, return its IAU Thesaurus URL.
+    
+    Args:
+        keyword (str): The AAS keyword (e.g., "H II regions")
+        
+    Returns:
+        str: The corresponding IAU Thesaurus URL
+    """
+    with open('aas_kwd_to_url.pkl', 'rb') as f:
+        dic = pickle.load(f)
+    return dic[keyword]
+
+
+with open(path_to_basedir + '/aas_kwd_to_url.pkl', 'rb') as file:
+    AAS_keywords_dict = pickle.load(file)
+
+# print(my_dict)
+# Assuming you have already loaded your dictionary into `my_dict`
+AAS_keywords_string = ', '.join(AAS_keywords_dict.keys())
+

@@ -4,8 +4,12 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message,file_search_max_num_results
 import sys
 from autogen import Agent, SwarmAgent, ConversableAgent, UpdateSystemMessage
-from autogen.cmbagent_utils import cmbagent_debug
+# from autogen.cmbagent_utils import cmbagent_debug
+import autogen
+import copy
+# cmbagent_debug=True
 
+cmbagent_debug = autogen.cmbagent_debug
 
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
     """A custom proxy agent for the user with redefined default descriptions."""
@@ -82,6 +86,7 @@ class BaseAgent:
                  agent_type=None,
                  **kwargs):
         
+        
 
         self.kwargs = kwargs
 
@@ -89,12 +94,23 @@ class BaseAgent:
             print('\n\n in base_agent.py: __init__: llm_config: ', llm_config)
             print('\n\n')
 
-        self.llm_config = llm_config.copy()
+        self.llm_config = copy.deepcopy(llm_config)
 
         self.info = yaml_load_file(agent_id + ".yaml")
 
 
         self.name = self.info["name"]
+
+        # if self.name == 'idea_maker':
+        #     print('idea_maker: ', self.info)
+        #     print('llm_config: ', self.llm_config)
+        if 'temperature' in self.llm_config['config_list'][0]:
+            temperature = self.llm_config['config_list'][0]['temperature']
+            self.llm_config['config_list'][0].pop('temperature')
+            self.llm_config['temperature'] = temperature
+            # print('llm_config: ', self.llm_config)
+
+            # import sys; sys.exit()
 
         self.work_dir = work_dir
 
@@ -109,7 +125,7 @@ class BaseAgent:
 
 
     ## for oai rag agents
-    def set_agent(self,
+    def set_gpt_assistant_agent(self,
                   instructions=None, 
                   description=None,
                   vector_store_ids=None, 
@@ -179,19 +195,24 @@ class BaseAgent:
         #### TODO: implement this.
 
         self.info['assistant_config']['tools'][0]['file_search'] ={'max_num_results': file_search_max_num_results} 
+        # self.llm_config['check_every_ms'] = 500 # does not do anything
         if cmbagent_debug:
             print('\n\n\n\nin base_agent.py set_agent')
             print('working with llm_config: ',self.llm_config)
             # import sys; sys.exit()
 
+        
+        # self.info['assistant_config']['check_every_ms'] = 500 # does not do anything
+
         self.agent = GPTAssistantAgent(
             name=self.name,
             instructions= self.info["instructions"], # UpdateSystemMessage is in autogen/gpt_assistant_agent.py
-            # description=self.info["description"],
+            description=self.info["description"],
             assistant_config=self.info["assistant_config"],
             llm_config=self.llm_config,
             overwrite_tools=True,
-            overwrite_instructions=True
+            overwrite_instructions=True,
+            cmbagent_debug=cmbagent_debug,
             )
         
         if cmbagent_debug:
@@ -240,8 +261,9 @@ class BaseAgent:
             name=self.name,
             # system_message=self.info["instructions"],
             update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
-            # description=self.info["description"],
+            description=self.info["description"],
             llm_config=self.llm_config,
+            cmbagent_debug=cmbagent_debug,
             )
 
         if cmbagent_debug:
@@ -257,6 +279,34 @@ class BaseAgent:
         for key, value in self.info.items():
             logger.info(f"{key}: {value}")
 
+        execution_policies = {
+            "python": True,
+            "bash": False,
+            "shell": False,
+            "sh": False,
+            "pwsh": False,
+            "powershell": False,
+            "ps1": False,
+            "javascript": False,
+            "html": False,
+            "css": False,
+            }
+
+        if 'bash' in self.name:
+            execution_policies = {
+                "python": False,
+                "bash": True,
+                "shell": False,
+                "sh": False,
+                "pwsh": False,
+                "powershell": False,
+                "ps1": False,
+                "javascript": False,
+                "html": False,
+                "css": False,
+            }
+
+
         self.agent = CmbAgentSwarmAgent(
             name= self.name,
             system_message= self.info["instructions"],
@@ -267,22 +317,12 @@ class BaseAgent:
         is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
         code_execution_config={
             "executor": LocalCommandLineCodeExecutor(work_dir=self.work_dir,
-                                                        timeout=self.info["timeout"],
-                                                        execution_policies = {
-                                                        "python": True,
-                                                        "bash": False,
-                                                        "shell": False,
-                                                        "sh": False,
-                                                        "pwsh": False,
-                                                        "powershell": False,
-                                                        "ps1": False,
-                                                        "javascript": False,
-                                                        "html": False,
-                                                        "css": False,
-                                                        }
-                                                        ),
-            "last_n_messages": 3,
+                                                    timeout=self.info["timeout"],
+                                                    execution_policies = execution_policies
+                                                    ),
+            "last_n_messages": 2,
         },
+        cmbagent_debug=cmbagent_debug,
         )
 
         if cmbagent_debug:
@@ -302,6 +342,7 @@ class BaseAgent:
 
         self.agent = CmbAgentUserProxyAgent(
             name= self.name,
+            # update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
             system_message= self.info["instructions"],
             code_execution_config=self.info["code_execution_config"],
         )

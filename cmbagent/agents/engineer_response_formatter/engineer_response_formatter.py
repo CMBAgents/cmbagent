@@ -27,14 +27,14 @@ class EngineerResponseFormatterAgent(BaseAgent):
             None, description="The relative path to the file (exclude <filename>.py itself)"
         )
         code_explanation: str = Field(
-            ..., description="Explanation of the Python code provided."
+            ..., description="Copy of the engineer's explanation of the Python code provided. Including the docstrings of the methods used."
         )
         modification_summary: Optional[str] = Field(
             None,
-            description="Summary of any modifications made to fix errors from the previous version."
+            description="Copy of the engineer's summary of any modifications made to fix errors from the previous version."
         )
         python_code: str = Field(
-            ..., description="The Python code in a form ready to execute. Should not contain anything else than code."
+            ..., description="Copy of the engineer's Python code in a form ready to execute. Should not contain anything else than code."
         )
 
         def format(self) -> str:
@@ -42,7 +42,7 @@ class EngineerResponseFormatterAgent(BaseAgent):
 
             if self.relative_path:
                 cleaned_path = self.relative_path.rstrip("/\\")
-                full_path = os.path.join(cleaned_path, final_filename)
+                full_path = os.path.join(cleaned_path, os.path.basename(final_filename))
             else:
                 full_path = final_filename
 

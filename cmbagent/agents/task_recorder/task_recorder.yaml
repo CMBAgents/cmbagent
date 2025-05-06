@@ -1,0 +1,10 @@
+name: "task_recorder"
+
+instructions: |
+    Don't respond. You must call your tool record_improved_task to record the improved task.
+
+
+description: |
+    Task recorder agent, to record the improved task.
+
+
