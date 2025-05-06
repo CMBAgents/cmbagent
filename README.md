@@ -16,11 +16,7 @@ This is **open-source research-ready software**.  **Please star the  repo ⭐ an
 
 - Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
 
-- Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard). (We like Gemini, GPT-4o/4.5/o3, Claude. see [our examples](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).)
-
-- Currently, RAG agents use `file_search` on OpenAI vector stores.
-
-> Note: Please fork and contribute to the repo. We give access to our top-tier OpenAI, Anthropic and Cloud organizations to our top contributors.
+- Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard).
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. 
 
