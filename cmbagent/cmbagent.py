@@ -23,6 +23,7 @@ from .rag_utils import import_rag_agents, make_rag_agents,push_vector_stores
 from .utils import path_to_agents, update_yaml_preserving_format
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
+import time
 
 
 
@@ -386,33 +387,12 @@ class CMBAgent:
 
     
 
-    # def display_cost(self):
-    #     '''display full cost dictionary'''
-    #     cost_dict = defaultdict(list)
-    #     all_agents = [agent.agent for agent in self.agents] + self.groupchat.new_conversable_agents
-    #     for agent in all_agents:
-    #         if hasattr(agent, 'cost_dict') and agent.cost_dict['Agent']:
-    #             name = agent.cost_dict['Agent'][0].replace('admin (', '').replace(')', '').replace('_', ' ')
-    #             if name in cost_dict['Agent']:
-    #                 idx = cost_dict['Agent'].index(name)
-    #                 for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
-    #                     cost_dict[field][idx] += sum(agent.cost_dict[field])
-    #             else:
-    #                 cost_dict['Agent'].append(name)
-    #                 for field in ['Cost', 'Prompt Tokens', 'Completion Tokens', 'Total Tokens']:
-    #                     cost_dict[field].append(sum(agent.cost_dict[field]))
-    #     df = pd.DataFrame(cost_dict)
-    #     columns_to_sum = df.select_dtypes(include='number').columns
-    #     totals = df[columns_to_sum].sum()
-    #     df.loc['Total'] = pd.concat([pd.Series({'Name': 'Total'}), totals])
-    #     display(df)
-    #     return
-
     def display_cost(self):
         """Display a full cost report as a right‑aligned Markdown table with $ and a
-        rule above the total row."""
+        rule above the total row. Also saves the cost data as JSON in the workdir."""
         from collections import defaultdict
         import pandas as pd
+        import json
 
         cost_dict = defaultdict(list)
 
@@ -453,7 +433,7 @@ class CMBAgent:
         totals = df[numeric_cols].sum()
         df.loc["Total"] = pd.concat([pd.Series({"Agent": "Total"}), totals])
 
-        # --- string formatting ------------------------------------------------------
+        # --- string formatting for display ------------------------------------------------------
         df_str = df.copy()
         df_str["Cost ($)"] = df_str["Cost ($)"].map(lambda x: f"${x:.8f}")
         for col in ["Prompt Tokens", "Completion Tokens", "Total Tokens"]:
@@ -499,89 +479,23 @@ class CMBAgent:
         print("\nDisplaying cost…\n")
         print("\n".join(lines))
 
+        # --- Save cost data as JSON ------------------------------------------------
+        # Convert DataFrame to dict for JSON serialization
+        cost_data = df.to_dict(orient='records')
+        
+        # Add timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Save to JSON file in workdir
+        json_path = os.path.join(self.work_dir, f"cost_report_{timestamp}.json")
+        with open(json_path, 'w') as f:
+            json.dump(cost_data, f, indent=2)
+            
+        print(f"\nCost report data saved to: {json_path}")
+        
+        return df
 
-    # def display_cost(self):
-    #     """Display a full cost report as a Markdown table (rounded + int tokens)."""
-    #     from collections import defaultdict
-    #     import pandas as pd
-
-    #     print("\nDisplaying cost…")
-    #     cost_dict = defaultdict(list)
-
-    #     # Collect all agents – account for standalone + group‑chat
-    #     all_agents = [a.agent for a in self.agents]
-    #     if hasattr(self, "groupchat"):
-    #         all_agents += self.groupchat.new_conversable_agents
-
-    #     # Aggregate per‑agent costs
-    #     for agent in all_agents:
-    #         if hasattr(agent, "cost_dict") and agent.cost_dict.get("Agent"):
-    #             name = (
-    #                 agent.cost_dict["Agent"][0]
-    #                 .replace("admin (", "")
-    #                 .replace(")", "")
-    #                 .replace("_", " ")
-    #             )
-
-    #             # Prepare summed values, with rounding / int‑cast
-    #             summed_cost   = round(sum(agent.cost_dict["Cost"]), 8)
-    #             summed_prompt = int(sum(agent.cost_dict["Prompt Tokens"]))
-    #             summed_comp   = int(sum(agent.cost_dict["Completion Tokens"]))
-    #             summed_total  = int(sum(agent.cost_dict["Total Tokens"]))
-
-    #             if name in cost_dict["Agent"]:
-    #                 i = cost_dict["Agent"].index(name)
-    #                 cost_dict["Cost (\$)"][i]              += summed_cost
-    #                 cost_dict["Prompt Tokens"][i]     += summed_prompt
-    #                 cost_dict["Completion Tokens"][i] += summed_comp
-    #                 cost_dict["Total Tokens"][i]      += summed_total
-    #             else:
-    #                 cost_dict["Agent"].append(name)
-    #                 cost_dict["Cost"].append(summed_cost)
-    #                 cost_dict["Prompt Tokens"].append(summed_prompt)
-    #                 cost_dict["Completion Tokens"].append(summed_comp)
-    #                 cost_dict["Total Tokens"].append(summed_total)
-
-    #     # Build DataFrame and totals row
-    #     df = pd.DataFrame(cost_dict)
-    #     numeric_cols = df.select_dtypes(include="number").columns
-    #     totals = df[numeric_cols].sum()
-    #     df.loc["Total"] = pd.concat([pd.Series({"Agent": "Total"}), totals])
-
-    #     # ------- manual Markdown table rendering ---------------------------------
-    #     df_str = df.copy()
-
-    #     # Format: cost with 8 dp, tokens as int
-    #     if "Cost" in df_str.columns:
-    #         df_str["Cost"] = df_str["Cost"].map(lambda x: f"{x:.8f}")
-    #     for col in ["Prompt Tokens", "Completion Tokens", "Total Tokens"]:
-    #         if col in df_str.columns:
-    #             df_str[col] = df_str[col].astype(int).astype(str)
-
-    #     columns = df_str.columns.tolist()
-    #     rows = df_str.fillna("").values.tolist()
-
-    #     # Compute column widths
-    #     widths = [
-    #         max(len(col), max(len(str(row[i])) for row in rows))
-    #         for i, col in enumerate(columns)
-    #     ]
-
-    #     # Header & separator
-    #     header = "|" + "|".join(f" {col.ljust(widths[i])} " for i, col in enumerate(columns)) + "|"
-    #     separator = "|" + "|".join("-" * max(widths[i] + 2, 3) for i in range(len(columns))) + "|"
-
-    #     # Data rows
-    #     lines = [header, separator]
-    #     for row in rows:
-    #         line = "|" + "|".join(f" {str(row[i]).ljust(widths[i])} " for i in range(len(columns))) + "|"
-    #         lines.append(line)
-
-    #     print("\n".join(lines))
-
-
-
-    
 
     def update_memory_agent(self):
         
@@ -1150,11 +1064,16 @@ def planning_and_control(
 
     ## planning
     planning_dir = Path(work_dir).expanduser().resolve() / "planning"
+
+    start_time = time.time()
     cmbagent = CMBAgent(work_dir = planning_dir)
+    end_time = time.time()
+    initialization_time_planning = end_time - start_time
 
 
 
 
+    start_time = time.time()
     cmbagent.solve(task,
                 max_rounds=max_rounds_planning,
                 initial_agent="plan_setter",
@@ -1166,7 +1085,10 @@ def planning_and_control(
                                     'researcher_append_instructions': researcher_instructions,
                                     'plan_reviewer_append_instructions': plan_instructions}
                 )
-    
+    end_time = time.time()
+    execution_time_planning = end_time - start_time
+
+
     # Create a dummy groupchat attribute if it doesn't exist
     if not hasattr(cmbagent, 'groupchat'):
         Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
@@ -1253,22 +1175,52 @@ def planning_and_control(
         }
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
+
+    start_time = time.time()
     cmbagent = CMBAgent(
         work_dir = control_dir,
         agent_llm_configs = {
                             'engineer': engineer_config,
                             'researcher': researcher_config,
         })
+    end_time = time.time()
+    initialization_time_control = end_time - start_time
         
 
+    start_time = time.time()    
     cmbagent.solve(task,
                     max_rounds=max_rounds_control,
                     initial_agent="control",
                     shared_context = planning_output
                     )
+    end_time = time.time()
+    execution_time_control = end_time - start_time
     
     results = {'chat_history': cmbagent.chat_result.chat_history,
                'final_context': cmbagent.final_context}
+    
+    results['initialization_time_planning'] = initialization_time_planning
+    results['execution_time_planning'] = execution_time_planning
+    results['initialization_time_control'] = initialization_time_control
+    results['execution_time_control'] = execution_time_control
+
+    # Save timing report as JSON
+    timing_report = {
+        'initialization_time_planning': initialization_time_planning,
+        'execution_time_planning': execution_time_planning, 
+        'initialization_time_control': initialization_time_control,
+        'execution_time_control': execution_time_control,
+        'total_time': initialization_time_planning + execution_time_planning + initialization_time_control + execution_time_control
+    }
+
+    # Add timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Save to JSON file in workdir
+    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    with open(timing_path, 'w') as f:
+        json.dump(timing_report, f, indent=2)
+
     
     # Create a dummy groupchat attribute if it doesn't exist
     if not hasattr(cmbagent, 'groupchat'):
@@ -1296,6 +1248,7 @@ def one_shot(
             initial_agent = 'engineer',
             work_dir = work_dir_default
             ):
+    start_time = time.time()
     ## control
     # print('initializing CMBAgent...')
     # import sys
@@ -1379,6 +1332,7 @@ def one_shot(
             "api_type": "openai"
         }
         
+    start_time = time.time()
 
     cmbagent = CMBAgent(
         work_dir = work_dir,
@@ -1387,6 +1341,11 @@ def one_shot(
                             'researcher': researcher_config,
         })
         
+    end_time = time.time()
+    initialization_time = end_time - start_time
+
+
+    start_time = time.time()
 
     cmbagent.solve(task,
                     max_rounds=max_rounds,
@@ -1395,8 +1354,14 @@ def one_shot(
                     shared_context = {'max_n_attempts': max_n_attempts}
                     )
     
+    end_time = time.time()
+    execution_time = end_time - start_time
+
     results = {'chat_history': cmbagent.chat_result.chat_history,
                'final_context': cmbagent.final_context}
+    
+    results['initialization_time'] = initialization_time
+    results['execution_time'] = execution_time
     
     # Create a dummy groupchat attribute if it doesn't exist
     # print('creating groupchat for cost display...')
@@ -1408,6 +1373,22 @@ def one_shot(
     # print('displaying cost...')
     cmbagent.display_cost()
     # print('cost displayed')
+
+
+    # Save timing report as JSON
+    timing_report = {
+        'initialization_time': initialization_time,
+        'execution_time': execution_time,
+        'total_time': initialization_time + execution_time
+    }
+
+    # Add timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Save to JSON file in workdir
+    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    with open(timing_path, 'w') as f:
+        json.dump(timing_report, f, indent=2)
 
     return results
 
@@ -1471,6 +1452,7 @@ def human_in_the_loop(task,
             "api_type": "openai"
         }
         
+    start_time = time.time()
 
     cmbagent = CMBAgent(
         work_dir = work_dir,
@@ -1482,6 +1464,10 @@ def human_in_the_loop(task,
         mode = "chat",
         chat_agent = agent)
         
+    end_time = time.time()
+    initialization_time = end_time - start_time
+
+    start_time = time.time()
 
     cmbagent.solve(task,
                     max_rounds=max_rounds,
@@ -1489,8 +1475,14 @@ def human_in_the_loop(task,
                     shared_context = {'max_n_attempts': max_n_attempts},
                     mode = "chat")
     
+    end_time = time.time()
+    execution_time = end_time - start_time
+
     results = {'chat_history': cmbagent.chat_result.chat_history,
                'final_context': cmbagent.final_context}
+    
+    results['initialization_time'] = initialization_time
+    results['execution_time'] = execution_time
 
 
     if not hasattr(cmbagent, 'groupchat'):
@@ -1501,6 +1493,21 @@ def human_in_the_loop(task,
     # print('displaying cost...')
     cmbagent.display_cost()
     # print('cost displayed')
+
+    # Save timing report as JSON
+    timing_report = {
+        'initialization_time': initialization_time,
+        'execution_time': execution_time,
+        'total_time': initialization_time + execution_time
+    }
+
+    # Add timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Save to JSON file in workdir
+    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    with open(timing_path, 'w') as f:
+        json.dump(timing_report, f, indent=2)   
 
     return results
 
@@ -1521,10 +1528,15 @@ def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_defau
     Returns:
         dict: Dictionary mapping AAS keywords to their URLs
     """
+    start_time = time.time()
     cmbagent = CMBAgent(work_dir = work_dir)
+    end_time = time.time()
+    initialization_time = end_time - start_time
+
     PROMPT = f"""
     {input_text}
     """
+    start_time = time.time()
     cmbagent.solve(task="Find the relevant AAS keywords",
             max_rounds=50,
             initial_agent='aas_keyword_finder',
@@ -1534,6 +1546,12 @@ def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_defau
             'N_AAS_keywords': n_keywords,
                             }
             )
+    end_time = time.time()
+    execution_time = end_time - start_time
+
+    results['initialization_time'] = initialization_time
+    results['execution_time'] = execution_time
+
     aas_keywords = cmbagent.final_context['aas_keywords'] ## here you get the dict with urls
 
     if not hasattr(cmbagent, 'groupchat'):
@@ -1543,4 +1561,20 @@ def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_defau
     # Now call display_cost without triggering the AttributeError
     # print('displaying cost...')
     cmbagent.display_cost()
+
+    # Save timing report as JSON
+    timing_report = {
+        'initialization_time': initialization_time,
+        'execution_time': execution_time,
+        'total_time': initialization_time + execution_time
+    }   
+
+    # Add timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Save to JSON file in workdir
+    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    with open(timing_path, 'w') as f:
+        json.dump(timing_report, f, indent=2)
+    
     return aas_keywords

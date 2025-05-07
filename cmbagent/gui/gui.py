@@ -1387,7 +1387,7 @@ def main():
                 import time
                 start_ts = time.perf_counter()
                 status_placeholder = st.empty()
-                status_placeholder.markdown("**Agent running …**")
+                status_placeholder.markdown("**Agent running…**")
 
                 output_placeholder = st.empty()             # lives inside the chat bubble
                 handler = StreamHandler(output_placeholder) # stream tokens right here
