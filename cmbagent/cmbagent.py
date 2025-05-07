@@ -1548,10 +1548,6 @@ def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_defau
             )
     end_time = time.time()
     execution_time = end_time - start_time
-
-    results['initialization_time'] = initialization_time
-    results['execution_time'] = execution_time
-
     aas_keywords = cmbagent.final_context['aas_keywords'] ## here you get the dict with urls
 
     if not hasattr(cmbagent, 'groupchat'):
