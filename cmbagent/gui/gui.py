@@ -948,13 +948,15 @@ def main():
     #         st.rerun()
         # -------------------------------------------------------------------
 
-        # st.markdown("---")
+
+        # Use a regular Streamlit button
         if st.button("Reset Session", key="reset_session"):
             st.session_state.clear()
             st.rerun()
 
     # --- Main UI Layout ---
     if st.session_state.page == "mode_select":
+
         header_placeholder = st.empty()
         # header_text = "🪐 Multi-agent system for Data Driven Discovery"
         header_text = "CMBAGENT"
@@ -1074,16 +1076,19 @@ def main():
 
 
     else:
+
+
+
         # Back button + title
         # Back button + centered title
         left_col, title_col, _ = st.columns(3)
-        with left_col:
-            if st.button("⬅️ Back", key="back_btn", type="secondary"):
-                st.session_state.clear()
-                st.session_state.page = "mode_select"
-                st.session_state.chat_mode = None
-                st.session_state.messages = []
-                st.rerun()
+        # with left_col:
+        #     if st.button("⬅️ Back", key="back_btn", type="secondary"):
+        #         st.session_state.clear()
+        #         st.session_state.page = "mode_select"
+        #         st.session_state.chat_mode = None
+        #         st.session_state.messages = []
+        #         st.rerun()
         with title_col:
             # pick the right header text
             if st.session_state.page == "one_shot":
@@ -1112,7 +1117,7 @@ def main():
                     "**Max Session Duration** \n\n *The total number of messages exchanged between agents in the session*",
                     min_value=1,
                     max_value=50,
-                    value=20,
+                    value=10,
                     step=1
                 )
                 with c2:
@@ -1126,14 +1131,14 @@ def main():
                         "**Max Session Duration** \n\n ***\n\n *The total number of messages exchanged between agents in the session*", min_value=1, max_value=1000, value=500, step=1
                     )
                     n_plan_reviews = st.slider(
-                        "**Plan Reviews** \n\n *Number of rounds the plans are reviewed*", min_value=1, max_value=10, value=1, step=1
+                        "**Plan Reviews** \n\n *Number of rounds the plans are reviewed*", min_value=0, max_value=5, value=1, step=1
                     )
                 with col2:
                     max_n_attempts = st.slider(
                         "**Max Execution Attempts** \n\n \n\n *The maximum number of failed code execution before exiting.*", min_value=1, max_value=10, value=4, step=1
                     )
                     max_plan_steps = st.slider(
-                        "**Max Plan Steps** \n\n *The maximum number of steps for the task to be solved*", min_value=1, max_value=20, value=7, step=1
+                        "**Max Plan Steps** \n\n *The maximum number of steps for the task to be solved*", min_value=1, max_value=10, value=4, step=1
                     )
                 # ← NEW TEXT‐AREA FOR PLAN INSTRUCTIONS
                 plan_instructions = st.text_area(
@@ -1150,8 +1155,8 @@ def main():
                     max_rounds = st.slider(
                     "**Max Session Duration** \n\n *The total number of messages exchanged between agents in the session*",
                     min_value=1,
-                    max_value=50,
-                    value=20,
+                    max_value=100,
+                    value=50,
                     step=1
                 )
                 with c2:
@@ -1204,6 +1209,8 @@ def main():
             #         )
             # --- Agent picker pinned above the prompt ---------------------------------
             if st.session_state.page == "one_shot":
+
+
                 with st.container():
                     agent_options = {
                         "**Engineer**\n*for code-based tasks (write & debug code)*": "engineer",
@@ -1380,7 +1387,7 @@ def main():
                 import time
                 start_ts = time.perf_counter()
                 status_placeholder = st.empty()
-                status_placeholder.markdown("**Thinking in progress …**")
+                status_placeholder.markdown("**Agent running …**")
 
                 output_placeholder = st.empty()             # lives inside the chat bubble
                 handler = StreamHandler(output_placeholder) # stream tokens right here
