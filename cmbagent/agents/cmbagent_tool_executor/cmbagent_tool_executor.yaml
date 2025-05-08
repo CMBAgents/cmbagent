@@ -1,0 +1,10 @@
+name: "cmbagent_tool_executor"
+
+instructions: |
+    Don't respond. You must call your tools.
+
+
+description: |
+    Tool executor agent, to execute the tools.
+
+

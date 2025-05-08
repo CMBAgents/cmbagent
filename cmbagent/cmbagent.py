@@ -15,16 +15,26 @@ from pathlib import Path
 from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
 from collections import defaultdict
 from .utils import work_dir as work_dir_default
-from .utils import path_to_assistants,config_list_from_json,path_to_apis,OpenAI,Image,default_chunking_strategy,default_top_p,default_temperature,default_select_speaker_prompt_template,default_select_speaker_message_template
-from .utils import default_max_round, default_groupchat_intro_message,default_llm_model,default_llm_config_list,default_agent_llm_configs
+from .utils import OpenAI,Image
+from .utils import path_to_assistants,path_to_apis,default_top_p,default_temperature,default_max_round,default_llm_config_list,default_agent_llm_configs
 from pprint import pprint
-from .base_agent import CmbAgentGroupChat, CmbAgentSwarmAgent
-from .rag_utils import import_rag_agents, make_rag_agents,push_vector_stores
+from .rag_utils import import_rag_agents, push_vector_stores
 from .utils import path_to_agents, update_yaml_preserving_format
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
 import time
 from .utils import get_model_config
+from autogen.agentchat.group import ContextVariables
+from autogen import ConversableAgent
+
+
+from autogen.agentchat.group.patterns import (
+    DefaultPattern,
+    ManualPattern,
+    AutoPattern,
+    RandomPattern,
+    RoundRobinPattern,
+)
 
 
 def import_non_rag_agents():
@@ -50,24 +60,9 @@ def import_non_rag_agents():
     return imported_non_rag_agents
 
 
-# from cmbagent.engineer.engineer import EngineerAgent
-# from cmbagent.planner.planner import PlannerAgent
-# from cmbagent.executor.executor import ExecutorAgent
-# from cmbagent.admin.admin import AdminAgent
-# from cmbagent.summarizer.summarizer import SummarizerAgent
-# from cmbagent.rag_software_formatter.rag_software_formatter import RagSoftwareFormatterAgent
-
-
-
-
 from pydantic import BaseModel
-# import yaml
-from ruamel.yaml import YAML
-from typing import List
-from autogen import  AfterWorkOption, AFTER_WORK, ON_CONDITION, SwarmResult, initiate_swarm_chat, SwarmAgent
 from autogen import cmbagent_debug
-from cmbagent.cmbagent_swarm_agent import initiate_cmbagent_swarm_chat
-from cmbagent.structured_output import EngineerResponse, PlannerResponse, SummarizerResponse, RagSoftwareFormatterResponse
+from autogen.agentchat import initiate_group_chat
 from cmbagent.context import shared_context as shared_context_default
 from sys import exit
 import shutil
@@ -354,12 +349,6 @@ class CMBAgent:
 
 
 
-        select_speaker_prompt_template = select_speaker_prompt if select_speaker_prompt else default_select_speaker_prompt_template
-        select_speaker_message_template = select_speaker_message if select_speaker_message else default_select_speaker_message_template
-        groupchat_intro_message = intro_message if intro_message else default_groupchat_intro_message
-
-        self.groupchat_intro_message = groupchat_intro_message
-
         if cmbagent_debug:
             print('\nregistering all hand_offs...')
 
@@ -561,20 +550,6 @@ class CMBAgent:
             print('Task summary not added to memory agent\'s vector stores.')
             return
         
-        # previous_state = f"{self.groupchat.messages}"
-
-        # Convert string to Python dictionary
-        # dict_representation = ast.literal_eval(previous_state)
-
-        # Convert dictionary to JSON string and save file
-        # json_string = json.dumps(dict_representation)
-        # id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
-        # with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
-        #     json.dump(json_string, json_file, indent=4)
-
-        # Push to memory agent vector store
-        # self.push_vector_stores(['memory'], None, verbose = False)
-        # print('Updated memory agent\'s vector stores.')
 
         return
         
@@ -655,21 +630,27 @@ class CMBAgent:
         # print('this_shared_context: ', this_shared_context)
         # sys.exit()
 
-        chat_result, context_variables, last_agent = initiate_swarm_chat(
-            initial_agent=self.get_agent_from_name(initial_agent),
-            agents=[agent.agent for agent in self.agents],
+        context_variables = ContextVariables(data=this_shared_context)
+
+
+
+
+            # Create the pattern
+        agent_pattern = AutoPattern(
+                agents=[agent.agent for agent in self.agents],
+                initial_agent=self.get_agent_from_name(initial_agent),
+                context_variables=context_variables,
+                group_manager_args = {"llm_config": self.llm_config},
+            )
+
+
+        chat_result, context_variables, last_agent = initiate_group_chat(
+            pattern=agent_pattern,
             messages=this_shared_context['main_task'],
             # user_agent=self.get_agent_from_name("admin"),
-            context_variables=this_shared_context,
             max_rounds = max_rounds,
-            after_work=AfterWorkOption.TERMINATE,
         )
 
-        # if mode == "one_shot" and initial_agent == 'perplexity':
-        #     if context_variables['perplexity_response'] is None:
-        #         print('perplexity search failed. Please try again.')
-        #         context_variables['perplexity_response'] = None
-        #         context_variables['perplexity_citations'] = None
 
         self.final_context = copy.deepcopy(context_variables)
 
@@ -678,49 +659,7 @@ class CMBAgent:
 
 
 
-            
-
         
-
-    def restore(self):
-        """
-        Restore the previous state of the group chat. 
-
-        This method restores the previous state of the group chat by:
-        1. Converting the stored messages back to a Python dictionary.
-        2. Converting the dictionary to a JSON string.
-        3. Resuming the group chat manager with the restored messages.
-        4. Initiating a new chat session with the last active agent and message.
-
-        Returns:
-            None
-        """
-
-        
-
-        previous_state = f"{self.groupchat.messages}"
-
-        # Convert string to Python dictionary
-        dict_representation = ast.literal_eval(previous_state)
-
-        # Convert dictionary to JSON string
-        json_string = json.dumps(dict_representation)
-
-        # Prepare the group chat for resuming
-        last_agent, last_message = self.manager.resume(messages=json_string)
-
-        if self.agent_type == 'swarm':
-            # Resume the chat using the last agent and message
-            self.session = last_agent.initiate_cmbagent_swarm_chat(recipient=self.manager,
-                                                    message=last_message,
-                                                    clear_history=False)
-
-        else:
-            # Resume the chat using the last agent and message
-            self.session = last_agent.initiate_chat(recipient=self.manager,
-                                                message=last_message,
-                                                clear_history=False)
-
 
     def get_agent_object_from_name(self,name):
         for agent in self.agents:
@@ -856,8 +795,6 @@ class CMBAgent:
 
             self.agents.append(agent_instance)
 
-
-        agent_keys = self.agent_classes.keys()
 
         self.agent_names =  [agent.name for agent in self.agents]
 
@@ -1057,9 +994,11 @@ def planning_and_control(
                             engineer_instructions = '',
                             researcher_instructions = '',
                             max_n_attempts = 3,
+                            planner_model = 'gemini-2.0-flash',
+                            plan_reviewer_model = 'claude-3-7-sonnet-20250219',
                             engineer_model = 'gpt-4.1-2025-04-14',
                             researcher_model = 'gpt-4.1-2025-04-14',
-                            idea_maker_model = 'gemini-2.5-pro-exp-03-25',
+                            idea_maker_model = 'gemini-2.0-flash',
                             idea_hater_model = 'claude-3-7-sonnet-20250219',
                             work_dir = work_dir_default
                             ):
@@ -1068,7 +1007,13 @@ def planning_and_control(
     planning_dir = Path(work_dir).expanduser().resolve() / "planning"
 
     start_time = time.time()
-    cmbagent = CMBAgent(work_dir = planning_dir)
+    planner_config = get_model_config(planner_model)
+    plan_reviewer_config = get_model_config(plan_reviewer_model)
+    cmbagent = CMBAgent(work_dir = planning_dir,
+                        agent_llm_configs = {
+                            'planner': planner_config,
+                            'plan_reviewer': plan_reviewer_config,
+                        })
     end_time = time.time()
     initialization_time_planning = end_time - start_time
 
@@ -1121,6 +1066,11 @@ def planning_and_control(
                             'idea_maker': idea_maker_config,
                             'idea_hater': idea_hater_config,
         })
+    
+
+    print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")
+    print(f"in cmbagent.py: idea_hater_config: {idea_hater_config}")
+    
     end_time = time.time()
     initialization_time_control = end_time - start_time
         

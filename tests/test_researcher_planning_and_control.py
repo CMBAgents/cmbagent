@@ -50,14 +50,22 @@ import cmbagent
 #                mode = "one_shot",
 #               )
 
+task = r"""
+Give me 5 names of renaissance women painters.
+"""
+
 cmbagent.planning_and_control(task,
-                              n_plan_reviews = 0,
+                              n_plan_reviews = 1,
+                              max_plan_steps = 2,
                             #   engineer_model = "gpt-4o",
-                            researcher_model = "gpt-4o",
-                            #   researcher_model = "gemini-2.5-pro-exp-03-25",
+                            # researcher_model = "gpt-4o",
+                              # researcher_model = "gemini-2.5-pro-exp-03-25",
+                              # planner_model = "gemini-2.0-flash",
+                              planner_model = "gemini-2.5-pro-exp-03-25",
+                              plan_reviewer_model = "gemini-2.0-flash",
+                              researcher_model = "gemini-2.0-flash",
                               plan_instructions=r"""
-plan should be in three steps in the following order: 
+plan should be in two steps in the following order: 
 1. researcher 
 2. researcher
-3. researcher
 """)

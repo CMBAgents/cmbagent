@@ -3,13 +3,14 @@ import logging
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 from cmbagent.utils import yaml_load_file,GPTAssistantAgent,AssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,GroupChat,default_groupchat_intro_message,file_search_max_num_results
 import sys
-from autogen import Agent, SwarmAgent, ConversableAgent, UpdateSystemMessage
+from autogen.agentchat import Agent, ConversableAgent, UpdateSystemMessage
 # from autogen.cmbagent_utils import cmbagent_debug
 import autogen
 import copy
+
 # cmbagent_debug=True
 
-cmbagent_debug = autogen.cmbagent_debug
+cmbagent_debug = autogen.cmbagent_utils.cmbagent_debug
 
 class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
     """A custom proxy agent for the user with redefined default descriptions."""
@@ -20,61 +21,6 @@ class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor
         "TERMINATE": "A user that can run Python code and report back the execution results.",
         "NEVER": "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks).", # default for executor 
     }
-
-
-class CmbAgentGroupChat(GroupChat):
-    def __init__(
-        self,
-        agents: List[Agent],
-        rag_agents: List[Agent],
-        messages: List,
-        speaker_selection_method: str,
-        max_round: int,
-        send_introductions: bool,
-        admin_name: str,
-        select_speaker_auto_verbose: Optional[bool] = True,
-        speaker_transitions_type: Optional[str] = None,
-        select_speaker_prompt_template: Optional[str] = None,
-        select_speaker_message_template: Optional[str] = None,
-        agent_type: Optional[str] = None,   
-        allowed_or_disallowed_speaker_transitions: Optional[List] = None,
-        cost: int = 0,
-        verbose: bool = False,
-    ):
-
-        if agent_type == 'swarm':
-            # Initialize the parent GroupChat
-            super().__init__(
-                agents = agents,
-                messages = messages,
-                max_round=max_round,
-                speaker_selection_method=speaker_selection_method,
-                send_introductions=send_introductions,
-                admin_name=admin_name,
-                select_speaker_auto_verbose=select_speaker_auto_verbose,
-            )
-        else:
-            # Initialize the parent GroupChat
-            super().__init__(
-                agents=agents,
-                allowed_or_disallowed_speaker_transitions=allowed_or_disallowed_speaker_transitions,
-                speaker_transitions_type=speaker_transitions_type,
-                messages=messages,
-                speaker_selection_method=speaker_selection_method,
-                max_round=max_round,
-                select_speaker_auto_verbose=select_speaker_auto_verbose,
-                send_introductions=send_introductions,
-                admin_name=admin_name,
-                select_speaker_prompt_template=select_speaker_prompt_template,
-                select_speaker_message_template=select_speaker_message_template,
-            )
-        
-        # Initialize CmbAgentGroupChat-specific attributes
-        self.rag_agents = rag_agents
-        self.verbose = verbose
-        self.cost = cost
-        self.DEFAULT_INTRO_MSG = default_groupchat_intro_message
-
 
 
 class BaseAgent:
@@ -255,16 +201,32 @@ class BaseAgent:
         # print('setting assistant agent: ',self.name)
         # print('self.agent_type: ',self.agent_type)
 
+        # if self.name == 'plan_setter':
+        #     functions = [record_plan_constraints]
+        # else:
+        #     functions = []
 
+        functions = []
 
-        self.agent = CmbAgentSwarmAgent(
-            name=self.name,
-            # system_message=self.info["instructions"],
-            update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
-            description=self.info["description"],
-            llm_config=self.llm_config,
+        if self.name == 'cmbagent_tool_executor':
+            self.agent = ConversableAgent(
+                        name="cmbagent_tool_executor",
+                        human_input_mode="NEVER",
+                        llm_config=self.llm_config,
+                    )
+
+        else:
+            self.agent = CmbAgentSwarmAgent(
+                name=self.name,
+                # system_message=self.info["instructions"],
+                update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
+                description=self.info["description"],
+                llm_config=self.llm_config,
             cmbagent_debug=cmbagent_debug,
+            functions=functions,
             )
+        
+
 
         if cmbagent_debug:
             print("AssistantAgent set.... moving on.\n")

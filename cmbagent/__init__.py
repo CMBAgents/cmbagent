@@ -1,4 +1,3 @@
-
 # import warnings
 # warnings.filterwarnings("ignore", message=r'Field "model_client_cls" in LLMConfigEntry has conflict with protected namespace "model_"')
 
@@ -9,8 +8,7 @@ from .rag_utils import make_rag_agents
 from .version import __version__
 import os
 from IPython.display import Image, display, Markdown
-from autogen.cmbagent_utils import LOGO, IMG_WIDTH
-from autogen import cmbagent_disable_display
+from autogen.cmbagent_utils import LOGO, IMG_WIDTH, cmbagent_disable_display
 
 
 from .data_retriever import setup_cmbagent_data

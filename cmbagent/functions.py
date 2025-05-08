@@ -1,4 +1,3 @@
-from autogen import SwarmResult, AfterWorkOption
 from typing import Literal
 from pydantic import Field
 import os
@@ -11,9 +10,40 @@ from autogen.cmbagent_utils import IMG_WIDTH
 import autogen
 from autogen.tools.experimental import PerplexitySearchTool
 from .utils import AAS_keywords_dict
+from typing import Any
+from autogen.agentchat.group import ContextVariables
+from autogen.agentchat.group import AgentTarget, ReplyResult, TerminateTarget
+from autogen import register_function
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
+
+
+
+## migration guide:
+# # OLD
+# def check_order_id(order_id: str, context_variables: dict[str, Any]) -> SwarmResult:
+#     """Check if the order ID is valid"""
+#     ...
+#     return SwarmResult(
+#         agent=order_triage_agent,
+#         context_variables=context_variables,
+#         values=f"Order ID {order_id} is valid.",
+#     )
+
+# # NEW
+# # Now returning ReplyResult
+# # (and we make sure to use the ContextVariables type for context_variables, if needed)
+# def check_order_id(order_id: str, context_variables: ContextVariables) -> ReplyResult:
+#     """Check if the order ID is valid"""
+#     ...
+#     return ReplyResult(
+#         # Parameter now called target and we pass in a suitable TransitionTarget:
+#         target=AgentTarget(order_triage_agent),
+#         context_variables=context_variables,
+#         # Parameter now called message:
+#         message=f"Order ID {order_id} is valid.",
+#     )
 
 
 def register_functions_to_agents(cmbagent_instance):
@@ -47,6 +77,7 @@ def register_functions_to_agents(cmbagent_instance):
     plan_setter = cmbagent_instance.get_agent_from_name('plan_setter')
     idea_maker = cmbagent_instance.get_agent_from_name('idea_maker')
     installer = cmbagent_instance.get_agent_from_name('installer')
+    cmbagent_tool_executor = cmbagent_instance.get_agent_from_name('cmbagent_tool_executor')
     # print("Perplexity API key: ", os.getenv("PERPLEXITY_API_KEY"))
     # perplexity_search_tool = PerplexitySearchTool(
     #                     model="sonar-reasoning-pro",
@@ -67,9 +98,9 @@ def register_functions_to_agents(cmbagent_instance):
                                                                "cobaya_agent",
                                                             #    "planck_agent", no need for paper agents
                                                                "control"], 
-                                context_variables: dict,
+                                context_variables: ContextVariables,
                                 execution_status: Literal["success", "failure"] 
-                                ) -> SwarmResult:
+                                ) -> ReplyResult:
         """
         Transfer to the next agent based on the execution status.
         For the next agent suggestion, follow these rules:
@@ -94,52 +125,75 @@ Current status (before execution): {context_variables["current_status"]}
 
 xxxxxxxxxxxxxxxxxxxxxxxxxx
 """
+        # print(f"in functions.py post_execution_transfer: context_variables: {context_variables}")
+        # print(f"in functions.py post_execution_transfer: next agent suggestion: {next_agent_suggestion}")
+        # print(f"in functions.py post_execution_transfer: workflow_status_str: {workflow_status_str}")
+
+        # import sys; sys.exit()
         
         if context_variables["agent_for_sub_task"] == "engineer":
             
             if context_variables["n_attempts"] >= context_variables["max_n_attempts"]:
-                return SwarmResult(agent=AfterWorkOption.TERMINATE,
-                                values=f"Max number of code execution attempts ({context_variables['max_n_attempts']}) reached. Exiting.",
+                return ReplyResult(target=AgentTarget(terminator),
+                                message=f"Max number of code execution attempts ({context_variables['max_n_attempts']}) reached. Exiting.",
                                 context_variables=context_variables)
             
             if execution_status == "success":
-                return SwarmResult(agent=control,
-                                values="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
+                return ReplyResult(target=AgentTarget(control),
+                                message="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
 
             if next_agent_suggestion == "engineer":
                 context_variables["n_attempts"] += 1
-                return SwarmResult(agent=engineer,
-                                values="Execution status: " + execution_status + ". Transfer to engineer.\n" + f"{workflow_status_str}\n",
+                return ReplyResult(target=AgentTarget(engineer),
+                                message="Execution status: " + execution_status + ". Transfer to engineer.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)    
+            
             elif next_agent_suggestion == "classy_sz_agent":
                 context_variables["n_attempts"] += 1
-                return SwarmResult(agent=classy_sz,
-                                values="Execution status: " + execution_status + ". Transfer to classy_sz_agent.\n" + f"{workflow_status_str}\n",
+                return ReplyResult(target=AgentTarget(classy_sz),
+                                message="Execution status: " + execution_status + ". Transfer to classy_sz_agent.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
             
             elif next_agent_suggestion == "control":
                 context_variables["n_attempts"] += 1
-                return SwarmResult(agent=control,
-                                values="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
+                return ReplyResult(target=AgentTarget(control),
+                                message="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
             
             elif next_agent_suggestion == "installer":
                 context_variables["n_attempts"] += 1
-                return SwarmResult(agent=installer,
-                                values="Execution status: " + execution_status + ". Transfer to installer.\n" + f"{workflow_status_str}\n",
+                return ReplyResult(target=AgentTarget(installer),
+                                message="Execution status: " + execution_status + ". Transfer to installer.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
         else:
-                return SwarmResult(agent=control,
-                                values="Transfer to control.\n" + workflow_status_str,
+                return ReplyResult(target=AgentTarget(control),
+                                message="Transfer to control.\n" + workflow_status_str,
                                 context_variables=context_variables)
         
-    executor_response_formatter._add_single_function(post_execution_transfer)
+    # executor_response_formatter._add_single_function(post_execution_transfer)
+
+    register_function(
+        post_execution_transfer,
+        caller=executor_response_formatter,
+        executor=executor_response_formatter,
+        description=r"""
+Transfer to the next agent based on the execution status.
+For the next agent suggestion, follow these rules:
+    - Suggest the engineer agent if error related to generic Python code.
+    - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError).
+    - Suggest the classy_sz_agent if error is an internal classy_sz error.
+    - Suggest the camb_agent if error related to internal camb code.
+    - Suggest the cobaya_agent if error related to internal cobaya code.
+    - Suggest the control agent only if execution was successful. 
+""",
+    )
+    # executor_response_formatter.functions = [post_execution_transfer]
 
 
 
 
-    def terminate_session(context_variables: dict) -> SwarmResult:
+    def terminate_session(context_variables: ContextVariables) -> ReplyResult:
         """
         Terminate the session.
         """
@@ -148,15 +202,16 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
         # context_variables["improved_main_task"] = improved_main_task
 
 
-        return SwarmResult(agent=AfterWorkOption.TERMINATE, ## transfer to planner
-                            values="Session terminated.",
+        return ReplyResult(target=TerminateTarget(), ## terminate
+                            message="Session terminated.",
                             context_variables=context_variables)
 
 
     terminator._add_single_function(terminate_session)
+    # terminator.functions = [terminate_session]
 
 
-    def record_improved_task(improved_main_task: str,  context_variables: dict) -> SwarmResult:
+    def record_improved_task(improved_main_task: str,  context_variables: ContextVariables) -> ReplyResult:
         """
         Records the improved main task.
         """
@@ -170,15 +225,15 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
             print(improved_main_task)
 
 
-        return SwarmResult(agent=planner, ## transfer to planner
-                            values="Improved main task has been logged. Now, suggest a plan, planner!",
+        return ReplyResult(target=AgentTarget(planner), ## transfer to planner
+                            message="Improved main task has been logged. Now, suggest a plan, planner!",
                             context_variables=context_variables)
 
 
     task_recorder._add_single_function(record_improved_task)
 
 
-    def record_aas_keywords(aas_keywords: list[str], context_variables: dict) -> SwarmResult:
+    def record_aas_keywords(aas_keywords: list[str], context_variables: ContextVariables) -> ReplyResult:
         """
         Extracts the relevant AAS keywords from the list, given the text input.
         Args:
@@ -191,8 +246,8 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
 
         for keyword in aas_keywords:
             if keyword not in AAS_keywords_dict:
-                return SwarmResult(agent=aas_keyword_finder, ## transfer to control
-                                values=f"Proposed keyword {keyword} not found in the list of AAS keywords. Extract keywords from provided AAS list!",
+                return ReplyResult(target=AgentTarget(aas_keyword_finder), ## transfer to control
+                                message=f"Proposed keyword {keyword} not found in the list of AAS keywords. Extract keywords from provided AAS list!",
                                 context_variables=context_variables)
             
         context_variables["aas_keywords"] = {f'{aas_keyword}': AAS_keywords_dict[aas_keyword] for aas_keyword in aas_keywords}
@@ -201,36 +256,31 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                             [f"- [{keyword}]({AAS_keywords_dict[keyword]})" for keyword in aas_keywords]
                         )
 
-        return SwarmResult(agent=AfterWorkOption.TERMINATE, ## transfer to control
-                        values=f"""
+        return ReplyResult(target=AgentTarget(control), ## transfer to control
+                        message=f"""
 **AAS keywords**:\n
 {AAS_keyword_list}
 """,
                         context_variables=context_variables)
 
-        # import sys
-        # sys.exit()
 
-        # context_variables["proposed_plan"] = plan_suggestion
-
-        # context_variables["number_of_steps_in_plan"] = number_of_steps_in_plan
-
-        # if context_variables["feedback_left"]==0:
-        #     context_variables["final_plan"] = context_variables["plans"][-1]
-        #     return SwarmResult(agent=AfterWorkOption.TERMINATE, ## transfer to control
-        #                     values="Planning stage complete. Exiting.",
-        #                     context_variables=context_variables)
-        # else:
-        #     return SwarmResult(agent=plan_reviewer, ## transfer to plan reviewer
-        #                     values="Plan has been logged.",
-        #                     context_variables=context_variables)
-
-
-    aas_keyword_finder._add_single_function(record_aas_keywords)
+    # aas_keyword_finder._add_single_function(record_aas_keywords)  
+    # aas_keyword_finder.functions = [record_aas_keywords]
+    register_function(
+        record_aas_keywords,
+        caller=aas_keyword_finder,
+        executor=aas_keyword_finder,
+        description=r"""
+        Extracts the relevant AAS keywords from the list, given the text input.
+        Args:
+            aas_keywords (list[str]): The list of AAS keywords to be recorded
+            context_variables (dict): A dictionary maintaining execution context, including previous plans, 
+                feedback tracking, and finalized plans.
+        """,
+    )
 
 
-
-    def record_plan(plan_suggestion: str, number_of_steps_in_plan: int, context_variables: dict) -> SwarmResult:
+    def record_plan(plan_suggestion: str, number_of_steps_in_plan: int, context_variables: ContextVariables) -> ReplyResult:
         """
         Records a suggested plan and updates relevant execution context.
 
@@ -256,17 +306,39 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
 
         if context_variables["feedback_left"]==0:
             context_variables["final_plan"] = context_variables["plans"][-1]
-            return SwarmResult(agent=AfterWorkOption.TERMINATE, ## transfer to control
-                            values="Planning stage complete. Exiting.",
+            return ReplyResult(target=AgentTarget(terminator), ## transfer to control
+                            message="Planning stage complete. Exiting.",
                             context_variables=context_variables)
         else:
-            return SwarmResult(agent=plan_reviewer, ## transfer to plan reviewer
-                            values="Plan has been logged.",
+            return ReplyResult(target=AgentTarget(plan_reviewer), ## transfer to plan reviewer
+                            message="Plan has been logged.",
                             context_variables=context_variables)
 
 
-    plan_recorder._add_single_function(record_plan)
+    # plan_recorder._add_single_function(record_plan)
+    # plan_recorder.functions = [record_plan]
+    register_function(
+        record_plan,
+        caller=plan_recorder,
+        executor=plan_recorder,
+        description=r"""
+        Records a suggested plan and updates relevant execution context.
 
+        This function logs a full plan suggestion into the `context_variables` dictionary. If no feedback 
+        remains to be given (i.e., `context_variables["feedback_left"] == 0`), the most recent plan 
+        suggestion is marked as the final plan. The function also updates the total number of steps in 
+        the plan.
+
+        The function ensures that the plan is properly stored and transferred to the `plan_reviewer` agent 
+        for further evaluation.
+
+        Args:
+            plan_suggestion (str): The complete plan suggestion to be recorded.
+            number_of_steps_in_plan (int): The total number of **Steps** in the suggested plan.
+            context_variables (dict): A dictionary maintaining execution context, including previous plans, 
+                feedback tracking, and finalized plans.
+        """,
+    )
 
     def record_plan_constraints(needed_agents: list[Literal["engineer", 
                                                        "researcher", 
@@ -277,7 +349,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                                        "classy_sz_agent", 
                                                        "planck_agent",
                                                        "aas_keyword_finder"]],
-                                context_variables: dict) -> SwarmResult:
+                                context_variables: ContextVariables) -> ReplyResult:
         """
         Records the constraints on the plan.
         """
@@ -308,14 +380,24 @@ You must not invoke any other agent than the ones listed above.
 
         # print('planner_append_instructions after update: ', context_variables["planner_append_instructions"])
         # print('plan_reviewer_append_instructions after update: ', context_variables["plan_reviewer_append_instructions"])
-        return SwarmResult(agent=planner,
-                           values="Plan constraints have been logged.",
+        return ReplyResult(target=AgentTarget(planner),
+                           message="Plan constraints have been logged.",
                            context_variables=context_variables)
 
     plan_setter._add_single_function(record_plan_constraints)
+    # register_function(
+    #     record_plan_constraints,
+    #     caller=plan_setter,
+    #     executor=plan_setter,
+    #     description=r"""
+    #     Records the constraints on the plan.
+    #     """
+    # )
+
+    # plan_setter.functions = [record_plan_constraints]
 
 
-    def record_review(plan_review: str, context_variables: dict) -> SwarmResult:
+    def record_review(plan_review: str, context_variables: ContextVariables) -> ReplyResult:
         """ Record reviews of the plan."""
         context_variables["reviews"].append(plan_review)
         context_variables["feedback_left"] -= 1
@@ -332,8 +414,8 @@ You must not invoke any other agent than the ones listed above.
         #                        values="No further recommendations to be made on the plan. Update plan and proceed",
         #                        context_variables=context_variables)
         # else:
-        return SwarmResult(agent=planner,  ## transfer back to planner
-                        values=f"""
+        return ReplyResult(target=AgentTarget(planner),  ## transfer back to planner
+                        message=f"""
 Recommendations have been logged.  
 Number of feedback rounds left: {context_variables["feedback_left"]}. 
 Now, update the plan accordingly, planner!""",
@@ -341,8 +423,16 @@ Now, update the plan accordingly, planner!""",
                         context_variables=context_variables)
 
 
-    review_recorder._add_single_function(record_review)
-
+    # review_recorder._add_single_function(record_review)
+    # review_recorder.functions = [record_review]
+    register_function(
+        record_review,
+        caller=review_recorder,
+        executor=review_recorder,
+        description=r"""
+        Records the reviews of the plan.
+        """,
+    )
 
     def record_status(
         current_status: Literal["in progress", "failed", "completed"],
@@ -351,8 +441,8 @@ Now, update the plan accordingly, planner!""",
         current_instructions: str,
         agent_for_sub_task: Literal["engineer", "researcher", #"perplexity", 
                                     "idea_maker", "idea_hater", "classy_sz_agent", "camb_agent", "aas_keyword_finder", "planck_agent"],
-        context_variables: dict
-    ) -> SwarmResult:
+        context_variables: ContextVariables
+    ) -> ReplyResult:
         """
         Updates the execution context and returns the current progress.
         Must be called **before calling the agent in charge of the next sub-task**.
@@ -367,7 +457,7 @@ Now, update the plan accordingly, planner!""",
             context_variables (dict): Execution context dictionary.
 
         Returns:
-            SwarmResult: Contains a formatted status message and updated context.
+            ReplyResult: Contains a formatted status message and updated context.
         """
 
         if cmbagent_instance.mode == "chat":
@@ -515,9 +605,9 @@ Now, update the plan accordingly, planner!""",
                 
 
             if agent_to_transfer_to is None:
-                return SwarmResult(
-                    
-                    values=f"""
+                return ReplyResult(
+                    target=AgentTarget(control),
+                    message=f"""
 **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
 **Sub-task:** {context_variables["current_sub_task"]}\n 
 **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
@@ -527,9 +617,9 @@ Now, update the plan accordingly, planner!""",
             """,
                     context_variables=context_variables)
             else:
-                return SwarmResult(
-                    agent=agent_to_transfer_to,
-                    values=f"""
+                return ReplyResult(
+                    target=AgentTarget(agent_to_transfer_to),
+                    message=f"""
 **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
 **Sub-task:** {context_variables["current_sub_task"]}\n 
 **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
@@ -683,9 +773,9 @@ Now, update the plan accordingly, planner!""",
                 
 
             if agent_to_transfer_to is None:
-                return SwarmResult(
-                    
-                    values=f"""
+                return ReplyResult(
+                    target=AgentTarget(control),
+                    message=f"""
 **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
 **Sub-task:** {context_variables["current_sub_task"]}\n 
 **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
@@ -695,9 +785,9 @@ Now, update the plan accordingly, planner!""",
             """,
                     context_variables=context_variables)
             else:
-                return SwarmResult(
-                    agent=agent_to_transfer_to,
-                    values=f"""
+                return ReplyResult(
+                    target=AgentTarget(agent_to_transfer_to),
+                    message=f"""
 **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
 **Sub-task:** {context_variables["current_sub_task"]}\n 
 **Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
@@ -709,7 +799,29 @@ Now, update the plan accordingly, planner!""",
         
 
 
-    control._add_single_function(record_status)
+    # control._add_single_function(record_status)
+    register_function(
+        record_status,
+        caller=control,
+        executor=control,
+        description=r"""
+        Updates the context and returns the current progress.
+        Must be called **before calling the agent in charge of the next sub-task**.
+        Must be called **after** each action taken.
+
+        Args:
+            current_status (str): The current status ("in progress", "failed", or "completed").
+            current_plan_step_number (int): The current step number in the plan.
+            current_sub_task (str): Description of the current sub-task.
+            current_instructions (str): Instructions for the sub-task.
+            agent_for_sub_task (str): The agent responsible for the sub-task.
+            context_variables (dict): context dictionary.
+
+        Returns:
+            ReplyResult: Contains a formatted status message and updated context.
+        """,
+    )
+    # control.functions = [record_status]
 
 
 

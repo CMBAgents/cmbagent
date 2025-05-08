@@ -661,7 +661,7 @@ def main():
 
         provider_oai        = st.text_input("OpenAI",      type="password", key="api_key_oai")
         provider_anthropic  = st.text_input("Anthropic",    type="password", key="api_key_anthropic")
-        provider_gemini     = st.text_input("Gemini",       type="password", key="api_key_gemini")
+        # provider_gemini     = st.text_input("Gemini",       type="password", key="api_key_gemini")
         # provider_perplexity = st.text_input("Perplexity API Key",   type="password", key="api_key_perplexity")
 
         username = None
@@ -673,8 +673,8 @@ def main():
             os.environ["OPENAI_API_KEY"] = provider_oai
         if provider_anthropic:
             os.environ["ANTHROPIC_API_KEY"] = provider_anthropic
-        if provider_gemini:
-            os.environ["GEMINI_API_KEY"] = provider_gemini
+        # if provider_gemini:
+        # os.environ["GEMINI_API_KEY"] = None
         # if provider_perplexity:
         #     os.environ["PERPLEXITY_API_KEY"] = provider_perplexity
 
@@ -770,11 +770,11 @@ def main():
                 st.success("Anthropic API Key is valid.")
             else:
                 st.error("Invalid Anthropic API Key.")
-        if provider_gemini:
-            if validate_gemini_key(provider_gemini):
-                st.success("Gemini API Key is valid.")
-            else:
-                st.error("Invalid Gemini API Key.")
+        # if provider_gemini:
+        #     if validate_gemini_key(provider_gemini):
+        #         st.success("Gemini API Key is valid.")
+        #     else:
+        #         st.error("Invalid Gemini API Key.")
         # if provider_perplexity:
         #     if validate_perplexity_key(provider_perplexity):
         #         st.success("Perplexity API Key is valid.")
@@ -1362,7 +1362,7 @@ def main():
 
             # --- Model/provider selection logic for engineer and researcher ---
 
-            def get_config_for_model(model, provider_oai, provider_anthropic, provider_gemini):
+            def get_config_for_model(model, provider_oai, provider_anthropic, provider_gemini=None):
                 model_lower = model.lower()
                 # print("MODEL LOWER:", model_lower)
                 if any(x in model_lower for x in ["gpt", "o3", "o4"]):
@@ -1373,12 +1373,12 @@ def main():
                     # print("ANTHROPIC MODEL SELECTED")
                     return {"model": model, "api_key": os.environ["ANTHROPIC_API_KEY"], "api_type": "anthropic"}
                 elif "gemini" in model_lower:
-                    return {"model": model, "api_key": os.environ["GEMINI_API_KEY"], "api_type": "google"}
+                    return {"model": model, "api_key": None, "api_type": "google"}
                 else:
                     return {"model": model, "api_key": "", "api_type": "openai"}
 
-            engineer_config   = get_config_for_model(engineer_model, provider_oai, provider_anthropic, provider_gemini)
-            researcher_config = get_config_for_model(researcher_model, provider_oai, provider_anthropic, provider_gemini)
+            engineer_config   = get_config_for_model(engineer_model, provider_oai, provider_anthropic, None)
+            researcher_config = get_config_for_model(researcher_model, provider_oai, provider_anthropic, None)
 
     
 

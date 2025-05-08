@@ -6,12 +6,11 @@ from pprint import pprint
 
 from autogen.coding import LocalCommandLineCodeExecutor
 
-import autogen as autogen
-from autogen import AssistantAgent
-# from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent 
-from autogen.cmbagent_utils import cmbagent_debug
-from autogen import UserProxyAgent, config_list_from_json, GroupChat
+import autogen
+from autogen.agentchat import AssistantAgent, UserProxyAgent, GroupChat
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+from autogen.cmbagent_utils import cmbagent_debug
+
 
 from cobaya.yaml import yaml_load_file, yaml_load
 
@@ -183,11 +182,8 @@ default_agent_llm_configs = {
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
-                    'planner': {
-                        "model": default_llm_model,#"gpt-4o-2024-11-20",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
+
+                        
                     'control': {
                         # "model": "gpt-4o-2024-11-20",
                         "model": default_llm_model,
@@ -205,7 +201,8 @@ default_agent_llm_configs = {
                         },
 
                     'researcher': {
-                        "model": "gemini-2.5-pro-exp-03-25",
+                        # "model": "gemini-2.5-pro-exp-03-25",
+                        "model": "gemini-2.0-flash",
                         "api_key": os.getenv("GEMINI_API_KEY"),
                         "api_type": "google",
                         },
@@ -217,10 +214,27 @@ default_agent_llm_configs = {
                         "api_type": "openai",
                         },
 
+                    'planner': {
+                        # "model": default_llm_model,#"gpt-4o-2024-11-20",
+                        # "api_key": os.getenv("OPENAI_API_KEY"),
+                        # "api_type": "openai",
+                        "model": "gemini-2.0-flash",                 
+                        # "model": "gemini-2.5-pro-exp-03-25",
+                        "api_key": os.getenv("GEMINI_API_KEY"),
+                        "api_type": "google",
+                        },
                     'plan_reviewer': {
                         "model": "claude-3-7-sonnet-20250219",
                         "api_key": os.getenv("ANTHROPIC_API_KEY"),
                         "api_type": "anthropic",
+                        },
+
+                    'plan_setter': {
+                        # "model": "gpt-4o-2024-11-20",
+                        "model": "gemini-2.0-flash",
+                        "api_key": os.getenv("GEMINI_API_KEY"),
+                        "api_type": "google",
+                        # "tool_choice": "required",
                         },
 
 
