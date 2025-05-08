@@ -983,6 +983,22 @@ def main():
             <h4 style="
             text-align: center;
             font-family: 'Jersey 10', sans-serif;
+            font-size: 24px;
+            margin-top: 0.5rem;
+            ">
+            Get the source code <a href="https://github.com/CMBAgents/cmbagent" target="_blank">here</a>
+            </h4>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+        
+        st.markdown(
+            """
+            <h4 style="
+            text-align: center;
+            font-family: 'Jersey 10', sans-serif;
             font-size: 28px;
             margin-top: 0.5rem;
             color: #888;
