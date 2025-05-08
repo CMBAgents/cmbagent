@@ -285,6 +285,37 @@ default_agent_llm_configs = {
                     }
 
 
+def get_model_config(model):
+    config = {
+        "model": model,
+        "api_key": None,
+        "api_type": None
+    }
+    
+    if 'o3' in model:
+        config.update({
+            "reasoning_effort": "high",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        })
+    elif "gemini" in model:
+        config.update({
+            "api_key": os.getenv("GEMINI_API_KEY"), 
+            "api_type": "google"
+        })
+    elif "claude" in model:
+        config.update({
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_type": "anthropic"
+        })
+    else:
+        config.update({
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_type": "openai"
+        })
+    return config
+
+
 
 def update_yaml_preserving_format(yaml_file, agent_name, new_id, field = 'vector_store_ids'):
     yaml = YAML()

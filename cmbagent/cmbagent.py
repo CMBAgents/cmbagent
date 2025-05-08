@@ -24,7 +24,7 @@ from .utils import path_to_agents, update_yaml_preserving_format
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
 import time
-
+from .utils import get_model_config
 
 
 def import_non_rag_agents():
@@ -1059,6 +1059,8 @@ def planning_and_control(
                             max_n_attempts = 3,
                             engineer_model = 'gpt-4.1-2025-04-14',
                             researcher_model = 'gpt-4.1-2025-04-14',
+                            idea_maker_model = 'gemini-2.5-pro-exp-03-25',
+                            idea_hater_model = 'claude-3-7-sonnet-20250219',
                             work_dir = work_dir_default
                             ):
 
@@ -1103,76 +1105,10 @@ def planning_and_control(
 
     ## control
 
-    if 'o3' in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "reasoning_effort": "high",
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-
-    elif "gemini" in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("GEMINI_API_KEY"),
-            "api_type": "google"
-        }
-
-    elif "claude" in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("ANTHROPIC_API_KEY"),
-            "api_type": "anthropic"
-        }
-
-    # elif "sonar" in engineer_model:
-    #     engineer_config = {
-    #         "model": engineer_model,
-    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
-    #         "api_type": "sonar"
-    #     }
-
-    else:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-
-    if 'o3' in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "reasoning_effort": "high",
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-    elif "gemini" in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("GEMINI_API_KEY"),
-            "api_type": "google"
-        }
-
-    elif "claude" in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("ANTHROPIC_API_KEY"),
-            "api_type": "anthropic"
-        }
-
-    # elif "sonar" in researcher_model:
-    #     researcher_config = {
-    #         "model": researcher_model,
-    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
-    #         "api_type": "sonar"
-    #     }
-
-    else:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
+    engineer_config = get_model_config(engineer_model)
+    researcher_config = get_model_config(researcher_model)
+    idea_maker_config = get_model_config(idea_maker_model)
+    idea_hater_config = get_model_config(idea_hater_model)
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1182,6 +1118,8 @@ def planning_and_control(
         agent_llm_configs = {
                             'engineer': engineer_config,
                             'researcher': researcher_config,
+                            'idea_maker': idea_maker_config,
+                            'idea_hater': idea_hater_config,
         })
     end_time = time.time()
     initialization_time_control = end_time - start_time
@@ -1387,8 +1325,13 @@ def one_shot(
     
     # Save to JSON file in workdir
     timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+
+
     with open(timing_path, 'w') as f:
         json.dump(timing_report, f, indent=2)
+
+    print("Timing report saved to", timing_path)
+    print("Task took", f"{execution_time:.4f}", "seconds")
 
     return results
 
