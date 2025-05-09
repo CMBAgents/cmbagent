@@ -173,7 +173,7 @@ default_agent_llm_configs = {
                         },
                     'task_improver': {
                         "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "high",
+                        "reasoning_effort": "medium",
                         "api_key": os.getenv("OPENAI_API_KEY"),
                         "api_type": "openai",
                         },
@@ -308,7 +308,7 @@ def get_model_config(model):
     
     if 'o3' in model:
         config.update({
-            "reasoning_effort": "high",
+            "reasoning_effort": "medium",
             "api_key": os.getenv("OPENAI_API_KEY"),
             "api_type": "openai"
         })
