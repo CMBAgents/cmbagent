@@ -63,7 +63,7 @@ We assume you are in the virtual environment where you installed cmbagent.
 Here is a one-liner you can run in terminal:
 
 ```bash
-python -c "import os, re; os.environ['CMBAGENT_DEBUG']='false'; os.environ['ASTROPILOT_DISABLE_DISPLAY']='true'; import cmbagent; task='''Draw two random numbers and give me their sum'''; results=cmbagent.one_shot(task, max_rounds=50, initial_agent='engineer', engineer_model='gpt-4o-mini');"
+python -c "task='''Draw two random numbers and give me their sum'''; results=cmbagent.one_shot(task, max_rounds=50, agent='engineer', engineer_model='gpt-4o-mini');"
 ```
 
 If you want to run the notebooks, first create the ipykernel (assuming your virtual environment is called cmbagent_env):
