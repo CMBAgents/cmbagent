@@ -40,7 +40,7 @@ You give a task to solve, then:
 
 ## Install 
 
-With Python 3.9 or above:
+With Python 3.12 or above:
 
 ```bash
 python3 -m venv cmbagent_env
