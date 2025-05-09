@@ -16,7 +16,9 @@ from .agents.planner_response_formatter.planner_response_formatter import save_f
 from collections import defaultdict
 from .utils import work_dir as work_dir_default
 from .utils import OpenAI,Image, default_llm_model
-from .utils import path_to_assistants,path_to_apis,default_top_p,default_temperature,default_max_round,default_llm_config_list,default_agent_llm_configs
+from .utils import (path_to_assistants,path_to_apis,
+                    default_top_p,default_temperature,default_max_round,default_llm_config_list,default_agent_llm_configs,
+                    default_agents_llm_model)
 from pprint import pprint
 from .rag_utils import import_rag_agents, push_vector_stores
 from .utils import path_to_agents, update_yaml_preserving_format
@@ -26,6 +28,7 @@ import time
 from .utils import get_model_config
 from autogen.agentchat.group import ContextVariables
 from autogen import ConversableAgent
+
 
 
 from autogen.agentchat.group.patterns import (
@@ -995,20 +998,12 @@ def planning_and_control(
                             engineer_instructions = '',
                             researcher_instructions = '',
                             max_n_attempts = 3,
-
-                            # planner_model = 'gpt-4.1-2025-04-14',
-                            # plan_reviewer_model = 'claude-3-7-sonnet-20250219',
-                            # engineer_model = 'gpt-4.1-2025-04-14',
-                            # researcher_model = 'gpt-4.1-2025-04-14',
-                            # idea_maker_model = 'gpt-4.1-2025-04-14',
-                            # idea_hater_model = 'claude-3-7-sonnet-20250219',
-                            
-                            planner_model = default_llm_model,
-                            plan_reviewer_model = default_llm_model,
-                            engineer_model = default_llm_model,
-                            researcher_model = default_llm_model,
-                            idea_maker_model = default_llm_model,
-                            idea_hater_model = default_llm_model,
+                            planner_model = default_agents_llm_model['planner'],
+                            plan_reviewer_model = default_agents_llm_model['plan_reviewer'],
+                            engineer_model = default_agents_llm_model['engineer'],
+                            researcher_model = default_agents_llm_model['researcher'],
+                            idea_maker_model = default_agents_llm_model['idea_maker'],
+                            idea_hater_model = default_agents_llm_model['idea_hater'],
                             work_dir = work_dir_default
                             ):
 
@@ -1140,96 +1135,17 @@ def one_shot(
             task,
             max_rounds = 50,
             max_n_attempts = 3,
-            engineer_model = 'gpt-4o-2024-11-20',
-            researcher_model = 'gpt-4o-2024-11-20',
-            initial_agent = 'engineer',
+            engineer_model = default_agents_llm_model['engineer'],
+            researcher_model = default_agents_llm_model['researcher'],
+            agent = 'engineer',
             work_dir = work_dir_default
             ):
     start_time = time.time()
-    ## control
-    # print('initializing CMBAgent...')
-    # import sys
-    # sys.exit()
-
-    if 'o3' in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "reasoning_effort": "high",
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-    elif "claude" in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("ANTHROPIC_API_KEY"),
-            "api_type": "anthropic"
-        }
-
-    elif "gemini" in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("GEMINI_API_KEY"),
-            "api_type": "google"
-        }
-
-    elif "claude" in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("ANTHROPIC_API_KEY"),
-            "api_type": "anthropic"
-        }
-
-    # elif "sonar" in engineer_model:
-    #     engineer_config = {
-    #         "model": engineer_model,
-    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
-    #         "api_type": "sonar"
-    #     }
-
-    else:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-
-    if 'o3' in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "reasoning_effort": "high",
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-    elif "gemini" in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("GEMINI_API_KEY"),
-            "api_type": "google"
-        }
-
-    elif "claude" in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("ANTHROPIC_API_KEY"),
-            "api_type": "anthropic"
-        }
-
-    # elif "sonar" in researcher_model:
-    #     researcher_config = {
-    #         "model": researcher_model,
-    #         "api_key": os.getenv("PERPLEXITY_API_KEY"),
-    #         "api_type": "sonar"
-    #     }
 
 
-    else:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
+    engineer_config = get_model_config(engineer_model)
+    researcher_config = get_model_config(researcher_model)
         
-    start_time = time.time()
 
     cmbagent = CMBAgent(
         work_dir = work_dir,
@@ -1246,7 +1162,7 @@ def one_shot(
 
     cmbagent.solve(task,
                     max_rounds=max_rounds,
-                    initial_agent=initial_agent,
+                    initial_agent=agent,
                     mode = "one_shot",
                     shared_context = {'max_n_attempts': max_n_attempts}
                     )

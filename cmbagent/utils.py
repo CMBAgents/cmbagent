@@ -130,242 +130,41 @@ default_llm_model = 'gpt-4o-2024-11-20'
 # default_llm_model = 'gpt-4.1-2025-04-14'
 # default_llm_model = 'gpt-4o-mini'
 # default_llm_model = "gemini-2.0-flash"
-# "gpt-4o-mini"
-
-default_llm_config_list = [
-                    {
-                        "model": default_llm_model,
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        'api_type': 'openai',
-                    }
-                    ]
-
-
-default_agent_llm_configs = {
-                    'engineer': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "medium", # high
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    'aas_keyword_finder': {
-                        "model": "o3-mini-2025-01-31",
-                        # "model": default_llm_model,
-                        "reasoning_effort": "medium", # high
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    'classy_sz': {
-                        # "model": "gpt-4o-2024-11-20", 
-                        "model": default_llm_model,
-                        "api_key": os.getenv("OPENAI_API_KEY"), # use oai models here only (this is a RAG agent, with an oai vector store attached. If you are not a cosmologist, ignore this, you will never need this agent.
-                        "api_type": "openai",
-                        },
-                    'camb': {
-                        # "model": "gpt-4o-2024-11-20",
-                        "model": default_llm_model,
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        # "check_every_ms": 500, # does not do anything
-                        "api_type": "openai",
-                        },
-                    'cobaya': {
-                        "model": "gpt-4o-2024-11-20",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    'task_improver': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "medium",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    'task_recorder': {
-                        "model": "gpt-4o-2024-11-20",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-
-                        
-                    'control': {
-                        # "model": "gpt-4o-2024-11-20",
-                        "model": default_llm_model,
-                        # "model": "o3-mini-2025-01-31",
-                        # "reasoning_effort": "medium",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    'terminator': {
-                        "model": "gpt-4o-2024-11-20",
-                        # "model": "o3-mini-2025-01-31",
-                        # "reasoning_effort": "high",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-
-                    'researcher': {
-
-                        "model": "gpt-4o-2024-11-20",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        # "model": "gemini-2.5-pro-exp-03-25",
-                        # "model": "gemini-2.0-flash",
-                        # "api_key": os.getenv("GEMINI_API_KEY"),
-                        # "api_type": "google",
-                        },
-
-                    'perplexity': {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "medium", # high
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-
-                    'planner': {
-                        "model": default_llm_model,#"gpt-4o-2024-11-20",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        # "model": "gemini-2.0-flash",                 
-                        # # "model": "gemini-2.5-pro-exp-03-25",
-                        # "api_key": os.getenv("GEMINI_API_KEY"),
-                        # "api_type": "google",
-                        },
-                    'plan_reviewer': {
-                        "model": "claude-3-7-sonnet-20250219",
-                        "api_key": os.getenv("ANTHROPIC_API_KEY"),
-                        "api_type": "anthropic",
-                        },
-
-                    'plan_setter': {
-                        "model": default_llm_model,
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        # "model": "gpt-4o-2024-11-20",
-                        # "model": "gemini-2.0-flash",
-                        # "api_key": os.getenv("GEMINI_API_KEY"),
-                        # "api_type": "google",
-                        # "tool_choice": "required",
-                        },
-
-
-                    'idea_hater': {
-                        "model": "claude-3-7-sonnet-20250219",
-                        "api_key": os.getenv("ANTHROPIC_API_KEY"),
-                        "api_type": "anthropic",
-                        },
-
-                    # 'idea_maker': {
-                    #     "model": "gemini-2.5-pro-exp-03-25",
-                    #     "api_key": os.getenv("GEMINI_API_KEY"),
-                    #     "api_type": "google",
-                    #     },
-                    "idea_maker": {
-                        "model": default_llm_model,
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        'temperature': 0.99,
-                        },
-                    # 'idea_maker': {
-                    #     "model": "gemini-2.5-pro-exp-03-25",
-                    #     "api_key": os.getenv("GEMINI_API_KEY"),
-                    #     "api_type": "google",
-                    #     },
-                    "classy_sz_response_formatter": {
-                        "model": default_llm_model,
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    "camb_response_formatter": {
-                        # "model": "gpt-4o-2024-11-20", 
-                        "model": default_llm_model,
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    "cobaya_response_formatter": {
-                        "model": "gpt-4o-2024-11-20",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-                    # "engineer_response_formatter": {
-                    #     "model": "o3-mini-2025-01-31",
-                    #     "reasoning_effort": "low",
-                    #     "api_key": os.getenv("OPENAI_API_KEY"),
-                    #     "api_type": "openai",
-                    #     },
-                    "engineer_response_formatter": {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "medium",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-
-                    "researcher_response_formatter": {
-                        "model": "o3-mini-2025-01-31",
-                        "reasoning_effort": "low",
-                        "api_key": os.getenv("OPENAI_API_KEY"),
-                        "api_type": "openai",
-                        },
-
-                    }
-
-
-# default_llm_model = "gemini-2.0-flash"
-
-
-# default_llm_config_list = [
-#                     {
-#                         "model": default_llm_model,
-#                         "api_key": os.getenv("GEMINI_API_KEY"),
-#                         'api_type': 'google',
-#                     }
-# ]
-
-# default_agent_llm_configs = {
-#                     'engineer': default_llm_config_list[0],
-#                     'aas_keyword_finder': default_llm_config_list[0],
-#                     'task_improver': default_llm_config_list[0],
-#                     'task_recorder': default_llm_config_list[0],
-#                     'control': default_llm_config_list[0],
-#                     'terminator': default_llm_config_list[0],
-#                     'researcher': default_llm_config_list[0],
-#                     'perplexity': default_llm_config_list[0],
-#                     'planner': default_llm_config_list[0],
-#                     'plan_reviewer': default_llm_config_list[0],
-#                     'plan_setter': default_llm_config_list[0],
-#                     'idea_hater': default_llm_config_list[0],
-#                     "idea_maker": default_llm_config_list[0],
-#                     "classy_sz_response_formatter": default_llm_config_list[0],
-#                     "camb_response_formatter": default_llm_config_list[0],
-#                     "cobaya_response_formatter": default_llm_config_list[0],
-#                     "engineer_response_formatter": default_llm_config_list[0],
-#                     "researcher_response_formatter": default_llm_config_list[0],
-#                     'classy_sz': {
-#                         "model": "gpt-4o-2024-11-20", 
-#                         # "model": default_llm_model,
-#                         "api_key": os.getenv("OPENAI_API_KEY"), # use oai models here only (this is a RAG agent, with an oai vector store attached. If you are not a cosmologist, ignore this, you will never need this agent.
-#                         "api_type": "openai",
-#                         },
-#                     'camb': {
-#                         "model": "gpt-4o-2024-11-20",
-#                         # "model": default_llm_model,
-#                         "api_key": os.getenv("OPENAI_API_KEY"),
-#                         # "check_every_ms": 500, # does not do anything
-#                         "api_type": "openai",
-#                         },
-#                     'cobaya': {
-#                         "model": "gpt-4o-2024-11-20",
-#                         "api_key": os.getenv("OPENAI_API_KEY"),
-#                         "api_type": "openai",
-#                         },
-#                     'planck': {
-#                         "model": "gpt-4o-2024-11-20",
-#                         "api_key": os.getenv("OPENAI_API_KEY"),
-#                         "api_type": "openai",
-#                         },
-
-# }
 
 
 
+
+
+default_agents_llm_model ={
+    "engineer": "gpt-4.1-2025-04-14",
+    "aas_keyword_finder": "o3-mini-2025-01-31",
+    "task_improver": "o3-mini-2025-01-31",
+    "task_recorder": "gpt-4o-2024-11-20",
+    "control": "gpt-4o-2024-11-20",
+    "terminator": "gpt-4o-2024-11-20",
+    "researcher": "gpt-4o-2024-11-20",
+    "perplexity": "o3-mini-2025-01-31",
+    "planner": "gpt-4o-2024-11-20",
+    "plan_reviewer": "claude-3-7-sonnet-20250219",
+    "plan_setter": "gpt-4o-2024-11-20",
+    "idea_hater": "claude-3-7-sonnet-20250219",
+    "idea_maker": "gpt-4o-2024-11-20",
+
+    # rag agents
+    "classy_sz": "gpt-4o-2024-11-20",
+    "camb": "gpt-4o-2024-11-20",
+    "cobaya": "gpt-4o-2024-11-20",
+    "planck": "gpt-4o-2024-11-20",
+
+    # structured output agents
+    "classy_sz_response_formatter": "gpt-4o-2024-11-20",
+    "camb_response_formatter": "gpt-4o-2024-11-20",
+    "cobaya_response_formatter": "gpt-4o-2024-11-20",
+    "engineer_response_formatter": "o3-mini-2025-01-31",
+    "researcher_response_formatter": "o3-mini-2025-01-31",
+}
+
+default_agent_llm_configs = {}
 
 def get_model_config(model):
     config = {
@@ -396,6 +195,16 @@ def get_model_config(model):
             "api_type": "openai"
         })
     return config
+
+for agent in default_agents_llm_model:
+    default_agent_llm_configs[agent] =  get_model_config(default_agents_llm_model[agent])
+
+
+
+default_llm_config_list = [get_model_config(default_llm_model)]
+
+
+
 
 
 

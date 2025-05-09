@@ -29,7 +29,10 @@ cmbagent.planning_and_control(data_description,
                             #   plan_reviewer_model = "gemini-2.0-flash",
                             #   researcher_model = "gemini-2.0-flash",
                             #   idea_maker_model = "gemini-2.0-flash",
-                            idea_maker_model = "gemini-2.5-pro-exp-03-25",
+                            # idea_maker_model = "gemini-2.5-pro-exp-03-25",
+                            # idea_hater_model = "gemini-2.5-pro-exp-03-25",
+                              idea_maker_model = "gemini-2.5-flash-preview-04-17",
+                              idea_hater_model = "gemini-2.5-flash-preview-04-17",
                             #   idea_hater_model = "claude-3-7-sonnet-20250219",
                               plan_instructions=r"""
 Given these datasets, and information, make a plan according to the following instructions: 

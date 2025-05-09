@@ -566,6 +566,7 @@ def main():
                     "gpt-4o", "gpt-4o-mini","gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
                     "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
                     "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash",
+
                     # "sonar-pro", "sonar"
                 ]
             },
@@ -583,7 +584,7 @@ def main():
         def get_provider_for_model(model):
             oai = {"gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "gpt-4o", "gpt-4o-mini", "o3", "o4-mini", "o3-mini"}
             anth = {"Claude 3.7 Sonnet", "Claude 3.5 Haiku", "Claude 3.5 Sonnet"}
-            gem = {"gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash"}
+            gem = {"gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash",}
             # per = {"sonar-pro", "sonar"}
 
             if model in oai:
@@ -1418,7 +1419,7 @@ def main():
                                 max_n_attempts = max_n_attempts,
                                 engineer_model=engineer_model,
                                 researcher_model=researcher_model,
-                                initial_agent=st.session_state.one_shot_selected_agent,
+                                agent=st.session_state.one_shot_selected_agent,
                             )
 
                             # image_dir = results['final_context']['work_dir']+'/data'
