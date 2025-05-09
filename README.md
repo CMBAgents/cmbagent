@@ -98,6 +98,27 @@ For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) an
 
 By default, cmbagent uses models from oai/anthropic/google. If you want to pick different LLMs, just adapat `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
 
+## Docker
+
+You can run the cmbagent GUI in a [docker container](https://www.docker.com/). You may need `sudo` permission to run docker, [or follow the instructions of this link](https://docs.docker.com/engine/install/linux-postinstall/). To build the docker image run:
+
+```bash
+docker build -t cmbagent .
+```
+
+To run the cmbagent GUI:
+
+```bash
+docker run -p 8501:8501 --rm cmbagent
+```
+
+That command exposes the default streamlit port `8501`, change it to use a different port. You can mount additional volumes to share data with the docker container using the `-v` flag.
+
+If you want to enter the docker container in interactive mode to use cmbagent without the GUI, run:
+
+```bash
+docker run --rm -it cmbagent bash
+```
 
 ## References
 
