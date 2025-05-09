@@ -15,7 +15,7 @@ from pathlib import Path
 from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
 from collections import defaultdict
 from .utils import work_dir as work_dir_default
-from .utils import OpenAI,Image
+from .utils import OpenAI,Image, default_llm_model
 from .utils import path_to_assistants,path_to_apis,default_top_p,default_temperature,default_max_round,default_llm_config_list,default_agent_llm_configs
 from pprint import pprint
 from .rag_utils import import_rag_agents, push_vector_stores
@@ -208,6 +208,7 @@ class CMBAgent:
 
 
         self.llm_api_key = llm_config_list[0]['api_key']
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
 
         self.logger.info(f"Path to APIs: {path_to_apis}")
 
@@ -846,7 +847,7 @@ class CMBAgent:
 
     def check_assistants(self, reset_assistant=[]):
 
-        client = OpenAI(api_key = self.llm_api_key)
+        client = OpenAI(api_key = self.openai_api_key)
         available_assistants = client.beta.assistants.list(
             order="desc",
             limit="100",
@@ -994,12 +995,20 @@ def planning_and_control(
                             engineer_instructions = '',
                             researcher_instructions = '',
                             max_n_attempts = 3,
-                            planner_model = 'gpt-4.1-2025-04-14',
-                            plan_reviewer_model = 'claude-3-7-sonnet-20250219',
-                            engineer_model = 'gpt-4.1-2025-04-14',
-                            researcher_model = 'gpt-4.1-2025-04-14',
-                            idea_maker_model = 'gpt-4.1-2025-04-14',
-                            idea_hater_model = 'claude-3-7-sonnet-20250219',
+
+                            # planner_model = 'gpt-4.1-2025-04-14',
+                            # plan_reviewer_model = 'claude-3-7-sonnet-20250219',
+                            # engineer_model = 'gpt-4.1-2025-04-14',
+                            # researcher_model = 'gpt-4.1-2025-04-14',
+                            # idea_maker_model = 'gpt-4.1-2025-04-14',
+                            # idea_hater_model = 'claude-3-7-sonnet-20250219',
+                            
+                            planner_model = default_llm_model,
+                            plan_reviewer_model = default_llm_model,
+                            engineer_model = default_llm_model,
+                            researcher_model = default_llm_model,
+                            idea_maker_model = default_llm_model,
+                            idea_hater_model = default_llm_model,
                             work_dir = work_dir_default
                             ):
 

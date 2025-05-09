@@ -129,6 +129,7 @@ default_max_round = 50
 default_llm_model = 'gpt-4o-2024-11-20'
 # default_llm_model = 'gpt-4.1-2025-04-14'
 # default_llm_model = 'gpt-4o-mini'
+# default_llm_model = "gemini-2.0-flash"
 # "gpt-4o-mini"
 
 default_llm_config_list = [
@@ -138,6 +139,7 @@ default_llm_config_list = [
                         'api_type': 'openai',
                     }
                     ]
+
 
 default_agent_llm_configs = {
                     'engineer': {
@@ -201,10 +203,14 @@ default_agent_llm_configs = {
                         },
 
                     'researcher': {
+
+                        "model": "gpt-4o-2024-11-20",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
                         # "model": "gemini-2.5-pro-exp-03-25",
-                        "model": "gemini-2.0-flash",
-                        "api_key": os.getenv("GEMINI_API_KEY"),
-                        "api_type": "google",
+                        # "model": "gemini-2.0-flash",
+                        # "api_key": os.getenv("GEMINI_API_KEY"),
+                        # "api_type": "google",
                         },
 
                     'perplexity': {
@@ -300,6 +306,65 @@ default_agent_llm_configs = {
                         },
 
                     }
+
+
+# default_llm_model = "gemini-2.0-flash"
+
+
+# default_llm_config_list = [
+#                     {
+#                         "model": default_llm_model,
+#                         "api_key": os.getenv("GEMINI_API_KEY"),
+#                         'api_type': 'google',
+#                     }
+# ]
+
+# default_agent_llm_configs = {
+#                     'engineer': default_llm_config_list[0],
+#                     'aas_keyword_finder': default_llm_config_list[0],
+#                     'task_improver': default_llm_config_list[0],
+#                     'task_recorder': default_llm_config_list[0],
+#                     'control': default_llm_config_list[0],
+#                     'terminator': default_llm_config_list[0],
+#                     'researcher': default_llm_config_list[0],
+#                     'perplexity': default_llm_config_list[0],
+#                     'planner': default_llm_config_list[0],
+#                     'plan_reviewer': default_llm_config_list[0],
+#                     'plan_setter': default_llm_config_list[0],
+#                     'idea_hater': default_llm_config_list[0],
+#                     "idea_maker": default_llm_config_list[0],
+#                     "classy_sz_response_formatter": default_llm_config_list[0],
+#                     "camb_response_formatter": default_llm_config_list[0],
+#                     "cobaya_response_formatter": default_llm_config_list[0],
+#                     "engineer_response_formatter": default_llm_config_list[0],
+#                     "researcher_response_formatter": default_llm_config_list[0],
+#                     'classy_sz': {
+#                         "model": "gpt-4o-2024-11-20", 
+#                         # "model": default_llm_model,
+#                         "api_key": os.getenv("OPENAI_API_KEY"), # use oai models here only (this is a RAG agent, with an oai vector store attached. If you are not a cosmologist, ignore this, you will never need this agent.
+#                         "api_type": "openai",
+#                         },
+#                     'camb': {
+#                         "model": "gpt-4o-2024-11-20",
+#                         # "model": default_llm_model,
+#                         "api_key": os.getenv("OPENAI_API_KEY"),
+#                         # "check_every_ms": 500, # does not do anything
+#                         "api_type": "openai",
+#                         },
+#                     'cobaya': {
+#                         "model": "gpt-4o-2024-11-20",
+#                         "api_key": os.getenv("OPENAI_API_KEY"),
+#                         "api_type": "openai",
+#                         },
+#                     'planck': {
+#                         "model": "gpt-4o-2024-11-20",
+#                         "api_key": os.getenv("OPENAI_API_KEY"),
+#                         "api_type": "openai",
+#                         },
+
+# }
+
+
 
 
 def get_model_config(model):

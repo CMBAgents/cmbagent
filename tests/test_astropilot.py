@@ -1,3 +1,7 @@
+import os
+os.environ["CMBAGENT_DEBUG"] = "true"
+os.environ["ASTROPILOT_DISABLE_DISPLAY"] = "false"
+
 from astropilot import AstroPilot
 
 astro_pilot = AstroPilot(project_dir="Project4")
