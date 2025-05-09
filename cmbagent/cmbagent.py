@@ -994,11 +994,11 @@ def planning_and_control(
                             engineer_instructions = '',
                             researcher_instructions = '',
                             max_n_attempts = 3,
-                            planner_model = 'gemini-2.0-flash',
+                            planner_model = 'gpt-4.1-2025-04-14',
                             plan_reviewer_model = 'claude-3-7-sonnet-20250219',
                             engineer_model = 'gpt-4.1-2025-04-14',
                             researcher_model = 'gpt-4.1-2025-04-14',
-                            idea_maker_model = 'gemini-2.0-flash',
+                            idea_maker_model = 'gpt-4.1-2025-04-14',
                             idea_hater_model = 'claude-3-7-sonnet-20250219',
                             work_dir = work_dir_default
                             ):

@@ -215,13 +215,13 @@ default_agent_llm_configs = {
                         },
 
                     'planner': {
-                        # "model": default_llm_model,#"gpt-4o-2024-11-20",
-                        # "api_key": os.getenv("OPENAI_API_KEY"),
-                        # "api_type": "openai",
-                        "model": "gemini-2.0-flash",                 
-                        # "model": "gemini-2.5-pro-exp-03-25",
-                        "api_key": os.getenv("GEMINI_API_KEY"),
-                        "api_type": "google",
+                        "model": default_llm_model,#"gpt-4o-2024-11-20",
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
+                        # "model": "gemini-2.0-flash",                 
+                        # # "model": "gemini-2.5-pro-exp-03-25",
+                        # "api_key": os.getenv("GEMINI_API_KEY"),
+                        # "api_type": "google",
                         },
                     'plan_reviewer': {
                         "model": "claude-3-7-sonnet-20250219",
@@ -230,10 +230,13 @@ default_agent_llm_configs = {
                         },
 
                     'plan_setter': {
+                        "model": default_llm_model,
+                        "api_key": os.getenv("OPENAI_API_KEY"),
+                        "api_type": "openai",
                         # "model": "gpt-4o-2024-11-20",
-                        "model": "gemini-2.0-flash",
-                        "api_key": os.getenv("GEMINI_API_KEY"),
-                        "api_type": "google",
+                        # "model": "gemini-2.0-flash",
+                        # "api_key": os.getenv("GEMINI_API_KEY"),
+                        # "api_type": "google",
                         # "tool_choice": "required",
                         },
 
