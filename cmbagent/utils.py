@@ -141,7 +141,9 @@ default_agents_llm_model ={
     "task_improver": "o3-mini-2025-01-31",
     "task_recorder": "gpt-4o-2024-11-20",
     "control": "gpt-4o-2024-11-20",
+    # "control": "gemini-2.5-pro-preview-03-25",
     "terminator": "gpt-4o-2024-11-20",
+    # "terminator": "gemini-2.5-pro-preview-03-25",
     "researcher": "gpt-4o-2024-11-20",
     "perplexity": "o3-mini-2025-01-31",
     "planner": "gpt-4o-2024-11-20",
@@ -161,7 +163,10 @@ default_agents_llm_model ={
     "camb_response_formatter": "gpt-4o-2024-11-20",
     "cobaya_response_formatter": "gpt-4o-2024-11-20",
     "engineer_response_formatter": "o3-mini-2025-01-31",
+    # "engineer_response_formatter": "gemini-2.5-pro-preview-03-25",
     "researcher_response_formatter": "o3-mini-2025-01-31",
+    "executor_response_formatter": "gpt-4o-2024-11-20",
+    #"executor_response_formatter": "gemini-2.5-pro-preview-03-25",
 }
 
 default_agent_llm_configs = {}
@@ -198,7 +203,6 @@ def get_model_config(model):
 
 for agent in default_agents_llm_model:
     default_agent_llm_configs[agent] =  get_model_config(default_agents_llm_model[agent])
-
 
 
 default_llm_config_list = [get_model_config(default_llm_model)]

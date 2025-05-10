@@ -453,7 +453,7 @@ Now, update the plan accordingly, planner!""",
             current_plan_step_number (int): The current step number in the plan.
             current_sub_task (str): Description of the current sub-task.
             current_instructions (str): Instructions for the sub-task.
-            agent_for_sub_task (str): The agent responsible for the sub-task.
+            agent_for_sub_task (str): The agent responsible for the sub-task in the current step. Stays the same for the whole step.
             context_variables (dict): Execution context dictionary.
 
         Returns:

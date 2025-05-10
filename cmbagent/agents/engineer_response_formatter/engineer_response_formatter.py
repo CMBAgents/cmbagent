@@ -1,7 +1,7 @@
 import os
 from cmbagent.base_agent import BaseAgent
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 
 class EngineerResponseFormatterAgent(BaseAgent):
@@ -11,6 +11,8 @@ class EngineerResponseFormatterAgent(BaseAgent):
         agent_id = os.path.splitext(os.path.abspath(__file__))[0]
 
         llm_config['config_list'][0]['response_format'] = self.EngineerResponse
+        # llm_config['config_list'][0]['response_mime_type'] = "application/json"
+        # llm_config['config_list'][0]['response_schema'] = list[self.EngineerResponse]
 
         super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
 

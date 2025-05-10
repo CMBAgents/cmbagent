@@ -12,7 +12,7 @@ class ExecutorResponseFormatterAgent(BaseAgent):
 
         agent_id = os.path.splitext(os.path.abspath(__file__))[0]
 
-        llm_config['config_list'][0]['response_format'] = self.ExecutorResponse
+        # llm_config['config_list'][0]['response_format'] = self.ExecutorResponse
 
         super().__init__(llm_config=llm_config, agent_id=agent_id, **kwargs)
 
