@@ -1,8 +1,11 @@
-from autogen.agentchat.group import AgentTarget, TerminateTarget, OnCondition, StringLLMCondition
+from autogen.agentchat.group import NestedChatTarget, AgentTarget, TerminateTarget, OnCondition, StringLLMCondition
 from autogen.cmbagent_utils import cmbagent_debug
 from typing import Any, Dict, List
 import autogen
 import os
+from autogen import GroupChatManager, GroupChat
+from autogen.agentchat.contrib.capabilities.transform_messages import TransformMessages
+from autogen.agentchat.contrib.capabilities.transforms import MessageHistoryLimiter, MessageTokenLimiter
 
 cmbagent_debug = autogen.cmbagent_utils.cmbagent_debug
 
@@ -44,8 +47,7 @@ def register_all_hand_offs(cmbagent_instance):
     plan_setter = cmbagent_instance.get_agent_object_from_name('plan_setter')
     executor_bash = cmbagent_instance.get_agent_object_from_name('executor_bash')
     installer = cmbagent_instance.get_agent_object_from_name('installer')
-    cmbagent_tool_executor = cmbagent_instance.get_agent_object_from_name('cmbagent_tool_executor')
-
+    engineer_nest = cmbagent_instance.get_agent_object_from_name('engineer_nest')
     mode = cmbagent_instance.mode
 
 
@@ -77,9 +79,6 @@ def register_all_hand_offs(cmbagent_instance):
     # Plan setter handoffs
     plan_setter.agent.handoffs.set_after_work(AgentTarget(planner.agent))
 
-    # Plan setter handoffs
-    # plan_setter.agent.handoffs.set_after_work(AgentTarget(cmbagent_tool_executor.agent))
-    
     # Task recorder handoffs
     task_recorder.agent.handoffs.set_after_work(AgentTarget(planner.agent))
     
@@ -117,16 +116,157 @@ def register_all_hand_offs(cmbagent_instance):
     researcher_response_formatter.agent.handoffs.set_after_work(AgentTarget(executor.agent))
 
     # Engineer handoffs
-    engineer.agent.handoffs.set_after_work(AgentTarget(engineer_response_formatter.agent))
+    # engineer.agent.handoffs.set_after_work(AgentTarget(engineer_response_formatter.agent))
+
 
     # Engineer response formatter handoffs  
-    engineer_response_formatter.agent.handoffs.set_after_work(AgentTarget(executor.agent))
+    # engineer_response_formatter.agent.handoffs.set_after_work(AgentTarget(executor.agent))
 
     # Executor handoffs
-    executor.agent.handoffs.set_after_work(AgentTarget(executor_response_formatter.agent))
+    # executor.agent.handoffs.set_after_work(AgentTarget(executor_response_formatter.agent))
 
-    # Executor response formatter handoffs
-    executor_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+    # executor.agent.register_nested_chats(
+    #     trigger=engineer_response_formatter.agent,
+    #     chat_queue=[
+    #         {
+    #             # The initial message is the one received by the player agent from
+    #             # the other player agent.
+    #             "sender": executor.agent,
+    #             "recipient": executor_response_formatter.agent,
+    #             # The final message is sent to the player agent.
+    #             "summary_method": "last_msg",
+    #         }
+    #     ],
+    # )
+    # executor.agent.handoffs.set_after_work(AgentTarget(engineer_nest.agent))
+
+    # Executor response formatter handoffs # handled by function call. 
+    # executor_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+
+    # Create the group chat for collaborative lesson planning
+    executor_chat = GroupChat(
+        agents=[
+                engineer_response_formatter.agent, 
+                executor.agent, 
+                ],
+        messages=[],
+        max_round=3,
+        # send_introductions=True,
+        speaker_selection_method = 'round_robin',
+    )
+
+    executor_manager = GroupChatManager(
+        groupchat=executor_chat,
+        llm_config=cmbagent_instance.llm_config,
+        name="executor_manager",
+
+    )
+
+    context_handling = TransformMessages(
+            transforms=[
+                MessageHistoryLimiter(max_messages=1),
+        ]
+    )
+    # context_handling.add_to_agent(executor_manager)
+    context_handling.add_to_agent(executor_response_formatter.agent)
+    # context_handling.add_to_agent(executor.agent)
+    # context_handling.add_to_agent(engineer_response_formatter.agent)
+    # context_handling.add_to_agent(engineer.agent)
+
+    # context_handling = TransformMessages(
+    #         transforms=[
+    #             MessageHistoryLimiter(max_messages=1),
+    #     ]
+    # )
+
+
+    # Create nested chats configuration
+    nested_chats = [
+        # {
+        #     # The first internal chat formats the engineer response
+        #     # A round of revisions is supported with max_turns = 2
+        #     "recipient": engineer.agent,
+        #     "message": lambda recipient, messages, sender, config: f"{messages[-1]['content']}",
+        #     "max_turns": 1,
+        #     "summary_method": "last_msg",
+        # },
+
+        {
+            # The first internal chat formats the engineer response
+            # A round of revisions is supported with max_turns = 2
+            # "carryover_config": {"summary_method": "last_msg"},
+            "recipient": executor_manager,
+            "message": lambda recipient, messages, sender, config: f"{messages[-1]['content']}",
+            "max_turns": 1,
+            "summary_method": "last_msg",
+        }#,
+        # {
+        #     # A group chat follows, where the lesson plan is created
+        #     "recipient": executor.agent,
+        #     # "message": "execute the code",
+        #     "max_turns": 1,
+        #     # "summary_method": "last_msg",
+        # },
+        # {
+        #     # Finally, a two-agent chat formats the lesson plan
+        #     # The result of this will be the lead_teacher_agent's reply
+        #     "recipient": executor_response_formatter.agent,
+        #     # "message": lambda recipient, messages, sender, config: f"{messages[-1]['content']}",
+        #     "max_turns": 1,
+        #     "summary_method": "last_msg",
+        # }
+    ]
+    # nested_chat_config = {"chat_queue": nested_chats, "use_async": True}
+
+
+   # create a list of all egents except the engineer:
+    other_agents = [agent for agent in cmbagent_instance.agents if agent != engineer.agent]
+    # print(other_agents)
+    # import sys
+    # sys.exit()
+    # register the nested chats for the other agents:
+
+    # engineer.agent.register_nested_chats(
+    #     chat_queue=nested_chats,
+    #     trigger=lambda sender: sender not in other_agents
+    # )
+
+    engineer_nest.agent.register_nested_chats(
+    trigger=lambda sender: sender not in other_agents,
+    chat_queue=nested_chats
+    )
+
+    engineer_nest.agent.handoffs.set_after_work(AgentTarget(executor_response_formatter.agent))
+
+    engineer.agent.handoffs.set_after_work(AgentTarget(engineer_nest.agent))
+    # engineer.agent.handoffs.set_after_work(NestedChatTarget(nested_chat_config=nested_chat_config))
+
+
+
+    # nested_chat_one = {
+    #     "carryover_config": {"summary_method": "last_msg"},  # Bring the last message into the chat
+    #     "recipient": order_retrieval_agent,
+    #     "message": extract_order_summary,  # Retrieve the status details of the order using the order id
+    #     "max_turns": 1,  # Only one turn is necessary
+    # }
+
+    # nested_chat_two = {
+    #     "recipient": order_summariser_agent,
+    #     "message": "Summarise the order details provided in a Markdown table format with headings: Detail, Information",
+    #     "max_turns": 1,
+    #     "summary_method": "last_msg",  # Return their message back as the nested chat output
+    # }
+
+    # target={
+    #     "chat_queue": chat_queue,
+    # },
+
+ 
+    # engineer.agent.register_nested_chats(
+    #     chat_queue=nested_chats,
+    #     trigger=lambda sender: sender not in [curriculum_agent, planning_manager, lesson_reviewer_agent],
+    # )
+
 
     # idea maker handoffs
     idea_maker.agent.handoffs.set_after_work(AgentTarget(idea_maker_response_formatter.agent))

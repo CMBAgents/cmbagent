@@ -14,6 +14,7 @@ from typing import Any
 from autogen.agentchat.group import ContextVariables
 from autogen.agentchat.group import AgentTarget, ReplyResult, TerminateTarget
 from autogen import register_function
+from typing import Optional
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -77,7 +78,7 @@ def register_functions_to_agents(cmbagent_instance):
     plan_setter = cmbagent_instance.get_agent_from_name('plan_setter')
     idea_maker = cmbagent_instance.get_agent_from_name('idea_maker')
     installer = cmbagent_instance.get_agent_from_name('installer')
-    cmbagent_tool_executor = cmbagent_instance.get_agent_from_name('cmbagent_tool_executor')
+
     # print("Perplexity API key: ", os.getenv("PERPLEXITY_API_KEY"))
     # perplexity_search_tool = PerplexitySearchTool(
     #                     model="sonar-reasoning-pro",
@@ -99,13 +100,14 @@ def register_functions_to_agents(cmbagent_instance):
                                                             #    "planck_agent", no need for paper agents
                                                                "control"], 
                                 context_variables: ContextVariables,
-                                execution_status: Literal["success", "failure"] 
+                                execution_status: Literal["success", "failure"],
+                                fix_suggestion: Optional[str] = None
                                 ) -> ReplyResult:
         """
         Transfer to the next agent based on the execution status.
         For the next agent suggestion, follow these rules:
+            - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError: No module named xx).
             - Suggest the engineer agent if error related to generic Python code.
-            - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError).
             - Suggest the classy_sz_agent if error is an internal classy_sz error.
             - Suggest the camb_agent if error related to internal camb code.
             - Suggest the cobaya_agent if error related to internal cobaya code.
@@ -146,7 +148,10 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
             if next_agent_suggestion == "engineer":
                 context_variables["n_attempts"] += 1
                 return ReplyResult(target=AgentTarget(engineer),
-                                message="Execution status: " + execution_status + ". Transfer to engineer.\n" + f"{workflow_status_str}\n",
+                                message="Execution status: " + execution_status 
+                                + ". Transfer to engineer.\n" 
+                                + f"{workflow_status_str}\n" 
+                                + f"Fix suggestion: {fix_suggestion}\n",
                                 context_variables=context_variables)    
             
             elif next_agent_suggestion == "classy_sz_agent":

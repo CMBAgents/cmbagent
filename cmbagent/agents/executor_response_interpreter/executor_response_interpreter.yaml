@@ -1,0 +1,11 @@
+name: "executor_response_interpreter"
+
+instructions: |
+
+    You summarize the execution result of the code. 
+
+    
+
+
+description: |
+   Process the response provided by the executor agent.

@@ -165,7 +165,7 @@ default_agents_llm_model ={
     "engineer_response_formatter": "o3-mini-2025-01-31",
     # "engineer_response_formatter": "gemini-2.5-pro-preview-03-25",
     "researcher_response_formatter": "o3-mini-2025-01-31",
-    "executor_response_formatter": "gpt-4o-2024-11-20",
+    "executor_response_formatter": "o3-mini-2025-01-31",
     #"executor_response_formatter": "gemini-2.5-pro-preview-03-25",
 }
 

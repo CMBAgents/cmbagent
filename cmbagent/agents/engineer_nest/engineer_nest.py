@@ -1,7 +1,7 @@
 import os
 from cmbagent.base_agent import BaseAgent
 
-class CmbagentToolExecutorAgent(BaseAgent):
+class EngineerNestAgent(BaseAgent):
     
     def __init__(self, llm_config=None, **kwargs):
 
@@ -13,12 +13,6 @@ class CmbagentToolExecutorAgent(BaseAgent):
     def set_agent(self,**kwargs):
 
         super().set_assistant_agent(**kwargs)
-
-
-
-
-
-
 
 
 

@@ -489,73 +489,6 @@ class CMBAgent:
         
         return df
 
-
-    def update_memory_agent(self):
-        
-        response = input('''Do you want to save this task summary to the "memory agent" vector stores? This will aid you and others in solving similar tasks in the future. Please only save the task if it has been completed successfully. Type "yes" or "no". ''').strip().lower()
-        
-
-        if 'yes' in response:
-            print('Asking summarizer to generate summary')
-            print('The summary will be json formatted.')
-            print('\n\n')
-            summary_message = """
-            We will now summarize the session.
-            """
-
-            previous_state = f"{self.groupchat.messages}"
-
-            # Convert string to Python dictionary
-            dict_representation = ast.literal_eval(previous_state)
-
-            # Convert dictionary to JSON string
-            json_string = json.dumps(dict_representation)
-
-            # print("previous state: ", json_string)
-            # exit()
-            last_agent, last_message = self.manager.resume(messages=json_string)
-
-            self.manager.cmbagent_summarizer = True
-
-            self.session = self.summarizer.agent.initiate_chat(recipient=self.manager,
-                                                          message=summary_message,
-                                                          clear_history=False)
-
-
-            # Extract the content
-            content = self.groupchat.messages[-1]['content']
-
-            # Parse the content string to a Python dictionary
-            content_dict = json.loads(content)
-
-            # Save to a JSON file
-            id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
-            with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
-                json.dump(content_dict, json_file, indent=4)
-            # Pretty-print the JSON
-            pretty_json = json.dumps(content_dict, indent=4)
-
-            print("Formatted JSON output:\n")
-            print(pretty_json)
-            # print("\nNested structure with pprint:\n")
-            # pprint(content_dict)
-            # id = f'{datetime.datetime.now():%Y-%m-%d_%H:%M:%S}'
-            # with open(os.getenv('CMBAGENT_DATA')+ '/data/memory/' + f'summary_{id}.json', 'w') as json_file:
-            #     json.dump(pretty_json, json_file, indent=4) 
-
-            # Push to memory agent vector store
-            push_vector_stores(self, ['memory'], None, verbose = True)
-
-            print("The memory vector store has been updated. The session will now be closed.")
-            # print('Updated memory agent\'s vector stores.')
-
-
-        if 'yes' not in response:
-            print('Task summary not added to memory agent\'s vector stores.')
-            return
-        
-
-        return
         
 
     def clear_work_dir(self):
@@ -1126,6 +1059,134 @@ def planning_and_control(
     return results
 
 
+def load_plan(plan_path):
+    """Load a plan from a JSON file into a dictionary"""
+    with open(plan_path, 'r') as f:
+        plan_dict = json.load(f)
+    
+    return plan_dict
+
+
+
+def control(
+            task,
+            plan = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'plans', 'idea_plan.json'),
+            max_rounds = 100,
+            max_plan_steps = 3,
+            n_plan_reviews = 1,
+            plan_instructions = '',
+            engineer_instructions = '',
+            researcher_instructions = '',
+            max_n_attempts = 3,
+            planner_model = default_agents_llm_model['planner'],
+            plan_reviewer_model = default_agents_llm_model['plan_reviewer'],
+            engineer_model = default_agents_llm_model['engineer'],
+            researcher_model = default_agents_llm_model['researcher'],
+            idea_maker_model = default_agents_llm_model['idea_maker'],
+            idea_hater_model = default_agents_llm_model['idea_hater'],
+            work_dir = work_dir_default
+                            ):
+    
+    # check work_dir exists
+    if not os.path.exists(work_dir):
+        os.makedirs(work_dir)
+
+
+
+    planning_input = load_plan(plan)["sub_tasks"]
+
+
+
+    # import pprint
+    # pprint.pprint(planning_input)
+
+
+    context = {'final_plan': planning_input,
+               "number_of_steps_in_plan": len(planning_input),
+               "agent_for_sub_task": planning_input[0]['sub_task_agent'],
+               "current_sub_task": planning_input[0]['sub_task'],
+               "current_instructions": ''}
+    for bullet in planning_input[0]['bullet_points']:
+        context["current_instructions"] += f"\t\t- {bullet}\n"
+
+
+    # pprint.pprint(context)
+
+    # import sys
+    # sys.exit()
+
+    ## control
+
+    engineer_config = get_model_config(engineer_model)
+    researcher_config = get_model_config(researcher_model)
+    idea_maker_config = get_model_config(idea_maker_model)
+    idea_hater_config = get_model_config(idea_hater_model)
+        
+    control_dir = Path(work_dir).expanduser().resolve() / "control"
+
+    start_time = time.time()
+    cmbagent = CMBAgent(
+        work_dir = control_dir,
+        agent_llm_configs = {
+                            'engineer': engineer_config,
+                            'researcher': researcher_config,
+                            'idea_maker': idea_maker_config,
+                            'idea_hater': idea_hater_config,
+        })
+    
+
+    print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")
+    print(f"in cmbagent.py: idea_hater_config: {idea_hater_config}")
+    
+    end_time = time.time()
+    initialization_time_control = end_time - start_time
+        
+
+    start_time = time.time()    
+    cmbagent.solve(task,
+                    max_rounds=max_rounds,
+                    initial_agent="control",
+                    shared_context = context
+                    )
+    end_time = time.time()
+    execution_time_control = end_time - start_time
+    
+    results = {'chat_history': cmbagent.chat_result.chat_history,
+               'final_context': cmbagent.final_context}
+    
+    results['initialization_time_control'] = initialization_time_control
+    results['execution_time_control'] = execution_time_control
+
+    # Save timing report as JSON
+    timing_report = {
+        'initialization_time_control': initialization_time_control,
+        'execution_time_control': execution_time_control,
+        'total_time': initialization_time_control + execution_time_control
+    }
+
+    # Add timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Save to JSON file in workdir
+    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    with open(timing_path, 'w') as f:
+        json.dump(timing_report, f, indent=2)
+
+    
+    # Create a dummy groupchat attribute if it doesn't exist
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+
+    # Now call display_cost without triggering the AttributeError
+    cmbagent.display_cost()
+
+
+    return results
+
+
+
+
 
 
 
@@ -1171,7 +1232,12 @@ def one_shot(
     execution_time = end_time - start_time
 
     results = {'chat_history': cmbagent.chat_result.chat_history,
-               'final_context': cmbagent.final_context}
+               'final_context': cmbagent.final_context,
+               'engineer':cmbagent.get_agent_object_from_name('engineer'),
+               'engineer_response_formatter':cmbagent.get_agent_object_from_name('engineer_response_formatter'),
+               'researcher':cmbagent.get_agent_object_from_name('researcher'),
+               'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter')}
+    
     
     results['initialization_time'] = initialization_time
     results['execution_time'] = execution_time
@@ -1222,55 +1288,13 @@ def human_in_the_loop(task,
          agent = 'engineer'):
 
     ## control
-
-    if 'o3' in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "reasoning_effort": "high",
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-    elif "claude" in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("ANTHROPIC_API_KEY"),
-            "api_type": "anthropic"
-        }
-
-    elif "gemini" in engineer_model:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("GEMINI_API_KEY"),
-            "api_type": "google"
-        }
-    else:
-        engineer_config = {
-            "model": engineer_model,
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-
-    if 'o3' in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "reasoning_effort": "high",
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-    elif "gemini" in researcher_model:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("GEMINI_API_KEY"),
-            "api_type": "google"
-        }
-    else:
-        researcher_config = {
-            "model": researcher_model,
-            "api_key": os.getenv("OPENAI_API_KEY"),
-            "api_type": "openai"
-        }
-        
     start_time = time.time()
+
+    engineer_config = get_model_config(engineer_model)
+    researcher_config = get_model_config(researcher_model)
+
+
+
 
     cmbagent = CMBAgent(
         work_dir = work_dir,
@@ -1297,7 +1321,12 @@ def human_in_the_loop(task,
     execution_time = end_time - start_time
 
     results = {'chat_history': cmbagent.chat_result.chat_history,
-               'final_context': cmbagent.final_context}
+               'final_context': cmbagent.final_context,
+               'engineer':cmbagent.get_agent_object_from_name('engineer'),
+               'engineer_nest':cmbagent.get_agent_object_from_name('engineer_nest'),
+               'engineer_response_formatter':cmbagent.get_agent_object_from_name('engineer_response_formatter'),
+               'researcher':cmbagent.get_agent_object_from_name('researcher'),
+               'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter')}
     
     results['initialization_time'] = initialization_time
     results['execution_time'] = execution_time
