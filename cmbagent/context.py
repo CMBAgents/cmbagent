@@ -17,6 +17,7 @@ shared_context = {
     "current_instructions": None,
 
 
+
     "main_task": None,
     "improved_main_task": None,
     "database_path": "data/",
@@ -36,8 +37,10 @@ shared_context = {
     "engineer_append_instructions": None,
     "researcher_append_instructions": None,
 
+    "previous_steps_execution_summary": "\n",
 
-    "AAS_keywords_string": AAS_keywords_string,
+
+    "AAS_keywords_string": None,#AAS_keywords_string,
     "text_input_for_AAS_keyword_finder": None,
     "N_AAS_keywords": 5,
 
@@ -46,7 +49,7 @@ shared_context = {
     "perplexity_citations": None,
 
 
-    "n_attempts": 0,
+    "n_attempts": 0, ## the number of failed attempts
     "max_n_attempts": 3,
 
 

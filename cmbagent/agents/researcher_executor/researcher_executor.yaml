@@ -1,4 +1,4 @@
-name: "executor_bash"
+name: "researcher_executor"
 
 human_input_mode: "NEVER"
           # conversable_agent.py
@@ -13,10 +13,10 @@ max_consecutive_auto_reply: 50
 
 
 instructions: |
-  You execute bash code provided to you by the installer agent.
+  You save content provided by the researcher.
 
 description: |
-  Executes bash code provided by the installer agent.
+  Saves content provided by researcher.
 
 
 timeout: 7200

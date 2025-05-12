@@ -53,9 +53,9 @@
             "bullet_points": [
                 "Create a concise and compelling scientific paper title.",
                 "Ensure the title reflects both philosophers' contributions to the research concept.",
-                "Write a 1-sentence description summarizing the research project."
+                "Write a 5-sentence description summarizing the research project."
             ],
-            "sub_task": "Report the best research project idea in the form of a scientific paper title with a 1-sentence description.",
+            "sub_task": "Report the best research project idea in the form of a scientific paper title with a 5-sentence description.",
             "sub_task_agent": "idea_maker"
         }
     ]

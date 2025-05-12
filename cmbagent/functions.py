@@ -15,6 +15,8 @@ from autogen.agentchat.group import ContextVariables
 from autogen.agentchat.group import AgentTarget, ReplyResult, TerminateTarget
 from autogen import register_function
 from typing import Optional
+import datetime
+import json
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -63,11 +65,7 @@ def register_functions_to_agents(cmbagent_instance):
     researcher_response_formatter = cmbagent_instance.get_agent_from_name('researcher_response_formatter')
     engineer = cmbagent_instance.get_agent_from_name('engineer')
     engineer_response_formatter = cmbagent_instance.get_agent_from_name('engineer_response_formatter')
-    classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')
-    classy_sz_response_formatter = cmbagent_instance.get_agent_from_name('classy_sz_response_formatter')
-    camb = cmbagent_instance.get_agent_from_name('camb_agent')
-    camb_response_formatter = cmbagent_instance.get_agent_from_name('camb_response_formatter')
-    planck = cmbagent_instance.get_agent_from_name('planck_agent')
+
     executor = cmbagent_instance.get_agent_from_name('executor')
     executor_response_formatter = cmbagent_instance.get_agent_from_name('executor_response_formatter')
     terminator = cmbagent_instance.get_agent_from_name('terminator')
@@ -78,6 +76,15 @@ def register_functions_to_agents(cmbagent_instance):
     plan_setter = cmbagent_instance.get_agent_from_name('plan_setter')
     idea_maker = cmbagent_instance.get_agent_from_name('idea_maker')
     installer = cmbagent_instance.get_agent_from_name('installer')
+    idea_saver = cmbagent_instance.get_agent_from_name('idea_saver')
+    control_starter = cmbagent_instance.get_agent_from_name('control_starter')
+
+    if not cmbagent_instance.skip_rag_agents:
+        classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')
+        classy_sz_response_formatter = cmbagent_instance.get_agent_from_name('classy_sz_response_formatter')
+        camb = cmbagent_instance.get_agent_from_name('camb_agent')
+        camb_response_formatter = cmbagent_instance.get_agent_from_name('camb_response_formatter')
+        planck = cmbagent_instance.get_agent_from_name('planck_agent')
 
     # print("Perplexity API key: ", os.getenv("PERPLEXITY_API_KEY"))
     # perplexity_search_tool = PerplexitySearchTool(
@@ -298,7 +305,7 @@ For the next agent suggestion, follow these rules:
         for further evaluation.
 
         Args:
-            plan_suggestion (str): The complete plan suggestion to be recorded.
+            plan_suggestion (str): The complete plan suggestion to be recorded. Unaltered, as it is, preserve capitalization and ponctuation.
             number_of_steps_in_plan (int): The total number of **Steps** in the suggested plan.
             context_variables (dict): A dictionary maintaining execution context, including previous plans, 
                 feedback tracking, and finalized plans.
@@ -358,11 +365,8 @@ For the next agent suggestion, follow these rules:
         """
         Records the constraints on the plan.
         """
-        # print('needed_agents: ', needed_agents)
+
         context_variables["needed_agents"] = needed_agents
-        # print('planner_append_instructions before update: ', context_variables["planner_append_instructions"])
-        # print('plan_reviewer_append_instructions before update: ', context_variables["plan_reviewer_append_instructions"])
-        # print(dir(idea_maker))
 
         str_to_append = f"The plan must strictly involve only the following agents: {', '.join(needed_agents)}\n"
         
@@ -383,23 +387,11 @@ You must not invoke any other agent than the ones listed above.
         context_variables["planner_append_instructions"] += str_to_append
         context_variables["plan_reviewer_append_instructions"] += str_to_append
 
-        # print('planner_append_instructions after update: ', context_variables["planner_append_instructions"])
-        # print('plan_reviewer_append_instructions after update: ', context_variables["plan_reviewer_append_instructions"])
         return ReplyResult(target=AgentTarget(planner),
                            message="Plan constraints have been logged.",
                            context_variables=context_variables)
 
     plan_setter._add_single_function(record_plan_constraints)
-    # register_function(
-    #     record_plan_constraints,
-    #     caller=plan_setter,
-    #     executor=plan_setter,
-    #     description=r"""
-    #     Records the constraints on the plan.
-    #     """
-    # )
-
-    # plan_setter.functions = [record_plan_constraints]
 
 
     def record_review(plan_review: str, context_variables: ContextVariables) -> ReplyResult:
@@ -409,16 +401,7 @@ You must not invoke any other agent than the ones listed above.
 
         context_variables["recommendations"] = plan_review
 
-        # if context_variables["feedback_left"]
 
-
-        # Controlling the flow to the next agent from a tool call
-        # if context_variables["reviews_left"] < 0:
-        #     context_variables["plan_recorded"] = True
-        #     return SwarmResult(agent=plan_manager,
-        #                        values="No further recommendations to be made on the plan. Update plan and proceed",
-        #                        context_variables=context_variables)
-        # else:
         return ReplyResult(target=AgentTarget(planner),  ## transfer back to planner
                         message=f"""
 Recommendations have been logged.  
@@ -426,7 +409,6 @@ Number of feedback rounds left: {context_variables["feedback_left"]}.
 Now, update the plan accordingly, planner!""",
                         
                         context_variables=context_variables)
-
 
     # review_recorder._add_single_function(record_review)
     # review_recorder.functions = [record_review]
@@ -438,6 +420,31 @@ Now, update the plan accordingly, planner!""",
         Records the reviews of the plan.
         """,
     )
+
+
+    def record_ideas(ideas: list):
+        """ Record ideas. You must record the entire list of ideas and their descriptions. You must not alter the list."""
+        # print('ideas: ', ideas)
+        # print(f"saving to work directory....{cmbagent_instance.work_dir}")
+        # save in json file
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath =  os.path.join(cmbagent_instance.work_dir, f'ideas_{timestamp}.json')
+        with open(filepath, 'w') as f:
+            json.dump(ideas, f)
+
+        return f"ideas saved in {filepath}"
+
+
+
+    register_function(
+        record_ideas,
+        caller=idea_saver,
+        executor=idea_saver,
+        description=r"""
+        Records the ideas. You must record the entire list of ideas and their descriptions. You must not alter the list.
+        """,
+    )
+
 
     def record_status(
         current_status: Literal["in progress", "failed", "completed"],
@@ -520,13 +527,7 @@ Now, update the plan accordingly, planner!""",
             context_variables["displayed_images"] = displayed_images + new_images
 
             
-            if cmbagent_debug:
-                print("\n\n in functions.py record_status: context_variables: ", context_variables)
-                import pprint
-                print('--'*70)
-                pprint.pprint(context_variables["current_status"])
-                pprint.pprint(context_variables["agent_for_sub_task"])
-                print('--'*70)
+
 
 
             context_variables["transfer_to_engineer"] = False
@@ -690,13 +691,13 @@ Now, update the plan accordingly, planner!""",
             context_variables["displayed_images"] = displayed_images + new_images
 
             
-            if cmbagent_debug:
-                print("\n\n in functions.py record_status: context_variables: ", context_variables)
-                import pprint
-                print('--'*70)
-                pprint.pprint(context_variables["current_status"])
-                pprint.pprint(context_variables["agent_for_sub_task"])
-                print('--'*70)
+            # if cmbagent_debug:
+            # print("\n\n in functions.py record_status: context_variables: ", context_variables)
+            # import pprint
+            # print('--'*70)
+            # pprint.pprint(context_variables["current_status"])
+            # pprint.pprint(context_variables["agent_for_sub_task"])
+            # print('--'*70)
 
 
             context_variables["transfer_to_engineer"] = False
@@ -749,20 +750,28 @@ Now, update the plan accordingly, planner!""",
                 elif context_variables["transfer_to_planck_agent"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('planck_agent')
 
+                if cmbagent_instance.mode == "planning_and_control_context_carryover" and context_variables["current_plan_step_number"] != cmbagent_instance.step:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
+
+
             if "completed" in context_variables["current_status"]:
+                
 
                 if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
-                else:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('control')
 
+                else:
+
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('control')
+                    ## reset the number of code execution attempts for the next step
+                    ## (the markdown execution always works)
+                    if cmbagent_instance.mode != "planning_and_control_context_carryover":
+                        context_variables["n_attempts"] = 0
 
                 # if context_variables["agent_for_sub_task"] == "engineer":
                 #     print("\n successfully ran the code after ", context_variables["n_attempts"], " attempts!")
                 
-                ## reset the number of code execution attempts
-                ## (the markdown execution always works)
-                context_variables["n_attempts"] = 0
+
             if "failed" in context_variables["current_status"]:
                 if context_variables["agent_for_sub_task"] == "engineer":
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
@@ -820,6 +829,144 @@ Now, update the plan accordingly, planner!""",
             current_sub_task (str): Description of the current sub-task.
             current_instructions (str): Instructions for the sub-task.
             agent_for_sub_task (str): The agent responsible for the sub-task.
+            context_variables (dict): context dictionary.
+
+        Returns:
+            ReplyResult: Contains a formatted status message and updated context.
+        """,
+    )
+    # control.functions = [record_status]
+
+
+
+    def record_status_starter(
+        # current_status: Literal["in progress", "failed", "completed"],
+        # current_plan_step_number: int,
+        # current_sub_task: str,
+        # current_instructions: str,
+        # agent_for_sub_task: Literal["engineer", "researcher", #"perplexity", 
+        #                             "idea_maker", "idea_hater", "classy_sz_agent", "camb_agent", "aas_keyword_finder", "planck_agent"],
+        context_variables: ContextVariables
+    ) -> ReplyResult:
+        """
+        Updates the execution context and returns the current progress.
+        Must be called **before calling the agent in charge of the next sub-task**.
+        Must be called **after** each action taken.
+
+        Args:
+            context_variables (dict): Execution context dictionary.
+
+        Returns:
+            ReplyResult: Contains a formatted status message and updated context.
+        """
+
+        current_status = "in progress"
+
+        # Map statuses to icons
+        status_icons = {
+            "completed": "✅",
+            "failed": "❌",
+            "in progress": "⏳"  # or any other icon you prefer
+        }
+        
+        icon = status_icons.get(current_status, "")
+        
+
+
+
+        
+        # if cmbagent_debug:
+        # print("\n\n in functions.py record_status: context_variables: ", context_variables)
+        # import pprint
+        # print('--'*70)
+        # pprint.pprint(context_variables.get("current_status"))
+        # pprint.pprint(context_variables.get("agent_for_sub_task"))
+        # print(context_variables['current_status'])
+        # print(context_variables['agent_for_sub_task'])
+        # print('--'*70)
+
+        # import sys
+        # sys.exit()
+
+        context_variables["transfer_to_engineer"] = False
+        context_variables["transfer_to_researcher"] = False
+        context_variables["transfer_to_camb_agent"] = False
+        context_variables["transfer_to_cobaya_agent"] = False
+        context_variables["transfer_to_perplexity"] = False
+        context_variables["transfer_to_idea_maker"] = False
+        context_variables["transfer_to_idea_hater"] = False
+        context_variables["transfer_to_classy_sz_agent"] = False
+
+        agent_to_transfer_to = None
+        if "in progress" in context_variables["current_status"]:
+            if context_variables["agent_for_sub_task"] == "engineer":
+                context_variables["transfer_to_engineer"] = True
+            elif context_variables["agent_for_sub_task"] == "researcher":
+                context_variables["transfer_to_researcher"] = True
+            elif context_variables["agent_for_sub_task"] == "camb_agent":
+                context_variables["transfer_to_camb_agent"] = True
+            elif context_variables["agent_for_sub_task"] == "cobaya_agent":
+                context_variables["transfer_to_cobaya_agent"] = True
+            elif context_variables["agent_for_sub_task"] == "perplexity":
+                context_variables["transfer_to_perplexity"] = True
+            elif context_variables["agent_for_sub_task"] == "idea_maker":
+                context_variables["transfer_to_idea_maker"] = True
+            elif context_variables["agent_for_sub_task"] == "idea_hater":
+                context_variables["transfer_to_idea_hater"] = True
+            elif context_variables["agent_for_sub_task"] == "classy_sz_agent":
+                context_variables["transfer_to_classy_sz_agent"] = True
+            elif context_variables["agent_for_sub_task"] == "planck_agent":
+                context_variables["transfer_to_planck_agent"] = True
+
+        
+            if context_variables["transfer_to_engineer"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
+            elif context_variables["transfer_to_researcher"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
+            elif context_variables["transfer_to_camb_agent"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_agent')
+            elif context_variables["transfer_to_cobaya_agent"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('cobaya_agent')
+            elif context_variables["transfer_to_perplexity"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('perplexity')
+            elif context_variables["transfer_to_idea_maker"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
+            elif context_variables["transfer_to_idea_hater"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
+            elif context_variables["transfer_to_classy_sz_agent"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
+            elif context_variables["transfer_to_planck_agent"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('planck_agent')
+
+
+
+        return ReplyResult(
+            target=AgentTarget(agent_to_transfer_to),
+            message=f"""
+**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
+**Sub-task:** {context_variables["current_sub_task"]}\n 
+**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
+**Instructions:**\n 
+{context_variables["current_instructions"]}\n 
+**Status:** {context_variables["current_status"]} {icon}
+""",
+        context_variables=context_variables)
+    
+
+
+    # control._add_single_function(record_status)
+    register_function(
+        record_status_starter,
+        # record_status,
+        caller=control_starter,
+        executor=control_starter,
+        description=r"""
+        Updates the context and returns the current progress.
+        Must be called **before calling the agent in charge of the next sub-task**.
+        Must be called **after** each action taken.
+
+        Args:
+
             context_variables (dict): context dictionary.
 
         Returns:

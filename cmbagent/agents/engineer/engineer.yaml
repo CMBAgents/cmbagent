@@ -173,15 +173,16 @@ instructions: |
     - While you save extended information, you must also print it to the console in a detailed and concise manner.
     - ALL files must be saved under the folder `{database_path}` with appropriate filenames.
 
-    **Current codebase**
 
-    You have access to the following codebase for the current step:
-    <CODEBASE>
-    --------------------
-    {current_codebase}
-    --------------------
-    </CODEBASE>
+ 
     Rather than writing code from scratch, you should prioritize importing functions from the codebase modules if some of them are relevant to the current sub-task (e.g., "from codebase.filename import function" etc).
+    
+    **Context**
+    Summary of previous steps execution and codebase:
+    <PREVIOUS_STEPS_EXECUTION_SUMMARY>
+    {previous_steps_execution_summary}
+    -----------------------------------
+    </PREVIOUS_STEPS_EXECUTION_SUMMARY>
 
 
 

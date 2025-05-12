@@ -14,7 +14,7 @@ from autogen.cmbagent_utils import LOGO, IMG_WIDTH, cmbagent_disable_display
 from .data_retriever import setup_cmbagent_data
 setup_cmbagent_data()
 
-from .cmbagent import planning_and_control, one_shot, get_keywords, human_in_the_loop, control
+from .cmbagent import planning_and_control, one_shot, get_keywords, human_in_the_loop, control, planning_and_control_context_carryover
 
 
 

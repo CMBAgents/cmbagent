@@ -13,10 +13,10 @@ max_consecutive_auto_reply: 50
 
 
 instructions: |
-  You execute python code provided to you by the engineer or save content provided by the researcher.
+  You execute python code provided to you by the engineer.
 
 description: |
-  Executes python code provided by the engineer or saves content provided by researcher.
+  Executes python code provided by the engineer.
 
 
 timeout: 7200

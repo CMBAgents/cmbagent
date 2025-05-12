@@ -30,14 +30,11 @@ def register_all_hand_offs(cmbagent_instance):
     researcher_response_formatter = cmbagent_instance.get_agent_object_from_name('researcher_response_formatter')
     engineer = cmbagent_instance.get_agent_object_from_name('engineer')
     engineer_response_formatter = cmbagent_instance.get_agent_object_from_name('engineer_response_formatter')
-    classy_sz = cmbagent_instance.get_agent_object_from_name('classy_sz_agent')
-    classy_sz_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_sz_response_formatter')
-    camb = cmbagent_instance.get_agent_object_from_name('camb_agent')
-    camb_response_formatter = cmbagent_instance.get_agent_object_from_name('camb_response_formatter')
-    planck = cmbagent_instance.get_agent_object_from_name('planck_agent')
-    cobaya = cmbagent_instance.get_agent_object_from_name('cobaya_agent')
-    cobaya_response_formatter = cmbagent_instance.get_agent_object_from_name('cobaya_response_formatter')
+
     executor = cmbagent_instance.get_agent_object_from_name('executor')
+    researcher_executor = cmbagent_instance.get_agent_object_from_name('researcher_executor')
+    executor_bash = cmbagent_instance.get_agent_object_from_name('executor_bash')
+
     terminator = cmbagent_instance.get_agent_object_from_name('terminator')
     control = cmbagent_instance.get_agent_object_from_name('control')
     perplexity = cmbagent_instance.get_agent_object_from_name('perplexity')
@@ -45,33 +42,42 @@ def register_all_hand_offs(cmbagent_instance):
     aas_keyword_finder = cmbagent_instance.get_agent_object_from_name('aas_keyword_finder')
     executor_response_formatter = cmbagent_instance.get_agent_object_from_name('executor_response_formatter')
     plan_setter = cmbagent_instance.get_agent_object_from_name('plan_setter')
-    executor_bash = cmbagent_instance.get_agent_object_from_name('executor_bash')
     installer = cmbagent_instance.get_agent_object_from_name('installer')
     engineer_nest = cmbagent_instance.get_agent_object_from_name('engineer_nest')
+    idea_maker_nest = cmbagent_instance.get_agent_object_from_name('idea_maker_nest')
+    idea_saver = cmbagent_instance.get_agent_object_from_name('idea_saver')
     mode = cmbagent_instance.mode
 
+    if not cmbagent_instance.skip_rag_agents:
 
-    # camb handoffs
-    camb.agent.handoffs.set_after_work(AgentTarget(camb_response_formatter.agent))
+        classy_sz = cmbagent_instance.get_agent_object_from_name('classy_sz_agent')
+        classy_sz_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_sz_response_formatter')
+        camb = cmbagent_instance.get_agent_object_from_name('camb_agent')
+        camb_response_formatter = cmbagent_instance.get_agent_object_from_name('camb_response_formatter')
+        planck = cmbagent_instance.get_agent_object_from_name('planck_agent')
+        cobaya = cmbagent_instance.get_agent_object_from_name('cobaya_agent')
+        cobaya_response_formatter = cmbagent_instance.get_agent_object_from_name('cobaya_response_formatter')
+        # camb handoffs
+        camb.agent.handoffs.set_after_work(AgentTarget(camb_response_formatter.agent))
 
-    # camb response formatter handoffs
-    camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+        # camb response formatter handoffs
+        camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
 
-    # classy_sz handoffs
-    classy_sz.agent.handoffs.set_after_work(AgentTarget(classy_sz_response_formatter.agent))
+        # classy_sz handoffs
+        classy_sz.agent.handoffs.set_after_work(AgentTarget(classy_sz_response_formatter.agent))
 
-    # classy_sz response formatter handoffs
-    classy_sz_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
-    
-    # cobaya handoffs
-    cobaya.agent.handoffs.set_after_work(AgentTarget(cobaya_response_formatter.agent))
+        # classy_sz response formatter handoffs
+        classy_sz_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+        
+        # cobaya handoffs
+        cobaya.agent.handoffs.set_after_work(AgentTarget(cobaya_response_formatter.agent))
 
-    # cobaya response formatter handoffs
-    cobaya_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+        # cobaya response formatter handoffs
+        cobaya_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
 
 
-    # planck handoffs   
-    planck.agent.handoffs.set_after_work(AgentTarget(control.agent))
+        # planck handoffs   
+        planck.agent.handoffs.set_after_work(AgentTarget(control.agent))
 
     # Task improver handoffs
     task_improver.agent.handoffs.set_after_work(AgentTarget(task_recorder.agent))
@@ -113,37 +119,43 @@ def register_all_hand_offs(cmbagent_instance):
     researcher.agent.handoffs.set_after_work(AgentTarget(researcher_response_formatter.agent))
 
     # Researcher response formatter handoffs    
-    researcher_response_formatter.agent.handoffs.set_after_work(AgentTarget(executor.agent))
+    researcher_response_formatter.agent.handoffs.set_after_work(AgentTarget(researcher_executor.agent))
 
-    # Engineer handoffs
-    # engineer.agent.handoffs.set_after_work(AgentTarget(engineer_response_formatter.agent))
+    # Researcher executor handoffs
+    researcher_executor.agent.handoffs.set_after_work(AgentTarget(control.agent))
+
+    
+    ### Transform messages for one shot agents 
+    context_handling = TransformMessages(
+            transforms=[
+                MessageHistoryLimiter(max_messages=1),
+        ]
+    )
+    # context_handling.add_to_agent(executor_manager)
+    context_handling.add_to_agent(executor_response_formatter.agent)
+
+    context_handling.add_to_agent(planner_response_formatter.agent)
+
+    context_handling.add_to_agent(plan_recorder.agent)
+
+    context_handling.add_to_agent(reviewer_response_formatter.agent)
+
+    context_handling.add_to_agent(review_recorder.agent)
+
+    # context_handling.add_to_agent(executor_manager)
+    context_handling.add_to_agent(researcher_response_formatter.agent)
+
+    context_handling.add_to_agent(researcher_executor.agent)
+
+    # context_handling.add_to_agent(executor_manager)
+    context_handling.add_to_agent(idea_maker_response_formatter.agent)
+
+    context_handling.add_to_agent(idea_hater_response_formatter.agent)
 
 
-    # Engineer response formatter handoffs  
-    # engineer_response_formatter.agent.handoffs.set_after_work(AgentTarget(executor.agent))
 
-    # Executor handoffs
-    # executor.agent.handoffs.set_after_work(AgentTarget(executor_response_formatter.agent))
 
-    # executor.agent.register_nested_chats(
-    #     trigger=engineer_response_formatter.agent,
-    #     chat_queue=[
-    #         {
-    #             # The initial message is the one received by the player agent from
-    #             # the other player agent.
-    #             "sender": executor.agent,
-    #             "recipient": executor_response_formatter.agent,
-    #             # The final message is sent to the player agent.
-    #             "summary_method": "last_msg",
-    #         }
-    #     ],
-    # )
-    # executor.agent.handoffs.set_after_work(AgentTarget(engineer_nest.agent))
-
-    # Executor response formatter handoffs # handled by function call. 
-    # executor_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
-
-    # Create the group chat for collaborative lesson planning
+    # Nested chat for code execution
     executor_chat = GroupChat(
         agents=[
                 engineer_response_formatter.agent, 
@@ -162,74 +174,19 @@ def register_all_hand_offs(cmbagent_instance):
 
     )
 
-    context_handling = TransformMessages(
-            transforms=[
-                MessageHistoryLimiter(max_messages=1),
-        ]
-    )
-    # context_handling.add_to_agent(executor_manager)
-    context_handling.add_to_agent(executor_response_formatter.agent)
-    # context_handling.add_to_agent(executor.agent)
-    # context_handling.add_to_agent(engineer_response_formatter.agent)
-    # context_handling.add_to_agent(engineer.agent)
 
-    # context_handling = TransformMessages(
-    #         transforms=[
-    #             MessageHistoryLimiter(max_messages=1),
-    #     ]
-    # )
-
-
-    # Create nested chats configuration
     nested_chats = [
-        # {
-        #     # The first internal chat formats the engineer response
-        #     # A round of revisions is supported with max_turns = 2
-        #     "recipient": engineer.agent,
-        #     "message": lambda recipient, messages, sender, config: f"{messages[-1]['content']}",
-        #     "max_turns": 1,
-        #     "summary_method": "last_msg",
-        # },
-
         {
-            # The first internal chat formats the engineer response
-            # A round of revisions is supported with max_turns = 2
-            # "carryover_config": {"summary_method": "last_msg"},
             "recipient": executor_manager,
             "message": lambda recipient, messages, sender, config: f"{messages[-1]['content']}",
             "max_turns": 1,
             "summary_method": "last_msg",
         }#,
-        # {
-        #     # A group chat follows, where the lesson plan is created
-        #     "recipient": executor.agent,
-        #     # "message": "execute the code",
-        #     "max_turns": 1,
-        #     # "summary_method": "last_msg",
-        # },
-        # {
-        #     # Finally, a two-agent chat formats the lesson plan
-        #     # The result of this will be the lead_teacher_agent's reply
-        #     "recipient": executor_response_formatter.agent,
-        #     # "message": lambda recipient, messages, sender, config: f"{messages[-1]['content']}",
-        #     "max_turns": 1,
-        #     "summary_method": "last_msg",
-        # }
     ]
-    # nested_chat_config = {"chat_queue": nested_chats, "use_async": True}
 
 
    # create a list of all egents except the engineer:
     other_agents = [agent for agent in cmbagent_instance.agents if agent != engineer.agent]
-    # print(other_agents)
-    # import sys
-    # sys.exit()
-    # register the nested chats for the other agents:
-
-    # engineer.agent.register_nested_chats(
-    #     chat_queue=nested_chats,
-    #     trigger=lambda sender: sender not in other_agents
-    # )
 
     engineer_nest.agent.register_nested_chats(
     trigger=lambda sender: sender not in other_agents,
@@ -239,40 +196,57 @@ def register_all_hand_offs(cmbagent_instance):
     engineer_nest.agent.handoffs.set_after_work(AgentTarget(executor_response_formatter.agent))
 
     engineer.agent.handoffs.set_after_work(AgentTarget(engineer_nest.agent))
-    # engineer.agent.handoffs.set_after_work(NestedChatTarget(nested_chat_config=nested_chat_config))
+
+    #### Nested chat for idea generation
+
+    idea_maker_chat = GroupChat(
+        agents=[
+                idea_maker_response_formatter.agent, 
+                idea_saver.agent
+                ],
+        messages=[],
+        max_round=4,
+        # send_introductions=True,
+        speaker_selection_method = 'round_robin',
+    )
+
+    idea_maker_manager = GroupChatManager(
+        groupchat=idea_maker_chat,
+        llm_config=cmbagent_instance.llm_config,
+        name="idea_maker_manager",
+
+    )
+
+
+    nested_chats = [
+        {
+            "recipient": idea_maker_manager,
+            "message": lambda recipient, messages, sender, config: f"{messages[-1]['content']}",
+            "max_turns": 1,
+            "summary_method": "last_msg",
+        }
+    ]
+
+    # create a list of all egents except the idea_maker:
+    other_agents = [agent for agent in cmbagent_instance.agents if agent != idea_maker.agent]
+
+    idea_maker_nest.agent.register_nested_chats(
+    trigger=lambda sender: sender not in other_agents,
+    chat_queue=nested_chats
+    )
+
+
+    idea_maker.agent.handoffs.set_after_work(AgentTarget(idea_maker_nest.agent))
+    idea_maker_nest.agent.handoffs.set_after_work(AgentTarget(control.agent))
 
 
 
-    # nested_chat_one = {
-    #     "carryover_config": {"summary_method": "last_msg"},  # Bring the last message into the chat
-    #     "recipient": order_retrieval_agent,
-    #     "message": extract_order_summary,  # Retrieve the status details of the order using the order id
-    #     "max_turns": 1,  # Only one turn is necessary
-    # }
 
-    # nested_chat_two = {
-    #     "recipient": order_summariser_agent,
-    #     "message": "Summarise the order details provided in a Markdown table format with headings: Detail, Information",
-    #     "max_turns": 1,
-    #     "summary_method": "last_msg",  # Return their message back as the nested chat output
-    # }
+    # # idea maker handoffs
+    # idea_maker.agent.handoffs.set_after_work(AgentTarget(idea_maker_response_formatter.agent))
 
-    # target={
-    #     "chat_queue": chat_queue,
-    # },
-
- 
-    # engineer.agent.register_nested_chats(
-    #     chat_queue=nested_chats,
-    #     trigger=lambda sender: sender not in [curriculum_agent, planning_manager, lesson_reviewer_agent],
-    # )
-
-
-    # idea maker handoffs
-    idea_maker.agent.handoffs.set_after_work(AgentTarget(idea_maker_response_formatter.agent))
-
-    # idea maker response formatter handoffs
-    idea_maker_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+    # # idea maker response formatter handoffs
+    # idea_maker_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
 
     # idea haters handoffs
     idea_hater.agent.handoffs.set_after_work(AgentTarget(idea_hater_response_formatter.agent))
@@ -310,14 +284,14 @@ def register_all_hand_offs(cmbagent_instance):
                 target=AgentTarget(engineer.agent),
                 condition=StringLLMCondition(prompt="Code execution failed."),
             ),
-            OnCondition(
-                target=AgentTarget(camb.agent),
-                condition=StringLLMCondition(prompt="Need camb_agent to find information on how to use the cosmology package camb."),
-            ),
-            OnCondition(
-                target=AgentTarget(classy_sz.agent),
-                condition=StringLLMCondition(prompt="Need classy_sz_agent to find information on how to use the cosmology package classy_sz."),
-            ),
+            # OnCondition(
+            #     target=AgentTarget(camb.agent),
+            #     condition=StringLLMCondition(prompt="Need camb_agent to find information on how to use the cosmology package camb."),
+            # ),
+            # OnCondition(
+            #     target=AgentTarget(classy_sz.agent),
+            #     condition=StringLLMCondition(prompt="Need classy_sz_agent to find information on how to use the cosmology package classy_sz."),
+            # ),
             OnCondition(
                 target=AgentTarget(researcher.agent),
                 condition=StringLLMCondition(prompt="Researcher needed to generate reasoning, write report, or interpret results"),

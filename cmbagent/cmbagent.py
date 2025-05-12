@@ -15,7 +15,8 @@ from pathlib import Path
 from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
 from collections import defaultdict
 from .utils import work_dir as work_dir_default
-from .utils import OpenAI,Image, default_llm_model
+from .utils import OpenAI,Image
+from .utils import default_llm_model as default_llm_model_default
 from .utils import (path_to_assistants,path_to_apis,
                     default_top_p,default_temperature,default_max_round,default_llm_config_list,default_agent_llm_configs,
                     default_agents_llm_model)
@@ -26,6 +27,7 @@ from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
 import time
 from .utils import get_model_config
+from .utils import AAS_keywords_string
 from autogen.agentchat.group import ContextVariables
 from autogen import ConversableAgent
 
@@ -121,12 +123,15 @@ class CMBAgent:
                  skip_executor = False,
                  skip_memory = True,
                  skip_rag_software_formatter = True,
+                 skip_rag_agents = True,
+                 default_llm_model = default_llm_model_default,
                  default_llm_config_list = default_llm_config_list,
                  agent_llm_configs = default_agent_llm_configs,
                  agent_type = 'swarm',# None,# 'swarm',
                  shared_context = shared_context_default,
                  work_dir = work_dir_default,
-                 mode = "planning_and_control", # can be "one_shot" or "chat" (default is planning and control)
+                 clear_work_dir = True,
+                 mode = "planning_and_control", # can be "one_shot" , "chat" or "planning_and_control" (default is planning and control), or "planning_and_control_context_carryover"
                  chat_agent = None,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
@@ -158,11 +163,17 @@ class CMBAgent:
         Note:
             This class initializes various agents and configurations for cosmological data analysis.
         """
+        if default_llm_model != default_llm_model_default:
+            print(f"Warning: default_llm_model is set to {default_llm_model} in cmbagent.py")
+            default_llm_config_list = [get_model_config(default_llm_model)]
+
 
 
         self.kwargs = kwargs
 
         self.skip_executor = skip_executor
+
+        self.skip_rag_agents = skip_rag_agents
 
         self.skip_rag_software_formatter = skip_rag_software_formatter
 
@@ -191,8 +202,9 @@ class CMBAgent:
         self.verbose = verbose
 
         self.work_dir = work_dir
-        # Clear everything inside work_dir if it exists
-        self.clear_work_dir()
+        self.clear_work_dir_bool = clear_work_dir
+        if clear_work_dir:
+            self.clear_work_dir()
         
         # add the work_dir to the python path so we can import modules from it
         sys.path.append(self.work_dir)
@@ -251,16 +263,20 @@ class CMBAgent:
         if cmbagent_debug:  
             print("\n\n Checking assistants...\n\n")
 
-        self.check_assistants(reset_assistant=reset_assistant) # check if assistants exist
-
-        if cmbagent_debug:
-            print("\n\n Assistants checked!!!\n\n")
-            # sys.exit()
 
 
-        if cmbagent_debug:
-            print('\npushing vector stores...')
-        push_vector_stores(self, make_vector_stores, chunking_strategy, verbose = verbose) # push vector stores
+        if not self.skip_rag_agents:
+
+            self.check_assistants(reset_assistant=reset_assistant) # check if assistants exist
+
+            if cmbagent_debug:
+                print("\n\n Assistants checked!!!\n\n")
+                # sys.exit()
+
+
+            if cmbagent_debug:
+                print('\npushing vector stores...')
+            push_vector_stores(self, make_vector_stores, chunking_strategy, verbose = verbose) # push vector stores
 
         if cmbagent_debug:
             print('\nsetting planner instructions currently not doing anything...')
@@ -288,10 +304,11 @@ class CMBAgent:
 
             if description is not None:
                 agent_kwargs['description'] = description
-
+           
 
             if agent.name not in self.non_rag_agent_names: ## loop over all rag agents 
-
+                if self.skip_rag_agents:
+                    continue
                 vector_ids = self.vector_store_ids[agent.name] if self.vector_store_ids and agent.name in self.vector_store_ids else None
                 temperature = agent_temperature[agent.name] if agent_temperature and agent.name in agent_temperature else None
                 top_p = agent_top_p[agent.name] if agent_top_p and agent.name in agent_top_p else None
@@ -380,7 +397,7 @@ class CMBAgent:
 
     
 
-    def display_cost(self):
+    def display_cost(self, name_append = None):
         """Display a full cost report as a right‑aligned Markdown table with $ and a
         rule above the total row. Also saves the cost data as JSON in the workdir."""
         from collections import defaultdict
@@ -481,7 +498,10 @@ class CMBAgent:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         # Save to JSON file in workdir
-        json_path = os.path.join(self.work_dir, f"cost_report_{timestamp}.json")
+        if name_append is not None:
+            json_path = os.path.join(self.work_dir, f"cost_report_{name_append}_{timestamp}.json")
+        else:
+            json_path = os.path.join(self.work_dir, f"cost_report_{timestamp}.json")
         with open(json_path, 'w') as f:
             json.dump(cost_data, f, indent=2)
             
@@ -502,11 +522,13 @@ class CMBAgent:
                     shutil.rmtree(item_path)
 
 
-    def solve(self, task, initial_agent='task_improver', 
+    def solve(self, task, 
+              initial_agent='task_improver', 
               shared_context=None,
               mode = "default", # can be "one_shot" or "default" (default is planning and control)
+              step = None,
               max_rounds=10):
-        
+        self.step = step ## record the step for the context carryover workflow 
         this_shared_context = copy.deepcopy(self.shared_context)
         
         if mode == "one_shot" or mode == "chat":
@@ -544,7 +566,8 @@ class CMBAgent:
         
 
         self.clear_cache() ## obsolete
-        self.clear_work_dir()
+        if self.clear_work_dir_bool:
+            self.clear_work_dir()
 
         # Define full paths
         database_full_path = os.path.join(self.work_dir, this_shared_context.get("database_path", "data"))
@@ -602,7 +625,7 @@ class CMBAgent:
         for agent in self.agents:
             if agent.info['name'] == name:
                 return agent
-        print(f"get_agent_from_name: agent {name} not found")
+        print(f"get_agent_object_from_name: agent {name} not found")
         sys.exit()
 
     def get_agent_from_name(self,name):
@@ -732,8 +755,15 @@ class CMBAgent:
 
             self.agents.append(agent_instance)
 
+        if self.skip_rag_agents:
+            self.agents = [agent for agent in self.agents if agent.name.replace('_agent', '') not in self.rag_agent_names]
 
+        # print('rag_agent_names: ', self.rag_agent_names)
         self.agent_names =  [agent.name for agent in self.agents]
+        # print('skip_rag_agents: ', self.skip_rag_agents)
+        # print('self.agents: ', self.agent_names)
+        # import sys 
+        # sys.exit()
 
         if cmbagent_debug:
             for agent in self.agents:
@@ -921,6 +951,209 @@ class CMBAgent:
 
 
 
+def planning_and_control_context_carryover(
+                            task,
+                            max_rounds_planning = 50,
+                            max_rounds_control = 100,
+                            max_plan_steps = 3,
+                            n_plan_reviews = 1,
+                            plan_instructions = '',
+                            engineer_instructions = '',
+                            researcher_instructions = '',
+                            max_n_attempts = 3,
+                            planner_model = default_agents_llm_model['planner'],
+                            plan_reviewer_model = default_agents_llm_model['plan_reviewer'],
+                            engineer_model = default_agents_llm_model['engineer'],
+                            researcher_model = default_agents_llm_model['researcher'],
+                            idea_maker_model = default_agents_llm_model['idea_maker'],
+                            idea_hater_model = default_agents_llm_model['idea_hater'],
+                            default_llm_model = default_llm_model_default,
+                            work_dir = work_dir_default
+                            ):
+
+    ## planning
+    planning_dir = Path(work_dir).expanduser().resolve() / "planning"
+
+    start_time = time.time()
+    planner_config = get_model_config(planner_model)
+    plan_reviewer_config = get_model_config(plan_reviewer_model)
+
+    
+    cmbagent = CMBAgent(work_dir = planning_dir,
+                        default_llm_model = default_llm_model,
+                        agent_llm_configs = {
+                            'planner': planner_config,
+                            'plan_reviewer': plan_reviewer_config,
+                        })
+    end_time = time.time()
+    initialization_time_planning = end_time - start_time
+
+    print("initialization_time_planning: ", initialization_time_planning)
+    # import sys 
+    # sys.exit()
+
+
+
+
+    start_time = time.time()
+    cmbagent.solve(task,
+                max_rounds=max_rounds_planning,
+                initial_agent="plan_setter",
+                shared_context = {'feedback_left': n_plan_reviews,
+                                    'max_n_attempts': max_n_attempts,
+                                    'maximum_number_of_steps_in_plan': max_plan_steps,
+                                    'planner_append_instructions': plan_instructions,
+                                    'engineer_append_instructions': engineer_instructions,
+                                    'researcher_append_instructions': researcher_instructions,
+                                    'plan_reviewer_append_instructions': plan_instructions}
+                )
+    end_time = time.time()
+    execution_time_planning = end_time - start_time
+
+
+    # Create a dummy groupchat attribute if it doesn't exist
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+
+    # Now call display_cost without triggering the AttributeError
+    cmbagent.display_cost()
+
+    planning_output = copy.deepcopy(cmbagent.final_context)
+    number_of_steps_in_plan = planning_output['number_of_steps_in_plan']
+    outfile = save_final_plan(planning_output, planning_dir)
+    print(f"Structured plan written to {outfile}")
+    print(f"Planning took {execution_time_planning:.4f} seconds")
+    
+
+    ## control
+
+    engineer_config = get_model_config(engineer_model)
+    researcher_config = get_model_config(researcher_model)
+    idea_maker_config = get_model_config(idea_maker_model)
+    idea_hater_config = get_model_config(idea_hater_model)
+        
+    control_dir = Path(work_dir).expanduser().resolve() / "control"
+
+    current_context = copy.deepcopy(planning_output)
+    step_summaries = []  
+    # print("in cmbagent.py: current_context before step loop: ", current_context)
+
+    for step in range(1, number_of_steps_in_plan + 1):
+        clear_work_dir = True if step == 1 else False
+        starter_agent = "control" if step == 1 else "control_starter"
+        # print(f"in cmbagent.py: step: {step}/{number_of_steps_in_plan}")
+
+        # print("current_context['previous_steps_execution_summary']: ", current_context['previous_steps_execution_summary'] )
+
+
+        start_time = time.time()
+        cmbagent = CMBAgent(
+            work_dir = control_dir,
+            clear_work_dir = clear_work_dir,
+            default_llm_model = default_llm_model,
+            agent_llm_configs = {
+                                'engineer': engineer_config,
+                                'researcher': researcher_config,
+                                'idea_maker': idea_maker_config,
+                                'idea_hater': idea_hater_config,
+            },
+            mode = "planning_and_control_context_carryover"
+            )
+        
+
+        # print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")
+        # print(f"in cmbagent.py: idea_hater_config: {idea_hater_config}")
+        
+        end_time = time.time()
+        initialization_time_control = end_time - start_time
+        
+        if step == 1:
+            plan_input = load_plan(os.path.join(work_dir, f"planning/final_plan.json"))["sub_tasks"]
+            agent_for_step = plan_input[0]['sub_task_agent']
+        else:
+            agent_for_step = current_context['agent_for_sub_task']
+        # print(f"\nin cmbagent.py: agent_for_step: {agent_for_step}")
+
+
+        parsed_context = copy.deepcopy(current_context)
+        # print("xo"*100+"\n\n")
+        # print("in cmbagent.py: parsed_context: ", parsed_context)
+        # print("xo"*100+"\n\n")
+            
+
+        start_time = time.time()   
+
+        cmbagent.solve(task,
+                        max_rounds=max_rounds_control,
+                        initial_agent=starter_agent,
+                        shared_context = parsed_context,
+                        step = step
+                        )
+        
+
+        end_time = time.time()
+        execution_time_control = end_time - start_time
+        
+        results = {'chat_history': cmbagent.chat_result.chat_history,
+                   'final_context': cmbagent.final_context}
+        # print("_"*100+"\n\n")
+        # print("in cmbagent.py: collecting step summaries for step: ", step)
+        for msg in results['chat_history'][::-1]:
+            # print("\nin cmbagent.py: msg: ", msg)
+            if 'name' in msg:
+                # print("\nin cmbagent.py: msg['name']: ", msg['name'])
+                if msg['name'] == agent_for_step or msg['name'] == f"{agent_for_step}_nest":
+                    # print("\nin cmbagent.py: msg['content']: ", msg['content'])
+                    this_step_execution_summary = msg['content']
+                    # build this step’s summary
+                    summary = f"### Step {step}\n{this_step_execution_summary.strip()}"
+                    step_summaries.append(summary)  
+                    cmbagent.final_context['previous_steps_execution_summary'] = "\n\n".join(step_summaries)
+                    break
+        # print("in cmbagent.py: step_summaries: ", step_summaries)
+        # print("_"*100+"\n\n")
+        current_context = copy.deepcopy(cmbagent.final_context)
+
+        
+        results['initialization_time_planning'] = initialization_time_planning
+        results['execution_time_planning'] = execution_time_planning
+        results['initialization_time_control'] = initialization_time_control
+        results['execution_time_control'] = execution_time_control
+
+        # Save timing report as JSON
+        timing_report = {
+            'initialization_time_planning': initialization_time_planning,
+            'execution_time_planning': execution_time_planning, 
+            'initialization_time_control': initialization_time_control,
+            'execution_time_control': execution_time_control,
+            'total_time': initialization_time_planning + execution_time_planning + initialization_time_control + execution_time_control
+        }
+
+        # Add timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Save to JSON file in workdir
+        timing_path = os.path.join(work_dir, f"timing_report_step_{step}_{timestamp}.json")
+        with open(timing_path, 'w') as f:
+            json.dump(timing_report, f, indent=2)
+
+        
+        # Create a dummy groupchat attribute if it doesn't exist
+        if not hasattr(cmbagent, 'groupchat'):
+            Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+            cmbagent.groupchat = Dummy()
+
+        # Now call display_cost without triggering the AttributeError
+        cmbagent.display_cost(name_append = f"step_{step}")
+
+        # if step == 4:
+        #     break
+
+
+    return results
+
+
 def planning_and_control(
                             task,
                             max_rounds_planning = 50,
@@ -984,6 +1217,8 @@ def planning_and_control(
     planning_output = copy.deepcopy(cmbagent.final_context)
     outfile = save_final_plan(planning_output, planning_dir)
     print(f"Structured plan written to {outfile}")
+    print(f"Planning took {execution_time_planning:.4f} seconds")
+    
 
     ## control
 
@@ -1135,8 +1370,8 @@ def control(
         })
     
 
-    print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")
-    print(f"in cmbagent.py: idea_hater_config: {idea_hater_config}")
+    # print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")
+    # print(f"in cmbagent.py: idea_hater_config: {idea_hater_config}")
     
     end_time = time.time()
     initialization_time_control = end_time - start_time
@@ -1390,6 +1625,7 @@ def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_defau
             mode = "one_shot",
             shared_context={
             'text_input_for_AAS_keyword_finder': PROMPT,
+            'AAS_keywords_string': AAS_keywords_string,
             'N_AAS_keywords': n_keywords,
                             }
             )

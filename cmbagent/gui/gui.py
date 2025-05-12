@@ -16,7 +16,7 @@ import json
 import time
 import copy
 # import cmbagent
-from cmbagent.cmbagent import CMBAgent, planning_and_control, one_shot, human_in_the_loop
+from cmbagent.cmbagent import CMBAgent, planning_and_control, one_shot, human_in_the_loop, planning_and_control_context_carryover
 # from .cmbagent import CMBAgent, planning_and_control, one_shot, human_in_the_loop
 import requests
 import sys
@@ -1435,7 +1435,7 @@ def main():
                             #             st.image(img_path)
 
                         elif st.session_state.page == "planning_and_control":
-                            results = planning_and_control(
+                            results = planning_and_control_context_carryover(
                                 user_input,
                                 max_rounds_control = 500,
                                 n_plan_reviews = n_plan_reviews,
@@ -1456,7 +1456,7 @@ def main():
                                 max_n_attempts   = max_n_attempts,
                                 engineer_model   = engineer_model,
                                 researcher_model = researcher_model,
-                                initial_agent    = st.session_state.one_shot_selected_agent,
+                                agent    = st.session_state.one_shot_selected_agent,
                             )
 
 

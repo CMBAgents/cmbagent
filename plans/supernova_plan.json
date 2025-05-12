@@ -1,0 +1,72 @@
+{
+    "sub_tasks": [
+        {
+            "bullet_points": [
+                "Download the file from the provided URL.",
+                "Load the data into a suitable format (e.g., pandas DataFrame or numpy array).",
+                "Parse the columns: Supernova Name, Redshift, Distance Modulus, Distance Modulus Error, and Probability of low-mass galaxy host.",
+                "Perform basic data validation and cleaning if necessary."
+            ],
+            "sub_task": "Download and preprocess the data.",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Define the flat LCDM model with parameters H0 and Omega_L.",
+                "Write the cosmological distance calculations, including luminosity distance as a function of redshift, to relate the model parameters to the distance modulus.",
+                "Define the likelihood function using the SN1a data (chi-squared or equivalent)."
+            ],
+            "sub_task": "Define the flat LCDM model and likelihood function.",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Write an MCMC sampler (e.g., Metropolis-Hastings or use a library like emcee).",
+                "Implement prior distributions for H0 and Omega_L with reasonable ranges (e.g., H0 between 50-100 km/s/Mpc and Omega_L between 0-1).",
+                "Optimize the code to utilize the 8 available threads on the MacBook Pro.",
+                "Ensure the MCMC is efficient and converges within a few minutes."
+            ],
+            "sub_task": "Implement and optimize the MCMC code.",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Run a short MCMC chain to estimate the time required for convergence.",
+                "Assess chain convergence using metrics like the Gelman-Rubin statistic or autocorrelation time.",
+                "Adjust the number of steps, walkers, or other parameters to ensure the analysis completes efficiently and reliably."
+            ],
+            "sub_task": "Perform a preliminary MCMC timing and convergence assessment.",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Run the MCMC with the optimized settings.",
+                "Generate the 1D posterior distributions for H0 and Omega_L.",
+                "Create a contour plot showing the joint posterior distribution.",
+                "Identify and report the best-fit (maximum likelihood) parameter values in addition to the posterior means and uncertainties."
+            ],
+            "sub_task": "Run the full MCMC analysis and generate results.",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Plot the SN1a data along with the best-fit model.",
+                "Overlay the 68% and 95% confidence level regions on the plot.",
+                "Create a residual plot (data minus best-fit model) to better visualize the quality of the fit across the redshift range.",
+                "Save all plots and results for interpretation."
+            ],
+            "sub_task": "Visualize the data and best-fit model.",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Review the mean and 1-sigma uncertainties for H0 and Omega_L.",
+                "Discuss the implications of the results in the context of the flat LCDM model.",
+                "Compare the obtained constraints with current literature values for H0 and Omega_L, particularly in the context of the Hubble tension.",
+                "Comment on the quality of the fit and any notable features in the data or model."
+            ],
+            "sub_task": "Interpret and comment on the results.",
+            "sub_task_agent": "researcher"
+        }
+    ]
+}

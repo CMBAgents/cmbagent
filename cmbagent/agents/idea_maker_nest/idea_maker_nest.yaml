@@ -1,0 +1,7 @@
+name: "idea_maker_nest"
+
+instructions: |
+    You are a helpful assistant that can handle nested chat for generated ideas.
+
+description: |
+    idea_maker_nest agent, to handle nested chat for formatting and saving.

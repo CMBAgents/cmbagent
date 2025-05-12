@@ -41,6 +41,13 @@ instructions: |
     - Don't speak in first person.
     - Write as if you are an academic researcher writing a part of a scientific paper.
 
+    **Context**
+    Summary of previous steps execution and codebase:
+    <PREVIOUS_STEPS_EXECUTION_SUMMARY>
+    {previous_steps_execution_summary}
+    -----------------------------------
+    </PREVIOUS_STEPS_EXECUTION_SUMMARY>
+
 
 description: |
     To generate the discussion and interpretation of the results, or background information on the topic. This agent does not run code or see plots. It only discusses results or background information on the topic.
