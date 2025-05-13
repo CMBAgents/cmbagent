@@ -207,10 +207,12 @@ def main():
             #     st.dataframe(content.data)
             elif isinstance(content, IPyImage):
                 img = getattr(content, "data", None) or getattr(content, "_data", None)
-                st.image(img, use_container_width=True)
+                # st.image(img, use_container_width=True)
+                display_image_fraction_width(img, fraction=1/3)
 
             elif isinstance(content, PILImage):
-                st.image(content, use_container_width=True)
+                # st.image(content, use_container_width=True)
+                display_image_fraction_width(content, fraction=1/3)
 
             # elif isinstance(content, (dict, list)):
             #     pretty = json.dumps(content, indent=2, ensure_ascii=False)
@@ -252,7 +254,8 @@ def main():
 
         # 4) PIL images
         if isinstance(obj, PILImage):
-            st.image(obj, use_container_width=True)
+            # st.image(obj, use_container_width=True)
+            display_image_fraction_width(obj, fraction=1/3)
             return
 
         # 5) DataFrames
@@ -1134,7 +1137,7 @@ def main():
                     "**Max Session Duration** \n\n *The total number of messages exchanged between agents in the session*",
                     min_value=1,
                     max_value=50,
-                    value=10,
+                    value=25,
                     step=1
                 )
                 with c2:
@@ -1587,7 +1590,8 @@ def main():
             # ── 2.  show only the image(s) and markdown you just collected
             for who, content in to_display:
                 if who == "file":                 # <- PIL image from ./output/data
-                    st.image(content, use_container_width=True)
+                    # st.image(content, use_container_width=True)
+                    display_image_fraction_width(content, fraction=1/3)
                 else:
                     pass
                 # elif who == "researcher":         # <- markdown file you loaded
@@ -1653,6 +1657,20 @@ def main():
             #             st.markdown(content)
                 
                 
+from io import BytesIO
+
+def display_image_fraction_width(img, fraction=1/3):
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_b64 = base64.b64encode(buffered.getvalue()).decode()
+
+    width_percent = int(fraction * 100)
+    st.markdown(
+        f'<img src="data:image/png;base64,{img_b64}" style="width:{width_percent}vw;">',
+        unsafe_allow_html=True
+    )
+
+
 
 if __name__ == "__main__":
     main()
