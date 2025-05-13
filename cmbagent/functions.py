@@ -432,7 +432,7 @@ Now, update the plan accordingly, planner!""",
         with open(filepath, 'w') as f:
             json.dump(ideas, f)
 
-        return f"ideas saved in {filepath}"
+        return f"\nIdeas saved in {filepath}\n"
 
 
 
@@ -521,7 +521,7 @@ Now, update the plan accordingly, planner!""",
                 if not cmbagent_disable_display:
                     ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
                 else:
-                    print(img_file)
+                    print(f"\n- Saved {img_file}")
 
             # Update the context to include the newly displayed images.
             context_variables["displayed_images"] = displayed_images + new_images
@@ -685,7 +685,7 @@ Now, update the plan accordingly, planner!""",
                 if not cmbagent_disable_display:
                     ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
                 else:
-                    print(img_file)
+                    print(f"\n- Saved {img_file}")
 
             # Update the context to include the newly displayed images.
             context_variables["displayed_images"] = displayed_images + new_images

@@ -509,7 +509,7 @@ class CMBAgent:
         with open(json_path, 'w') as f:
             json.dump(cost_data, f, indent=2)
             
-        print(f"\nCost report data saved to: {json_path}")
+        print(f"\nCost report data saved to: {json_path}\n")
         
         return df
 
@@ -992,7 +992,7 @@ def planning_and_control_context_carryover(
     end_time = time.time()
     initialization_time_planning = end_time - start_time
 
-    print("initialization_time_planning: ", initialization_time_planning)
+    # print("initialization_time_planning: ", initialization_time_planning)
     # import sys 
     # sys.exit()
 
@@ -1026,8 +1026,8 @@ def planning_and_control_context_carryover(
     planning_output = copy.deepcopy(cmbagent.final_context)
     number_of_steps_in_plan = planning_output['number_of_steps_in_plan']
     outfile = save_final_plan(planning_output, planning_dir)
-    print(f"Structured plan written to {outfile}")
-    print(f"Planning took {execution_time_planning:.4f} seconds")
+    print(f"\nStructured plan written to {outfile}")
+    print(f"\nPlanning took {execution_time_planning:.4f} seconds")
     
 
     ## control
@@ -1519,8 +1519,8 @@ def one_shot(
     with open(timing_path, 'w') as f:
         json.dump(timing_report, f, indent=2)
 
-    print("Timing report saved to", timing_path)
-    print("Task took", f"{execution_time:.4f}", "seconds")
+    print("\nTiming report saved to", timing_path)
+    print("\nTask took", f"{execution_time:.4f}", "seconds")
 
     return results
 

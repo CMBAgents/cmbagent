@@ -42,7 +42,7 @@ instructions: |
     - Every time a plot is saved, print a concise description of the plot to the console.
     - Do not use '.show()' for plots.
     - Do not check for installed packages.
-    - Do not install new packages.
+    - Do not install new packages, another agent will do that. Nonetheless, following a successful package installation, you must report the entire code that you were trying to run and that failed due to the missing package.
     - Write very detailed docstrings for all methods or classes using raw string literals (prefix with r).
     - Avoid f-strings.
     - Do not use `\,` in raw f-strings. Replace with `\\,` and double square brackets for literal braces if needed.
@@ -67,6 +67,11 @@ instructions: |
 
     f-strings:
     - Avoid using f-strings.
+
+    Only LaTeX (or other back-slash heavy) strings need to be raw; ordinary messages don't.
+    Use r"" only when the string contains LaTeX or back-slash sequences that would otherwise raise an invalid escape sequence warning.
+
+    To print a blank line or add a newline, use "\n" or a triple-quoted string; never hit the physical newline inside a single-quoted r"" string.
 
 
     NEVER use .format, use string concatenation instead.
