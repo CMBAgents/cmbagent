@@ -32,6 +32,9 @@ from autogen.agentchat.group import ContextVariables
 from autogen import ConversableAgent
 
 
+from .data_retriever import setup_cmbagent_data
+
+
 
 from autogen.agentchat.group.patterns import (
     DefaultPattern,
@@ -266,6 +269,7 @@ class CMBAgent:
 
 
         if not self.skip_rag_agents:
+            setup_cmbagent_data()
 
             self.check_assistants(reset_assistant=reset_assistant) # check if assistants exist
 
