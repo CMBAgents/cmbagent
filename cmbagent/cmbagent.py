@@ -1103,7 +1103,7 @@ def planning_and_control_context_carryover(
             # print("\nin cmbagent.py: msg: ", msg)
             if 'name' in msg:
                 # print("\nin cmbagent.py: msg['name']: ", msg['name'])
-                if msg['name'] == agent_for_step or msg['name'] == f"{agent_for_step}_nest":
+                if msg['name'] == agent_for_step or msg['name'] == f"{agent_for_step}_nest" or msg['name'] == f"{agent_for_step}_response_formatter":
                     # print("\nin cmbagent.py: msg['content']: ", msg['content'])
                     this_step_execution_summary = msg['content']
                     # build this step’s summary
