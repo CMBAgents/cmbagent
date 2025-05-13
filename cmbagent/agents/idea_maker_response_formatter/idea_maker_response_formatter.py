@@ -5,9 +5,9 @@ from typing import List, Optional
 
 
 class Subtasks(BaseModel):
-    idea_description: str = Field(..., description="The description of the idea")
+    idea_description: str = Field(..., description="The idea, as it is, preserve capitalization and ponctuation.")
     bullet_points: List[str] = Field(
-        ..., description="A list of bullet points explaining what the idea is"
+        ..., description="A list of bullet points explaining what the idea is, i.e., the idea description. Preserve all the information passed to you, do not alter it."
     )
 
 class IdeaMakerResponse(BaseModel):

@@ -1,7 +1,9 @@
 name: "idea_maker_response_formatter"
 
 instructions: |
-    You are a formatting agent, you format the response provided by the idea_maker_nest agent, keeping only the selected ideas.
+    You are a formatting agent, you format the response provided by the idea_maker_nest agent.
+    You should not select ideas yourself.
+    If the idea_maker_nest has not selected any specific ideas, you should not select any ideas yourself and report them all.
 
 
 description: |
