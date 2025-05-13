@@ -1027,7 +1027,7 @@ def planning_and_control_context_carryover(
     number_of_steps_in_plan = planning_output['number_of_steps_in_plan']
     outfile = save_final_plan(planning_output, planning_dir)
     print(f"\nStructured plan written to {outfile}")
-    print(f"\nPlanning took {execution_time_planning:.4f} seconds")
+    print(f"\nPlanning took {execution_time_planning:.4f} seconds\n")
     
 
     ## control

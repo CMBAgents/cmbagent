@@ -1144,7 +1144,7 @@ def main():
                 )
                 with c2:
                     max_n_attempts = st.slider(
-                        "**Max Execution Attempts** \n\n *The maximum number of failed code execution before exiting.*", min_value=1, max_value=10, value=3, step=1
+                        "**Max Execution Attempts** \n\n *The maximum number of failed code execution before exiting.*", min_value=1, max_value=10, value=6, step=1
                     )
             elif st.session_state.page == "planning_and_control":  # planning_and_control
                 col1, col2 = st.columns(2)
@@ -1157,7 +1157,7 @@ def main():
                     )
                 with col2:
                     max_n_attempts = st.slider(
-                        "**Max Execution Attempts** \n\n \n\n *The maximum number of failed code execution before exiting.*", min_value=1, max_value=10, value=4, step=1
+                        "**Max Execution Attempts** \n\n \n\n *The maximum number of failed code execution before exiting.*", min_value=1, max_value=10, value=6, step=1
                     )
                     max_plan_steps = st.slider(
                         "**Max Plan Steps** \n\n *The maximum number of steps for the task to be solved*", min_value=1, max_value=10, value=4, step=1
@@ -1183,7 +1183,7 @@ def main():
                 )
                 with c2:
                     max_n_attempts = st.slider(
-                        "**Max Execution Attempts** \n\n *The maximum number of failed code execution before exiting*", min_value=1, max_value=10, value=3, step=1
+                        "**Max Execution Attempts** \n\n *The maximum number of failed code execution before exiting*", min_value=1, max_value=10, value=6, step=1
                     )
 
 
