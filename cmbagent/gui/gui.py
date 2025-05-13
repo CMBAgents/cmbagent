@@ -26,6 +26,8 @@ import glob          # <-- NEW
 import traceback
 import base64
 from pathlib import Path
+
+IMAGE_WIDTH_FRACTION = 1/2
 # import builtins, uuid
 
 # from langchain_community.chat_message_histories import ChatMessageHistory
@@ -208,11 +210,11 @@ def main():
             elif isinstance(content, IPyImage):
                 img = getattr(content, "data", None) or getattr(content, "_data", None)
                 # st.image(img, use_container_width=True)
-                display_image_fraction_width(img, fraction=1/3)
+                display_image_fraction_width(img, fraction=IMAGE_WIDTH_FRACTION)
 
             elif isinstance(content, PILImage):
                 # st.image(content, use_container_width=True)
-                display_image_fraction_width(content, fraction=1/3)
+                display_image_fraction_width(content, fraction=IMAGE_WIDTH_FRACTION)
 
             # elif isinstance(content, (dict, list)):
             #     pretty = json.dumps(content, indent=2, ensure_ascii=False)
@@ -255,7 +257,7 @@ def main():
         # 4) PIL images
         if isinstance(obj, PILImage):
             # st.image(obj, use_container_width=True)
-            display_image_fraction_width(obj, fraction=1/3)
+            display_image_fraction_width(obj, fraction=IMAGE_WIDTH_FRACTION)
             return
 
         # 5) DataFrames
@@ -1591,7 +1593,7 @@ def main():
             for who, content in to_display:
                 if who == "file":                 # <- PIL image from ./output/data
                     # st.image(content, use_container_width=True)
-                    display_image_fraction_width(content, fraction=1/3)
+                    display_image_fraction_width(content, fraction=IMAGE_WIDTH_FRACTION)
                 else:
                     pass
                 # elif who == "researcher":         # <- markdown file you loaded
