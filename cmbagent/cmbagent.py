@@ -1094,9 +1094,18 @@ def planning_and_control_context_carryover(
 
         end_time = time.time()
         execution_time_control = end_time - start_time
+
+        # number of failures:
+
+        number_of_failures = cmbagent.final_context['n_attempts']
+
         
         results = {'chat_history': cmbagent.chat_result.chat_history,
                    'final_context': cmbagent.final_context}
+        
+        if number_of_failures >= cmbagent.final_context['max_n_attempts']:
+            print(f"in cmbagent.py: number of failures: {number_of_failures} >= max_n_attempts: {cmbagent.final_context['max_n_attempts']}. Exiting.")
+            break
         # print("_"*100+"\n\n")
         # print("in cmbagent.py: collecting step summaries for step: ", step)
         for msg in results['chat_history'][::-1]:
