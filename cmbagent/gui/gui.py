@@ -527,18 +527,21 @@ def main():
     # Example prompts for each mode
     EXAMPLE_PROMPTS = {
         "one_shot": [
-            "Plot the CMB temperature power spectrum",
-            "Tell me about chaos theory and why it is important in quantitative finance.",
-            "Download S&P500 data from Yahoo Finance, plot in time series and in return space. Do an ARIMA analysis on it."
+            "Compute and plot the CMB temperature power spectrum using camb.",
+            "Tell me about the similarities between game theory and evolutionary biology.",
+            "Download S&P500 data for 2024, plot in time series and in return space. Do an ARIMA analysis on it.",
+            "What is the difference between a black hole and a white hole?",
+            "Download the file: https://supernova.lbl.gov/Union/figures/SCPUnion2.1_mu_vs_z.txt and plot its content."
         ],
         "planning_and_control": [
-            "Conduct a multi-step analysis of CMB polarization data",
-            "Prepare a detailed pipeline for CMB lensing reconstruction",
-            """Download the file: https://supernova.lbl.gov/Union/figures/SCPUnion2.1_mu_vs_z.txt"""
+            "Explain how we can constrain H0 using gravitational wave data."
+            "Write a 10,000 words, three parts dissertation on Imagination, using references drawn from French literature.",
+            "Conduct a multi-step analysis of CMB polarization data. Simulate the data for this analysis.",
+            "Illustrate the links between Game Theory and Reinforcement Learning."
         ],
         "human_in_the_loop": [
-            "Explain the significance of the tensor-to-scalar ratio",
-            "Assist me in debugging a CMB map smoothing algorithm"
+            "Explain the significance of the tensor-to-scalar ratio.",
+            "Compute and plot matter P(k) using Eisenstein and Hu approximation. Illustrate effect of ns."
         ]
     }
 
@@ -562,7 +565,7 @@ def main():
         if not examples:
             return
 
-        st.caption("Click on these example Prompts or enter your own below")
+        st.caption("Pick an example task or type your own below.")
         for i, prompt in enumerate(examples):
             # each button gets its own row and stretches full-width
             if st.button(prompt, key=f"ex_prompt_{mode}_{i}", use_container_width=True):
@@ -1236,10 +1239,10 @@ def main():
                 plan_instructions = st.text_area(
                         "**Plan Instructions**",
                         value=(
-                            "Use engineer agent for the whole analysis, "
-                            "and researcher at the very end in the last step to comment on results."
+                            "Use engineer agent for the whole analysis, and researcher at the very end in the last step to comment on results. \n"
+                            "We are running this session on a laptop, and no calculations should be require more than 10 minutes, 500MB of RAM, 500MB of disk space and 4 CPUs."
                         ),
-                        height=120
+                        height=100
                 )
             elif st.session_state.page == "human_in_the_loop":
                 c1, c2 = st.columns(2)
