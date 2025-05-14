@@ -535,10 +535,10 @@ def main():
         ],
         "planning_and_control": [
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
-            "Explain how we can constrain H0 using gravitational wave data."
+            "Explain how we can constrain H0 using gravitational wave data.",
             "Write a 10,000 words, three parts dissertation on Imagination, using references drawn from French literature.",
             "Conduct a multi-step analysis of CMB polarization data. Simulate the data for this analysis.",
-            "Illustrate the links between Game Theory and Reinforcement Learning."
+            "Illustrate the links between Game Theory and Reinforcement Learning.",
             "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
         ],
         "human_in_the_loop": [
