@@ -1271,7 +1271,7 @@ def main():
                 with st.container():
                     agent_options = {
                         "**Engineer**\n*for code-based tasks (write & debug code)*": "engineer",
-                        "**Researcher**\n*for reasoning tasks (interpret & comment)*": "researcher",
+                        "**Researcher**\n*for reasoning tasks (interpret, reason & comment)*": "researcher",
                     }
 
 
