@@ -39,6 +39,7 @@ shared_context = {
 
     "previous_steps_execution_summary": "\n",
 
+    "hardware_constraints": None,
 
     "AAS_keywords_string": None,#AAS_keywords_string,
     "text_input_for_AAS_keyword_finder": None,

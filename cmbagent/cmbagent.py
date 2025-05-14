@@ -964,6 +964,7 @@ def planning_and_control_context_carryover(
                             plan_instructions = '',
                             engineer_instructions = '',
                             researcher_instructions = '',
+                            hardware_constraints = '',
                             max_n_attempts = 3,
                             planner_model = default_agents_llm_model['planner'],
                             plan_reviewer_model = default_agents_llm_model['plan_reviewer'],
@@ -1009,7 +1010,8 @@ def planning_and_control_context_carryover(
                                     'planner_append_instructions': plan_instructions,
                                     'engineer_append_instructions': engineer_instructions,
                                     'researcher_append_instructions': researcher_instructions,
-                                    'plan_reviewer_append_instructions': plan_instructions}
+                                    'plan_reviewer_append_instructions': plan_instructions,
+                                    'hardware_constraints': hardware_constraints}
                 )
     end_time = time.time()
     execution_time_planning = end_time - start_time
@@ -1176,6 +1178,7 @@ def planning_and_control(
                             plan_instructions = '',
                             engineer_instructions = '',
                             researcher_instructions = '',
+                            hardware_constraints = '',
                             max_n_attempts = 3,
                             planner_model = default_agents_llm_model['planner'],
                             plan_reviewer_model = default_agents_llm_model['plan_reviewer'],
@@ -1213,7 +1216,8 @@ def planning_and_control(
                                     'planner_append_instructions': plan_instructions,
                                     'engineer_append_instructions': engineer_instructions,
                                     'researcher_append_instructions': researcher_instructions,
-                                    'plan_reviewer_append_instructions': plan_instructions}
+                                    'plan_reviewer_append_instructions': plan_instructions,
+                                    'hardware_constraints': hardware_constraints}
                 )
     end_time = time.time()
     execution_time_planning = end_time - start_time
@@ -1325,6 +1329,7 @@ def control(
             plan_instructions = '',
             engineer_instructions = '',
             researcher_instructions = '',
+            hardware_constraints = '',
             max_n_attempts = 3,
             planner_model = default_agents_llm_model['planner'],
             plan_reviewer_model = default_agents_llm_model['plan_reviewer'],

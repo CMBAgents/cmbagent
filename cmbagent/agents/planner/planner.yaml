@@ -15,6 +15,10 @@ instructions: |
 
    {planner_append_instructions}
 
+   In assigning computational tasks to the agents, you must take into account the following hardware constraints:
+
+   {hardware_constraints}
+
    --------------------------------------------------
 
    The Plan you suggest must have at most {maximum_number_of_steps_in_plan} Steps.

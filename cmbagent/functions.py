@@ -354,7 +354,6 @@ For the next agent suggestion, follow these rules:
 
     def record_plan_constraints(needed_agents: list[Literal["engineer", 
                                                        "researcher", 
-                                                    #    "perplexity", 
                                                        "idea_maker", 
                                                        "idea_hater", 
                                                        "camb_agent",

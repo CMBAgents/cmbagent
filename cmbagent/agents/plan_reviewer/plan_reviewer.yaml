@@ -11,6 +11,11 @@ instructions: |
 
     -------------PLAN INSTRUCTIONS -------------------
     {plan_reviewer_append_instructions}
+
+
+    For computational tasks, you must take into account the following hardware constraints are respected:
+
+    {hardware_constraints}
     --------------------------------------------------
 
     You **must** provide recommendations to improve to the plan suggested by the planner, 

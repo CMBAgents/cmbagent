@@ -535,10 +535,10 @@ def main():
         ],
         "planning_and_control": [
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
-            "Explain how we can constrain H0 using gravitational wave data.",
+            "Write a pipeline to illustrate how we can constrain H0 using gravitational wave data. Simulate the data for this analysis.",
             "Write a 10,000 words, three parts dissertation on Imagination, using references drawn from French literature.",
             "Conduct a multi-step analysis of CMB polarization data. Simulate the data for this analysis.",
-            "Illustrate the links between Game Theory and Reinforcement Learning.",
+            "Provide codes and plots to illustrate the links between Game Theory and Reinforcement Learning. Report on the results at the end.",
             "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
         ],
         "human_in_the_loop": [
@@ -1243,9 +1243,15 @@ def main():
                         "**Plan Instructions**",
                         value=(
                             "Use engineer agent for the whole analysis, and researcher at the very end in the last step to comment on results. \n"
+                        ),
+                        height=68
+                )
+                hardware_constraints = st.text_area(
+                        "**Hardware Constraints**",
+                        value=(
                             "We are running this session on a laptop, and no calculations should require more than 10 minutes, 500MB of RAM, 500MB of disk space and 4 CPUs."
                         ),
-                        height=100
+                        height=68
                 )
             elif st.session_state.page == "human_in_the_loop":
                 c1, c2 = st.columns(2)
@@ -1462,6 +1468,7 @@ def main():
                                 engineer_model=engineer_model,
                                 researcher_model=researcher_model,
                                 plan_instructions=plan_instructions,
+                                hardware_constraints=hardware_constraints,
                             )
 
                         elif st.session_state.page == "human_in_the_loop":
