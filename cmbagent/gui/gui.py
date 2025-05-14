@@ -36,6 +36,7 @@ IMAGE_WIDTH_FRACTION = 1/2
 # ── rolling memory: only used in HUMAN‑IN‑THE‑LOOP mode ───────────────
 from collections import deque
 
+
 def main():
     from PIL.Image import Image as PILImage
     MEMORY_WINDOW = None                     # keep last 12 exchanges
@@ -509,6 +510,8 @@ def main():
             st.session_state.nav_intent = None
         if "font_loaded" not in st.session_state:
             st.session_state.font_loaded = False
+        if  "example_prompt_input" not in st.session_state:
+            st.session_state.example_prompt_input = None
         # 🔸 initialise memory *only* if we start in human‑in‑the‑loop
         if st.session_state.page == "human_in_the_loop":
             ensure_memory()
@@ -519,13 +522,80 @@ def main():
         # if "chat_ctx"  not in st.session_state:
         #     st.session_state.chat_ctx  = {}            # empty context
 
-
     init_session()
-    # 1) Make sure Jersey 10 is loaded once
-    st.markdown(
-            "<link href='https://fonts.googleapis.com/css?family=Jersey+10&display=swap' rel='stylesheet'>",
-            unsafe_allow_html=True
-        )
+    
+    # Example prompts for each mode
+    EXAMPLE_PROMPTS = {
+        "one_shot": [
+            "Plot the CMB temperature power spectrum",
+            "Tell me about chaos theory and why it is important in quantitative finance.",
+            "Download S&P500 data from Yahoo Finance, plot in time series and in return space. Do an ARIMA analysis on it."
+        ],
+        "planning_and_control": [
+            "Conduct a multi-step analysis of CMB polarization data",
+            "Prepare a detailed pipeline for CMB lensing reconstruction",
+            """Download the file: https://supernova.lbl.gov/Union/figures/SCPUnion2.1_mu_vs_z.txt"""
+        ],
+        "human_in_the_loop": [
+            "Explain the significance of the tensor-to-scalar ratio",
+            "Assist me in debugging a CMB map smoothing algorithm"
+        ]
+    }
+
+
+    # Function to display example prompts
+    # def show_example_prompts(mode):
+    #     examples = EXAMPLE_PROMPTS.get(mode, [])
+    #     if not examples:
+    #         return
+
+    #     st.markdown("#### Example Prompts")
+    #     cols = st.columns(len(examples))
+
+    #     for i, (col, prompt) in enumerate(zip(cols, examples)):
+    #         if col.button(prompt, key=f"ex_prompt_{mode}_{i}", use_container_width=True):
+    #             st.session_state.example_prompt_input = prompt    
+    
+
+    def show_example_prompts(mode):
+        examples = EXAMPLE_PROMPTS.get(mode, [])
+        if not examples:
+            return
+
+        st.caption("Click on these example Prompts or enter your own below")
+        for i, prompt in enumerate(examples):
+            # each button gets its own row and stretches full-width
+            if st.button(prompt, key=f"ex_prompt_{mode}_{i}", use_container_width=True):
+                st.session_state.example_prompt_input = prompt
+
+
+    # def show_example_prompts(mode):
+    #     examples = EXAMPLE_PROMPTS.get(mode, [])
+    #     if not examples:
+    #         return
+
+    #     # less-prominent label
+    #     # st.caption("Example prompt")
+
+    #     # prepend a blank choice so nothing is selected by default
+    #     choice = st.selectbox(
+    #         "Select an example task or enter your own below",                         # no big label
+    #         [""] + examples,            # blank + your list
+    #         key=f"ex_prompt_dd_{mode}",
+    #         index=0,                   # start with the blank
+    #         placeholder="Select example prompt...",
+    #     )
+
+    #     if choice:
+    #         # when they pick one, stash it for your chat_input logic
+    #         st.session_state.example_prompt_input = choice
+
+
+    # # 1) Make sure Jersey 10 is loaded once
+    # st.markdown(
+    #         "<link href='https://fonts.googleapis.com/css?family=Jersey+10&display=swap' rel='stylesheet'>",
+    #         unsafe_allow_html=True
+    #     )
     
     current_path = os.path.dirname(__file__)
     logo_path    = os.path.join(current_path, "..", "Robot-MS-Aqua.png")
@@ -1187,48 +1257,7 @@ def main():
                     )
 
 
-        # Render conversation history
-        # for msg in st.session_state.messages:
-        #     with st.chat_message(msg["role"]):
-        #         st.markdown(msg["content"])
-        # Render conversation history (supports both new dict‐messages and legacy strings/lists)
-        
-        # for msg in st.session_state.messages:
-        #     if isinstance(msg, dict) and "role" in msg:
-        #         role    = msg.get("role", "assistant")
-        #         content = msg.get("content", "")
-        #     else:
-        #         # fallback for legacy entries (just show as assistant text)
-        #         role    = "assistant"
-        #         content = msg
-        #     with st.chat_message(role):
-        #         render_turn(content)
-        # for msg in st.session_state.messages:
-        #     role    = msg.get("role", "assistant")
-        #     content = msg.get("content", msg)
-        #     with st.chat_message(role):
-        #         render_turn(content)
 
-
-
-        # --- Agent picker pinned above the prompt ---------------------------------
-            # if st.session_state.page == "one_shot":
-            #     with st.container():
-            #         st.radio(
-            #             "Pick the agent for this turn",
-            #             ["engineer", "researcher"],
-            #             horizontal=True,
-            #             key="one_shot_selected_agent",
-            #         )
-            
-            # elif st.session_state.page == "human_in_the_loop":
-            #     with st.container():
-            #         st.radio(
-            #             "Pick the agent for this turn",
-            #             ["engineer", "researcher"],
-            #             horizontal=True,
-            #             key="human_in_the_loop_selected_agent",
-            #         )
             # --- Agent picker pinned above the prompt ---------------------------------
             if st.session_state.page == "one_shot":
 
@@ -1324,30 +1353,19 @@ def main():
 
 
 
+        # Display example prompts based on the current mode
+        show_example_prompts(st.session_state.page)
+
+        # Render existing conversation history
         user_input = st.chat_input("Type your task or question here…")
+
+        # Priority 1: value that was set by the example‑prompt buttons
+        example_value = st.session_state.pop("example_prompt_input", None)  # ✅ pop = take & delete
+        if example_value:
+            user_input = example_value
 
         # … everything above stays the same until here …
         if user_input:
-            # ── create chat-history file on very first prompt ────────────────────────────
-            # if st.session_state.cur_hist is None:          # first message this session
-            #     # include the current page ("one_shot" or "planning_and_control") in the filename
-            #     page = st.session_state.page  # "one_shot" or "planning_and_control"
-            #     slug = _slugify(user_input)
-            #     hist_dir = os.path.join(os.path.dirname(__file__), "history")
-            #     fn = f"{page}_{slug}_chat_history.json"
-
-            #     path    = os.path.join(hist_dir, fn)
-
-            #     # avoid collisions: add _2, _3 … if necessary
-            #     counter = 2
-            #     base, ext = os.path.splitext(path)
-            #     while os.path.exists(path):
-            #         path = f"{base}_{counter}{ext}"
-            #         counter += 1
-
-                # st.session_state.cur_hist = path          # remember it
-                # save_chat_history(username, [])           # touch the file once
-
 
             # 1) Record & echo the user message
             st.session_state.messages.append({"role": "user", "content": user_input})
@@ -1359,8 +1377,6 @@ def main():
             with st.chat_message("user"):
                 st.markdown(user_input)
 
-            # st.session_state.memory.add_user_message(user_input)
-            # context = retrieve_context(user_input)
 
             # 2) Prepare your chosen models
             engineer_model   = st.session_state.agent_models["engineer"]
@@ -1386,19 +1402,6 @@ def main():
             engineer_config   = get_config_for_model(engineer_model, provider_oai, provider_anthropic, None)
             researcher_config = get_config_for_model(researcher_model, provider_oai, provider_anthropic, None)
 
-    
-
-            # # 3) Stream only internal logs in one assistant bubble
-            # with st.chat_message("assistant"):
-            #     exp = st.expander("🧠 Internal reasoning (optional)", expanded=False)
-            #     handler = StreamHandler(exp)
-
-            # _logo_path = os.path.join(os.path.dirname(__file__), "cmbagent", "Robot-MS-Aqua.png")
-            # with open(_logo_path, "rb") as _f:
-            #     _logo_b64 = base64.b64encode(_f.read()).decode("utf-8")
-
-            # # the “avatar” URI we’ll pass to st.chat_message
-            # ASSISTANT_AVATAR = f"data:image/png;base64,{_logo_b64}"
 
 
             # 3) Stream only internal logs in one assistant bubble  ← still true :)
