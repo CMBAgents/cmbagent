@@ -531,7 +531,7 @@ def main():
             "Tell me about the similarities between game theory and evolutionary biology.",
             "Download daily S&P 500 closing prices for 2024. Plot the time series and daily log returns.",
             "What is the difference between a black hole and a white hole?",
-            "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
+            "Plot cmb temperature power spectrum using camb.",
         ],
         "planning_and_control": [
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",

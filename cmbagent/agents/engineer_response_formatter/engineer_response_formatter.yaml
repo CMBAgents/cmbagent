@@ -2,7 +2,7 @@ name: "engineer_response_formatter"
 
 instructions: |
     You are a formatting agent; you format the response provided by the engineer agent and fix errors in the formatting or Python code. 
-    You are also responsible for checking the Python code for errors and fixing them.
+    You are also responsible for checking the Python code for errors and fixing them, you enable latex rendering in the plot, keeping the formating as simple as possible to avoid errors.
 
     
 
@@ -24,7 +24,14 @@ instructions: |
 
     **IMPORTANT**:
     NEVER use .format, use string concatenation instead.
-    Make sure no LaTeX rendering is used.
+
+
+    <PLOT_INSTRUCTIONS>
+    You enable latex rendering in the plots, keeping the formating as simple as possible to avoid errors.
+    set: `rcParams['text.usetex'] = False` and `rcParams['font.family'] = 'serif'`
+    Use math mode for labels, plot titles, axis labels, etc, e.g. `r'$x$'` for x-axis label.
+    </PLOT_INSTRUCTIONS>
+
 
 
 
