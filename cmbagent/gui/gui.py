@@ -527,20 +527,23 @@ def main():
     # Example prompts for each mode
     EXAMPLE_PROMPTS = {
         "one_shot": [
-            "Compute and plot the CMB temperature power spectrum using camb.",
+            "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
             "Tell me about the similarities between game theory and evolutionary biology.",
-            "Download S&P500 data for 2024, plot in time series and in return space. Do an ARIMA analysis on it.",
+            "Download daily S&P 500 closing prices for 2024. Plot the time series and daily log returns.",
             "What is the difference between a black hole and a white hole?",
-            "Download the file: https://supernova.lbl.gov/Union/figures/SCPUnion2.1_mu_vs_z.txt and plot its content."
+            "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
         ],
         "planning_and_control": [
+            "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
             "Explain how we can constrain H0 using gravitational wave data."
             "Write a 10,000 words, three parts dissertation on Imagination, using references drawn from French literature.",
             "Conduct a multi-step analysis of CMB polarization data. Simulate the data for this analysis.",
             "Illustrate the links between Game Theory and Reinforcement Learning."
+            "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
         ],
         "human_in_the_loop": [
-            "Explain the significance of the tensor-to-scalar ratio.",
+            "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
+            "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
             "Compute and plot matter P(k) using Eisenstein and Hu approximation. Illustrate effect of ns."
         ]
     }
@@ -1357,7 +1360,11 @@ def main():
 
 
         # Display example prompts based on the current mode
-        show_example_prompts(st.session_state.page)
+        # Show examples only if nothing has been said yet
+        if not st.session_state.messages:          # ← new guard
+            show_example_prompts(st.session_state.page)
+
+
 
         # Render existing conversation history
         user_input = st.chat_input("Type your task or question here…")
