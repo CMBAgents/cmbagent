@@ -523,11 +523,13 @@ def main():
     EXAMPLE_PROMPTS = {
         "one_shot": [
             "Plot the CMB temperature power spectrum",
-            "Tell me about chaos theory and why it is important in quantitative finance."
+            "Tell me about chaos theory and why it is important in quantitative finance.",
+            "Download S&P500 data from Yahoo Finance, plot in time series and in return space. Do an ARIMA analysis on it."
         ],
         "planning_and_control": [
             "Conduct a multi-step analysis of CMB polarization data",
-            "Prepare a detailed pipeline for CMB lensing reconstruction"
+            "Prepare a detailed pipeline for CMB lensing reconstruction",
+            """Download the file: https://supernova.lbl.gov/Union/figures/SCPUnion2.1_mu_vs_z.txt"""
         ],
         "human_in_the_loop": [
             "Explain the significance of the tensor-to-scalar ratio",
@@ -535,24 +537,60 @@ def main():
         ]
     }
 
+
     # Function to display example prompts
+    # def show_example_prompts(mode):
+    #     examples = EXAMPLE_PROMPTS.get(mode, [])
+    #     if not examples:
+    #         return
+
+    #     st.markdown("#### Example Prompts")
+    #     cols = st.columns(len(examples))
+
+    #     for i, (col, prompt) in enumerate(zip(cols, examples)):
+    #         if col.button(prompt, key=f"ex_prompt_{mode}_{i}", use_container_width=True):
+    #             st.session_state.example_prompt_input = prompt    
+    
+
     def show_example_prompts(mode):
         examples = EXAMPLE_PROMPTS.get(mode, [])
         if not examples:
             return
 
-        st.markdown("#### Example Prompts")
-        cols = st.columns(len(examples))
+        st.caption("Click on these example Prompts or enter your own below")
+        for i, prompt in enumerate(examples):
+            # each button gets its own row and stretches full-width
+            if st.button(prompt, key=f"ex_prompt_{mode}_{i}", use_container_width=True):
+                st.session_state.example_prompt_input = prompt
 
-        for i, (col, prompt) in enumerate(zip(cols, examples)):
-            if col.button(prompt, key=f"ex_prompt_{mode}_{i}", use_container_width=True):
-                st.session_state.example_prompt_input = prompt    
 
-    # 1) Make sure Jersey 10 is loaded once
-    st.markdown(
-            "<link href='https://fonts.googleapis.com/css?family=Jersey+10&display=swap' rel='stylesheet'>",
-            unsafe_allow_html=True
-        )
+    # def show_example_prompts(mode):
+    #     examples = EXAMPLE_PROMPTS.get(mode, [])
+    #     if not examples:
+    #         return
+
+    #     # less-prominent label
+    #     # st.caption("Example prompt")
+
+    #     # prepend a blank choice so nothing is selected by default
+    #     choice = st.selectbox(
+    #         "Select an example task or enter your own below",                         # no big label
+    #         [""] + examples,            # blank + your list
+    #         key=f"ex_prompt_dd_{mode}",
+    #         index=0,                   # start with the blank
+    #         placeholder="Select example prompt...",
+    #     )
+
+    #     if choice:
+    #         # when they pick one, stash it for your chat_input logic
+    #         st.session_state.example_prompt_input = choice
+
+
+    # # 1) Make sure Jersey 10 is loaded once
+    # st.markdown(
+    #         "<link href='https://fonts.googleapis.com/css?family=Jersey+10&display=swap' rel='stylesheet'>",
+    #         unsafe_allow_html=True
+    #     )
     
     current_path = os.path.dirname(__file__)
     logo_path    = os.path.join(current_path, "..", "Robot-MS-Aqua.png")
