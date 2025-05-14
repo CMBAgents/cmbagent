@@ -44,8 +44,7 @@ instructions: |
     - Do not check for installed packages.
     - Do not install new packages, another agent will do that. Nonetheless, following a successful package installation, you must report the entire code that you were trying to run and that failed due to the missing package.
     - Write very detailed docstrings for all methods or classes using raw string literals (prefix with r).
-    - Avoid f-strings.
-    - Do not use `\,` in raw f-strings. Replace with `\\,` and double square brackets for literal braces if needed.
+    - Avoid f-strings when possible.
     - NEVER use .format, use string concatenation instead. Prefer simple strings for your prints.
 
 
@@ -54,42 +53,24 @@ instructions: |
     - If an issue is found in a specific file/module, regenerate the full code for that file only.
 
     Plotting:
-    - All LaTeX labels must be raw strings.
-    - Use math mode with dollar signs: e.g., r'$X$'
+    - Never use LaTeX rendering.
     - Avoid multiple dollar signs within one label.
     - Do not use nested math mode.
-    - Do not use `\mathrm` outside math mode.
     - Do not use LaTeX expressions with optional arguments or complex macros.
-    - Keep LaTeX in labels as short and simple as possible.
-    - Ensure that labels, titles, and legends with LaTeX are a single math expression wrapped in one pair of dollar signs.
+    - Keep labels as short, clear and simple as possible, convey the details of the information needed.
     - Always set concise and informative titles to plots.
 
 
     f-strings:
     - Avoid using f-strings.
 
-    Only LaTeX (or other back-slash heavy) strings need to be raw; ordinary messages don't.
-    Use r"" only when the string contains LaTeX or back-slash sequences that would otherwise raise an invalid escape sequence warning.
-
     To print a blank line or add a newline, use "\n" or a triple-quoted string; never hit the physical newline inside a single-quoted r"" string.
 
 
     NEVER use .format, use string concatenation instead.
-    Check for LaTeX-style escape sequences in regular strings (e.g., "\(" or "\Lambda"). These raise `SyntaxWarning: invalid escape sequence`. Fix by using a raw string (prefix with `r`, e.g., `r"\(\Lambda\)"`) or by escaping each backslash (e.g., `"\\(\\Lambda\\)"`). Prefer raw strings.
-
-    - All LaTeX-containing strings (e.g., titles, axis labels, legends, plot descriptions) must be raw strings using the `r""` or `r''` syntax to avoid invalid escape sequence errors (e.g., r"$\Lambda$CDM").
-    - Never use normal strings with backslashes like `"$\Lambda$"` — these must be rewritten as raw strings: `r"$\Lambda$"`.
-    - Any print statements that include LaTeX content (e.g., plot descriptions) must use raw string syntax to prevent `SyntaxWarning: invalid escape sequence`.
-    - Avoid escape sequences not handled by LaTeX (e.g., `\L`, `\P`) outside math mode or raw strings.
 
 
-
-    Math mode and LaTeX:
-    - For LaTeX expressions, use raw strings and math mode: e.g., r'$X$'. Make sure to use '$' to start and end the math mode.
-    - IMPORTANT: \mathrm and similar LaTeX commands are allowed **only in math mode** with r'$' (note the raw string!).
-    - Update labels to handle underscores properly by escaping them: string_latex = string.replace('_', r'\_')
-    - Prefer simple LaTeX expressions for labels and titles to avoid errors.
-    - If errors are caused by LaTeX, try to fix them by simplifying the LaTeX expression to the bare minimum.
+    Math mode and LaTeX: Never use LateX rendering.
 
     For training ML models (e.g., neural networks):
     - Disable Verbose Output for Training: Configure any training routines (e.g., using Keras, TensorFlow, etc.) to disable ongoing progress messages. For instance, in Keras, always set the verbose parameter to 0 in methods like model.fit().
@@ -131,8 +112,11 @@ instructions: |
 
     When generating code that produces a plot, you must: Save the plot to disk file using the savefig method or similar.
 
-    For plots, make sure you use detailed labeling and grid lines unless asked otherwise. Also, make sure you enable proper LaTeX rendering, i.e.,
-    `rcParams['text.usetex'] = True` and `rcParams['font.family'] = 'serif'`
+    For plots, make sure you use detailed labeling and grid lines unless asked otherwise. 
+    
+    
+    Also, make sure you **never use LaTeX rendering**, i.e., set:
+    `rcParams['text.usetex'] = False`.
 
 
     ----- DATA/PROBLEM OF INTEREST------------ 

@@ -1243,7 +1243,7 @@ def main():
                         "**Plan Instructions**",
                         value=(
                             "Use engineer agent for the whole analysis, and researcher at the very end in the last step to comment on results. \n"
-                            "We are running this session on a laptop, and no calculations should be require more than 10 minutes, 500MB of RAM, 500MB of disk space and 4 CPUs."
+                            "We are running this session on a laptop, and no calculations should require more than 10 minutes, 500MB of RAM, 500MB of disk space and 4 CPUs."
                         ),
                         height=100
                 )
