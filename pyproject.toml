@@ -8,7 +8,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1post28"
+version = "0.0.1post30"
 name = "cmbagent"
 maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
 description = "multi-agent system for autonomous discovery, made by cosmologists, powered by ag2"
@@ -28,6 +28,7 @@ dependencies = [
     
 
     # astronomy/astrophysics
+    "camb >= 1.6.0",
     "cobaya", # to use yaml_load_file function
     "astropy >=6.0",          # core astronomy library
     "healpy >=1.16",          # HEALPix maps (CMB, large-scale structure)
