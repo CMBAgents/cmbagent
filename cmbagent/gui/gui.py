@@ -350,7 +350,7 @@ def main():
     #         unsafe_allow_html=True
     #     )
 
-    def typewriter(text, placeholder, delay=0.05):
+    def typewriter(text, placeholder):
         # 1) Load the font once
         if not st.session_state.get("jersey10_loaded", False):
             st.markdown(
@@ -360,16 +360,33 @@ def main():
             st.session_state.font_loaded = True
 
         # 2) Render the heading
+        # placeholder.markdown(
+        #     f"""
+        #     <h4 style="
+        #         font-family: 'Jersey 10', sans-serif;
+        #         font-size: 90px;
+        #         letter-spacing: 3px;
+        #         text-align: center;
+        #     ">
+        #         {text}
+        #     </h4>
+        #     """,
+        #     unsafe_allow_html=True
+        # )
+
         placeholder.markdown(
             f"""
-            <h6 style="
-                font-family: 'Jersey 10', sans-serif;
-                font-size: 80px;
-                letter-spacing: 2px;
-                text-align: center;
-            ">
-                {text}
-            </h6>
+            <div style="display: flex; justify-content: center; align-items: center;">
+                <h4 style="
+                    font-family: 'Jersey 10', sans-serif;
+                    font-size: 90px;
+                    letter-spacing: 3px;
+                    text-align: center;
+                    margin-left: 30px;
+                ">
+                    {text}
+                </h4>
+            </div>
             """,
             unsafe_allow_html=True
         )
@@ -531,7 +548,7 @@ def main():
             "Tell me about the similarities between game theory and evolutionary biology.",
             "Download daily S&P 500 closing prices for 2024. Plot the time series and daily log returns.",
             "What is the difference between a black hole and a white hole?",
-            "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
+            "Plot cmb temperature power spectrum using camb.",
         ],
         "planning_and_control": [
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
@@ -628,14 +645,14 @@ def main():
         """,
         unsafe_allow_html=True)
 
-        st.markdown(
-            """
-            <span style="font-size:0.9rem;">
-            <em>Chose a model for each agent. Click on the dropdown menus.</em>
-            </span>
-            """,
-            unsafe_allow_html=True,
-        )
+        # st.markdown(
+        #     """
+        #     <span style="font-size:0.9rem;">
+        #     <em>Chose a model for each agent. Click on the dropdown menus.</em>
+        #     </span>
+        #     """,
+        #     unsafe_allow_html=True,
+        # )
         st.markdown("<br>", unsafe_allow_html=True)
         
 
@@ -729,129 +746,132 @@ def main():
             unsafe_allow_html=True
         )
 
-        # 📝  Tell users they can skip the boxes if their keys are already exported
-        st.markdown(
-            """
-            <span style="font-size:0.9rem;">
-            <em>If you’ve already set your API keys as environment variables
-            (e.g., in <code>~/.bashrc</code>), leave these fields blank.</em>
-            </span>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.markdown("<br>", unsafe_allow_html=True)
+        # Expander with plain label
+        with st.expander("Click to configure", expanded=False):
 
-        provider_oai        = st.text_input("OpenAI",      type="password", key="api_key_oai")
-        provider_anthropic  = st.text_input("Anthropic",    type="password", key="api_key_anthropic")
-        # provider_gemini     = st.text_input("Gemini",       type="password", key="api_key_gemini")
-        # provider_perplexity = st.text_input("Perplexity API Key",   type="password", key="api_key_perplexity")
+            # 📝  Tell users they can skip the boxes if their keys are already exported
+            st.markdown(
+                """
+                <span style="font-size:0.9rem;">
+                <em>If you’ve already set your API keys as environment variables
+                (e.g., in <code>~/.bashrc</code>), leave these fields blank.</em>
+                </span>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        username = None
-        # username            = st.text_input("2. Username (for saving your files)", placeholder="Enter your username")
-        # user_password       = st.text_input("3. Password to encrypt/decrypt API key", type="password")
+            provider_oai        = st.text_input("OpenAI",      type="password", key="api_key_oai")
+            provider_anthropic  = st.text_input("Anthropic",    type="password", key="api_key_anthropic")
+            # provider_gemini     = st.text_input("Gemini",       type="password", key="api_key_gemini")
+            # provider_perplexity = st.text_input("Perplexity API Key",   type="password", key="api_key_perplexity")
 
-        # ——— Set environment variables on every run ———
-        if provider_oai:
-            os.environ["OPENAI_API_KEY"] = provider_oai
-        if provider_anthropic:
-            os.environ["ANTHROPIC_API_KEY"] = provider_anthropic
-        # if provider_gemini:
-        # os.environ["GEMINI_API_KEY"] = None
-        # if provider_perplexity:
-        #     os.environ["PERPLEXITY_API_KEY"] = provider_perplexity
+            username = None
+            # username            = st.text_input("2. Username (for saving your files)", placeholder="Enter your username")
+            # user_password       = st.text_input("3. Password to encrypt/decrypt API key", type="password")
 
-        # --- API Key Validation ---
-        def validate_openai_key(api_key):
-            try:
-                headers = {"Authorization": f"Bearer {api_key}"}
-                resp = requests.get("https://api.openai.com/v1/models", headers=headers, timeout=5)
-                return resp.status_code == 200
-            except Exception:
-                # print("⚠️  OpenAI API Key validation failed.")
-                return False
+            # ——— Set environment variables on every run ———
+            if provider_oai:
+                os.environ["OPENAI_API_KEY"] = provider_oai
+            if provider_anthropic:
+                os.environ["ANTHROPIC_API_KEY"] = provider_anthropic
+            # if provider_gemini:
+            # os.environ["GEMINI_API_KEY"] = None
+            # if provider_perplexity:
+            #     os.environ["PERPLEXITY_API_KEY"] = provider_perplexity
 
-        def validate_anthropic_key(api_key, version="2023-06-01"):
-            """
-            Return True iff the key is able to hit the /v1/models endpoint.
-            Anthropic requires the `anthropic-version` header.
-            """
-            headers = {
-                "x-api-key": api_key,
-                "anthropic-version": version,
-                "accept": "application/json",
-            }
-            try:
-                r = requests.get(
-                    "https://api.anthropic.com/v1/models",
-                    headers=headers,
-                    timeout=5,
-                )
-                return r.status_code == 200
-            except requests.RequestException:
-                return False
-
-        def validate_gemini_key(api_key: str) -> bool:
-            """
-            Verify a Google Gemini API key by calling the free *models.list* endpoint.
-            
-            Returns **True** when the key is accepted (HTTP 200), **False** otherwise.
-            """
-
-            base_urls = [
-                "https://generativelanguage.googleapis.com/v1/models",
-                "https://generativelanguage.googleapis.com/v1beta/models",  # fallback
-            ]
-
-            for url in base_urls:
+            # --- API Key Validation ---
+            def validate_openai_key(api_key):
                 try:
-                    r = requests.get(url, params={"key": api_key}, timeout=5)
-                    if r.status_code == 200:
-                        return True          # valid key
-                    if r.status_code in (401, 403):   # invalid / revoked key
-                        return False
-                    # for 404 etc. try the next base URL
+                    headers = {"Authorization": f"Bearer {api_key}"}
+                    resp = requests.get("https://api.openai.com/v1/models", headers=headers, timeout=5)
+                    return resp.status_code == 200
+                except Exception:
+                    # print("⚠️  OpenAI API Key validation failed.")
+                    return False
+
+            def validate_anthropic_key(api_key, version="2023-06-01"):
+                """
+                Return True iff the key is able to hit the /v1/models endpoint.
+                Anthropic requires the `anthropic-version` header.
+                """
+                headers = {
+                    "x-api-key": api_key,
+                    "anthropic-version": version,
+                    "accept": "application/json",
+                }
+                try:
+                    r = requests.get(
+                        "https://api.anthropic.com/v1/models",
+                        headers=headers,
+                        timeout=5,
+                    )
+                    return r.status_code == 200
                 except requests.RequestException:
-                    pass
+                    return False
 
-            return False                      # every attempt failed
+            def validate_gemini_key(api_key: str) -> bool:
+                """
+                Verify a Google Gemini API key by calling the free *models.list* endpoint.
+                
+                Returns **True** when the key is accepted (HTTP 200), **False** otherwise.
+                """
 
-        def validate_perplexity_key(api_key: str) -> bool:
-            """
-            Return True iff *api_key* can successfully call Perplexity's
-            /chat/completions endpoint.
+                base_urls = [
+                    "https://generativelanguage.googleapis.com/v1/models",
+                    "https://generativelanguage.googleapis.com/v1beta/models",  # fallback
+                ]
 
-            • Uses the lightweight 'sonar' model  
-            • Asks for a 1-token reply to minimise cost  
-            • Treats HTTP 200 as success, anything else as failure
-            """
-            url = "https://api.perplexity.ai/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            }
-            payload = {
-                "model": "sonar",
-                "messages": [{"role": "user", "content": "ping"}],
-                "max_tokens": 1,
-                "stream": False,
-            }
+                for url in base_urls:
+                    try:
+                        r = requests.get(url, params={"key": api_key}, timeout=5)
+                        if r.status_code == 200:
+                            return True          # valid key
+                        if r.status_code in (401, 403):   # invalid / revoked key
+                            return False
+                        # for 404 etc. try the next base URL
+                    except requests.RequestException:
+                        pass
 
-            try:
-                resp = requests.post(url, headers=headers, json=payload, timeout=5)
-                return resp.status_code == 200
-            except requests.RequestException:
-                return False
-        if provider_oai:
-            if validate_openai_key(provider_oai):
-                st.success("OpenAI API Key is valid.")
-            else:
-                st.error("Invalid OpenAI API Key.")
-        if provider_anthropic:
-            if validate_anthropic_key(provider_anthropic):
-                st.success("Anthropic API Key is valid.")
-            else:
-                st.error("Invalid Anthropic API Key.")
+                return False                      # every attempt failed
+
+            def validate_perplexity_key(api_key: str) -> bool:
+                """
+                Return True iff *api_key* can successfully call Perplexity's
+                /chat/completions endpoint.
+
+                • Uses the lightweight 'sonar' model  
+                • Asks for a 1-token reply to minimise cost  
+                • Treats HTTP 200 as success, anything else as failure
+                """
+                url = "https://api.perplexity.ai/chat/completions"
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                }
+                payload = {
+                    "model": "sonar",
+                    "messages": [{"role": "user", "content": "ping"}],
+                    "max_tokens": 1,
+                    "stream": False,
+                }
+
+                try:
+                    resp = requests.post(url, headers=headers, json=payload, timeout=5)
+                    return resp.status_code == 200
+                except requests.RequestException:
+                    return False
+            if provider_oai:
+                if validate_openai_key(provider_oai):
+                    st.success("OpenAI API Key is valid.")
+                else:
+                    st.error("Invalid OpenAI API Key.")
+            if provider_anthropic:
+                if validate_anthropic_key(provider_anthropic):
+                    st.success("Anthropic API Key is valid.")
+                else:
+                    st.error("Invalid Anthropic API Key.")
         # if provider_gemini:
         #     if validate_gemini_key(provider_gemini):
         #         st.success("Gemini API Key is valid.")
@@ -1046,26 +1066,26 @@ def main():
         # typewriter(header_text)
         # st.title(header_text)
 
-        st.markdown(
-        """
-        <h3 style="
-        text-align: center;
-        font-family: 'Jersey 10', sans-serif;
-        font-size: 40px;    /* match your design */
-        margin-top: 1.5rem; /* optional spacing */
-        ">
-        Planning and Control System for Data Analysis and Exploration
-        </h3>
-        """,
-        unsafe_allow_html=True
-    )
+    #     st.markdown(
+    #     """
+    #     <h3 style="
+    #     text-align: center;
+    #     font-family: 'Jersey 10', sans-serif;
+    #     font-size: 40px;    /* match your design */
+    #     margin-top: 1.5rem; /* optional spacing */
+    #     ">
+    #     Planning and Control System for Data Analysis and Exploration
+    #     </h3>
+    #     """,
+    #     unsafe_allow_html=True
+    # )
         
         st.markdown(
             """
             <h4 style="
             text-align: center;
             font-family: 'Jersey 10', sans-serif;
-            font-size: 24px;
+            font-size:30px;
             margin-top: 0.5rem;
             ">
             Get the source code <a href="https://github.com/CMBAgents/cmbagent" target="_blank">here</a>
