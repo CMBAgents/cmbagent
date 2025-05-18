@@ -33,7 +33,7 @@ instructions: |
   **START OF DOCUMENTATION**
   ----------------------------------------------------------------------------------
   **Available camb methods and classes:**
-  YOU MUST PAY ATTENTION TO THE DOCSTRINGS CAREFULLY AND REPORT ALL USEUL INFORMATION SUCH AS UNITS AND TYPE OF OUTPUTS OF THE METHODS
+  YOU MUST PAY ATTENTION TO THE DOCSTRINGS CAREFULLY AND REPORT ALL USEFUL INFORMATION SUCH AS UNITS AND TYPE OF OUTPUTS OF THE METHODS
   ----------------------
 
   def get_age(params):
@@ -224,7 +224,7 @@ instructions: |
 
   CAMB.results.CAMBdata
   ---------------------
-  class camb.results.CAMBdata(*args, **kwargs) 
+  class camb.results.CAMBdata(*args, **kwargs)
     An object for storing calculational data, parameters and transfer functions.
     Results for a set of parameters (given in a camb.model.CAMBparams instance)
     are returned by the camb.get_background(), camb.get_transfer_functions() or camb.get_results()
@@ -746,7 +746,7 @@ instructions: |
   ClTransferData is the base class for storing CMB power transfer functions, as a function of q and ℓ.
   To get an instance of this data, call:
     results.CAMBdata.get_cmb_transfer_data()
-    
+
     Variables:
       NumSources   – number of sources calculated (size of the p index).
       q            – array of q values calculated (q = k in a flat universe).
@@ -761,14 +761,14 @@ instructions: |
         Returns:
           Tuple: (array of computed ℓ values, array of computed q values, transfer function T(ℓ, q))
           (For a flat universe, q is equivalent to k.)
-        
+
   ----------------------------------------------------------------------
   Input parameter model
   =====================
 
   CAMB.model.CAMBparams
   ---------------------
-  class camb.model.CAMBparams(*args, **kwargs) 
+  class camb.model.CAMBparams(*args, **kwargs)
     Object storing the parameters for a CAMB calculation, including cosmological parameters and
     settings for what to calculate. When a new object is instantiated, default parameters are set automatically.
 
@@ -1042,7 +1042,7 @@ instructions: |
         Parameters:
           nonlinear – boolean: True to include non-linear corrections.
         (Note: set_for_lmax may also adjust this setting.)
-        
+
       tensor_power(k)
         Get the primordial tensor curvature power spectrum at k.
         Parameters:
@@ -1058,7 +1058,7 @@ instructions: |
   ----------------------------------------------------------------------
   CAMB.model.AccuracyParams
   --------------------------
-  class camb.model.AccuracyParams 
+  class camb.model.AccuracyParams
     Structure with parameters governing numerical accuracy. AccuracyBoost scales nearly all the
     other parameters except lSampleBoost (for CMB L sampling) and lAccuracyBoost (for Boltzmann hierarchy evolution).
 
@@ -1088,7 +1088,7 @@ instructions: |
   ----------------------------------------------------------------------
   CAMB.model.TransferParams
   --------------------------
-  class camb.model.TransferParams 
+  class camb.model.TransferParams
     Object storing parameters for the matter power spectrum calculation.
 
     Variables:
@@ -1103,7 +1103,7 @@ instructions: |
   ----------------------------------------------------------------------
   CAMB.model.SourceTermParams
   -----------------------------
-  class camb.model.SourceTermParams 
+  class camb.model.SourceTermParams
     Structure with parameters determining how galaxy/lensing/21cm power spectra and transfer functions are calculated.
 
     Variables:
@@ -1125,11 +1125,11 @@ instructions: |
       line_extra               – (boolean) Include additional 21cm sources.
       line_reionization        – (boolean) Replace E-mode signals with 21cm polarization.
       use_21cm_mK              – (boolean) Use mK units for 21cm brightness temperature.
-      
+
   ----------------------------------------------------------------------
   CAMB.model.CustomSources
   ------------------------
-  class camb.model.CustomSources 
+  class camb.model.CustomSources
     Structure containing symbolic-compiled custom CMB angular power spectrum source functions.
     Do not change this directly; instead call CAMBparams.set_custom_scalar_sources().
 
@@ -1146,19 +1146,19 @@ instructions: |
 
   camb.bbn.BBNIterpolator
   ------------------------
-  class camb.bbn.BBNIterpolator(x, y, z, bbox=[None, None, None, None], kx=3, ky=3, s=0) 
+  class camb.bbn.BBNIterpolator(x, y, z, bbox=[None, None, None, None], kx=3, ky=3, s=0)
 
     (No additional descriptive text is provided for this class in the documentation snippet.)
 
   ----------------------------------------------------------------------
   camb.bbn.BBNPredictor
   ---------------------
-  class camb.bbn.BBNPredictor 
+  class camb.bbn.BBNPredictor
 
     The base class for making BBN predictions for Helium abundance.
 
     Methods:
-      Y_He(ombh2, delta_neff=0.0) 
+      Y_He(ombh2, delta_neff=0.0)
         Get BBN helium mass fraction for CMB code.
         Parameters:
           ombh2      – Ω_b h² (physical baryon density)
@@ -1166,7 +1166,7 @@ instructions: |
         Returns:
           Y_He  — helium mass fraction predicted by BBN
 
-      Y_p(ombh2, delta_neff=0.0) 
+      Y_p(ombh2, delta_neff=0.0)
         Get BBN helium nucleon fraction. Must be implemented by extensions.
         Parameters:
           ombh2      – Ω_b h²
@@ -1177,12 +1177,12 @@ instructions: |
   ----------------------------------------------------------------------
   camb.bbn.BBN_fitting_parthenope
   ---------------------------------
-  class camb.bbn.BBN_fitting_parthenope(tau_neutron=None) 
+  class camb.bbn.BBN_fitting_parthenope(tau_neutron=None)
 
     Old BBN predictions for Helium abundance using fitting formulae based on Parthenope (pre 2015).
 
     Methods:
-      Y_p(ombh2, delta_neff=0.0, tau_neutron=None) 
+      Y_p(ombh2, delta_neff=0.0, tau_neutron=None)
         Get BBN helium nucleon fraction.
         (Parthenope fits, as used in Planck 2015 papers)
         Parameters:
@@ -1196,7 +1196,7 @@ instructions: |
   camb.bbn.BBN_table_interpolator
   ---------------------------------
   class camb.bbn.BBN_table_interpolator(interpolation_table='PRIMAT_Yp_DH_ErrorMC_2021.dat',
-                                        function_of=('ombh2', 'DeltaN')) 
+                                        function_of=('ombh2', 'DeltaN'))
 
     BBN predictor based on interpolation from a numerical table calculated by a BBN code.
     Tables are supplied for various codes (e.g. Parthenope, PRIMAT) with different rate choices.
@@ -1211,7 +1211,7 @@ instructions: |
         Returns:
           D/H  — the predicted deuterium-to-hydrogen ratio
 
-      Y_p(ombh2, delta_neff=0.0, grid=False) 
+      Y_p(ombh2, delta_neff=0.0, grid=False)
         Get BBN helium nucleon fraction by interpolation in the table.
         Parameters:
           ombh2      – Ω_b h² (or the value corresponding to function_of[0])
@@ -1221,7 +1221,7 @@ instructions: |
           Y_p  — helium nucleon fraction predicted by BBN
         (Note: Call Y_He() to get the helium mass fraction instead.)
 
-      get(name, ombh2, delta_neff=0.0, grid=False) 
+      get(name, ombh2, delta_neff=0.0, grid=False)
         Get the value for a variable by interpolation from the table.
         The variable “name” must match one of the labels given in the table header.
         Parameters:
@@ -1235,11 +1235,11 @@ instructions: |
   ----------------------------------------------------------------------
   camb.bbn.get_predictor
   -----------------------
-  function camb.bbn.get_predictor(predictor_name=None) 
+  function camb.bbn.get_predictor(predictor_name=None)
 
     Get an instance of the default BBNPredictor class.
     Currently this returns a numerical table interpolator as used in the Planck 2018 analysis.
-    
+
     Parameters:
       predictor_name – optional string specifying an alternative predictor (default is None)
     Returns:
@@ -1251,7 +1251,7 @@ instructions: |
 
   camb.dark_energy.DarkEnergyModel
   ---------------------------------
-  class camb.dark_energy.DarkEnergyModel(*args, **kwargs) 
+  class camb.dark_energy.DarkEnergyModel(*args, **kwargs)
 
     Abstract base class for dark energy model implementations.
 
@@ -1259,7 +1259,7 @@ instructions: |
   ----------------------------------------------------------------------
   camb.dark_energy.DarkEnergyEqnOfState
   -------------------------------------
-  class camb.dark_energy.DarkEnergyEqnOfState(*args, **kwargs) 
+  class camb.dark_energy.DarkEnergyEqnOfState(*args, **kwargs)
     Bases: camb.dark_energy.DarkEnergyModel
 
     Abstract base class for models using a w and wa parameterization.
@@ -1283,7 +1283,7 @@ instructions: |
           wa  – -dw/da evaluated at a = 1
           cs2 – fluid rest-frame sound speed squared
 
-      set_w_a_table(a, w) 
+      set_w_a_table(a, w)
         Set the dark energy equation of state from numerical values using a cubic spline.
         Parameters:
           a – Array of scale factors (a = 1/(1+z))
@@ -1295,14 +1295,14 @@ instructions: |
   ----------------------------------------------------------------------
   camb.dark_energy.DarkEnergyFluid
   ----------------------------------
-  class camb.dark_energy.DarkEnergyFluid(*args, **kwargs) 
+  class camb.dark_energy.DarkEnergyFluid(*args, **kwargs)
     Bases: camb.dark_energy.DarkEnergyEqnOfState
 
     Implements the w, wa (or tabulated w(a)) parameterization using a constant sound‐speed
     single‐fluid model – as used for single‑field quintessence.
 
     Methods:
-      set_w_a_table(a, w) 
+      set_w_a_table(a, w)
         (Inherited from DarkEnergyEqnOfState)
         Set w(a) from numerical values using a cubic spline.
         Parameters:
@@ -1315,7 +1315,7 @@ instructions: |
   ----------------------------------------------------------------------
   camb.dark_energy.DarkEnergyPPF
   --------------------------------
-  class camb.dark_energy.DarkEnergyPPF(*args, **kwargs) 
+  class camb.dark_energy.DarkEnergyPPF(*args, **kwargs)
     Bases: camb.dark_energy.DarkEnergyEqnOfState
 
     Implements the w, wa (or tabulated w(a)) parameterization in the
@@ -1324,11 +1324,11 @@ instructions: |
     (For models with w > -1 but far from a cosmological constant, the PPF method may give results
     that differ from a fluid model with cs2 = 1.)
 
-    
+
   ----------------------------------------------------------------------
   camb.dark_energy.Quintessence
   -----------------------------
-  class camb.dark_energy.Quintessence(*args, **kwargs) 
+  class camb.dark_energy.Quintessence(*args, **kwargs)
     Bases: camb.dark_energy.DarkEnergyModel
 
     Abstract base class for single scalar field quintessence models.
@@ -1350,14 +1350,14 @@ instructions: |
   ----------------------------------------------------------------------
   camb.dark_energy.EarlyQuintessence
   ----------------------------------
-  class camb.dark_energy.EarlyQuintessence(*args, **kwargs) 
+  class camb.dark_energy.EarlyQuintessence(*args, **kwargs)
     Bases: camb.dark_energy.Quintessence
 
     An example early quintessence (axion-like) model.
     The potential is given by:
         V(ϕ) = m² f² (1 - cos(ϕ/f))ⁿ + Λ_cosmological_constant
     where the additional constant term represents a cosmological constant.
-    
+
     Variables:
       n             – (float64) Power index in the potential.
       f             – (float64) f/M_pl (with M_pl the reduced Planck mass); used as an initial guess when use_zc is True.
@@ -1404,7 +1404,7 @@ instructions: |
 
   camb.initialpower.InitialPower
   ------------------------------
-  class camb.initialpower.InitialPower(*args, **kwargs) 
+  class camb.initialpower.InitialPower(*args, **kwargs)
 
     Abstract base class for initial power spectrum classes.
 
@@ -1412,7 +1412,7 @@ instructions: |
   ----------------------------------------------------------------------
   camb.initialpower.InitialPowerLaw
   ----------------------------------
-  class camb.initialpower.InitialPowerLaw(*args, **kwargs) 
+  class camb.initialpower.InitialPowerLaw(*args, **kwargs)
     Bases: InitialPower
 
     Object to store parameters for the primordial power spectrum in the standard power‑law expansion.
@@ -1431,17 +1431,17 @@ instructions: |
       At                      – (float64) Amplitude of the tensor power.
 
     Methods:
-      has_tensors() 
+      has_tensors()
         Do these settings have non‑zero tensor amplitude?
-        
+
         Returns:
           True if the tensor amplitude is non‑zero.
 
       set_params(As=2e-09, ns=0.96, nrun=0, nrunrun=0.0, r=0.0, nt=None, ntrun=0.0,
-                pivot_scalar=0.05, pivot_tensor=0.05, parameterization='tensor_param_rpivot')   
+                pivot_scalar=0.05, pivot_tensor=0.05, parameterization='tensor_param_rpivot')
         Set parameters using the standard power‑law parameterization.
         If nt is None, the inflation consistency relation is used.
-        
+
         Parameters:
           As             – Comoving curvature power at k = pivot_scalar.
           ns             – Scalar spectral index.
@@ -1453,7 +1453,7 @@ instructions: |
           pivot_scalar   – Pivot scale for the scalar spectrum.
           pivot_tensor   – Pivot scale for the tensor spectrum.
           parameterization – Choice of tensor parameterization (e.g. 'tensor_param_rpivot').
-        
+
         Returns:
           self
 
@@ -1461,39 +1461,39 @@ instructions: |
   ----------------------------------------------------------------------
   camb.initialpower.SplinedInitialPower
   --------------------------------------
-  class camb.initialpower.SplinedInitialPower(*args, **kwargs)   
+  class camb.initialpower.SplinedInitialPower(*args, **kwargs)
     Bases: InitialPower
 
     Object to store a generic primordial spectrum defined from a set of sampled (k_i, P(k_i)) values.
-    
+
     Variables:
       effective_ns_for_nonlinear – (float64) Effective spectral index used for approximate non‑linear correction models.
 
     Methods:
-      has_tensors()   
+      has_tensors()
         Returns True if the tensor spectrum is set.
 
-      set_scalar_log_regular(kmin, kmax, PK)   
+      set_scalar_log_regular(kmin, kmax, PK)
         Set up a log‑regular cubic spline interpolation for the scalar power spectrum P(k).
-        
+
         Parameters:
           kmin – Minimum k value (not minimum log(k)).
           kmax – Maximum k value (inclusive).
           PK   – Array of scalar power values with PK[0] = P(kmin) and PK[-1] = P(kmax).
 
-      set_scalar_table(k, PK)   
+      set_scalar_table(k, PK)
         Set arrays of k and P(k) values for cubic spline interpolation.
         (Note: using set_scalar_log_regular is generally faster and easier for low‑k sampling.)
 
-      set_tensor_log_regular(kmin, kmax, PK)   
+      set_tensor_log_regular(kmin, kmax, PK)
         Set up a log‑regular cubic spline interpolation for the tensor spectrum P_t(k).
-        
+
         Parameters:
           kmin – Minimum k value.
           kmax – Maximum k value (inclusive).
           PK   – Array of tensor power values with PK[0] = P_t(kmin) and PK[-1] = P_t(kmax).
 
-      set_tensor_table(k, PK)   
+      set_tensor_table(k, PK)
         Set arrays of k and P_t(k) values for cubic spline interpolation of the tensor spectrum.
 
 
@@ -1514,7 +1514,7 @@ instructions: |
   ----------------------------------------------------------------------
   camb.nonlinear.Halofit
   ----------------------
-  class camb.nonlinear.Halofit(*args, **kwargs) 
+  class camb.nonlinear.Halofit(*args, **kwargs)
     Bases: camb.nonlinear.NonLinearModel
 
     Various specific approximate non‑linear correction models based on HaloFit.
@@ -1526,7 +1526,7 @@ instructions: |
       HMCode_logT_AGN  – (float64) HMcode parameter log10(T_AGN/K).
 
     Methods:
-      set_params(halofit_version='mead2020', HMCode_A_baryon=3.13, HMCode_eta_baryon=0.603, HMCode_logT_AGN=7.8)   
+      set_params(halofit_version='mead2020', HMCode_A_baryon=3.13, HMCode_eta_baryon=0.603, HMCode_logT_AGN=7.8)
         Set the Halofit model for non‑linear corrections.
 
         Parameters:
@@ -1553,7 +1553,7 @@ instructions: |
   ----------------------------------------------------------------------
   camb.nonlinear.SecondOrderPK
   -----------------------------
-  class camb.nonlinear.SecondOrderPK(*args, **kwargs) 
+  class camb.nonlinear.SecondOrderPK(*args, **kwargs)
     Bases: camb.nonlinear.NonLinearModel
 
     Third‑order Newtonian perturbation theory results for the non‑linear correction.
@@ -1568,7 +1568,7 @@ instructions: |
 
   camb.reionization.ReionizationModel
   -------------------------------------
-  class camb.reionization.ReionizationModel(*args, **kwargs) 
+  class camb.reionization.ReionizationModel(*args, **kwargs)
 
     Abstract base class for reionization models.
 
@@ -1579,7 +1579,7 @@ instructions: |
   ----------------------------------------------------------------------
   camb.reionization.BaseTauWithHeReionization
   -------------------------------------------
-  class camb.reionization.BaseTauWithHeReionization(*args, **kwargs) 
+  class camb.reionization.BaseTauWithHeReionization(*args, **kwargs)
     Bases: ReionizationModel
 
     Abstract class for models that map z_re to tau, and include second reionization of Helium.
@@ -1598,7 +1598,7 @@ instructions: |
       max_redshift            – (float64) Maximum redshift allowed when mapping tau into reionization redshift
 
     Methods:
-      get_zre(params, tau=None) 
+      get_zre(params, tau=None)
         Get the midpoint redshift of reionization.
         Parameters:
           params – model.CAMBparams instance with cosmological parameters
@@ -1606,7 +1606,7 @@ instructions: |
         Returns:
           Reionization mid-point redshift.
 
-      set_tau(tau) 
+      set_tau(tau)
         Set the optical depth.
         Parameters:
           tau – optical depth
@@ -1624,7 +1624,7 @@ instructions: |
   ----------------------------------------------------------------------
   camb.reionization.TanhReionization
   ----------------------------------
-  class camb.reionization.TanhReionization(*args, **kwargs) 
+  class camb.reionization.TanhReionization(*args, **kwargs)
     Bases: BaseTauWithHeReionization
 
     This default (unphysical) tanh x_e parameterization is described in Appendix B of arXiv:0804.3865.
@@ -1633,7 +1633,7 @@ instructions: |
       delta_redshift – (float64) Duration of reionization
 
     Methods:
-      set_extra_params(deltazrei=None) 
+      set_extra_params(deltazrei=None)
         Set extra parameters (not tau or zrei).
         Parameters:
           deltazrei – delta z for reionization
@@ -1642,7 +1642,7 @@ instructions: |
   ----------------------------------------------------------------------
   camb.reionization.ExpReionization
   ---------------------------------
-  class camb.reionization.ExpReionization(*args, **kwargs) 
+  class camb.reionization.ExpReionization(*args, **kwargs)
     Bases: BaseTauWithHeReionization
 
     An ionization fraction that decreases exponentially at high z, saturating to fully ionized at a fixed redshift.
@@ -1655,7 +1655,7 @@ instructions: |
       reion_exp_power         – (float64) Power in the exponential, exp(-λ (z - redshift_complete)^exp_power)
 
     Methods:
-      set_extra_params(reion_redshift_complete=None, reion_exp_power=None, reion_exp_smooth_width=None)   
+      set_extra_params(reion_redshift_complete=None, reion_exp_power=None, reion_exp_smooth_width=None)
         Set extra parameters (not tau or zrei).
         Parameters:
           reion_redshift_complete – redshift at which reionization is complete (e.g., around 6)
@@ -1668,7 +1668,7 @@ instructions: |
 
   camb.recombination.RecombinationModel
   ---------------------------------------
-  class camb.recombination.RecombinationModel(*args, **kwargs) 
+  class camb.recombination.RecombinationModel(*args, **kwargs)
 
     Abstract base class for recombination models.
 
@@ -1701,7 +1701,7 @@ instructions: |
   ----------------------------------------------------------------------
   camb.recombination.CosmoRec
   ---------------------------
-  class camb.recombination.CosmoRec(*args, **kwargs) 
+  class camb.recombination.CosmoRec(*args, **kwargs)
 
     Bases: camb.recombination.RecombinationModel
 
@@ -1731,7 +1731,7 @@ instructions: |
 
   camb.sources.SourceWindow
   -------------------------
-  class camb.sources.SourceWindow(*args, **kwargs) 
+  class camb.sources.SourceWindow(*args, **kwargs)
 
     Abstract base class for a number count/lensing/21cm source window function.
     A list of instances of these classes can be assigned to the SourceWindows field of model.CAMBparams.
@@ -1767,7 +1767,7 @@ instructions: |
     A numerical W(z) source window function constructed by interpolation from a numerical table.
 
     Methods:
-      set_table(z, W, bias_z=None, k_bias=None, bias_kz=None) 
+      set_table(z, W, bias_z=None, k_bias=None, bias_kz=None)
         Set arrays of z and W(z) for cubic spline interpolation.
         Note that W(z) is the total count distribution observed, not a fractional selection function on an underlying distribution.
 
@@ -1795,7 +1795,7 @@ instructions: |
 
   Note that to call results.get_sigma8_0() you need to set WantTransfer=True, i.e., pars.WantTransfer = True  enables transfer functions for sigma8 calculation
 
-  thetastar can be passed as an input parameter instead of H0. H0 and thetastar should never be passed at the same time: one is derived from the other (and the other parameters). 
+  thetastar can be passed as an input parameter instead of H0. H0 and thetastar should never be passed at the same time: one is derived from the other (and the other parameters).
   At fixed H0, to reach a requested thetastar you must adjust other parameters.
 
   END OF DOCUMENTATION
@@ -1820,7 +1820,7 @@ instructions: |
   <Provide the search results thoroughly. Include information on the methods needed, relevant units, and any other pertinent details about the findings.>
 
   **Docstrings:**
-  <List of the full complete docstrings of the camb methods needed, not just the function names. 
+  <List of the full complete docstrings of the camb methods needed, not just the function names.
   These are generally found in the documentation above.>
 
   **Rough Python Code (for guidance only):**
