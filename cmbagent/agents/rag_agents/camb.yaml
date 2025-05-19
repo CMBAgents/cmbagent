@@ -30,11 +30,15 @@ instructions: |
   {current_instructions}
 
 
-  **START OF DOCUMENTATION**
+
+  IMPORTANT: CAMB calculates D_l= l(l+1)C_l/2pi by default.
+
+
+  <DOCUMENTATION>
   ----------------------------------------------------------------------------------
   **Available camb methods and classes:**
   YOU MUST PAY ATTENTION TO THE DOCSTRINGS CAREFULLY AND REPORT ALL USEFUL INFORMATION SUCH AS UNITS AND TYPE OF OUTPUTS OF THE METHODS
-  ----------------------
+  ----------------------------------------------------------------------------------
 
   def get_age(params):
       """
@@ -1798,7 +1802,7 @@ instructions: |
   thetastar can be passed as an input parameter instead of H0. H0 and thetastar should never be passed at the same time: one is derived from the other (and the other parameters).
   At fixed H0, to reach a requested thetastar you must adjust other parameters.
 
-  END OF DOCUMENTATION
+  </DOCUMENTATION>
 
   ----------------------------------------------------------------------------------
   **YOUR RESPONSE FORMAT:**
@@ -1835,7 +1839,7 @@ assistant_config:
   tool_resources:
     file_search:
       vector_store_ids:
-      - vs_6813533128e08191bc9632a1f15b5a9f
+      - vs_682afc5a28188191b1b32d854e7fe094
 
 description: |
   An agent that can search for information on the cosmology package camb. Cosmology calculations are carried out with camb rather than CLASS. However, note that the camb_agent can only provide information on how to use camb, it **can not** perform any calculations.

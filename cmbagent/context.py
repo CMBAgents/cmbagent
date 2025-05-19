@@ -54,4 +54,7 @@ shared_context = {
     "max_n_attempts": 3,
 
 
+    "camb_context": None,
+
+
 }

@@ -78,6 +78,7 @@ def register_functions_to_agents(cmbagent_instance):
     installer = cmbagent_instance.get_agent_from_name('installer')
     idea_saver = cmbagent_instance.get_agent_from_name('idea_saver')
     control_starter = cmbagent_instance.get_agent_from_name('control_starter')
+    camb_context = cmbagent_instance.get_agent_from_name('camb_context')
 
     if not cmbagent_instance.skip_rag_agents:
         classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')
@@ -104,6 +105,7 @@ def register_functions_to_agents(cmbagent_instance):
                                                                "installer",
                                                                "camb_agent", 
                                                                "cobaya_agent",
+                                                               "camb_context",
                                                             #    "planck_agent", no need for paper agents
                                                                "control"], 
                                 context_variables: ContextVariables,
@@ -114,7 +116,7 @@ def register_functions_to_agents(cmbagent_instance):
         Transfer to the next agent based on the execution status.
         For the next agent suggestion, follow these rules:
             - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError: No module named xx).
-            - Suggest the engineer agent if error related to generic Python code.
+            - Suggest the engineer agent if error related to generic Python code, syntax error, etc.
             - Suggest the classy_sz_agent if error is an internal classy_sz error.
             - Suggest the camb_agent if error related to internal camb code.
             - Suggest the cobaya_agent if error related to internal cobaya code.
@@ -140,7 +142,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
 
         # import sys; sys.exit()
         
-        if context_variables["agent_for_sub_task"] == "engineer":
+        if context_variables["agent_for_sub_task"] == "engineer" or context_variables["agent_for_sub_task"] == "camb_agent" or context_variables["agent_for_sub_task"] == "camb_context":
             
             if context_variables["n_attempts"] >= context_variables["max_n_attempts"]:
                 return ReplyResult(target=AgentTarget(terminator),
@@ -166,7 +168,20 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                 return ReplyResult(target=AgentTarget(classy_sz),
                                 message="Execution status: " + execution_status + ". Transfer to classy_sz_agent.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
+
+            elif next_agent_suggestion == "camb_agent":
+                context_variables["n_attempts"] += 1
+                return ReplyResult(target=AgentTarget(camb),
+                                message="Execution status: " + execution_status + ". Transfer to camb_agent.\n" + f"{workflow_status_str}\n",
+                                context_variables=context_variables)
             
+            elif next_agent_suggestion == "camb_context":
+                context_variables["n_attempts"] += 1
+                return ReplyResult(target=AgentTarget(camb_context),
+                                message="Execution status: " + execution_status + ". Transfer to camb_context.\n" + f"{workflow_status_str}\n",
+                                context_variables=context_variables)
+            
+
             elif next_agent_suggestion == "control":
                 context_variables["n_attempts"] += 1
                 return ReplyResult(target=AgentTarget(control),
@@ -451,7 +466,9 @@ Now, update the plan accordingly, planner!""",
         current_sub_task: str,
         current_instructions: str,
         agent_for_sub_task: Literal["engineer", "researcher", #"perplexity", 
-                                    "idea_maker", "idea_hater", "classy_sz_agent", "camb_agent", "aas_keyword_finder", "planck_agent"],
+                                    "idea_maker", "idea_hater", 
+                                    "classy_sz_agent", "camb_agent", "camb_context",
+                                    "aas_keyword_finder", "planck_agent"],
         context_variables: ContextVariables
     ) -> ReplyResult:
         """

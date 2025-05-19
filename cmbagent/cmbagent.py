@@ -19,7 +19,7 @@ from .utils import OpenAI,Image
 from .utils import default_llm_model as default_llm_model_default
 from .utils import (path_to_assistants,path_to_apis,
                     default_top_p,default_temperature,default_max_round,default_llm_config_list,default_agent_llm_configs,
-                    default_agents_llm_model)
+                    default_agents_llm_model, camb_context_url)
 from pprint import pprint
 from .rag_utils import import_rag_agents, push_vector_stores
 from .utils import path_to_agents, update_yaml_preserving_format
@@ -177,6 +177,9 @@ class CMBAgent:
         self.skip_executor = skip_executor
 
         self.skip_rag_agents = skip_rag_agents
+
+        if make_vector_stores is not None:
+            self.skip_rag_agents = False
 
         self.skip_rag_software_formatter = skip_rag_software_formatter
 
@@ -1049,8 +1052,9 @@ def planning_and_control_context_carryover(
         clear_work_dir = True if step == 1 else False
         starter_agent = "control" if step == 1 else "control_starter"
         # print(f"in cmbagent.py: step: {step}/{number_of_steps_in_plan}")
-
-        # print("current_context['previous_steps_execution_summary']: ", current_context['previous_steps_execution_summary'] )
+        print("\n\n")
+        print("current_context['previous_steps_execution_summary']: ", current_context['previous_steps_execution_summary'] )
+        print("\n\n")
 
 
         start_time = time.time()
@@ -1118,6 +1122,8 @@ def planning_and_control_context_carryover(
             # print("\nin cmbagent.py: msg: ", msg)
             if 'name' in msg:
                 # print("\nin cmbagent.py: msg['name']: ", msg['name'])
+                agent_for_step = agent_for_step.removesuffix("_context")
+                agent_for_step = agent_for_step.removesuffix("_agent")
                 if msg['name'] == agent_for_step or msg['name'] == f"{agent_for_step}_nest" or msg['name'] == f"{agent_for_step}_response_formatter":
                     # print("\nin cmbagent.py: msg['content']: ", msg['content'])
                     this_step_execution_summary = msg['content']
@@ -1462,6 +1468,7 @@ def one_shot(
         
 
     cmbagent = CMBAgent(
+        mode = "one_shot",
         work_dir = work_dir,
         agent_llm_configs = {
                             'engineer': engineer_config,
@@ -1474,11 +1481,27 @@ def one_shot(
 
     start_time = time.time()
 
+    shared_context = {'max_n_attempts': max_n_attempts}
+
+    if agent == 'camb_context':
+
+        # Fetch the file (30-second safety timeout)
+        resp = requests.get(camb_context_url, timeout=30)
+        resp.raise_for_status()           # Raises an HTTPError for non-200 codes
+        camb_context = resp.text          # Whole document as one long string
+
+        shared_context["camb_context"] = camb_context
+
+    # print(f"shared_context: {shared_context}")
+    # import sys
+    # sys.exit()
+
+
     cmbagent.solve(task,
                     max_rounds=max_rounds,
                     initial_agent=agent,
                     mode = "one_shot",
-                    shared_context = {'max_n_attempts': max_n_attempts}
+                    shared_context = shared_context
                     )
     
     end_time = time.time()

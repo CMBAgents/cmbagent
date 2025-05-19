@@ -158,6 +158,8 @@ default_agents_llm_model ={
     "cobaya": "gpt-4o-2024-11-20",
     "planck": "gpt-4o-2024-11-20",
 
+    # "camb_context": "gpt-4o-2024-11-20",
+    "camb_context": "gemini-2.5-flash-preview-04-17",
     # structured output agents
     "classy_sz_response_formatter": "gpt-4o-2024-11-20",
     "camb_response_formatter": "gpt-4o-2024-11-20",
@@ -260,4 +262,7 @@ with open(path_to_basedir + '/aas_kwd_to_url.pkl', 'rb') as file:
 # print(my_dict)
 # Assuming you have already loaded your dictionary into `my_dict`
 AAS_keywords_string = ', '.join(AAS_keywords_dict.keys())
+
+
+camb_context_url = "https://camb.readthedocs.io/en/latest/_static/camb_docs_combined.md"
 

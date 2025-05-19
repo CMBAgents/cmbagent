@@ -46,22 +46,31 @@ def register_all_hand_offs(cmbagent_instance):
     engineer_nest = cmbagent_instance.get_agent_object_from_name('engineer_nest')
     idea_maker_nest = cmbagent_instance.get_agent_object_from_name('idea_maker_nest')
     idea_saver = cmbagent_instance.get_agent_object_from_name('idea_saver')
+
+    camb_context = cmbagent_instance.get_agent_object_from_name('camb_context')
+    
+
     mode = cmbagent_instance.mode
+
+    camb_response_formatter = cmbagent_instance.get_agent_object_from_name('camb_response_formatter')
+    camb_context.agent.handoffs.set_after_work(AgentTarget(camb_response_formatter.agent))
+
+    if mode == "one_shot":
+        camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(engineer.agent))
+    else:
+        camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
 
     if not cmbagent_instance.skip_rag_agents:
 
         classy_sz = cmbagent_instance.get_agent_object_from_name('classy_sz_agent')
         classy_sz_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_sz_response_formatter')
         camb = cmbagent_instance.get_agent_object_from_name('camb_agent')
-        camb_response_formatter = cmbagent_instance.get_agent_object_from_name('camb_response_formatter')
         planck = cmbagent_instance.get_agent_object_from_name('planck_agent')
         cobaya = cmbagent_instance.get_agent_object_from_name('cobaya_agent')
         cobaya_response_formatter = cmbagent_instance.get_agent_object_from_name('cobaya_response_formatter')
         # camb handoffs
         camb.agent.handoffs.set_after_work(AgentTarget(camb_response_formatter.agent))
 
-        # camb response formatter handoffs
-        camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
 
         # classy_sz handoffs
         classy_sz.agent.handoffs.set_after_work(AgentTarget(classy_sz_response_formatter.agent))
@@ -270,7 +279,6 @@ def register_all_hand_offs(cmbagent_instance):
         # Admin handoffs
         admin.agent.handoffs.set_after_work(AgentTarget(agent_on.agent))
 
-
         
     else:  
   
@@ -298,7 +306,7 @@ def register_all_hand_offs(cmbagent_instance):
             ),
             OnCondition(
                 target=AgentTarget(engineer.agent),
-                condition=StringLLMCondition(prompt="Engineer needed to write code"),
+                condition=StringLLMCondition(prompt="Engineer needed to write code, make plots, do calculations."),
             ),
             OnCondition(
                 target=AgentTarget(idea_maker.agent),
@@ -310,7 +318,7 @@ def register_all_hand_offs(cmbagent_instance):
             ),
             OnCondition(
                 target=AgentTarget(terminator.agent),
-                condition=StringLLMCondition(prompt="The task is complete."),
+                condition=StringLLMCondition(prompt="The task is completed."),
             ),
         ])
 
