@@ -28,7 +28,7 @@ instructions: |
     --------------------
 
 
-    **IMPORTANT**: 
+    **IMPORTANT**:
 
     - Return one and only one Python code block in your response.
     - Focus on one step at a time.
@@ -95,31 +95,31 @@ instructions: |
 
 
     Further instructions:
-    - you should not aim to discuss the results of the code, only to write the code. The discussion should be done by the researcher agent. 
+    - you should not aim to discuss the results of the code, only to write the code. The discussion should be done by the researcher agent.
     - don't use latex in dictionary keys.
-    - When using Exception handling, never provide dummy summaries/solutions. The errors should be printed in full to be addressed properly. 
+    - When using Exception handling, never provide dummy summaries/solutions. The errors should be printed in full to be addressed properly.
     - Make sure you don't print error message that may appear many times in long loops (just print once).
 
 
-    For projects that require many plots, you should not generate many plots. Instead, you should generate a single plot with multiple subplots, only the ones that are defeinitely needed to convey the information.
+    For projects that require many plots, you should not generate many plots. Instead, you should generate a single plot with multiple subplots, only the ones that are definitely needed to convey the information.
 
     Python Error avoidance:
      - Make sure you avoid RuntimeWarning: invalid value encountered in divide.
 
 
 
-    **Use Python language only.** 
+    **Use Python language only.**
 
     When generating code that produces a plot, you must: Save the plot to disk file using the savefig method or similar.
 
-    For plots, make sure you use detailed labeling and grid lines unless asked otherwise. 
-    
-    
+    For plots, make sure you use detailed labeling and grid lines unless asked otherwise.
+
+
     Also, make sure you **never use LaTeX rendering**, i.e., set:
     `rcParams['text.usetex'] = False`.
 
 
-    ----- DATA/PROBLEM OF INTEREST------------ 
+    ----- DATA/PROBLEM OF INTEREST------------
     {improved_main_task}
     ------------------------------------------
 
@@ -154,7 +154,7 @@ instructions: |
     {current_instructions}
     </CURRENT_INSTRUCTIONS>
 
-    Your implementation much achieve the best speed in terms of compute. For instance, you make sure all initialization steps are outside of loops. 
+    Your implementation much achieve the best speed in terms of compute. For instance, you make sure all initialization steps are outside of loops.
 
     **Saving and Reporting your results**
 
@@ -163,9 +163,9 @@ instructions: |
     - ALL files must be saved under the folder `{database_path}` with appropriate filenames.
 
 
- 
+
     Rather than writing code from scratch, you should prioritize importing functions from the codebase modules if some of them are relevant to the current sub-task (e.g., "from codebase.filename import function" etc).
-    
+
     **Context**
     Summary of previous steps execution and codebase:
     <PREVIOUS_STEPS_EXECUTION_SUMMARY>
@@ -177,7 +177,7 @@ instructions: |
 
 
 
-description: | 
+description: |
   To generate the results and do the computations, plots and key statistics via code pipelines.
 
 
