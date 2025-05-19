@@ -496,6 +496,8 @@ class CMBAgent:
         print("\nDisplaying cost…\n")
         print("\n".join(lines))
 
+        self.final_context['cost_dataframe'] = df
+
         # --- Save cost data as JSON ------------------------------------------------
         # Convert DataFrame to dict for JSON serialization
         cost_data = df.to_dict(orient='records')
@@ -514,7 +516,7 @@ class CMBAgent:
             
         print(f"\nCost report data saved to: {json_path}\n")
 
-        self.shared_context['cost_report_path'] = json_path
+        self.final_context['cost_report_path'] = json_path
         
         return df
 
@@ -1509,16 +1511,6 @@ def one_shot(
     end_time = time.time()
     execution_time = end_time - start_time
 
-    results = {'chat_history': cmbagent.chat_result.chat_history,
-               'final_context': cmbagent.final_context,
-               'engineer':cmbagent.get_agent_object_from_name('engineer'),
-               'engineer_response_formatter':cmbagent.get_agent_object_from_name('engineer_response_formatter'),
-               'researcher':cmbagent.get_agent_object_from_name('researcher'),
-               'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter')}
-    
-    
-    results['initialization_time'] = initialization_time
-    results['execution_time'] = execution_time
     
     # Create a dummy groupchat attribute if it doesn't exist
     # print('creating groupchat for cost display...')
@@ -1530,6 +1522,19 @@ def one_shot(
     # print('displaying cost...')
     cmbagent.display_cost()
     # print('cost displayed')
+
+
+
+    results = {'chat_history': cmbagent.chat_result.chat_history,
+               'final_context': cmbagent.final_context,
+               'engineer':cmbagent.get_agent_object_from_name('engineer'),
+               'engineer_response_formatter':cmbagent.get_agent_object_from_name('engineer_response_formatter'),
+               'researcher':cmbagent.get_agent_object_from_name('researcher'),
+               'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter')}
+    
+    
+    results['initialization_time'] = initialization_time
+    results['execution_time'] = execution_time
 
 
     # Save timing report as JSON
