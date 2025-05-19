@@ -513,6 +513,8 @@ class CMBAgent:
             json.dump(cost_data, f, indent=2)
             
         print(f"\nCost report data saved to: {json_path}\n")
+
+        self.shared_context['cost_report_path'] = json_path
         
         return df
 
