@@ -21,7 +21,7 @@ class ReviewerResponseFormatterAgent(BaseAgent):
 
 
     class PlanReviewerResponse(BaseModel):
-        recommendations: List[str] = Field(..., description="recommendation.")
+        recommendations: List[str] = Field(..., description="recommendations.")
 
         def format(self) -> str:
             # Start building the final string

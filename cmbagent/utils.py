@@ -208,7 +208,13 @@ for agent in default_agents_llm_model:
 default_llm_config_list = [get_model_config(default_llm_model)]
 
 
-
+#### note we should be able to set the temperature for different agents, e.g., 
+                    # "idea_maker": {
+                    #     "model": default_llm_model,
+                    #     "api_key": os.getenv("OPENAI_API_KEY"),
+                    #     "api_type": "openai",
+                    #     'temperature': 0.5,
+                    #     },
 
 
 
