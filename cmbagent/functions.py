@@ -506,21 +506,38 @@ Now, update the plan accordingly, planner!""",
             context_variables["current_status"] = current_status
 
             codes = os.path.join(cmbagent_instance.work_dir, context_variables['codebase_path'])
+            # print("loading docstrings...")
             docstrings = load_docstrings(codes)
+            # print("docstrings loaded!")
+            # print("="*70)
+            # print("\n\n")
             output_str = ""
             for module, info in docstrings.items():
                 output_str += "-----------\n"
                 output_str += f"Filename: {module}.py\n"
                 output_str += f"File path: {info['file_path']}\n\n"
-                output_str += f"Available functions:\n"
-                for func, doc in info['functions'].items():
-                    output_str += f"function name: {func}\n"
-                    output_str += "````\n"
-                    output_str += f"{doc}\n"
-                    output_str += "````\n\n"
+
+                # Show parse errors (if any) ✨
+                if "error" in info:
+                    output_str += f"⚠️  Parse error: {info['error']}\n\n"
+
+                output_str += "Available functions:\n"
+
+                if info["functions"]:                          # non-empty dict
+                    for func, doc in info["functions"].items():
+                        output_str += f"function name: {func}\n"
+                        output_str += "````\n"
+                        output_str += f"{doc or '(no docstring)'}\n"
+                        output_str += "````\n\n"
+                else:
+                    output_str += "(none)\n\n"
 
             # Store the full output string in your context variable.
             context_variables["current_codebase"] = output_str
+
+            # print("current_codebase: ", context_variables["current_codebase"])
+            # print("="*70)
+            # print("\n\n")
 
             # Load image plots from the "data" directory.
             data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
@@ -670,21 +687,52 @@ Now, update the plan accordingly, planner!""",
             context_variables["current_status"] = current_status
 
             codes = os.path.join(cmbagent_instance.work_dir, context_variables['codebase_path'])
+            # print(f"loading docstrings from {codes}...")
             docstrings = load_docstrings(codes)
+            # print("docstrings loaded!")
+            # print("="*70)
+            # print("\n\n")
+            # output_str = ""
+            # for module, info in docstrings.items():
+            #     output_str += "-----------\n"
+            #     output_str += f"Filename: {module}.py\n"
+            #     output_str += f"File path: {info['file_path']}\n\n"
+            #     output_str += f"Available functions:\n"
+            #     for func, doc in info['functions'].items():
+            #         output_str += f"function name: {func}\n"
+            #         output_str += "````\n"
+            #         output_str += f"{doc}\n"
+            #         output_str += "````\n\n"
             output_str = ""
             for module, info in docstrings.items():
                 output_str += "-----------\n"
                 output_str += f"Filename: {module}.py\n"
                 output_str += f"File path: {info['file_path']}\n\n"
-                output_str += f"Available functions:\n"
-                for func, doc in info['functions'].items():
-                    output_str += f"function name: {func}\n"
-                    output_str += "````\n"
-                    output_str += f"{doc}\n"
-                    output_str += "````\n\n"
+
+                # Show parse errors (if any) ✨
+                if "error" in info:
+                    output_str += f"⚠️  Parse error: {info['error']}\n\n"
+
+                output_str += "Available functions:\n"
+
+                if info["functions"]:                          # non-empty dict
+                    for func, doc in info["functions"].items():
+                        output_str += f"function name: {func}\n"
+                        output_str += "````\n"
+                        output_str += f"{doc or '(no docstring)'}\n"
+                        output_str += "````\n\n"
+                else:
+                    output_str += "(none)\n\n"
+
+
 
             # Store the full output string in your context variable.
             context_variables["current_codebase"] = output_str
+
+            # print("current_codebase: ", context_variables["current_codebase"])
+            # print("="*70)
+            # import sys
+            # sys.exit()
 
             # Load image plots from the "data" directory.
             data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
@@ -1047,28 +1095,48 @@ def extract_functions_docstrings_from_file(file_path):
                     
     return {"file_path": file_path_from_comment, "functions": functions}
 
-def load_docstrings(directory="codebase"):
+# def load_docstrings(directory="codebase"):
+#     """
+#     Loads all top-level function docstrings from Python files in the specified directory
+#     without executing any code, and extracts the file path from the top comment of each file.
+    
+#     Parameters:
+#         directory (str): Path to the directory containing Python files.
+    
+#     Returns:
+#         dict: A dictionary where each key is a module name and each value is a dictionary
+#               containing the file path and another dictionary mapping function names to their docstrings.
+#     """
+#     all_docstrings = {}
+    
+#     for file in os.listdir(directory):
+#         if file.endswith(".py") and not file.startswith("__"):
+#             module_name = file[:-3]  # Remove the .py extension
+#             file_path = os.path.join(directory, file)
+#             doc_info = extract_functions_docstrings_from_file(file_path)
+#             all_docstrings[module_name] = doc_info
+#     return all_docstrings
+def load_docstrings(directory: str = "codebase"):
     """
-    Loads all top-level function docstrings from Python files in the specified directory
-    without executing any code, and extracts the file path from the top comment of each file.
-    
-    Parameters:
-        directory (str): Path to the directory containing Python files.
-    
-    Returns:
-        dict: A dictionary where each key is a module name and each value is a dictionary
-              containing the file path and another dictionary mapping function names to their docstrings.
+    Loads all top-level function docstrings from Python files in *directory*
+    without executing any code.  If a file can’t be parsed, its error is
+    stored in an `"error"` field.
     """
     all_docstrings = {}
-    
+
     for file in os.listdir(directory):
         if file.endswith(".py") and not file.startswith("__"):
-            module_name = file[:-3]  # Remove the .py extension
-            file_path = os.path.join(directory, file)
-            doc_info = extract_functions_docstrings_from_file(file_path)
-            all_docstrings[module_name] = doc_info
+            module     = file[:-3]                  # drop '.py'
+            file_path  = os.path.join(directory, file)
+            try:
+                all_docstrings[module] = extract_functions_docstrings_from_file(file_path)
+            except Exception as err:
+                all_docstrings[module] = {
+                    "file_path": file_path,
+                    "functions": {},               # ALWAYS a dict
+                    "error": f"{err.__class__.__name__}: {err}",
+                }
     return all_docstrings
-
 
 
 def load_plots(directory: str) -> list:

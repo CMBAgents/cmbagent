@@ -1056,9 +1056,9 @@ def planning_and_control_context_carryover(
         clear_work_dir = True if step == 1 else False
         starter_agent = "control" if step == 1 else "control_starter"
         # print(f"in cmbagent.py: step: {step}/{number_of_steps_in_plan}")
-        print("\n\n")
-        print("current_context['previous_steps_execution_summary']: ", current_context['previous_steps_execution_summary'] )
-        print("\n\n")
+        # print("\n\n")
+        # print("current_context['previous_steps_execution_summary']: ", current_context['previous_steps_execution_summary'] )
+        # print("\n\n")
 
 
         start_time = time.time()
@@ -1347,7 +1347,8 @@ def control(
             researcher_model = default_agents_llm_model['researcher'],
             idea_maker_model = default_agents_llm_model['idea_maker'],
             idea_hater_model = default_agents_llm_model['idea_hater'],
-            work_dir = work_dir_default
+            work_dir = work_dir_default,
+            clear_work_dir = True
                             ):
     
     # check work_dir exists
@@ -1395,7 +1396,9 @@ def control(
                             'researcher': researcher_config,
                             'idea_maker': idea_maker_config,
                             'idea_hater': idea_hater_config,
-        })
+        },
+        clear_work_dir = clear_work_dir
+        )
     
 
     # print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")

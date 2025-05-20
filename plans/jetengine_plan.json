@@ -1,0 +1,71 @@
+{
+    "sub_tasks": [
+        {
+            "bullet_points": [
+                "Load the simulated jet engine health monitoring dataset (assume CSV format).",
+                "Split the data into training (80%) and validation (20%) sets.",
+                "Simulate a target domain dataset by adding small Gaussian noise and scaling to selected sensor readings.",
+                "Inject synthetic anomalies into the target dataset (e.g., by perturbing sensor values or introducing out-of-range values) and record ground truth anomaly labels for evaluation.",
+                "Apply StandardScaler: fit on source training data, transform all datasets (training, validation, target).",
+                "Output summary statistics of the processed datasets."
+            ],
+            "sub_task": "Data Preparation, Preprocessing, and Synthetic Anomaly Injection",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Select a Gaussian (RBF) kernel and determine kernel bandwidth (e.g., median heuristic).",
+                "Compute MMD between source training data and target data using all features.",
+                "Compute and compare MMD values for different feature subsets to identify which sensor readings contribute most to domain shift.",
+                "Output the MMD values and a ranked list of features by their contribution to domain shift."
+            ],
+            "sub_task": "Maximum Mean Discrepancy (MMD) Calculation and Feature Subset Analysis",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Select exhaust gas temperature (EGT) as the target variable for next-step prediction.",
+                "Train a simple feedforward neural network (one hidden layer) on source training data to predict EGT at t+1.",
+                "Train a simple baseline model (e.g., linear regression) for the same prediction task.",
+                "Evaluate both models on source validation data (MSE).",
+                "Extract hidden layer activations from the neural network as feature representations for anomaly detection."
+            ],
+            "sub_task": "Predictive Coding and Baseline Model Training",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Compute reconstruction (prediction) error (MSE) for both source validation and target data using both models.",
+                "Experiment with different thresholding methods (mean + k*std, percentile-based, Gaussian mixture models) to determine the optimal anomaly threshold.",
+                "Identify anomalies in target data based on each thresholding method.",
+                "Output confusion matrix and metrics (precision, recall, F1-score) using ground truth labels for each method."
+            ],
+            "sub_task": "Anomaly Detection and Threshold Optimization",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Generate plots: MMD value comparison (all features and subsets), reconstruction error distributions, ROC or precision-recall curves, and confusion matrix.",
+                "Generate a feature importance plot showing which sensor readings are most predictive of anomalies (e.g., using permutation importance or model coefficients).",
+                "Summarize key statistics and findings in tables.",
+                "Prepare all results, plots, and statistics for interpretation."
+            ],
+            "sub_task": "Visualization, Feature Importance, and Results Compilation",
+            "sub_task_agent": "engineer"
+        },
+        {
+            "bullet_points": [
+                "Provide a comprehensive results section, including:",
+                "Interpretation of MMD alignment and feature subset analysis.",
+                "Analysis of predictive coding and baseline model performance.",
+                "Discussion of anomaly detection results (quantitative and qualitative), including thresholding method comparison.",
+                "Reference and interpret all generated plots and statistics.",
+                "Discuss feature importance findings and implications for maintenance.",
+                "Discuss computational efficiency, how the approach meets the \"few minutes on a laptop\" constraint, and trade-offs between model complexity and performance.",
+                "Summarize insights and implications for lightweight domain adaptation in predictive maintenance."
+            ],
+            "sub_task": "Results Interpretation, Discussion, and Computational Efficiency Analysis",
+            "sub_task_agent": "researcher"
+        }
+    ]
+}
