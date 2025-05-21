@@ -178,8 +178,13 @@ class CMBAgent:
 
         self.skip_rag_agents = skip_rag_agents
 
-        if make_vector_stores is not None:
+        if make_vector_stores is not False:
             self.skip_rag_agents = False
+
+        # print("make_vector_stores: ", make_vector_stores)
+        # print("self.skip_rag_agents: ", self.skip_rag_agents)
+        # import sys
+        # sys.exit()
 
         self.skip_rag_software_formatter = skip_rag_software_formatter
 
