@@ -17,7 +17,7 @@ import time
 import copy
 # import cmbagent
 from cmbagent.cmbagent import CMBAgent, planning_and_control, one_shot, human_in_the_loop, planning_and_control_context_carryover
-# from .cmbagent import CMBAgent, planning_and_control, one_shot, human_in_the_loop
+
 import requests
 import sys
 from contextlib import redirect_stdout
@@ -28,10 +28,6 @@ import base64
 from pathlib import Path
 
 IMAGE_WIDTH_FRACTION = 1/2
-# import builtins, uuid
-
-# from langchain_community.chat_message_histories import ChatMessageHistory
-# from langchain.callbacks.base import BaseCallbackHandler
 
 # ── rolling memory: only used in HUMAN‑IN‑THE‑LOOP mode ───────────────
 from collections import deque
@@ -334,21 +330,7 @@ def main():
     import unicodedata
     import string
 
-    # def typewriter(text, placeholder, delay=0.05):
-    #     displayed = ""
-    #     for char in text:
-    #         displayed += char
-    #         placeholder.markdown(
-    #             f"<h1 style=\"font-family: 'Roboto Mono', monospace; color:#0ff; letter-spacing:1px\">{displayed}</h1>",
-    #             unsafe_allow_html=True
-    #         )
-    #         time.sleep(delay)
 
-    # def typewriter(text, placeholder, delay=0.05):
-    #     placeholder.markdown(
-    #         f"<h1 style=\"font-family: 'Jersey 10'; letter-spacing:2px; text-align:center\">{text}</h1>",
-    #         unsafe_allow_html=True
-    #     )
 
     def typewriter(text, placeholder):
         # 1) Load the font once
@@ -359,20 +341,6 @@ def main():
             )
             st.session_state.font_loaded = True
 
-        # 2) Render the heading
-        # placeholder.markdown(
-        #     f"""
-        #     <h4 style="
-        #         font-family: 'Jersey 10', sans-serif;
-        #         font-size: 90px;
-        #         letter-spacing: 3px;
-        #         text-align: center;
-        #     ">
-        #         {text}
-        #     </h4>
-        #     """,
-        #     unsafe_allow_html=True
-        # )
 
         placeholder.markdown(
             f"""
@@ -405,12 +373,7 @@ def main():
         return text[:max_len] or "untitled"
 
 
-    # def _new_history_path(username: str | None) -> str:
-    #     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-    #     root = f"{username or 'anon'}_{ts}_chat_history.json"
-    #     return os.path.join(os.path.dirname(__file__), "history", root)
 
-    # ──────────────────────────────────────────────────────────────────────
     def save_chat_history(username: str | None, messages: list[dict]) -> None:
         """
         Atomically write the current page, chat_mode, and messages to disk.
@@ -548,7 +511,7 @@ def main():
             "Tell me about the similarities between game theory and evolutionary biology.",
             "Download daily S&P 500 closing prices for 2024. Plot the time series and daily log returns.",
             "What is the difference between a black hole and a white hole?",
-            "Plot cmb temperature power spectrum using camb.",
+            "Compute and plot cmb temperature power spectrum using camb.",
         ],
         "planning_and_control": [
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
@@ -566,19 +529,6 @@ def main():
     }
 
 
-    # Function to display example prompts
-    # def show_example_prompts(mode):
-    #     examples = EXAMPLE_PROMPTS.get(mode, [])
-    #     if not examples:
-    #         return
-
-    #     st.markdown("#### Example Prompts")
-    #     cols = st.columns(len(examples))
-
-    #     for i, (col, prompt) in enumerate(zip(cols, examples)):
-    #         if col.button(prompt, key=f"ex_prompt_{mode}_{i}", use_container_width=True):
-    #             st.session_state.example_prompt_input = prompt    
-    
 
     def show_example_prompts(mode):
         examples = EXAMPLE_PROMPTS.get(mode, [])
@@ -592,33 +542,7 @@ def main():
                 st.session_state.example_prompt_input = prompt
 
 
-    # def show_example_prompts(mode):
-    #     examples = EXAMPLE_PROMPTS.get(mode, [])
-    #     if not examples:
-    #         return
 
-    #     # less-prominent label
-    #     # st.caption("Example prompt")
-
-    #     # prepend a blank choice so nothing is selected by default
-    #     choice = st.selectbox(
-    #         "Select an example task or enter your own below",                         # no big label
-    #         [""] + examples,            # blank + your list
-    #         key=f"ex_prompt_dd_{mode}",
-    #         index=0,                   # start with the blank
-    #         placeholder="Select example prompt...",
-    #     )
-
-    #     if choice:
-    #         # when they pick one, stash it for your chat_input logic
-    #         st.session_state.example_prompt_input = choice
-
-
-    # # 1) Make sure Jersey 10 is loaded once
-    # st.markdown(
-    #         "<link href='https://fonts.googleapis.com/css?family=Jersey+10&display=swap' rel='stylesheet'>",
-    #         unsafe_allow_html=True
-    #     )
     
     current_path = os.path.dirname(__file__)
     logo_path    = os.path.join(current_path, "..", "Robot-MS-Aqua.png")
@@ -645,14 +569,6 @@ def main():
         """,
         unsafe_allow_html=True)
 
-        # st.markdown(
-        #     """
-        #     <span style="font-size:0.9rem;">
-        #     <em>Chose a model for each agent. Click on the dropdown menus.</em>
-        #     </span>
-        #     """,
-        #     unsafe_allow_html=True,
-        # )
         st.markdown("<br>", unsafe_allow_html=True)
         
 
@@ -701,15 +617,6 @@ def main():
                 name: info["models"][0] for name, info in agents.items()
             }
 
-        # for key, info in agents.items():
-        #     with st.expander(f"🧑‍💻 {info['label']}"):
-        #         choice = st.selectbox(
-        #             f"Select LLM model for {info['label']}",
-        #             info["models"],
-        #             key=f"{key}_model",
-        #             index=info["models"].index(st.session_state.agent_models[key])
-        #         )
-        #         st.session_state.agent_models[key] = choice
 
         # somewhere near the top of your file, right after you define `agents = {...}`
         current_path = os.path.dirname(__file__)
@@ -763,22 +670,15 @@ def main():
 
             provider_oai        = st.text_input("OpenAI",      type="password", key="api_key_oai")
             provider_anthropic  = st.text_input("Anthropic",    type="password", key="api_key_anthropic")
-            # provider_gemini     = st.text_input("Gemini",       type="password", key="api_key_gemini")
-            # provider_perplexity = st.text_input("Perplexity API Key",   type="password", key="api_key_perplexity")
 
             username = None
-            # username            = st.text_input("2. Username (for saving your files)", placeholder="Enter your username")
-            # user_password       = st.text_input("3. Password to encrypt/decrypt API key", type="password")
+
 
             # ——— Set environment variables on every run ———
             if provider_oai:
                 os.environ["OPENAI_API_KEY"] = provider_oai
             if provider_anthropic:
                 os.environ["ANTHROPIC_API_KEY"] = provider_anthropic
-            # if provider_gemini:
-            # os.environ["GEMINI_API_KEY"] = None
-            # if provider_perplexity:
-            #     os.environ["PERPLEXITY_API_KEY"] = provider_perplexity
 
             # --- API Key Validation ---
             def validate_openai_key(api_key):
@@ -872,113 +772,7 @@ def main():
                     st.success("Anthropic API Key is valid.")
                 else:
                     st.error("Invalid Anthropic API Key.")
-        # if provider_gemini:
-        #     if validate_gemini_key(provider_gemini):
-        #         st.success("Gemini API Key is valid.")
-        #     else:
-        #         st.error("Invalid Gemini API Key.")
-        # if provider_perplexity:
-        #     if validate_perplexity_key(provider_perplexity):
-        #         st.success("Perplexity API Key is valid.")
-        #     else:
-        #         st.error("Invalid Perplexity API Key.")
 
-        # st.markdown("---")
-
-        
-
-        # ------------------- sidebar : "🗂️ Chat history" -------------------
-    #     st.markdown("---")
-    #     # st.header("🗂️ Chat history")
-        # st.markdown(
-        #     """
-        #     <h3 style="
-        #       font-family: 'Jersey 10', sans-serif;
-        #       font-size: 30px;
-        #       margin-top: 1rem;
-        #     ">
-        #       🗂️ Chat history
-        #     </h3>
-        #     """,
-        #     unsafe_allow_html=True
-        # )
-
-        
-    #     hist_dir = os.path.join(os.path.dirname(__file__), "history")
-    #     chat_files = sorted([
-    #         f for f in os.listdir(hist_dir) if f.endswith("_chat_history.json")
-    #     ])
-
-    #     # Unique key to persist the selection
-    #     chat_choice = st.selectbox(
-    #         "Open conversation",
-    #         ["— choose —"] + chat_files,
-    #         label_visibility="collapsed",
-    #         key="chat_history_choice"
-    #     )
-
-    #     # Load only when a new file is selected to avoid rerun loops
-    #     if chat_choice != "— choose —" \
-    #     and st.session_state.get("loaded_chat_file") != chat_choice:
-    #     # if chat_choice != "— choose —":
-
-    #         file_path = os.path.join(hist_dir, chat_choice)
-
-    #         # 1) infer mode from filename: "<user>_<page>_…"
-    #         m = re.match(r'^[^_]+_(one_shot|planning_and_control|human_in_the_loop)_', chat_choice)
-    #         if m:
-    #             saved_page = m.group(1)
-    #             if saved_page == "one_shot":
-    #                 saved_chatmode = "one-shot"
-    #             elif saved_page == "planning_and_control":
-    #                 saved_chatmode = "planning-and-control"
-    #             elif saved_page == "human_in_the_loop":
-    #                 saved_chatmode = "human-in-the-loop"
-
-    #         else:
-    #             # fallback to whatever you have now
-    #             saved_page     = st.session_state.page
-    #             saved_chatmode = st.session_state.chat_mode
-
-    #         # 2) load and unwrap JSON
-    #         with open(file_path, "r", encoding="utf-8") as f:
-    #             raw = json.load(f)
-
-    #         if isinstance(raw, dict) and "messages" in raw:
-    #             saved_msgs = raw["messages"]
-    #         else:
-    #             saved_msgs = raw
-
-    #         # 3) restore any images/special objects
-    #         def walk(x):
-    #             if isinstance(x, list):
-    #                 return [walk(i) for i in x]
-    #             if isinstance(x, tuple):
-    #                 return tuple(walk(i) for i in x)
-    #             return _restore_special(x)
-
-    #         st.session_state.messages         = walk(saved_msgs)
-
-    #         st.session_state.cur_hist         = file_path
-    #         st.session_state.loaded_chat_file = chat_choice
-
-    #         # 4) **restore the mode you inferred from the filename**
-    #         st.session_state.page      = saved_page
-    #         st.session_state.chat_mode = saved_chatmode
-
-    #         # 🔸 move memory hydration **here** (uses saved_page which is final)
-    #         if saved_page == "human_in_the_loop":
-    #             ensure_memory()
-    #             st.session_state.memory.clear()
-    #             for m in st.session_state.messages:
-    #                 role = m.get("role", "assistant")
-    #                 content_text = _text_from_content(m.get("content"))   # ← extract real text / md
-    #                 if content_text:                                      # skip empty / None
-    #                     st.session_state.memory.append((role, content_text))
-
-    #         # … after your selectbox for chat history …
-    # # … after your chat_choice selectbox and load‐on‐select block …
-    #     # — sidebar‑only CSS reset (leaves big buttons elsewhere intact) —
         st.markdown(
             """
             <style>
@@ -1016,39 +810,7 @@ def main():
             unsafe_allow_html=True,
         )
 
-    #     # Single‐file delete
-    #     if chat_choice != "— choose —":
-    #         delete_path = os.path.join(hist_dir, chat_choice)
-    #         if st.button("🗑️ Delete selected chat", key="delete_hist"):
-    #             try:
-    #                 os.remove(delete_path)
-    #                 st.success(f"Deleted `{chat_choice}`")
-    #                 # drop the widget state so it goes back to default next render:
-    #                 st.session_state.pop("chat_history_choice", None)
-    #                 st.session_state.pop("loaded_chat_file",    None)
-    #                 st.rerun()
-    #             except Exception as e:
-    #                 st.error(f"Could not delete `{chat_choice}`: {e}")
 
-    #     # Bulk delete all
-    #     if st.button("🗑️ Delete all conversations", key="delete_all_hist"):
-    #         removed = 0
-    #         for fname in chat_files:
-    #             p = os.path.join(hist_dir, fname)
-    #             try:
-    #                 os.remove(p)
-    #                 removed += 1
-    #             except OSError:
-    #                 pass
-    #         if removed:
-    #             st.success(f"Deleted all {removed} conversations.")
-    #         else:
-    #             st.info("No conversation files to delete.")
-    #         # drop both keys so selectbox resets
-    #         st.session_state.pop("chat_history_choice", None)
-    #         st.session_state.pop("loaded_chat_file",    None)
-    #         st.rerun()
-        # -------------------------------------------------------------------
 
 
         # Use a regular Streamlit button
@@ -1063,23 +825,7 @@ def main():
         # header_text = "🪐 Multi-agent system for Data Driven Discovery"
         header_text = "CMBAGENT"
         typewriter(header_text, header_placeholder)
-        # typewriter(header_text)
-        # st.title(header_text)
 
-    #     st.markdown(
-    #     """
-    #     <h3 style="
-    #     text-align: center;
-    #     font-family: 'Jersey 10', sans-serif;
-    #     font-size: 40px;    /* match your design */
-    #     margin-top: 1.5rem; /* optional spacing */
-    #     ">
-    #     Planning and Control System for Data Analysis and Exploration
-    #     </h3>
-    #     """,
-    #     unsafe_allow_html=True
-    # )
-        
         st.markdown(
             """
             <h4 style="
@@ -1163,8 +909,6 @@ def main():
                 # inside the mode-select buttons
                 st.session_state.cur_hist = None      # ← we’ll create it after the first prompt
 
-                # st.session_state.cur_hist    = _new_history_path(username)   # ← NEW
-                # save_chat_history(username, [])                              # ← NEW (touch file)
                 st.rerun()
         with col2:
             if st.button("Planning and Control\n\n" \
@@ -1176,8 +920,6 @@ def main():
                 # inside the mode-select buttons
                 st.session_state.cur_hist = None      # ← we’ll create it after the first prompt
 
-                # st.session_state.cur_hist    = _new_history_path(username)   # ← NEW
-                # save_chat_history(username, [])                              # ← NEW
                 st.rerun()
 
         with col3:
@@ -1200,13 +942,7 @@ def main():
         # Back button + title
         # Back button + centered title
         left_col, title_col, _ = st.columns(3)
-        # with left_col:
-        #     if st.button("⬅️ Back", key="back_btn", type="secondary"):
-        #         st.session_state.clear()
-        #         st.session_state.page = "mode_select"
-        #         st.session_state.chat_mode = None
-        #         st.session_state.messages = []
-        #         st.rerun()
+
         with title_col:
             # pick the right header text
             if st.session_state.page == "one_shot":
@@ -1298,6 +1034,7 @@ def main():
                     agent_options = {
                         "**Engineer**\n*for code-based tasks (write & debug code)*": "engineer",
                         "**Researcher**\n*for reasoning tasks (interpret, reason & comment)*": "researcher",
+                        "**Camb**\n*for calculation with the [camb](https://camb.readthedocs.io/en/latest/) library*": "camb_context",
                     }
 
 
@@ -1318,6 +1055,7 @@ def main():
                     )
                     # store the actual key that your rest of code expects
                     st.session_state.one_shot_selected_agent = agent_options[choice_label]
+
 
             elif st.session_state.page == "human_in_the_loop":
                 with st.container():
@@ -1345,31 +1083,7 @@ def main():
                     # store the actual key that your rest of code expects
                     st.session_state.one_shot_selected_agent = agent_options[choice_label]
 
-        # --------------------------------------------------------------------------
-            
 
-        # --- Display Full Chat History ---
-        # for message in st.session_state.messages:
-        #     with st.chat_message(message["role"]):
-        #         content = message["content"]
-        #         if isinstance(content, IPyMarkdown):
-        #             st.markdown(content.data, unsafe_allow_html=True)
-        #         elif isinstance(content, pd.io.formats.style.Styler):
-        #             st.dataframe(content.data)
-        #         elif isinstance(content, IPyImage):
-        #             img = getattr(content, "data", None) or getattr(content, "_data", None)
-        #             st.image(img, use_container_width=True)
-        #         elif isinstance(content, PILImage):
-        #             st.image(content, use_container_width=True)
-        #         elif isinstance(content, (dict, list)):
-        #             pretty = json.dumps(content, indent=2, ensure_ascii=False)
-        #             st.code(pretty, language="json")
-
-        #         elif isinstance(content, pd.DataFrame):
-        #             st.dataframe(content)
-
-        #         else:
-        #             st.markdown(content)
         _logo_path = os.path.join(os.path.dirname(__file__), "..", "Robot-MS-Aqua.png")
         with open(_logo_path, "rb") as _f:
             _logo_b64 = base64.b64encode(_f.read()).decode("utf-8")
@@ -1465,18 +1179,6 @@ def main():
                                 researcher_model=researcher_model,
                                 agent=st.session_state.one_shot_selected_agent,
                             )
-
-                            # image_dir = results['final_context']['work_dir']+'/data'
-
-                            # # List any image files in the output directory
-                            # if os.path.exists(image_dir):
-                            #     image_files = glob.glob(os.path.join(image_dir, '*.png')) + \
-                            #                 glob.glob(os.path.join(image_dir, '*.jpg')) + \
-                            #                 glob.glob(os.path.join(image_dir, '*.jpeg'))
-                            #     if image_files:
-                            #         st.markdown("### Generated Images:")
-                            #         for img_path in image_files:
-                            #             st.image(img_path)
 
                         elif st.session_state.page == "planning_and_control":
                             results = planning_and_control_context_carryover(
@@ -1668,36 +1370,7 @@ def main():
                         # print(f"DISP: {txt}")
                         if txt:
                             add_to_memory("assistant", txt)
-    # ───────────────────────────────────────────────────────────────────────
-
-            # ─────────────────────────────────────────────────────────────────────
-
-
-
-
-            # 3) render everything in *the existing* assistant bubble
-            # if to_display:
-            #         # <-- note the placeholder
-            #     for who, content in to_display:
-            #         st.markdown(f"**Message from {who}:**")
-            #         if isinstance(content, IPyMarkdown):
-            #             st.markdown(content.data, unsafe_allow_html=True)
-            #         elif isinstance(content, pd.io.formats.style.Styler):
-            #             st.dataframe(content.data)
-            #         elif isinstance(content, IPyImage):
-            #             img = getattr(content, "data", None) or getattr(content, "_data", None)
-            #             st.image(img, use_container_width=True)
-            #         elif isinstance(content, PILImage):
-            #             st.image(content, use_container_width=True)
-            #         elif isinstance(content, (dict, list)):
-            #             st.json(content)
-                    
-            #         elif isinstance(content, pd.DataFrame):
-            #             st.dataframe(content)
-
-            #         else:
-            #             st.markdown(content)
-                
+ 
                 
 from io import BytesIO
 
