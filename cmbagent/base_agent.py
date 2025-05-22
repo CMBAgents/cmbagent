@@ -1,8 +1,12 @@
 import os 
 import logging
-from cmbagent.utils import yaml_load_file,GPTAssistantAgent,UserProxyAgent,LocalCommandLineCodeExecutor,file_search_max_num_results
+from cobaya.yaml import yaml_load_file
+from autogen.coding import LocalCommandLineCodeExecutor
+from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+from autogen.agentchat import UserProxyAgent
+
+from cmbagent.utils import file_search_max_num_results
 from autogen.agentchat import ConversableAgent, UpdateSystemMessage
-# from autogen.cmbagent_utils import cmbagent_debug
 import autogen
 import copy
 

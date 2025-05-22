@@ -1,18 +1,10 @@
 # cmbagent/utils.py
 import os
-
-
-
 import autogen
-from autogen.cmbagent_utils import cmbagent_debug
-
-
-
-
 import pickle
-
 import logging
 from ruamel.yaml import YAML
+from autogen.cmbagent_utils import cmbagent_debug
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
