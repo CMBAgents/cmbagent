@@ -1,10 +1,10 @@
 import os
 import importlib
-from .utils import path_to_assistants,OpenAI,default_chunking_strategy,YAML
+from openai import OpenAI
 from autogen.cmbagent_utils import cmbagent_debug
-from .utils import update_yaml_preserving_format
 import requests
 import pprint
+from .utils import path_to_assistants,default_chunking_strategy,YAML,update_yaml_preserving_format
 
 def import_rag_agents():        
     imported_rag_agents = {}
