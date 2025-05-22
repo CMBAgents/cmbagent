@@ -3,14 +3,11 @@ import logging
 import importlib
 import requests
 import autogen 
-import ast
 import json
 import sys
 import pandas as pd
 import copy
 import datetime
-from typing import Any, Dict
-from IPython.display import display
 from pathlib import Path
 from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
 from collections import defaultdict
@@ -20,7 +17,6 @@ from .utils import default_llm_model as default_llm_model_default
 from .utils import (path_to_assistants,path_to_apis,
                     default_top_p,default_temperature,default_max_round,default_llm_config_list,default_agent_llm_configs,
                     default_agents_llm_model, camb_context_url)
-from pprint import pprint
 from .rag_utils import import_rag_agents, push_vector_stores
 from .utils import path_to_agents, update_yaml_preserving_format
 from .hand_offs import register_all_hand_offs
@@ -29,7 +25,6 @@ import time
 from .utils import get_model_config
 from .utils import AAS_keywords_string
 from autogen.agentchat.group import ContextVariables
-from autogen import ConversableAgent
 
 
 from .data_retriever import setup_cmbagent_data
@@ -37,11 +32,7 @@ from .data_retriever import setup_cmbagent_data
 
 
 from autogen.agentchat.group.patterns import (
-    DefaultPattern,
-    ManualPattern,
     AutoPattern,
-    RandomPattern,
-    RoundRobinPattern,
 )
 
 
@@ -68,11 +59,9 @@ def import_non_rag_agents():
     return imported_non_rag_agents
 
 
-from pydantic import BaseModel
 from autogen import cmbagent_debug
 from autogen.agentchat import initiate_group_chat
 from cmbagent.context import shared_context as shared_context_default
-from sys import exit
 import shutil
 
 
@@ -412,8 +401,6 @@ class CMBAgent:
     def display_cost(self, name_append = None):
         """Display a full cost report as a right‑aligned Markdown table with $ and a
         rule above the total row. Also saves the cost data as JSON in the workdir."""
-        from collections import defaultdict
-        import pandas as pd
         import json
 
         cost_dict = defaultdict(list)
@@ -861,7 +848,7 @@ class CMBAgent:
                         print('in cmbagent.py check_assistants: this assistant model from llm_config: ', agent.llm_config['config_list'][0]['model'])
                     if assistant_models[assistant_names.index(agent.name)] != agent.llm_config['config_list'][0]['model']:
                         if cmbagent_debug:
-                            print(f"in cmbagent.py check_assistants: Assistant model from openai does not match the requested model. Updating the assistant model.")
+                            print("in cmbagent.py check_assistants: Assistant model from openai does not match the requested model. Updating the assistant model.")
                         client.beta.assistants.update(
                             assistant_id=assistant_ids[assistant_names.index(agent.name)],
                             model=agent.llm_config['config_list'][0]['model']
@@ -883,7 +870,7 @@ class CMBAgent:
 
                         if assistant_id != assistant_ids[assistant_names.index(agent.name)]:
                             if cmbagent_debug:
-                                print(f"--> Assistant ID between yaml and openai do not match.")
+                                print("--> Assistant ID between yaml and openai do not match.")
                                 print(f"--> Assistant ID from your yaml: {assistant_id}")
                                 print(f"--> Assistant ID in openai: {assistant_ids[assistant_names.index(agent.name)]}")
                                 print("--> We will use the assistant id from openai")
@@ -1088,7 +1075,7 @@ def planning_and_control_context_carryover(
         initialization_time_control = end_time - start_time
         
         if step == 1:
-            plan_input = load_plan(os.path.join(work_dir, f"planning/final_plan.json"))["sub_tasks"]
+            plan_input = load_plan(os.path.join(work_dir, "planning/final_plan.json"))["sub_tasks"]
             agent_for_step = plan_input[0]['sub_task_agent']
         else:
             agent_for_step = current_context['agent_for_sub_task']

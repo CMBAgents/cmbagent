@@ -1,23 +1,14 @@
 # cmbagent/utils.py
 import os
-from openai import OpenAI
 
-from pprint import pprint
 
-from autogen.coding import LocalCommandLineCodeExecutor
 
 import autogen
-from autogen.agentchat import AssistantAgent, UserProxyAgent, GroupChat
-from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 from autogen.cmbagent_utils import cmbagent_debug
 
 
-from cobaya.yaml import yaml_load_file, yaml_load
 
-from IPython.display import Image
 
-import importlib
-import sys
 import pickle
 
 import logging
@@ -26,7 +17,6 @@ from ruamel.yaml import YAML
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
 
-import autogen
 cmbagent_debug = autogen.cmbagent_debug
 
 
