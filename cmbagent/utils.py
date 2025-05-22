@@ -159,10 +159,12 @@ default_agents_llm_model ={
     "planck": "gpt-4o-2024-11-20",
 
     # "camb_context": "gpt-4o-2024-11-20",
-    "camb_context": "gemini-2.5-flash-preview-04-17",
+    # "camb_context": "gemini-2.5-flash-preview-04-17",
+    "camb_context": "gemini-2.5-pro-preview-03-25",
+    # "camb_context": "gemini-2.5-flash-preview-05-20",
     # structured output agents
     "classy_sz_response_formatter": "gpt-4o-2024-11-20",
-    "camb_response_formatter": "gpt-4o-2024-11-20",
+    "camb_response_formatter": "gpt-4.1-2025-04-14",
     "cobaya_response_formatter": "gpt-4o-2024-11-20",
     "engineer_response_formatter": "o3-mini-2025-01-31",
     # "engineer_response_formatter": "gemini-2.5-pro-preview-03-25",
