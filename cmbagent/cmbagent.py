@@ -915,7 +915,7 @@ def planning_and_control_context_carryover(
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             default_llm_model = default_llm_model_default,
                             work_dir = work_dir_default,
-                            configs = None,
+                            config = None,
                             ):
 
     ## planning
@@ -923,12 +923,12 @@ def planning_and_control_context_carryover(
 
     start_time = time.time()
 
-    if configs is None:
+    if config is None:
         planner_config = get_model_config_from_env(planner_model)
         plan_reviewer_config = get_model_config_from_env(plan_reviewer_model)
     else:
-        planner_config = configs["planner"]
-        plan_reviewer_config = configs["plan_reviewer"]
+        planner_config = config["planner"]
+        plan_reviewer_config = config["plan_reviewer"]
     
     cmbagent = CMBAgent(work_dir = planning_dir,
                         default_llm_model = default_llm_model,
@@ -972,16 +972,16 @@ def planning_and_control_context_carryover(
     
 
     ## control
-    if configs is None:
+    if config is None:
         engineer_config = get_model_config_from_env(engineer_model)
         researcher_config = get_model_config_from_env(researcher_model)
         idea_maker_config = get_model_config_from_env(idea_maker_model)
         idea_hater_config = get_model_config_from_env(idea_hater_model)
     else:
-        engineer_config = configs["engineer"]
-        researcher_config = configs["researcher"]
-        idea_maker_config = configs["idea_maker"]
-        idea_hater_config = configs["idea_hater"]
+        engineer_config = config["engineer"]
+        researcher_config = config["researcher"]
+        idea_maker_config = config["idea_maker"]
+        idea_hater_config = config["idea_hater"]
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1134,7 +1134,7 @@ def planning_and_control(
                             idea_maker_model = default_agents_llm_model['idea_maker'],
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             work_dir = work_dir_default,
-                            configs = None,
+                            config = None,
                             ):
 
     ## planning
@@ -1142,12 +1142,12 @@ def planning_and_control(
 
     start_time = time.time()
     
-    if configs is None:
+    if config is None:
         planner_config = get_model_config_from_env(planner_model)
         plan_reviewer_config = get_model_config_from_env(plan_reviewer_model)
     else:
-        planner_config = configs["planner"]
-        plan_reviewer_config = configs["plan_reviewer"]
+        planner_config = config["planner"]
+        plan_reviewer_config = config["plan_reviewer"]
 
     cmbagent = CMBAgent(work_dir = planning_dir,
                         agent_llm_configs = {
@@ -1188,16 +1188,16 @@ def planning_and_control(
     print(f"Planning took {execution_time_planning:.4f} seconds")
     
     ## control
-    if configs is None:
+    if config is None:
         engineer_config = get_model_config_from_env(engineer_model)
         researcher_config = get_model_config_from_env(researcher_model)
         idea_maker_config = get_model_config_from_env(idea_maker_model)
         idea_hater_config = get_model_config_from_env(idea_hater_model)
     else:
-        engineer_config = configs["engineer"]
-        researcher_config = configs["researcher"]
-        idea_maker_config = configs["idea_maker"]
-        idea_hater_config = configs["idea_hater"]
+        engineer_config = config["engineer"]
+        researcher_config = config["researcher"]
+        idea_maker_config = config["idea_maker"]
+        idea_hater_config = config["idea_hater"]
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1294,7 +1294,7 @@ def control(
             idea_hater_model = default_agents_llm_model['idea_hater'],
             work_dir = work_dir_default,
             clear_work_dir = True,
-            configs = None,
+            config = None,
             ):
     
     # check work_dir exists
@@ -1312,16 +1312,16 @@ def control(
         context["current_instructions"] += f"\t\t- {bullet}\n"
 
     ## control
-    if configs is None:
+    if config is None:
         engineer_config = get_model_config_from_env(engineer_model)
         researcher_config = get_model_config_from_env(researcher_model)
         idea_maker_config = get_model_config_from_env(idea_maker_model)
         idea_hater_config = get_model_config_from_env(idea_hater_model)
     else:
-        engineer_config = configs["engineer"]
-        researcher_config = configs["researcher"]
-        idea_maker_config = configs["idea_maker"]
-        idea_hater_config = configs["idea_hater"]
+        engineer_config = config["engineer"]
+        researcher_config = config["researcher"]
+        idea_maker_config = config["idea_maker"]
+        idea_hater_config = config["idea_hater"]
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1390,16 +1390,16 @@ def one_shot(
             researcher_model = default_agents_llm_model['researcher'],
             agent = 'engineer',
             work_dir = work_dir_default,
-            configs = None,
+            config = None,
             ):
     start_time = time.time()
 
-    if configs is None:
+    if config is None:
         engineer_config = get_model_config_from_env(engineer_model)
         researcher_config = get_model_config_from_env(researcher_model)
     else:
-        engineer_config = configs["engineer"]
-        researcher_config = configs["researcher"]
+        engineer_config = config["engineer"]
+        researcher_config = config["researcher"]
         
     cmbagent = CMBAgent(
         mode = "one_shot",
@@ -1487,18 +1487,18 @@ def human_in_the_loop(task,
          engineer_model = 'gpt-4o-2024-11-20',
          researcher_model = 'gpt-4o-2024-11-20',
          agent = 'engineer',
-         configs = None,
+         config = None,
          ):
 
     ## control
     start_time = time.time()
 
-    if configs is None:
+    if config is None:
         engineer_config = get_model_config_from_env(engineer_model)
         researcher_config = get_model_config_from_env(researcher_model)
     else:
-        engineer_config = configs["engineer"]
-        researcher_config = configs["researcher"]
+        engineer_config = config["engineer"]
+        researcher_config = config["researcher"]
 
     cmbagent = CMBAgent(
         work_dir = work_dir,
