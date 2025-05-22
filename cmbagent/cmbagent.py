@@ -28,9 +28,7 @@ from autogen.agentchat.group import ContextVariables
 
 from .data_retriever import setup_cmbagent_data
 
-from autogen.agentchat.group.patterns import (
-    AutoPattern,
-)
+from autogen.agentchat.group.patterns import AutoPattern
 
 def import_non_rag_agents():
     imported_non_rag_agents = {}
@@ -245,8 +243,6 @@ class CMBAgent:
         if cmbagent_debug:  
             print("\n\n Checking assistants...\n\n")
 
-
-
         if not self.skip_rag_agents:
             setup_cmbagent_data()
 
@@ -254,8 +250,6 @@ class CMBAgent:
 
             if cmbagent_debug:
                 print("\n\n Assistants checked!!!\n\n")
-                # sys.exit()
-
 
             if cmbagent_debug:
                 print('\npushing vector stores...')
@@ -266,10 +260,8 @@ class CMBAgent:
             print('\nmodify if you want to tune the instruction prompt...')
         self.set_planner_instructions() # set planner instructions
 
-
         if self.verbose or cmbagent_debug:
             print("\nSetting up agents:----------------------------------")
-
 
         # then we set the agents, note that self.agents is set in init_agents
         for agent in self.agents:
@@ -530,7 +522,6 @@ class CMBAgent:
                 one_shot_shared_context['perplexity_query'] = self.get_agent_object_from_name('perplexity').info['instructions'].format(main_task=task)
                 # print('one_shot_shared_context: ', one_shot_shared_context)
 
-
             this_shared_context.update(one_shot_shared_context)
             this_shared_context.update(shared_context or {})
 
@@ -570,17 +561,13 @@ class CMBAgent:
 
         context_variables = ContextVariables(data=this_shared_context)
 
-
-
-
-            # Create the pattern
+        # Create the pattern
         agent_pattern = AutoPattern(
                 agents=[agent.agent for agent in self.agents],
                 initial_agent=self.get_agent_from_name(initial_agent),
                 context_variables=context_variables,
                 group_manager_args = {"llm_config": self.llm_config},
             )
-
 
         chat_result, context_variables, last_agent = initiate_group_chat(
             pattern=agent_pattern,
@@ -589,15 +576,10 @@ class CMBAgent:
             max_rounds = max_rounds,
         )
 
-
         self.final_context = copy.deepcopy(context_variables)
 
         self.last_agent = last_agent
         self.chat_result = chat_result
-
-
-
-        
 
     def get_agent_object_from_name(self,name):
         for agent in self.agents:
@@ -641,9 +623,6 @@ class CMBAgent:
             print('self.agent_classes: ', self.agent_classes)
             print('self.rag_agent_names: ', self.rag_agent_names)
             print('self.non_rag_agent_names: ', self.non_rag_agent_names)
-            # import sys; sys.exit()
-
-
 
         if cmbagent_debug:
             print('self.agent_classes after update: ')
@@ -651,12 +630,9 @@ class CMBAgent:
             for agent_class, value in self.agent_classes.items():
                 print(f'{agent_class}: {value}')
                 print()
-            # sys.exit()
 
         # all agents
-
         self.agents = []
-
 
         if self.agent_list is None:
             self.agent_list = list(self.agent_classes.keys())
@@ -670,7 +646,6 @@ class CMBAgent:
             for agent_class, value in self.agent_classes.items():
                 print(f'{agent_class}: {value}')
                 print()
-            # sys.exit()
 
         # remove agents that are not set to be skipped
         if self.skip_memory:
@@ -689,7 +664,6 @@ class CMBAgent:
             for agent_class, value in self.agent_classes.items():
                 print(f'{agent_class}: {value}')
                 print()
-            # sys.exit()
 
         # instantiate the agents and llm_configs
         if cmbagent_debug:
@@ -724,8 +698,6 @@ class CMBAgent:
 
             agent_instance = agent_class(llm_config=llm_config,agent_type=self.agent_type, work_dir=self.work_dir)
 
-            # sys.exit()
-
             if cmbagent_debug:
                 print('agent_type: ', agent_instance.agent_type)
 
@@ -749,9 +721,6 @@ class CMBAgent:
                 print('agent.llm_config: ', agent.llm_config)
                 print('\n\n')
 
-        # sys.exit()
-
-
         if self.verbose or cmbagent_debug:
 
             print("Using following agents: ", self.agent_names)
@@ -759,7 +728,6 @@ class CMBAgent:
             for agent in self.agents:
                 print(f"{agent.name}: {agent.llm_config['config_list'][0]['model']}")
             print()
-            # sys.exit()
 
     def create_assistant(self, client, agent):
 
@@ -872,7 +840,6 @@ class CMBAgent:
         cache_dir = autogen.oai.client.LEGACY_CACHE_DIR
         if os.path.exists(cache_dir):
             shutil.rmtree(cache_dir)
-        # sys.exit()s
         return None
         #  autogen.Completion.clear_cache(self.cache_seed) ## obsolete AttributeError: module 'autogen' has no attribute 'Completion'
 
@@ -1413,7 +1380,6 @@ def control(
     # Now call display_cost without triggering the AttributeError
     cmbagent.display_cost()
 
-
     return results
 
 def one_shot(
@@ -1594,11 +1560,6 @@ def human_in_the_loop(task,
         json.dump(timing_report, f, indent=2)   
 
     return results
-
-
-
-
-
 
 def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_default):
     """
