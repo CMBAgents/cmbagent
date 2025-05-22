@@ -22,19 +22,15 @@ from .utils import path_to_agents, update_yaml_preserving_format
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
 import time
-from .utils import get_model_config
+from .utils import get_model_config_from_env
 from .utils import AAS_keywords_string
 from autogen.agentchat.group import ContextVariables
 
-
 from .data_retriever import setup_cmbagent_data
-
-
 
 from autogen.agentchat.group.patterns import (
     AutoPattern,
 )
-
 
 def import_non_rag_agents():
     imported_non_rag_agents = {}
@@ -58,21 +54,15 @@ def import_non_rag_agents():
                     }
     return imported_non_rag_agents
 
-
 from autogen import cmbagent_debug
 from autogen.agentchat import initiate_group_chat
 from cmbagent.context import shared_context as shared_context_default
 import shutil
 
-
-
-
 class CMBAgent:
 
     logging.disable(logging.CRITICAL)
     cmbagent_debug = autogen.cmbagent_debug
-
-
 
     def __init__(self,
                  cache_seed=42,
@@ -157,9 +147,7 @@ class CMBAgent:
         """
         if default_llm_model != default_llm_model_default:
             print(f"Warning: default_llm_model is set to {default_llm_model} in cmbagent.py")
-            default_llm_config_list = [get_model_config(default_llm_model)]
-
-
+            default_llm_config_list = [get_model_config_from_env(default_llm_model)]
 
         self.kwargs = kwargs
 
@@ -169,11 +157,6 @@ class CMBAgent:
 
         if make_vector_stores is not False:
             self.skip_rag_agents = False
-
-        # print("make_vector_stores: ", make_vector_stores)
-        # print("self.skip_rag_agents: ", self.skip_rag_agents)
-        # import sys
-        # sys.exit()
 
         self.skip_rag_software_formatter = skip_rag_software_formatter
 
@@ -197,7 +180,6 @@ class CMBAgent:
 
         if not self.skip_memory and 'memory' not in agent_list:
             self.agent_list.append('memory')
-
 
         self.verbose = verbose
 
@@ -355,8 +337,6 @@ class CMBAgent:
             #print('in cmbagent.py self.agents instructions: ',instructions)
             #print('in cmbagent.py self.agents description: ',description)
 
-
-
         if self.verbose or cmbagent_debug:
             print("Planner instructions:")
             print("\nAll agents:")
@@ -368,8 +348,6 @@ class CMBAgent:
             print()
             planner = self.get_agent_object_from_name('planner')
             print(planner.info['instructions'])
-
-
 
         if cmbagent_debug:
             print('\nregistering all hand_offs...')
@@ -394,9 +372,6 @@ class CMBAgent:
 
         if cmbagent_debug:
             print('\nshared_context: ', self.shared_context)
-
-
-    
 
     def display_cost(self, name_append = None):
         """Display a full cost report as a right‑aligned Markdown table with $ and a
@@ -972,16 +947,21 @@ def planning_and_control_context_carryover(
                             idea_maker_model = default_agents_llm_model['idea_maker'],
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             default_llm_model = default_llm_model_default,
-                            work_dir = work_dir_default
+                            work_dir = work_dir_default,
+                            configs = None,
                             ):
 
     ## planning
     planning_dir = Path(work_dir).expanduser().resolve() / "planning"
 
     start_time = time.time()
-    planner_config = get_model_config(planner_model)
-    plan_reviewer_config = get_model_config(plan_reviewer_model)
 
+    if configs is None:
+        planner_config = get_model_config_from_env(planner_model)
+        plan_reviewer_config = get_model_config_from_env(plan_reviewer_model)
+    else:
+        planner_config = configs["planner"]
+        plan_reviewer_config = configs["plan_reviewer"]
     
     cmbagent = CMBAgent(work_dir = planning_dir,
                         default_llm_model = default_llm_model,
@@ -991,13 +971,6 @@ def planning_and_control_context_carryover(
                         })
     end_time = time.time()
     initialization_time_planning = end_time - start_time
-
-    # print("initialization_time_planning: ", initialization_time_planning)
-    # import sys 
-    # sys.exit()
-
-
-
 
     start_time = time.time()
     cmbagent.solve(task,
@@ -1032,11 +1005,16 @@ def planning_and_control_context_carryover(
     
 
     ## control
-
-    engineer_config = get_model_config(engineer_model)
-    researcher_config = get_model_config(researcher_model)
-    idea_maker_config = get_model_config(idea_maker_model)
-    idea_hater_config = get_model_config(idea_hater_model)
+    if configs is None:
+        engineer_config = get_model_config_from_env(engineer_model)
+        researcher_config = get_model_config_from_env(researcher_model)
+        idea_maker_config = get_model_config_from_env(idea_maker_model)
+        idea_hater_config = get_model_config_from_env(idea_hater_model)
+    else:
+        engineer_config = configs["engineer"]
+        researcher_config = configs["researcher"]
+        idea_maker_config = configs["idea_maker"]
+        idea_hater_config = configs["idea_hater"]
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1188,15 +1166,22 @@ def planning_and_control(
                             researcher_model = default_agents_llm_model['researcher'],
                             idea_maker_model = default_agents_llm_model['idea_maker'],
                             idea_hater_model = default_agents_llm_model['idea_hater'],
-                            work_dir = work_dir_default
+                            work_dir = work_dir_default,
+                            configs = None,
                             ):
 
     ## planning
     planning_dir = Path(work_dir).expanduser().resolve() / "planning"
 
     start_time = time.time()
-    planner_config = get_model_config(planner_model)
-    plan_reviewer_config = get_model_config(plan_reviewer_model)
+    
+    if configs is None:
+        planner_config = get_model_config_from_env(planner_model)
+        plan_reviewer_config = get_model_config_from_env(plan_reviewer_model)
+    else:
+        planner_config = configs["planner"]
+        plan_reviewer_config = configs["plan_reviewer"]
+
     cmbagent = CMBAgent(work_dir = planning_dir,
                         agent_llm_configs = {
                             'planner': planner_config,
@@ -1204,9 +1189,6 @@ def planning_and_control(
                         })
     end_time = time.time()
     initialization_time_planning = end_time - start_time
-
-
-
 
     start_time = time.time()
     cmbagent.solve(task,
@@ -1238,13 +1220,17 @@ def planning_and_control(
     print(f"Structured plan written to {outfile}")
     print(f"Planning took {execution_time_planning:.4f} seconds")
     
-
     ## control
-
-    engineer_config = get_model_config(engineer_model)
-    researcher_config = get_model_config(researcher_model)
-    idea_maker_config = get_model_config(idea_maker_model)
-    idea_hater_config = get_model_config(idea_hater_model)
+    if configs is None:
+        engineer_config = get_model_config_from_env(engineer_model)
+        researcher_config = get_model_config_from_env(researcher_model)
+        idea_maker_config = get_model_config_from_env(idea_maker_model)
+        idea_hater_config = get_model_config_from_env(idea_hater_model)
+    else:
+        engineer_config = configs["engineer"]
+        researcher_config = configs["researcher"]
+        idea_maker_config = configs["idea_maker"]
+        idea_hater_config = configs["idea_hater"]
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1340,22 +1326,15 @@ def control(
             idea_maker_model = default_agents_llm_model['idea_maker'],
             idea_hater_model = default_agents_llm_model['idea_hater'],
             work_dir = work_dir_default,
-            clear_work_dir = True
-                            ):
+            clear_work_dir = True,
+            configs = None,
+            ):
     
     # check work_dir exists
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
 
-
-
     planning_input = load_plan(plan)["sub_tasks"]
-
-
-
-    # import pprint
-    # pprint.pprint(planning_input)
-
 
     context = {'final_plan': planning_input,
                "number_of_steps_in_plan": len(planning_input),
@@ -1365,18 +1344,17 @@ def control(
     for bullet in planning_input[0]['bullet_points']:
         context["current_instructions"] += f"\t\t- {bullet}\n"
 
-
-    # pprint.pprint(context)
-
-    # import sys
-    # sys.exit()
-
     ## control
-
-    engineer_config = get_model_config(engineer_model)
-    researcher_config = get_model_config(researcher_model)
-    idea_maker_config = get_model_config(idea_maker_model)
-    idea_hater_config = get_model_config(idea_hater_model)
+    if configs is None:
+        engineer_config = get_model_config_from_env(engineer_model)
+        researcher_config = get_model_config_from_env(researcher_model)
+        idea_maker_config = get_model_config_from_env(idea_maker_model)
+        idea_hater_config = get_model_config_from_env(idea_hater_model)
+    else:
+        engineer_config = configs["engineer"]
+        researcher_config = configs["researcher"]
+        idea_maker_config = configs["idea_maker"]
+        idea_hater_config = configs["idea_hater"]
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1391,10 +1369,6 @@ def control(
         },
         clear_work_dir = clear_work_dir
         )
-    
-
-    # print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")
-    # print(f"in cmbagent.py: idea_hater_config: {idea_hater_config}")
     
     end_time = time.time()
     initialization_time_control = end_time - start_time
@@ -1442,14 +1416,6 @@ def control(
 
     return results
 
-
-
-
-
-
-
-
-
 def one_shot(
             task,
             max_rounds = 50,
@@ -1457,15 +1423,18 @@ def one_shot(
             engineer_model = default_agents_llm_model['engineer'],
             researcher_model = default_agents_llm_model['researcher'],
             agent = 'engineer',
-            work_dir = work_dir_default
+            work_dir = work_dir_default,
+            configs = None,
             ):
     start_time = time.time()
 
-
-    engineer_config = get_model_config(engineer_model)
-    researcher_config = get_model_config(researcher_model)
+    if configs is None:
+        engineer_config = get_model_config_from_env(engineer_model)
+        researcher_config = get_model_config_from_env(researcher_model)
+    else:
+        engineer_config = configs["engineer"]
+        researcher_config = configs["researcher"]
         
-
     cmbagent = CMBAgent(
         mode = "one_shot",
         work_dir = work_dir,
@@ -1476,7 +1445,6 @@ def one_shot(
         
     end_time = time.time()
     initialization_time = end_time - start_time
-
 
     start_time = time.time()
 
@@ -1491,11 +1459,6 @@ def one_shot(
 
         shared_context["camb_context"] = camb_context
 
-    # print(f"shared_context: {shared_context}")
-    # import sys
-    # sys.exit()
-
-
     cmbagent.solve(task,
                     max_rounds=max_rounds,
                     initial_agent=agent,
@@ -1505,7 +1468,6 @@ def one_shot(
     
     end_time = time.time()
     execution_time = end_time - start_time
-
     
     # Create a dummy groupchat attribute if it doesn't exist
     # print('creating groupchat for cost display...')
@@ -1517,8 +1479,6 @@ def one_shot(
     # print('displaying cost...')
     cmbagent.display_cost()
     # print('cost displayed')
-
-
 
     results = {'chat_history': cmbagent.chat_result.chat_history,
                'final_context': cmbagent.final_context,
@@ -1554,32 +1514,31 @@ def one_shot(
 
     return results
 
-
-
-
 def human_in_the_loop(task,
          work_dir = work_dir_default,
          max_rounds = 50,
          max_n_attempts = 3,
          engineer_model = 'gpt-4o-2024-11-20',
          researcher_model = 'gpt-4o-2024-11-20',
-         agent = 'engineer'):
+         agent = 'engineer',
+         configs = None,
+         ):
 
     ## control
     start_time = time.time()
 
-    engineer_config = get_model_config(engineer_model)
-    researcher_config = get_model_config(researcher_model)
-
-
-
+    if configs is None:
+        engineer_config = get_model_config_from_env(engineer_model)
+        researcher_config = get_model_config_from_env(researcher_model)
+    else:
+        engineer_config = configs["engineer"]
+        researcher_config = configs["researcher"]
 
     cmbagent = CMBAgent(
         work_dir = work_dir,
         agent_llm_configs = {
                             'engineer': engineer_config,
                             'researcher': researcher_config,
-        
         },
         mode = "chat",
         chat_agent = agent)
