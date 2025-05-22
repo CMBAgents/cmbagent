@@ -159,7 +159,15 @@ default_agents_llm_model ={
 
 default_agent_llm_configs = {}
 
-def get_model_config_from_env(model):
+def get_api_keys_from_env():
+    api_keys = {
+        "OPENAI" : os.getenv("OPENAI_API_KEY"),
+        "GEMINI" : os.getenv("GEMINI_API_KEY"),
+        "ANTHROPIC" : os.getenv("ANTHROPIC_API_KEY"),
+    }
+    return api_keys
+
+def get_model_config(model, api_keys):
     config = {
         "model": model,
         "api_key": None,
@@ -169,31 +177,33 @@ def get_model_config_from_env(model):
     if 'o3' in model:
         config.update({
             "reasoning_effort": "medium",
-            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_key": api_keys["OPENAI"],
             "api_type": "openai"
         })
     elif "gemini" in model:
         config.update({
-            "api_key": os.getenv("GEMINI_API_KEY"), 
+            "api_key": api_keys["GEMINI"],
             "api_type": "google"
         })
     elif "claude" in model:
         config.update({
-            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_key": api_keys["ANTHROPIC"],
             "api_type": "anthropic"
         })
     else:
         config.update({
-            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_key": api_keys["OPENAI"],
             "api_type": "openai"
         })
     return config
 
+api_keys_env = get_api_keys_from_env()
+
 for agent in default_agents_llm_model:
-    default_agent_llm_configs[agent] =  get_model_config_from_env(default_agents_llm_model[agent])
+    default_agent_llm_configs[agent] =  get_model_config(default_agents_llm_model[agent], api_keys_env)
 
 
-default_llm_config_list = [get_model_config_from_env(default_llm_model)]
+default_llm_config_list = [get_model_config(default_llm_model, api_keys_env)]
 
 
 #### note we should be able to set the temperature for different agents, e.g., 

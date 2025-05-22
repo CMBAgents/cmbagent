@@ -19,9 +19,9 @@ from autogen.agentchat.group.patterns import AutoPattern
 from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
 from .utils import work_dir as work_dir_default
 from .utils import default_llm_model as default_llm_model_default
-from .utils import (path_to_assistants, path_to_apis,path_to_agents, update_yaml_preserving_format, get_model_config_from_env,
+from .utils import (path_to_assistants, path_to_apis,path_to_agents, update_yaml_preserving_format, get_model_config,
                     default_top_p, default_temperature, default_max_round,default_llm_config_list, default_agent_llm_configs,
-                    default_agents_llm_model, camb_context_url, AAS_keywords_string)
+                    default_agents_llm_model, camb_context_url, AAS_keywords_string, get_api_keys_from_env)
 from .rag_utils import import_rag_agents, push_vector_stores
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
@@ -143,7 +143,7 @@ class CMBAgent:
         """
         if default_llm_model != default_llm_model_default:
             print(f"Warning: default_llm_model is set to {default_llm_model} in cmbagent.py")
-            default_llm_config_list = [get_model_config_from_env(default_llm_model)]
+            default_llm_config_list = [get_model_config(default_llm_model)]
 
         self.kwargs = kwargs
 
@@ -913,7 +913,7 @@ def planning_and_control_context_carryover(
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             default_llm_model = default_llm_model_default,
                             work_dir = work_dir_default,
-                            config = None,
+                            api_keys = None,
                             ):
 
     ## planning
@@ -921,12 +921,11 @@ def planning_and_control_context_carryover(
 
     start_time = time.time()
 
-    if config is None:
-        planner_config = get_model_config_from_env(planner_model)
-        plan_reviewer_config = get_model_config_from_env(plan_reviewer_model)
-    else:
-        planner_config = config["planner"]
-        plan_reviewer_config = config["plan_reviewer"]
+    if api_keys is None:
+        api_keys = get_api_keys_from_env()
+
+    planner_config = get_model_config(planner_model, api_keys)
+    plan_reviewer_config = get_model_config(plan_reviewer_model, api_keys)
     
     cmbagent = CMBAgent(work_dir = planning_dir,
                         default_llm_model = default_llm_model,
@@ -953,7 +952,6 @@ def planning_and_control_context_carryover(
     end_time = time.time()
     execution_time_planning = end_time - start_time
 
-
     # Create a dummy groupchat attribute if it doesn't exist
     if not hasattr(cmbagent, 'groupchat'):
         Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
@@ -968,18 +966,11 @@ def planning_and_control_context_carryover(
     print(f"\nStructured plan written to {outfile}")
     print(f"\nPlanning took {execution_time_planning:.4f} seconds\n")
     
-
     ## control
-    if config is None:
-        engineer_config = get_model_config_from_env(engineer_model)
-        researcher_config = get_model_config_from_env(researcher_model)
-        idea_maker_config = get_model_config_from_env(idea_maker_model)
-        idea_hater_config = get_model_config_from_env(idea_hater_model)
-    else:
-        engineer_config = config["engineer"]
-        researcher_config = config["researcher"]
-        idea_maker_config = config["idea_maker"]
-        idea_hater_config = config["idea_hater"]
+    engineer_config = get_model_config(engineer_model, api_keys)
+    researcher_config = get_model_config(researcher_model, api_keys)
+    idea_maker_config = get_model_config(idea_maker_model, api_keys)
+    idea_hater_config = get_model_config(idea_hater_model, api_keys)
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1132,7 +1123,7 @@ def planning_and_control(
                             idea_maker_model = default_agents_llm_model['idea_maker'],
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             work_dir = work_dir_default,
-                            config = None,
+                            api_keys = None,
                             ):
 
     ## planning
@@ -1140,13 +1131,12 @@ def planning_and_control(
 
     start_time = time.time()
     
-    if config is None:
-        planner_config = get_model_config_from_env(planner_model)
-        plan_reviewer_config = get_model_config_from_env(plan_reviewer_model)
-    else:
-        planner_config = config["planner"]
-        plan_reviewer_config = config["plan_reviewer"]
+    if api_keys is None:
+        api_keys = get_api_keys_from_env()
 
+    planner_config = get_model_config(planner_model, api_keys)
+    plan_reviewer_config = get_model_config(plan_reviewer_model, api_keys)
+    
     cmbagent = CMBAgent(work_dir = planning_dir,
                         agent_llm_configs = {
                             'planner': planner_config,
@@ -1186,16 +1176,10 @@ def planning_and_control(
     print(f"Planning took {execution_time_planning:.4f} seconds")
     
     ## control
-    if config is None:
-        engineer_config = get_model_config_from_env(engineer_model)
-        researcher_config = get_model_config_from_env(researcher_model)
-        idea_maker_config = get_model_config_from_env(idea_maker_model)
-        idea_hater_config = get_model_config_from_env(idea_hater_model)
-    else:
-        engineer_config = config["engineer"]
-        researcher_config = config["researcher"]
-        idea_maker_config = config["idea_maker"]
-        idea_hater_config = config["idea_hater"]
+    engineer_config = get_model_config(engineer_model, api_keys)
+    researcher_config = get_model_config(researcher_model, api_keys)
+    idea_maker_config = get_model_config(idea_maker_model, api_keys)
+    idea_hater_config = get_model_config(idea_hater_model, api_keys)
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1292,7 +1276,7 @@ def control(
             idea_hater_model = default_agents_llm_model['idea_hater'],
             work_dir = work_dir_default,
             clear_work_dir = True,
-            config = None,
+            api_keys = None,
             ):
     
     # check work_dir exists
@@ -1309,17 +1293,14 @@ def control(
     for bullet in planning_input[0]['bullet_points']:
         context["current_instructions"] += f"\t\t- {bullet}\n"
 
+    if api_keys is None:
+        api_keys = get_api_keys_from_env()
+
     ## control
-    if config is None:
-        engineer_config = get_model_config_from_env(engineer_model)
-        researcher_config = get_model_config_from_env(researcher_model)
-        idea_maker_config = get_model_config_from_env(idea_maker_model)
-        idea_hater_config = get_model_config_from_env(idea_hater_model)
-    else:
-        engineer_config = config["engineer"]
-        researcher_config = config["researcher"]
-        idea_maker_config = config["idea_maker"]
-        idea_hater_config = config["idea_hater"]
+    engineer_config = get_model_config(engineer_model, api_keys)
+    researcher_config = get_model_config(researcher_model, api_keys)
+    idea_maker_config = get_model_config(idea_maker_model, api_keys)
+    idea_hater_config = get_model_config(idea_hater_model, api_keys)
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1337,8 +1318,7 @@ def control(
     
     end_time = time.time()
     initialization_time_control = end_time - start_time
-        
-
+    
     start_time = time.time()    
     cmbagent.solve(task,
                     max_rounds=max_rounds,
@@ -1369,7 +1349,6 @@ def control(
     with open(timing_path, 'w') as f:
         json.dump(timing_report, f, indent=2)
 
-    
     # Create a dummy groupchat attribute if it doesn't exist
     if not hasattr(cmbagent, 'groupchat'):
         Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
@@ -1388,16 +1367,15 @@ def one_shot(
             researcher_model = default_agents_llm_model['researcher'],
             agent = 'engineer',
             work_dir = work_dir_default,
-            config = None,
+            api_keys = None,
             ):
     start_time = time.time()
 
-    if config is None:
-        engineer_config = get_model_config_from_env(engineer_model)
-        researcher_config = get_model_config_from_env(researcher_model)
-    else:
-        engineer_config = config["engineer"]
-        researcher_config = config["researcher"]
+    if api_keys is None:
+        api_keys = get_api_keys_from_env()
+    
+    engineer_config = get_model_config(engineer_model, api_keys)
+    researcher_config = get_model_config(researcher_model, api_keys)
         
     cmbagent = CMBAgent(
         mode = "one_shot",
@@ -1485,18 +1463,17 @@ def human_in_the_loop(task,
          engineer_model = 'gpt-4o-2024-11-20',
          researcher_model = 'gpt-4o-2024-11-20',
          agent = 'engineer',
-         config = None,
+         api_keys = None,
          ):
 
     ## control
     start_time = time.time()
 
-    if config is None:
-        engineer_config = get_model_config_from_env(engineer_model)
-        researcher_config = get_model_config_from_env(researcher_model)
-    else:
-        engineer_config = config["engineer"]
-        researcher_config = config["researcher"]
+    if api_keys is None:
+        api_keys = get_api_keys_from_env()
+
+    engineer_config = get_model_config(engineer_model, api_keys)
+    researcher_config = get_model_config(researcher_model, api_keys)
 
     cmbagent = CMBAgent(
         work_dir = work_dir,
@@ -1531,7 +1508,6 @@ def human_in_the_loop(task,
     
     results['initialization_time'] = initialization_time
     results['execution_time'] = execution_time
-
 
     if not hasattr(cmbagent, 'groupchat'):
         Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
