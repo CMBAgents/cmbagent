@@ -579,7 +579,7 @@ def main():
                 "models": [
                     "gpt-4.1","gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
                     "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
-                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash", "gemini-2.5-pro-preview-05-06",
+                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash", "gemini-2.5-pro-preview-05-06","gemini-2.5-flash-preview-05-20"
 
                     # "sonar-pro", "sonar"
                 ]
@@ -589,7 +589,7 @@ def main():
                 "models": [
                     "gpt-4.1", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
                     "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
-                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash", "gemini-2.5-pro-preview-05-06",
+                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash", "gemini-2.5-pro-preview-05-06","gemini-2.5-flash-preview-05-20"
                     # "sonar-pro", "sonar"
                 ]
             }

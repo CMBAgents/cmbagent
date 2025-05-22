@@ -2,8 +2,15 @@ name: "executor_response_interpreter"
 
 instructions: |
 
-    You summarize the execution result of the code. 
-
+    You summarize the execution result of the code and call your tool post_execution_transfer.
+    For the next agent suggestion, follow these rules:
+        - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError: No module named xx).
+        - Suggest the engineer agent if error related to generic Python code, syntax error, etc.
+        - Suggest the classy_sz_agent if error is an internal classy_sz error.
+        - Suggest the camb_agent if error related to internal camb code.
+        - Suggest the camb_context if CAMB documentation should be consulted, e.g., if the error is related to the camb code.
+        - Suggest the cobaya_agent if error related to internal cobaya code.
+        - Suggest the control agent only if execution was successful.
     
 
 

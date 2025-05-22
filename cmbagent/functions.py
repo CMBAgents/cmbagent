@@ -112,17 +112,6 @@ def register_functions_to_agents(cmbagent_instance):
                                 execution_status: Literal["success", "failure"],
                                 fix_suggestion: Optional[str] = None
                                 ) -> ReplyResult:
-        """
-        Transfer to the next agent based on the execution status.
-        For the next agent suggestion, follow these rules:
-            - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError: No module named xx).
-            - Suggest the engineer agent if error related to generic Python code, syntax error, etc.
-            - Suggest the classy_sz_agent if error is an internal classy_sz error.
-            - Suggest the camb_agent if error related to internal camb code.
-            - Suggest the cobaya_agent if error related to internal cobaya code.
-            - Suggest the control agent only if execution was successful.
-        """
-
         workflow_status_str = rf"""
 xxxxxxxxxxxxxxxxxxxxxxxxxx
 
@@ -178,7 +167,8 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
             elif next_agent_suggestion == "camb_context":
                 context_variables["n_attempts"] += 1
                 return ReplyResult(target=AgentTarget(camb_context),
-                                message="Execution status: " + execution_status + ". Transfer to camb_context.\n" + f"{workflow_status_str}\n",
+                                message="Execution status: " + execution_status + ". Transfer to camb_context.\n" + f"{workflow_status_str}\n"
+                                + f"Fix suggestion: {fix_suggestion}\n",
                                 context_variables=context_variables)
             
 
@@ -207,10 +197,12 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
         description=r"""
 Transfer to the next agent based on the execution status.
 For the next agent suggestion, follow these rules:
-    - Suggest the engineer agent if error related to generic Python code.
+
     - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError).
     - Suggest the classy_sz_agent if error is an internal classy_sz error.
-    - Suggest the camb_agent if error related to internal camb code.
+    - Suggest the camb_context agent if CAMB documentation should be consulted, e.g., if the Python error is related to the camb code.
+    - Suggest camb_context to fix Python errors related to the camb code.
+    - Suggest the engineer agent if error related to generic Python code. Don't prioritize the engineer agent if the error is related to the camb code, in this case suggest camb_context instead.
     - Suggest the cobaya_agent if error related to internal cobaya code.
     - Suggest the control agent only if execution was successful. 
 """,

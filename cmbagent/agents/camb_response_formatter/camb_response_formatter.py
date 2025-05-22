@@ -21,7 +21,7 @@ class CambResponseFormatterAgent(BaseAgent):
 
 
     class PythonCode(BaseModel):
-        code: Optional[str] = Field(None, description="The draft of the Python code needed for camb")
+        code: Optional[str] = Field(None, description="The draft of the Python code needed for camb. Keeping all the information provided by the camb agent.")
 
     class CambResponse(BaseModel):
 
@@ -48,11 +48,12 @@ class CambResponseFormatterAgent(BaseAgent):
             # Format the list of consulted files as a bullet list.
             consulted_files = "\n".join(f"- {file}" for file in self.file_consulted)
             code_text = self.python_code.code or "No code provided."
+            docstrings = "\n".join(f"**{docstring}**\n\n" for docstring in self.docstrings)
             return (
                 f"**File Search Task:**\n\n{self.file_search_task}\n\n"
                 f"**Files Consulted:**\n{consulted_files}\n\n"
                 f"**Results:**\n{self.results}\n\n"
-                f"**Docstrings:**\n{self.docstrings}\n\n"
+                f"**Docstrings:**\n{docstrings}\n\n"
                 f"**Rough Python Code (for guidance only):**\n\n```python\n{code_text}\n```"
             )
 
