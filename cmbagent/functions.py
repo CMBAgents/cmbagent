@@ -457,10 +457,15 @@ Now, update the plan accordingly, planner!""",
         current_plan_step_number: int,
         current_sub_task: str,
         current_instructions: str,
-        agent_for_sub_task: Literal["engineer", "researcher", #"perplexity", 
-                                    "idea_maker", "idea_hater", 
-                                    "classy_sz_agent", "camb_agent", "camb_context",
-                                    "aas_keyword_finder", "planck_agent"],
+        agent_for_sub_task: Literal["engineer", 
+                                    "researcher", #"perplexity", 
+                                    "idea_maker", 
+                                    "idea_hater", 
+                                    # "classy_sz_agent", 
+                                    # "camb_agent", 
+                                    "camb_context",
+                                    "aas_keyword_finder", #"planck_agent"
+                                    ],
         context_variables: ContextVariables
     ) -> ReplyResult:
         """

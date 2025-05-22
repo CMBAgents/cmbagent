@@ -59,7 +59,10 @@ instructions: |
     - Do not use LaTeX expressions with optional arguments or complex macros.
     - Keep labels as short, clear and simple as possible, convey the details of the information needed.
     - Always set concise and informative titles to plots.
-
+    - Always call `plt.tight_layout()` (or `fig.tight_layout()`) after setting titles and labels, to prevent any overlap.
+    - Rotate axis tick labels if needed to avoid overlap, especially if they are long or dense.
+    - Increase the figure size if necessary to ensure no elements overlap.
+    - Do not return plot code unless all labels, titles, and ticks are fully visible and not overlapping.
 
     f-strings:
     - Avoid using f-strings.

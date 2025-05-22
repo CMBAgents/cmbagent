@@ -37,6 +37,8 @@ instructions: |
     -----------------------------------
     </PREVIOUS_STEPS_EXECUTION_SUMMARY>
 
+    After sucessful installation of a Python package, you must call the engineer agent to check if the code can be run.
+
 description: |
     Control agent, to control the plan implementation.
 
