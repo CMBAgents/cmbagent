@@ -1,32 +1,14 @@
 # cmbagent/utils.py
 import os
-from openai import OpenAI
-
-from pprint import pprint
-
-from autogen.coding import LocalCommandLineCodeExecutor
-
 import autogen
-from autogen.agentchat import AssistantAgent, UserProxyAgent, GroupChat
-from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
-from autogen.cmbagent_utils import cmbagent_debug
-
-
-from cobaya.yaml import yaml_load_file, yaml_load
-
-from IPython.display import Image
-
-import importlib
-import sys
 import pickle
-
 import logging
 from ruamel.yaml import YAML
+from autogen.cmbagent_utils import cmbagent_debug
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
 
-import autogen
 cmbagent_debug = autogen.cmbagent_debug
 
 
@@ -177,7 +159,15 @@ default_agents_llm_model ={
 
 default_agent_llm_configs = {}
 
-def get_model_config(model):
+def get_api_keys_from_env():
+    api_keys = {
+        "OPENAI" : os.getenv("OPENAI_API_KEY"),
+        "GEMINI" : os.getenv("GEMINI_API_KEY"),
+        "ANTHROPIC" : os.getenv("ANTHROPIC_API_KEY"),
+    }
+    return api_keys
+
+def get_model_config(model, api_keys):
     config = {
         "model": model,
         "api_key": None,
@@ -187,31 +177,33 @@ def get_model_config(model):
     if 'o3' in model:
         config.update({
             "reasoning_effort": "medium",
-            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_key": api_keys["OPENAI"],
             "api_type": "openai"
         })
     elif "gemini" in model:
         config.update({
-            "api_key": os.getenv("GEMINI_API_KEY"), 
+            "api_key": api_keys["GEMINI"],
             "api_type": "google"
         })
     elif "claude" in model:
         config.update({
-            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_key": api_keys["ANTHROPIC"],
             "api_type": "anthropic"
         })
     else:
         config.update({
-            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_key": api_keys["OPENAI"],
             "api_type": "openai"
         })
     return config
 
+api_keys_env = get_api_keys_from_env()
+
 for agent in default_agents_llm_model:
-    default_agent_llm_configs[agent] =  get_model_config(default_agents_llm_model[agent])
+    default_agent_llm_configs[agent] =  get_model_config(default_agents_llm_model[agent], api_keys_env)
 
 
-default_llm_config_list = [get_model_config(default_llm_model)]
+default_llm_config_list = [get_model_config(default_llm_model, api_keys_env)]
 
 
 #### note we should be able to set the temperature for different agents, e.g., 

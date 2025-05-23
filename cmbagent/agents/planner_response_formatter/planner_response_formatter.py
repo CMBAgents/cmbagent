@@ -1,7 +1,7 @@
 import os
 from cmbagent.base_agent import BaseAgent
 from pydantic import BaseModel, Field
-from typing import List, Optional, Literal, Dict, Any
+from typing import List, Literal, Dict, Any
 import json
 from pathlib import Path
 
@@ -22,7 +22,7 @@ class PlannerResponse(BaseModel):
         for i, step in enumerate(self.sub_tasks):
             plan_output += f"\n- Step {i + 1}:\n\t* sub-task: {step.sub_task}\n\t* agent in charge: {step.sub_task_agent}\n"
             if step.bullet_points:
-                plan_output += f"\n\t* instructions:\n"
+                plan_output += "\n\t* instructions:\n"
                 for bullet in step.bullet_points:
                     plan_output += f"\t\t- {bullet}\n"
         message = f"""

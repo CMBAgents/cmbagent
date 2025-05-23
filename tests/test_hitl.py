@@ -1,9 +1,7 @@
 import os
-import re
 
 os.environ["CMBAGENT_DEBUG"] = "false"
 os.environ["ASTROPILOT_DISABLE_DISPLAY"] = "true"
-import copy
 import cmbagent
 
 

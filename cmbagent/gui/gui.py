@@ -3,25 +3,20 @@
 import streamlit as st
 import os
 import re
-import io
 from PIL import Image
 import pandas as pd
-from IPython.display import Markdown as IPyMarkdown, Image as IPyImage
+from IPython.display import Markdown as IPyMarkdown
 # from PIL.Image import Image as PILImage  # <-- this is the actual class
 from pandas.io.formats.style import Styler
 os.environ["CMBAGENT_DEBUG"] = "false"
 os.environ["ASTROPILOT_DISABLE_DISPLAY"] = "true"
 os.environ["STREAMLIT_ON"] = "true"
 import json
-import time
-import copy
 # import cmbagent
-from cmbagent.cmbagent import CMBAgent, planning_and_control, one_shot, human_in_the_loop, planning_and_control_context_carryover
+from cmbagent.cmbagent import one_shot, planning_and_control_context_carryover
 
 import requests
-import sys
 from contextlib import redirect_stdout
-from streamlit import components
 import glob          # <-- NEW
 import traceback
 import base64
@@ -323,12 +318,11 @@ def main():
 
     # ------------------------------------------------------------------ utils/json
 
-    import tempfile, shutil
+    import tempfile
+    import shutil
     from json import JSONDecodeError
-    from datetime import datetime
     # ── utils/filenames ──────────────────────────────────────────────────────────
     import unicodedata
-    import string
 
 
 
