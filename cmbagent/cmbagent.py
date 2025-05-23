@@ -114,6 +114,7 @@ class CMBAgent:
                  clear_work_dir = True,
                  mode = "planning_and_control", # can be "one_shot" , "chat" or "planning_and_control" (default is planning and control), or "planning_and_control_context_carryover"
                  chat_agent = None,
+                 api_keys = None,
                 #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
@@ -202,7 +203,6 @@ class CMBAgent:
         if llm_api_type is not None:
             llm_config_list[0]['api_type'] = llm_api_type
 
-
         self.llm_api_key = llm_config_list[0]['api_key']
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
 
@@ -232,9 +232,15 @@ class CMBAgent:
 
         self.agent_type = agent_type
 
-
         self.agent_llm_configs = default_agent_llm_configs.copy()
         self.agent_llm_configs.update(agent_llm_configs)
+
+        if api_keys is not None:
+
+            self.llm_config["config_list"][0] = get_model_config(self.llm_config["config_list"][0]["model"], api_keys)
+            
+            for agent in self.agent_llm_configs.keys():                
+                self.agent_llm_configs[agent] = get_model_config(self.agent_llm_configs[agent]["model"], api_keys)
 
         self.init_agents(agent_llm_configs=self.agent_llm_configs) # initialize agents
 
@@ -935,7 +941,9 @@ def planning_and_control_context_carryover(
                         agent_llm_configs = {
                             'planner': planner_config,
                             'plan_reviewer': plan_reviewer_config,
-                        })
+                        },
+                        api_keys = api_keys
+                        )
     end_time = time.time()
     initialization_time_planning = end_time - start_time
 
@@ -1001,7 +1009,8 @@ def planning_and_control_context_carryover(
                                 'idea_maker': idea_maker_config,
                                 'idea_hater': idea_hater_config,
             },
-            mode = "planning_and_control_context_carryover"
+            mode = "planning_and_control_context_carryover",
+            api_keys = api_keys
             )
         
 
@@ -1144,7 +1153,9 @@ def planning_and_control(
                         agent_llm_configs = {
                             'planner': planner_config,
                             'plan_reviewer': plan_reviewer_config,
-                        })
+                        },
+                        api_keys = api_keys
+                        )
     end_time = time.time()
     initialization_time_planning = end_time - start_time
 
@@ -1194,7 +1205,9 @@ def planning_and_control(
                             'researcher': researcher_config,
                             'idea_maker': idea_maker_config,
                             'idea_hater': idea_hater_config,
-        })
+        },
+        api_keys = api_keys
+        )
     
 
     print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")
@@ -1316,7 +1329,8 @@ def control(
                             'idea_maker': idea_maker_config,
                             'idea_hater': idea_hater_config,
         },
-        clear_work_dir = clear_work_dir
+        clear_work_dir = clear_work_dir,
+        api_keys = api_keys
         )
     
     end_time = time.time()
@@ -1386,7 +1400,9 @@ def one_shot(
         agent_llm_configs = {
                             'engineer': engineer_config,
                             'researcher': researcher_config,
-        })
+        },
+        api_keys = api_keys
+        )
         
     end_time = time.time()
     initialization_time = end_time - start_time
@@ -1499,7 +1515,9 @@ def human_in_the_loop(task,
                             'researcher': researcher_config,
         },
         mode = "chat",
-        chat_agent = agent)
+        chat_agent = agent,
+        api_keys = api_keys
+        )
         
     end_time = time.time()
     initialization_time = end_time - start_time
@@ -1552,7 +1570,7 @@ def human_in_the_loop(task,
 
     return results
 
-def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_default):
+def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_default, api_keys = None):
     """
     Get AAS keywords from input text using astropilot.
 
@@ -1565,7 +1583,7 @@ def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_defau
         dict: Dictionary mapping AAS keywords to their URLs
     """
     start_time = time.time()
-    cmbagent = CMBAgent(work_dir = work_dir)
+    cmbagent = CMBAgent(work_dir = work_dir, api_keys = api_keys)
     end_time = time.time()
     initialization_time = end_time - start_time
 

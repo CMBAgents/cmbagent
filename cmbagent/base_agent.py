@@ -34,8 +34,6 @@ class BaseAgent:
                  agent_type=None,
                  **kwargs):
         
-        
-
         self.kwargs = kwargs
 
         if cmbagent_debug:
@@ -45,7 +43,6 @@ class BaseAgent:
         self.llm_config = copy.deepcopy(llm_config)
 
         self.info = yaml_load_file(agent_id + ".yaml")
-
 
         self.name = self.info["name"]
 
@@ -68,9 +65,6 @@ class BaseAgent:
             print('\n---------------------------------- setting name: ', self.info["name"])
             print('work_dir: ', self.work_dir)
             print('\n----------------------------------')
-
-        
-
 
     ## for oai rag agents
     def set_gpt_assistant_agent(self,
@@ -103,8 +97,6 @@ class BaseAgent:
         if vector_store_ids is not None:
             self.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store_ids]
         
-            
-
         if agent_temperature is not None:
             if cmbagent_debug:
                 print('\n\n\n\nin base_agent.py set_agent')
@@ -115,7 +107,6 @@ class BaseAgent:
 
             self.info['assistant_config']['top_p'] = agent_top_p
 
-        
         # dir_path = os.path.dirname(os.path.realpath(__file__))
         dir_path = os.getenv('CMBAGENT_DATA')
         data_path = os.path.join(dir_path, 'data', self.name.replace('_agent', ''))
@@ -149,7 +140,6 @@ class BaseAgent:
             print('working with llm_config: ',self.llm_config)
             # import sys; sys.exit()
 
-        
         # self.info['assistant_config']['check_every_ms'] = 500 # does not do anything
 
         self.agent = GPTAssistantAgent(
