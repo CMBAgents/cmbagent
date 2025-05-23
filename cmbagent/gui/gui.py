@@ -506,6 +506,7 @@ def main():
             "Download daily S&P 500 closing prices for 2024. Plot the time series and daily log returns.",
             "What is the difference between a black hole and a white hole?",
             "Compute and plot cmb temperature power spectrum using camb.",
+            "Compute and plot matter P(k) using classy.",
         ],
         "planning_and_control": [
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
@@ -589,21 +590,6 @@ def main():
             }
         }
 
-        def get_provider_for_model(model):
-            oai = {"gpt-4.1", "gpt-4.1-mini", "gpt-4.5-preview", "gpt-4o", "gpt-4o-mini", "o3", "o4-mini", "o3-mini"}
-            anth = {"Claude 3.7 Sonnet", "Claude 3.5 Haiku", "Claude 3.5 Sonnet"}
-            gem = {"gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash",}
-            # per = {"sonar-pro", "sonar"}
-
-            if model in oai:
-                return "OpenAI"
-            if model in anth:
-                return "Anthropic"
-            if model in gem:
-                return "Gemini"
-            # if model in per:
-            #     return "Perplexity"
-            return None
 
         # Initialize session_state.agent_models once
         if "agent_models" not in st.session_state:
@@ -1029,6 +1015,7 @@ def main():
                         "**Engineer**\n*for code-based tasks (write & debug code)*": "engineer",
                         "**Researcher**\n*for reasoning tasks (interpret, reason & comment)*": "researcher",
                         "**Camb**\n*for calculation with the [camb](https://camb.readthedocs.io/en/latest/) library*": "camb_context",
+                        "**Classy**\n*for calculation with the [classy](http://class-code.net/) library*": "classy_context",
                     }
 
 

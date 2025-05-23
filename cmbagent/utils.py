@@ -143,8 +143,9 @@ default_agents_llm_model ={
 
     # "camb_context": "gpt-4o-2024-11-20",
     # "camb_context": "gemini-2.5-flash-preview-04-17",
-    "camb_context": "gemini-2.5-pro-preview-03-25",
-    # "camb_context": "gemini-2.5-flash-preview-05-20",
+    # "camb_context": "gemini-2.5-pro-preview-03-25",
+    # "camb_context": "gemini-2.5-flash",
+    "camb_context": "gemini-2.5-flash-preview-05-20",
 
     "classy_context": "gpt-4o-2024-11-20",
     

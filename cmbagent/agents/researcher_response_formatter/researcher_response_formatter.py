@@ -22,7 +22,7 @@ class ResearcherResponseFormatterAgent(BaseAgent):
 
     class StructuredMardown(BaseModel):
         markdown_block: str = Field(..., description="A Markdown block containing the researcher's notes in a form ready to be saved. Should not contain ```markdown fences.")
-        filename: str = Field(..., description="The name to give to this markdown notes in the format: <filename>.md")
+        filename: str = Field(..., description="The name to give to this markdown notes in the format: <filename>.md.")
 
         def format(self) -> str:
             full_path = self.filename

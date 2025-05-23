@@ -5,7 +5,7 @@ instructions: |
 
     You **must not alter the content of the response provided to you by the researcher agent**.
     You **must** not add or remove any information.
-    You should only structure the input text into the output markdownresponse format.
+    You should only structure the input text into the output markdown response format.
 
 
 description: |
