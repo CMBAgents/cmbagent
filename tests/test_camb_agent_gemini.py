@@ -1,5 +1,4 @@
 import os
-import re
 
 
 os.environ["CMBAGENT_DEBUG"] = "true"
