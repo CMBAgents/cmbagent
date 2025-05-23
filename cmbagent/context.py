@@ -29,6 +29,7 @@ shared_context = {
     "transfer_to_engineer": False,
     "transfer_to_researcher": False,
     "transfer_to_camb_agent": False,
+    "transfer_to_classy_agent": False,
     "transfer_to_cobaya_agent": False,
     "transfer_to_perplexity": False,
 
@@ -55,6 +56,7 @@ shared_context = {
 
 
     "camb_context": None,
+    "classy_context": None
 
 
 }

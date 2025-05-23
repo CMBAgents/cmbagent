@@ -79,6 +79,7 @@ def register_functions_to_agents(cmbagent_instance):
     idea_saver = cmbagent_instance.get_agent_from_name('idea_saver')
     control_starter = cmbagent_instance.get_agent_from_name('control_starter')
     camb_context = cmbagent_instance.get_agent_from_name('camb_context')
+    classy_context = cmbagent_instance.get_agent_from_name('classy_context')
 
     if not cmbagent_instance.skip_rag_agents:
         classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')
@@ -106,6 +107,7 @@ def register_functions_to_agents(cmbagent_instance):
                                                                "camb_agent", 
                                                                "cobaya_agent",
                                                                "camb_context",
+                                                               "classy_context",
                                                             #    "planck_agent", no need for paper agents
                                                                "control"], 
                                 context_variables: ContextVariables,
@@ -131,7 +133,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
 
         # import sys; sys.exit()
         
-        if context_variables["agent_for_sub_task"] == "engineer" or context_variables["agent_for_sub_task"] == "camb_agent" or context_variables["agent_for_sub_task"] == "camb_context":
+        if context_variables["agent_for_sub_task"] == "engineer" or context_variables["agent_for_sub_task"] == "camb_agent" or context_variables["agent_for_sub_task"] == "camb_context" or context_variables["agent_for_sub_task"] == "classy_context":
             
             if context_variables["n_attempts"] >= context_variables["max_n_attempts"]:
                 return ReplyResult(target=AgentTarget(terminator),
@@ -171,6 +173,13 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                 + f"Fix suggestion: {fix_suggestion}\n",
                                 context_variables=context_variables)
             
+            elif next_agent_suggestion == "classy_context":
+                context_variables["n_attempts"] += 1
+                return ReplyResult(target=AgentTarget(classy_context),
+                                message="Execution status: " + execution_status + ". Transfer to classy_context.\n" + f"{workflow_status_str}\n"
+                                + f"Fix suggestion: {fix_suggestion}\n",
+                                context_variables=context_variables)            
+            
 
             elif next_agent_suggestion == "control":
                 context_variables["n_attempts"] += 1
@@ -201,8 +210,9 @@ For the next agent suggestion, follow these rules:
     - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError).
     - Suggest the classy_sz_agent if error is an internal classy_sz error.
     - Suggest the camb_context agent if CAMB documentation should be consulted, e.g., if the Python error is related to the camb code.
+    - Suggest the classy_context agent if classy documentation should be consulted, e.g., if the Python error is related to the classy code.
     - Suggest camb_context to fix Python errors related to the camb code.
-    - Suggest the engineer agent if error related to generic Python code. Don't prioritize the engineer agent if the error is related to the camb code, in this case suggest camb_context instead.
+    - Suggest the engineer agent if error related to generic Python code. Don't prioritize the engineer agent if the error is related to the camb or classy code, in this case suggest camb_context or classy_context instead.
     - Suggest the cobaya_agent if error related to internal cobaya code.
     - Suggest the control agent only if execution was successful. 
 """,
@@ -464,6 +474,7 @@ Now, update the plan accordingly, planner!""",
                                     # "classy_sz_agent", 
                                     # "camb_agent", 
                                     "camb_context",
+                                    "classy_context",
                                     "aas_keyword_finder", #"planck_agent"
                                     ],
         context_variables: ContextVariables

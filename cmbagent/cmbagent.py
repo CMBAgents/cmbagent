@@ -19,7 +19,7 @@ from .utils import OpenAI,Image
 from .utils import default_llm_model as default_llm_model_default
 from .utils import (path_to_assistants,path_to_apis,
                     default_top_p,default_temperature,default_max_round,default_llm_config_list,default_agent_llm_configs,
-                    default_agents_llm_model, camb_context_url)
+                    default_agents_llm_model, camb_context_url, classy_context_url,)
 from pprint import pprint
 from .rag_utils import import_rag_agents, push_vector_stores
 from .utils import path_to_agents, update_yaml_preserving_format
@@ -1503,6 +1503,16 @@ def one_shot(
         camb_context = resp.text          # Whole document as one long string
 
         shared_context["camb_context"] = camb_context
+
+
+    if agent == 'classy_context':
+
+        # Fetch the file (30-second safety timeout)
+        resp = requests.get(classy_context_url, timeout=30)
+        resp.raise_for_status()           # Raises an HTTPError for non-200 codes
+        classy_context = resp.text          # Whole document as one long string
+
+        shared_context["classy_context"] = classy_context
 
     # print(f"shared_context: {shared_context}")
     # import sys
