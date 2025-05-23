@@ -145,6 +145,9 @@ default_agents_llm_model ={
     # "camb_context": "gemini-2.5-flash-preview-04-17",
     "camb_context": "gemini-2.5-pro-preview-03-25",
     # "camb_context": "gemini-2.5-flash-preview-05-20",
+
+    "classy_context": "gpt-4o-2024-11-20",
+    
     # structured output agents
     "classy_sz_response_formatter": "gpt-4o-2024-11-20",
     "camb_response_formatter": "gpt-4.1-2025-04-14",
@@ -261,4 +264,5 @@ AAS_keywords_string = ', '.join(AAS_keywords_dict.keys())
 
 
 camb_context_url = "https://camb.readthedocs.io/en/latest/_static/camb_docs_combined.md"
+classy_context_url = "https://github.com/santiagocasas/clapp/tree/main/classy_docs.md"
 

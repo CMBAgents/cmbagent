@@ -19,9 +19,12 @@ from autogen.agentchat.group.patterns import AutoPattern
 from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
 from .utils import work_dir as work_dir_default
 from .utils import default_llm_model as default_llm_model_default
+
 from .utils import (path_to_assistants, path_to_apis,path_to_agents, update_yaml_preserving_format, get_model_config,
                     default_top_p, default_temperature, default_max_round,default_llm_config_list, default_agent_llm_configs,
-                    default_agents_llm_model, camb_context_url, AAS_keywords_string, get_api_keys_from_env)
+                    default_agents_llm_model, camb_context_url,classy_context_url, AAS_keywords_string, get_api_keys_from_env)
+
+from pprint import pprint
 from .rag_utils import import_rag_agents, push_vector_stores
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
@@ -1400,6 +1403,20 @@ def one_shot(
         camb_context = resp.text          # Whole document as one long string
 
         shared_context["camb_context"] = camb_context
+
+
+    if agent == 'classy_context':
+
+        # Fetch the file (30-second safety timeout)
+        resp = requests.get(classy_context_url, timeout=30)
+        resp.raise_for_status()           # Raises an HTTPError for non-200 codes
+        classy_context = resp.text          # Whole document as one long string
+
+        shared_context["classy_context"] = classy_context
+
+    # print(f"shared_context: {shared_context}")
+    # import sys
+    # sys.exit()
 
     cmbagent.solve(task,
                     max_rounds=max_rounds,

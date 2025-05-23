@@ -46,17 +46,28 @@ def register_all_hand_offs(cmbagent_instance):
     idea_saver = cmbagent_instance.get_agent_object_from_name('idea_saver')
 
     camb_context = cmbagent_instance.get_agent_object_from_name('camb_context')
+    classy_context = cmbagent_instance.get_agent_object_from_name('classy_context')
     
 
     mode = cmbagent_instance.mode
 
     camb_response_formatter = cmbagent_instance.get_agent_object_from_name('camb_response_formatter')
     camb_context.agent.handoffs.set_after_work(AgentTarget(camb_response_formatter.agent))
+    
 
     if mode == "one_shot":
         camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(engineer.agent))
     else:
         camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+
+    classy_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_response_formatter')
+    classy_context.agent.handoffs.set_after_work(AgentTarget(classy_response_formatter.agent))
+
+    if mode == "one_shot":
+        classy_response_formatter.agent.handoffs.set_after_work(AgentTarget(engineer.agent))
+    else:
+        classy_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+
 
     if not cmbagent_instance.skip_rag_agents:
 
