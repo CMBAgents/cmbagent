@@ -129,9 +129,11 @@ default_agents_llm_model ={
     "researcher": "gpt-4.1-2025-04-14",
     "perplexity": "o3-mini-2025-01-31",
     "planner": "gpt-4.1-2025-04-14",
-    "plan_reviewer": "claude-3-7-sonnet-20250219",
+    # "plan_reviewer": "claude-3-7-sonnet-20250219",
+    "plan_reviewer": "gpt-4o-2024-11-20",
     # "plan_setter": "gpt-4o-2024-11-20",
-    "idea_hater": "claude-3-7-sonnet-20250219",
+    # "idea_hater": "claude-3-7-sonnet-20250219",
+    "idea_hater": "gpt-4o-2024-11-20",
     "idea_maker": "gpt-4.1-2025-04-14",
 
     # rag agents
@@ -141,11 +143,11 @@ default_agents_llm_model ={
     "cobaya": "gpt-4o-2024-11-20",
     "planck": "gpt-4o-2024-11-20",
 
-    # "camb_context": "gpt-4o-2024-11-20",
+    "camb_context": "gpt-4o-2024-11-20",
     # "camb_context": "gemini-2.5-flash-preview-04-17",
     # "camb_context": "gemini-2.5-pro-preview-03-25",
     # "camb_context": "gemini-2.5-flash",
-    "camb_context": "gemini-2.5-flash-preview-05-20",
+    # "camb_context": "gemini-2.5-flash-preview-05-20",
 
     "classy_context": "gpt-4o-2024-11-20",
     
