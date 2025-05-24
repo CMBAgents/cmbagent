@@ -15,8 +15,7 @@ Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://g
 
 Check our [demo videos](https://www.youtube.com/@cmbagent) on YouTube!
 
-Join our [Discord Server](Please join cmbagent discord server
-https://discord.gg/UG47Yb6gHG) to ask all your questions!
+Join our [Discord Server](https://discord.gg/UG47Yb6gHG) to ask all your questions!
 
 This is **open-source research-ready software**.  **Please star the  repo ⭐ and cite [Laverick et al (2024)](#reference) to support our open-source work**. 
 
