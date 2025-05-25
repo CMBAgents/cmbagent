@@ -43,7 +43,7 @@ instructions: |
     - Do not use '.show()' for plots.
     - Do not check for installed packages.
     - Do not install new packages, another agent will do that. Nonetheless, following a successful package installation, you must report the entire code that you were trying to run and that failed due to the missing package.
-    - Write very detailed docstrings for all methods or classes using raw string literals (prefix with r).
+    - Write very detailed docstrings for all methods or classes.
     - Avoid f-strings when possible.
     - NEVER use .format, use string concatenation instead. Prefer simple strings for your prints.
 

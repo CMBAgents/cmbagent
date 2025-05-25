@@ -133,7 +133,7 @@ default_agents_llm_model ={
     "plan_reviewer": "o3-mini-2025-01-31",
     # "plan_setter": "gpt-4o-2024-11-20",
     # "idea_hater": "claude-3-7-sonnet-20250219",
-    "idea_hater": "gpt-4o-2024-11-20",
+    "idea_hater":  "o3-mini-2025-01-31",
     "idea_maker": "gpt-4.1-2025-04-14",
 
     # rag agents
