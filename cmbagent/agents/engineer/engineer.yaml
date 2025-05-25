@@ -38,7 +38,6 @@ instructions: |
     - When a plot is requested, it must be saved into a png file at high resolution (dpi>=300).
     - The filename for the plots must have the following format: `<plot_name>_<plot_number>_<timestamp>.<format>` and must be saved in the folder `$database_path`.
     - For plots, add relevant units to the axes labels, where appropriate.
-    - Always call `ax.relim()` and `ax.autoscale_view()` unless otherwise instructed.
     - Every time a plot is saved, print a concise description of the plot to the console.
     - Do not use '.show()' for plots.
     - Do not check for installed packages.
