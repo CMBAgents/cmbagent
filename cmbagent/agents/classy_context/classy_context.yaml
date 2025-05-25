@@ -39,7 +39,7 @@ instructions: |
   **YOUR RESPONSE FORMAT:**
   ----------------------------------------------------------------------------------
 
-  Your answer must have the following format:
+  You must provide all the information requested in the following format:
 
   ---------------------------------------------
   **File Search Task:**
@@ -66,6 +66,6 @@ instructions: |
 
 
 description: |
-  An agent that can search for information on the cosmology package classy. Cosmology calculations are carried out with classy rather than CAMB. However, note that the classy_agent can only provide information on how to use classy, it **can not** perform any calculations.
+  An agent that can search for information on the cosmology package classy. Cosmology calculations are carried out with classy rather than CAMB. However, note that the classy_context agent can only provide information  and code snippets on how to use classy, it **can not** perform any calculations.
 
 

@@ -207,9 +207,9 @@ For the next agent suggestion, follow these rules:
     - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError).
     - Suggest the classy_sz_agent if error is an internal classy_sz error.
     - Suggest the camb_context agent if CAMB documentation should be consulted, e.g., if the Python error is related to the camb code.
-    - Suggest the classy_context agent if classy documentation should be consulted, e.g., if the Python error is related to the classy code.
+    - Suggest the classy_context agent if classy documentation should be consulted, e.g., if the Python error is related to the classy code, e.g., classy.CosmoSevereError.
     - Suggest camb_context to fix Python errors related to the camb code.
-    - Suggest classy_context to fix Python errors related to the classy code.
+    - Suggest classy_context to fix Python errors related to the classy code, e.g., classy.CosmoSevereError.
     - Suggest the engineer agent if error related to generic Python code. Don't prioritize the engineer agent if the error is related to the camb or classy code, in this case suggest camb_context or classy_context instead.
     - Suggest the cobaya_agent if error related to internal cobaya code.
     - Suggest the control agent only if execution was successful. 

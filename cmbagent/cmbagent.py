@@ -1030,8 +1030,11 @@ def planning_and_control_context_carryover(
 
         parsed_context = copy.deepcopy(current_context)
         # print("xo"*100+"\n\n")
-        # print("in cmbagent.py: parsed_context: ", parsed_context)
+        # print("in cmbagent.py: parsed_context: ", parsed_context["final_plan"])
+        # print("in cmbagent.py: parsed_context: ", parsed_context["number_of_steps_in_plan"])
         # print("xo"*100+"\n\n")
+        # import sys
+        # sys.exit()
             
 
         start_time = time.time()   
