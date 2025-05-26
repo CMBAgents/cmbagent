@@ -500,7 +500,6 @@ def main():
     init_session()
 
     api_keys = get_api_keys_from_env()
-    print(api_keys)
     
     # Example prompts for each mode
     EXAMPLE_PROMPTS = {
@@ -550,6 +549,33 @@ def main():
     # --- Sidebar: Always visible controls ---
     with st.sidebar:
 
+        # st.header("🎛️ Mode")
+        st.markdown(
+        """
+            <h3 style="
+            font-family: 'Jersey 10', sans-serif;
+            font-size: 30px;
+            margin-top: 1rem;
+            ">
+            🎛️ Mode
+            </h3>
+        """,
+        unsafe_allow_html=True)
+
+        st.write("Choose the CMBAgent mode")
+
+        modes = ["One shot","Planning and control","Human in the loop"]
+        page_selected = st.selectbox("Modes:", modes)
+        if page_selected=="one-shot":
+            st.session_state.page        = "one_shot"
+            st.session_state.chat_mode   = "one-shot"
+        elif page_selected=="planning-and-control":
+            st.session_state.page        = "planning_and_control"
+            st.session_state.chat_mode   = "planning-and-control"
+        elif page_selected=="human-in-the-loop":
+            st.session_state.page        = "human_in_the_loop"
+            st.session_state.chat_mode   = "human-in-the-loop"
+
         # st.header("📂 Agents in charge")
         st.markdown(
         f"""
@@ -570,7 +596,7 @@ def main():
 
         st.markdown("<br>", unsafe_allow_html=True)
         
-
+        st.write("Choose the agents models")
 
         agents = {
             "engineer": {
@@ -636,6 +662,8 @@ def main():
             """,
             unsafe_allow_html=True
         )
+
+        st.write("Set the LLMs API keys")
 
         # Expander with plain label
         with st.expander("Click to configure", expanded=False):
@@ -912,7 +940,7 @@ def main():
             if st.button("Human-in-the-loop\n\n ***Single-pass answers with memory***\n" \
             "***Maintain context across turns***\n ***Ask related follow-ups freely***", key="human_loop", use_container_width=True):
                 st.session_state.page        = "human_in_the_loop"
-                st.session_state.chat_mode   = "human_in_the_loop"
+                st.session_state.chat_mode   = "human-in-the-loop"
                 st.session_state.messages    = []
                 st.session_state.cur_hist    = None
                 ensure_memory()              # ← add this single line
