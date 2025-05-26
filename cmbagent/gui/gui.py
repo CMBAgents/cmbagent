@@ -14,6 +14,7 @@ os.environ["STREAMLIT_ON"] = "true"
 import json
 # import cmbagent
 from cmbagent.cmbagent import one_shot, planning_and_control_context_carryover
+from cmbagent.utils import get_api_keys_from_env
 
 import requests
 from contextlib import redirect_stdout
@@ -497,6 +498,9 @@ def main():
         #     st.session_state.chat_ctx  = {}            # empty context
 
     init_session()
+
+    api_keys = get_api_keys_from_env()
+    print(api_keys)
     
     # Example prompts for each mode
     EXAMPLE_PROMPTS = {
@@ -656,9 +660,11 @@ def main():
 
             # ——— Set environment variables on every run ———
             if provider_oai:
-                os.environ["OPENAI_API_KEY"] = provider_oai
+                # os.environ["OPENAI_API_KEY"] = provider_oai
+                api_keys["OPENAI"] = provider_oai
             if provider_anthropic:
-                os.environ["ANTHROPIC_API_KEY"] = provider_anthropic
+                # os.environ["ANTHROPIC_API_KEY"] = provider_anthropic
+                api_keys["ANTHROPIC"] = provider_anthropic
 
             # --- API Key Validation ---
             def validate_openai_key(api_key):
@@ -1121,10 +1127,10 @@ def main():
                 if any(x in model_lower for x in ["gpt", "o3", "o4"]):
                     # print("OPENAI MODEL SELECTED")
                     # print("OPENAI API KEY:", os.environ["OPENAI_API_KEY"])
-                    return {"model": model, "api_key": os.environ["OPENAI_API_KEY"], "api_type": "openai"}
+                    return {"model": model, "api_key": provider_oai, "api_type": "openai"}
                 elif "claude" in model_lower:
                     # print("ANTHROPIC MODEL SELECTED")
-                    return {"model": model, "api_key": os.environ["ANTHROPIC_API_KEY"], "api_type": "anthropic"}
+                    return {"model": model, "api_key": provider_anthropic, "api_type": "anthropic"}
                 elif "gemini" in model_lower:
                     return {"model": model, "api_key": None, "api_type": "google"}
                 else:
@@ -1132,8 +1138,6 @@ def main():
 
             engineer_config   = get_config_for_model(engineer_model, provider_oai, provider_anthropic, None)
             researcher_config = get_config_for_model(researcher_model, provider_oai, provider_anthropic, None)
-
-
 
             # 3) Stream only internal logs in one assistant bubble  ← still true :)
             # with st.chat_message("assistant") as assistant_message:
@@ -1156,9 +1160,10 @@ def main():
                                 user_input,
                                 max_rounds = max_rounds,
                                 max_n_attempts = max_n_attempts,
-                                engineer_model=engineer_model,
-                                researcher_model=researcher_model,
-                                agent=st.session_state.one_shot_selected_agent,
+                                engineer_model = engineer_model,
+                                researcher_model = researcher_model,
+                                agent = st.session_state.one_shot_selected_agent,
+                                api_keys = api_keys
                             )
 
                         elif st.session_state.page == "planning_and_control":
@@ -1168,10 +1173,11 @@ def main():
                                 n_plan_reviews = n_plan_reviews,
                                 max_n_attempts = max_n_attempts,
                                 max_plan_steps= max_plan_steps,
-                                engineer_model=engineer_model,
-                                researcher_model=researcher_model,
-                                plan_instructions=plan_instructions,
-                                hardware_constraints=hardware_constraints,
+                                engineer_model = engineer_model,
+                                researcher_model = researcher_model,
+                                plan_instructions = plan_instructions,
+                                hardware_constraints = hardware_constraints,
+                                api_keys = api_keys
                             )
 
                         elif st.session_state.page == "human_in_the_loop":
@@ -1185,6 +1191,7 @@ def main():
                                 engineer_model   = engineer_model,
                                 researcher_model = researcher_model,
                                 agent    = st.session_state.one_shot_selected_agent,
+                                api_keys = api_keys
                             )
 
 
