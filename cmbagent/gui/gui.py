@@ -566,15 +566,21 @@ def main():
 
         modes = ["One shot","Planning and control","Human in the loop"]
         page_selected = st.selectbox("Modes:", modes)
-        if page_selected=="one-shot":
+        if page_selected=="One shot":
             st.session_state.page        = "one_shot"
             st.session_state.chat_mode   = "one-shot"
-        elif page_selected=="planning-and-control":
+            st.session_state.messages    = []
+            st.session_state.cur_hist = None
+        elif page_selected=="Planning and control":
             st.session_state.page        = "planning_and_control"
             st.session_state.chat_mode   = "planning-and-control"
-        elif page_selected=="human-in-the-loop":
+            st.session_state.messages    = []
+            st.session_state.cur_hist = None
+        elif page_selected=="Human in the loop":
             st.session_state.page        = "human_in_the_loop"
             st.session_state.chat_mode   = "human-in-the-loop"
+            st.session_state.messages    = []
+            st.session_state.cur_hist = None
 
         # st.header("📂 Agents in charge")
         st.markdown(
