@@ -372,6 +372,8 @@ For the next agent suggestion, follow these rules:
                                                        "idea_maker", 
                                                        "idea_hater", 
                                                        "camb_agent",
+                                                       "camb_context",
+                                                       "classy_context",
                                                        "classy_sz_agent", 
                                                        "planck_agent",
                                                        "aas_keyword_finder"]],
@@ -572,6 +574,8 @@ Now, update the plan accordingly, planner!""",
             context_variables["transfer_to_engineer"] = False
             context_variables["transfer_to_researcher"] = False
             context_variables["transfer_to_camb_agent"] = False
+            context_variables["transfer_to_camb_context"] = False
+            context_variables["transfer_to_classy_context"] = False
             context_variables["transfer_to_planck_agent"] = False
             context_variables["transfer_to_cobaya_agent"] = False
             context_variables["transfer_to_perplexity"] = False
@@ -599,7 +603,10 @@ Now, update the plan accordingly, planner!""",
                     context_variables["transfer_to_classy_sz_agent"] = True
                 elif context_variables["agent_for_sub_task"] == "planck_agent":
                     context_variables["transfer_to_planck_agent"] = True
-
+                elif context_variables["agent_for_sub_task"] == "camb_context":
+                    context_variables["transfer_to_camb_context"] = True
+                elif context_variables["agent_for_sub_task"] == "classy_context":
+                    context_variables["transfer_to_classy_context"] = True
             
                 if context_variables["transfer_to_engineer"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
@@ -619,6 +626,10 @@ Now, update the plan accordingly, planner!""",
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
                 elif context_variables["transfer_to_planck_agent"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('planck_agent')
+                elif context_variables["transfer_to_camb_context"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_context')
+                elif context_variables["transfer_to_classy_context"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_context')
 
 
             if "completed" in context_variables["current_status"]:
@@ -778,7 +789,9 @@ Now, update the plan accordingly, planner!""",
             context_variables["transfer_to_idea_maker"] = False
             context_variables["transfer_to_idea_hater"] = False
             context_variables["transfer_to_classy_sz_agent"] = False
-
+            context_variables["transfer_to_camb_context"] = False
+            context_variables["transfer_to_classy_context"] = False
+            context_variables["transfer_to_planck_agent"] = False
             agent_to_transfer_to = None
             if "in progress" in context_variables["current_status"]:
                 if context_variables["agent_for_sub_task"] == "engineer":
@@ -799,7 +812,10 @@ Now, update the plan accordingly, planner!""",
                     context_variables["transfer_to_classy_sz_agent"] = True
                 elif context_variables["agent_for_sub_task"] == "planck_agent":
                     context_variables["transfer_to_planck_agent"] = True
-
+                elif context_variables["agent_for_sub_task"] == "camb_context":
+                    context_variables["transfer_to_camb_context"] = True
+                elif context_variables["agent_for_sub_task"] == "classy_context":
+                    context_variables["transfer_to_classy_context"] = True
             
                 if context_variables["transfer_to_engineer"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
@@ -819,6 +835,10 @@ Now, update the plan accordingly, planner!""",
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
                 elif context_variables["transfer_to_planck_agent"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('planck_agent')
+                elif context_variables["transfer_to_camb_context"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_context')
+                elif context_variables["transfer_to_classy_context"]:
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_context')
 
                 if cmbagent_instance.mode == "planning_and_control_context_carryover" and context_variables["current_plan_step_number"] != cmbagent_instance.step:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
@@ -966,6 +986,9 @@ Now, update the plan accordingly, planner!""",
         context_variables["transfer_to_idea_maker"] = False
         context_variables["transfer_to_idea_hater"] = False
         context_variables["transfer_to_classy_sz_agent"] = False
+        context_variables["transfer_to_camb_context"] = False
+        context_variables["transfer_to_classy_context"] = False
+        context_variables["transfer_to_planck_agent"] = False
 
         agent_to_transfer_to = None
         if "in progress" in context_variables["current_status"]:
@@ -987,7 +1010,10 @@ Now, update the plan accordingly, planner!""",
                 context_variables["transfer_to_classy_sz_agent"] = True
             elif context_variables["agent_for_sub_task"] == "planck_agent":
                 context_variables["transfer_to_planck_agent"] = True
-
+            elif context_variables["agent_for_sub_task"] == "camb_context":
+                context_variables["transfer_to_camb_context"] = True
+            elif context_variables["agent_for_sub_task"] == "classy_context":
+                context_variables["transfer_to_classy_context"] = True
         
             if context_variables["transfer_to_engineer"]:
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
@@ -1007,6 +1033,10 @@ Now, update the plan accordingly, planner!""",
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_sz_agent')
             elif context_variables["transfer_to_planck_agent"]:
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('planck_agent')
+            elif context_variables["transfer_to_camb_context"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_context')
+            elif context_variables["transfer_to_classy_context"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_context')
 
 
 

@@ -31,7 +31,10 @@ shared_context = {
     "transfer_to_classy_agent": False,
     "transfer_to_cobaya_agent": False,
     "transfer_to_perplexity": False,
+    "transfer_to_camb_context": False,
+    "transfer_to_classy_context": False,
 
+    
     "planner_append_instructions": None,
     "plan_reviewer_append_instructions": None,
     "engineer_append_instructions": None,
