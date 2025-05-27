@@ -22,12 +22,24 @@ import glob          # <-- NEW
 import traceback
 import base64
 from pathlib import Path
+import uuid
+import argparse
 
 IMAGE_WIDTH_FRACTION = 1/2
 
 # ── rolling memory: only used in HUMAN‑IN‑THE‑LOOP mode ───────────────
 from collections import deque
 
+def get_project_dir():
+
+    if "project_dir" not in st.session_state:
+        
+        temp_dir = f"project_{uuid.uuid4().hex}"
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        st.session_state.project_dir = temp_dir
+
+    return st.session_state.project_dir
 
 def main():
     from PIL.Image import Image as PILImage
@@ -150,6 +162,15 @@ def main():
     #     initial_sidebar_state="auto"
     # )
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--deploy',action='store_true',help='Flag to enable special settings for deployment in Huggin Face Spaces')
+    deploy = parser.parse_args().deploy
+
+    if deploy:
+        project_dir = get_project_dir()
+    else:
+        project_dir = "project_dir"
+
     cmbagent_logo_path = os.path.join(os.path.dirname(__file__), "..", "logo.png")
     st.set_page_config(
         page_title="CMBAGENT",
@@ -157,7 +178,6 @@ def main():
         layout="wide",
         initial_sidebar_state="auto"
     )
-
 
     st.markdown("""
     <link href='https://fonts.googleapis.com/css?family=Jersey+10' rel='stylesheet'>
@@ -665,15 +685,16 @@ def main():
         with st.expander("Click to configure", expanded=False):
 
             # 📝  Tell users they can skip the boxes if their keys are already exported
-            st.markdown(
-                """
-                <span style="font-size:0.9rem;">
-                <em>If you’ve already set your API keys as environment variables
-                (e.g., in <code>~/.bashrc</code>), leave these fields blank.</em>
-                </span>
-                """,
-                unsafe_allow_html=True,
-            )
+            if not deploy:
+                st.markdown(
+                    """
+                    <span style="font-size:0.9rem;">
+                    <em>If you’ve already set your API keys as environment variables
+                    (e.g., in <code>~/.bashrc</code>), leave these fields blank.</em>
+                    </span>
+                    """,
+                    unsafe_allow_html=True,
+                )
             st.markdown("<br>", unsafe_allow_html=True)
 
             provider_oai        = st.text_input("OpenAI",      type="password", key="api_key_oai")
@@ -1157,7 +1178,8 @@ def main():
                                 engineer_model = engineer_model,
                                 researcher_model = researcher_model,
                                 agent = st.session_state.one_shot_selected_agent,
-                                api_keys = api_keys
+                                api_keys = api_keys,
+                                work_dir = project_dir,
                             )
 
                         elif st.session_state.page == "planning_and_control":
@@ -1171,7 +1193,8 @@ def main():
                                 researcher_model = researcher_model,
                                 plan_instructions = plan_instructions,
                                 hardware_constraints = hardware_constraints,
-                                api_keys = api_keys
+                                api_keys = api_keys,
+                                work_dir = project_dir,
                             )
 
                         elif st.session_state.page == "human_in_the_loop":
@@ -1185,7 +1208,8 @@ def main():
                                 engineer_model   = engineer_model,
                                 researcher_model = researcher_model,
                                 agent    = st.session_state.one_shot_selected_agent,
-                                api_keys = api_keys
+                                api_keys = api_keys,
+                                work_dir = project_dir,
                             )
 
 

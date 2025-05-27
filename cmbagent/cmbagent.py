@@ -17,7 +17,7 @@ from autogen.agentchat.group import ContextVariables
 from autogen.agentchat.group.patterns import AutoPattern
 
 from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
-from .utils import work_dir as work_dir_default
+from .utils import work_dir_default
 from .utils import default_llm_model as default_llm_model_default
 
 from .utils import (path_to_assistants, path_to_apis,path_to_agents, update_yaml_preserving_format, get_model_config,

@@ -3,7 +3,7 @@ import subprocess
 import sys
 from importlib.util import find_spec
 
-def run_gui():
+def run_gui(deploy: bool):
     # Get the installed file path to cmbagent.cli
     gui_spec = find_spec("cmbagent.cli")
     if gui_spec is None or gui_spec.origin is None:
@@ -47,7 +47,10 @@ def run_gui():
             f.write(theme_config)
 
     # Run the Streamlit GUI
-    sys.exit(subprocess.call(["streamlit", "run", gui_path + "gui.py"]))
+    command = ["streamlit", "run", gui_path + "gui.py"]
+    if deploy:
+        command.extend(["--","--deploy"])
+    sys.exit(subprocess.call(command))
 
 
 def main():
@@ -55,9 +58,12 @@ def main():
     parser = argparse.ArgumentParser(prog="cmbagent")
     subparsers = parser.add_subparsers(dest="command")
     subparsers.add_parser("run", help="Launch the CMBAGENT Streamlit GUI")
+    subparsers.add_parser("deploy", help="Flag to enable special settings for deployment in Huggin Face Spaces")
     args = parser.parse_args()
 
     if args.command == "run":
-        run_gui()
+        run_gui(False)
+    elif args.command == "deploy":
+        run_gui(True)
     else:
         parser.print_help()
