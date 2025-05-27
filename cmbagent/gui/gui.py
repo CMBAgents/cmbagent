@@ -434,16 +434,6 @@ def main():
 
         return walk(msgs)
 
-
-        # walk the nested structure and restore images / special objects
-        def walk(x):
-            if isinstance(x, list):
-                return [walk(i) for i in x]
-            if isinstance(x, tuple):
-                return tuple(walk(i) for i in x)
-            return _restore_special(x)
-
-        return walk(data)
     # ──────────────────────────────────────────────────────────────────────
 
 
