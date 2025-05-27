@@ -14,6 +14,7 @@ os.environ["STREAMLIT_ON"] = "true"
 import json
 # import cmbagent
 from cmbagent.cmbagent import one_shot, planning_and_control_context_carryover
+from cmbagent.utils import get_api_keys_from_env
 
 import requests
 from contextlib import redirect_stdout
@@ -433,16 +434,6 @@ def main():
 
         return walk(msgs)
 
-
-        # walk the nested structure and restore images / special objects
-        def walk(x):
-            if isinstance(x, list):
-                return [walk(i) for i in x]
-            if isinstance(x, tuple):
-                return tuple(walk(i) for i in x)
-            return _restore_special(x)
-
-        return walk(data)
     # ──────────────────────────────────────────────────────────────────────
 
 
@@ -497,6 +488,8 @@ def main():
         #     st.session_state.chat_ctx  = {}            # empty context
 
     init_session()
+
+    api_keys = get_api_keys_from_env()
     
     # Example prompts for each mode
     EXAMPLE_PROMPTS = {
@@ -546,6 +539,39 @@ def main():
     # --- Sidebar: Always visible controls ---
     with st.sidebar:
 
+        # st.header("🎛️ Mode")
+        st.markdown(
+        """
+            <h3 style="
+            font-family: 'Jersey 10', sans-serif;
+            font-size: 30px;
+            margin-top: 1rem;
+            ">
+            🎛️ Mode
+            </h3>
+        """,
+        unsafe_allow_html=True)
+
+        st.write("Choose the CMBAgent mode")
+
+        modes = ["One shot","Planning and control","Human in the loop"]
+        page_selected = st.selectbox("Modes:", modes, index=None)
+        if page_selected=="One shot":
+            st.session_state.page        = "one_shot"
+            st.session_state.chat_mode   = "one-shot"
+            st.session_state.messages    = []
+            st.session_state.cur_hist = None
+        elif page_selected=="Planning and control":
+            st.session_state.page        = "planning_and_control"
+            st.session_state.chat_mode   = "planning-and-control"
+            st.session_state.messages    = []
+            st.session_state.cur_hist = None
+        elif page_selected=="Human in the loop":
+            st.session_state.page        = "human_in_the_loop"
+            st.session_state.chat_mode   = "human-in-the-loop"
+            st.session_state.messages    = []
+            st.session_state.cur_hist = None
+
         # st.header("📂 Agents in charge")
         st.markdown(
         f"""
@@ -566,7 +592,7 @@ def main():
 
         st.markdown("<br>", unsafe_allow_html=True)
         
-
+        st.write("Choose the agents models")
 
         agents = {
             "engineer": {
@@ -633,6 +659,8 @@ def main():
             unsafe_allow_html=True
         )
 
+        st.write("Set the LLMs API keys")
+
         # Expander with plain label
         with st.expander("Click to configure", expanded=False):
 
@@ -656,9 +684,11 @@ def main():
 
             # ——— Set environment variables on every run ———
             if provider_oai:
-                os.environ["OPENAI_API_KEY"] = provider_oai
+                # os.environ["OPENAI_API_KEY"] = provider_oai
+                api_keys["OPENAI"] = provider_oai
             if provider_anthropic:
-                os.environ["ANTHROPIC_API_KEY"] = provider_anthropic
+                # os.environ["ANTHROPIC_API_KEY"] = provider_anthropic
+                api_keys["ANTHROPIC"] = provider_anthropic
 
             # --- API Key Validation ---
             def validate_openai_key(api_key):
@@ -790,9 +820,6 @@ def main():
             unsafe_allow_html=True,
         )
 
-
-
-
         # Use a regular Streamlit button
         if st.button("Reset Session", key="reset_session"):
             st.session_state.clear()
@@ -820,8 +847,6 @@ def main():
             unsafe_allow_html=True
         )
 
-
-        
         st.markdown(
             """
             <h4 style="
@@ -836,7 +861,6 @@ def main():
             """,
             unsafe_allow_html=True
         )
-
         
         # 1) Inject **scoped** CSS that only hits buttons inside our wrapper
         st.markdown(
@@ -876,7 +900,6 @@ def main():
         }
         </style>
         """, unsafe_allow_html=True)
-
         
         col1, col2, col3 = st.columns([2,2,2], gap="large")
 
@@ -906,7 +929,7 @@ def main():
             if st.button("Human-in-the-loop\n\n ***Single-pass answers with memory***\n" \
             "***Maintain context across turns***\n ***Ask related follow-ups freely***", key="human_loop", use_container_width=True):
                 st.session_state.page        = "human_in_the_loop"
-                st.session_state.chat_mode   = "human_in_the_loop"
+                st.session_state.chat_mode   = "human-in-the-loop"
                 st.session_state.messages    = []
                 st.session_state.cur_hist    = None
                 ensure_memory()              # ← add this single line
@@ -914,10 +937,7 @@ def main():
 
         # st.markdown("---")
 
-
     else:
-
-
 
         # Back button + title
         # Back button + centered title
@@ -1113,28 +1133,6 @@ def main():
             engineer_model   = st.session_state.agent_models["engineer"]
             researcher_model = st.session_state.agent_models["researcher"]
 
-            # --- Model/provider selection logic for engineer and researcher ---
-
-            def get_config_for_model(model, provider_oai, provider_anthropic, provider_gemini=None):
-                model_lower = model.lower()
-                # print("MODEL LOWER:", model_lower)
-                if any(x in model_lower for x in ["gpt", "o3", "o4"]):
-                    # print("OPENAI MODEL SELECTED")
-                    # print("OPENAI API KEY:", os.environ["OPENAI_API_KEY"])
-                    return {"model": model, "api_key": os.environ["OPENAI_API_KEY"], "api_type": "openai"}
-                elif "claude" in model_lower:
-                    # print("ANTHROPIC MODEL SELECTED")
-                    return {"model": model, "api_key": os.environ["ANTHROPIC_API_KEY"], "api_type": "anthropic"}
-                elif "gemini" in model_lower:
-                    return {"model": model, "api_key": None, "api_type": "google"}
-                else:
-                    return {"model": model, "api_key": "", "api_type": "openai"}
-
-            engineer_config   = get_config_for_model(engineer_model, provider_oai, provider_anthropic, None)
-            researcher_config = get_config_for_model(researcher_model, provider_oai, provider_anthropic, None)
-
-
-
             # 3) Stream only internal logs in one assistant bubble  ← still true :)
             # with st.chat_message("assistant") as assistant_message:
             with st.chat_message("assistant", avatar=ASSISTANT_AVATAR) as assistant_message:
@@ -1156,9 +1154,10 @@ def main():
                                 user_input,
                                 max_rounds = max_rounds,
                                 max_n_attempts = max_n_attempts,
-                                engineer_model=engineer_model,
-                                researcher_model=researcher_model,
-                                agent=st.session_state.one_shot_selected_agent,
+                                engineer_model = engineer_model,
+                                researcher_model = researcher_model,
+                                agent = st.session_state.one_shot_selected_agent,
+                                api_keys = api_keys
                             )
 
                         elif st.session_state.page == "planning_and_control":
@@ -1168,10 +1167,11 @@ def main():
                                 n_plan_reviews = n_plan_reviews,
                                 max_n_attempts = max_n_attempts,
                                 max_plan_steps= max_plan_steps,
-                                engineer_model=engineer_model,
-                                researcher_model=researcher_model,
-                                plan_instructions=plan_instructions,
-                                hardware_constraints=hardware_constraints,
+                                engineer_model = engineer_model,
+                                researcher_model = researcher_model,
+                                plan_instructions = plan_instructions,
+                                hardware_constraints = hardware_constraints,
+                                api_keys = api_keys
                             )
 
                         elif st.session_state.page == "human_in_the_loop":
@@ -1185,6 +1185,7 @@ def main():
                                 engineer_model   = engineer_model,
                                 researcher_model = researcher_model,
                                 agent    = st.session_state.one_shot_selected_agent,
+                                api_keys = api_keys
                             )
 
 
@@ -1206,11 +1207,8 @@ def main():
             from IPython.display import Image as IPyImage
             # from PIL.Image import Image as PILImage
 
-
             history        = results.get("chat_history", [])
             tool_responses = results.get("tool_responses", [])
-
-    
 
             def extract_key(name, content):
                 # pull out the actual string we care about
