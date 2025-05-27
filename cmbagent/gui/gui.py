@@ -565,7 +565,7 @@ def main():
         st.write("Choose the CMBAgent mode")
 
         modes = ["One shot","Planning and control","Human in the loop"]
-        page_selected = st.selectbox("Modes:", modes)
+        page_selected = st.selectbox("Modes:", modes, index=None)
         if page_selected=="One shot":
             st.session_state.page        = "one_shot"
             st.session_state.chat_mode   = "one-shot"
