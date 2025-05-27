@@ -830,9 +830,6 @@ def main():
             unsafe_allow_html=True,
         )
 
-
-
-
         # Use a regular Streamlit button
         if st.button("Reset Session", key="reset_session"):
             st.session_state.clear()
@@ -860,8 +857,6 @@ def main():
             unsafe_allow_html=True
         )
 
-
-        
         st.markdown(
             """
             <h4 style="
@@ -876,7 +871,6 @@ def main():
             """,
             unsafe_allow_html=True
         )
-
         
         # 1) Inject **scoped** CSS that only hits buttons inside our wrapper
         st.markdown(
@@ -916,7 +910,6 @@ def main():
         }
         </style>
         """, unsafe_allow_html=True)
-
         
         col1, col2, col3 = st.columns([2,2,2], gap="large")
 
@@ -954,10 +947,7 @@ def main():
 
         # st.markdown("---")
 
-
     else:
-
-
 
         # Back button + title
         # Back button + centered title
@@ -1153,26 +1143,6 @@ def main():
             engineer_model   = st.session_state.agent_models["engineer"]
             researcher_model = st.session_state.agent_models["researcher"]
 
-            # --- Model/provider selection logic for engineer and researcher ---
-
-            def get_config_for_model(model, provider_oai, provider_anthropic, provider_gemini=None):
-                model_lower = model.lower()
-                # print("MODEL LOWER:", model_lower)
-                if any(x in model_lower for x in ["gpt", "o3", "o4"]):
-                    # print("OPENAI MODEL SELECTED")
-                    # print("OPENAI API KEY:", os.environ["OPENAI_API_KEY"])
-                    return {"model": model, "api_key": provider_oai, "api_type": "openai"}
-                elif "claude" in model_lower:
-                    # print("ANTHROPIC MODEL SELECTED")
-                    return {"model": model, "api_key": provider_anthropic, "api_type": "anthropic"}
-                elif "gemini" in model_lower:
-                    return {"model": model, "api_key": None, "api_type": "google"}
-                else:
-                    return {"model": model, "api_key": "", "api_type": "openai"}
-
-            engineer_config   = get_config_for_model(engineer_model, provider_oai, provider_anthropic, None)
-            researcher_config = get_config_for_model(researcher_model, provider_oai, provider_anthropic, None)
-
             # 3) Stream only internal logs in one assistant bubble  ← still true :)
             # with st.chat_message("assistant") as assistant_message:
             with st.chat_message("assistant", avatar=ASSISTANT_AVATAR) as assistant_message:
@@ -1247,11 +1217,8 @@ def main():
             from IPython.display import Image as IPyImage
             # from PIL.Image import Image as PILImage
 
-
             history        = results.get("chat_history", [])
             tool_responses = results.get("tool_responses", [])
-
-    
 
             def extract_key(name, content):
                 # pull out the actual string we care about
