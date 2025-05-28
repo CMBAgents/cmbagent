@@ -35,14 +35,14 @@ path_to_agents = os.path.join(path_to_basedir, "agents/")
 # path_to_admin = os.path.join(path_to_basedir, "admin")
 
 if "site-packages" in path_to_basedir or "dist-packages" in path_to_basedir:
-    work_dir = os.path.join(os.getcwd(), "cmbagent_output")
-    if not os.path.exists(work_dir):
-        os.makedirs(work_dir)
+    work_dir_default = os.path.join(os.getcwd(), "cmbagent_output")
+    if not os.path.exists(work_dir_default):
+        os.makedirs(work_dir_default)
 else:
-    work_dir = os.path.join(path_to_basedir, "../output")
+    work_dir_default = os.path.join(path_to_basedir, "../output")
 
 if cmbagent_debug:
-    print('\n\n\n\n\nwork_dir: ', work_dir)
+    print('\n\n\n\n\nwork_dir_default: ', work_dir_default)
 
 
 default_chunking_strategy = {
