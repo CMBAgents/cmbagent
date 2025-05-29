@@ -1137,6 +1137,7 @@ def planning_and_control(
                             idea_maker_model = default_agents_llm_model['idea_maker'],
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             work_dir = work_dir_default,
+                            researcher_filename = None,
                             api_keys = None,
                             ):
 
@@ -1161,6 +1162,8 @@ def planning_and_control(
     end_time = time.time()
     initialization_time_planning = end_time - start_time
 
+
+
     start_time = time.time()
     cmbagent.solve(task,
                 max_rounds=max_rounds_planning,
@@ -1172,7 +1175,8 @@ def planning_and_control(
                                     'engineer_append_instructions': engineer_instructions,
                                     'researcher_append_instructions': researcher_instructions,
                                     'plan_reviewer_append_instructions': plan_instructions,
-                                    'hardware_constraints': hardware_constraints}
+                                    'hardware_constraints': hardware_constraints,
+                                    'researcher_filename': researcher_filename}
                 )
     end_time = time.time()
     execution_time_planning = end_time - start_time
@@ -1212,8 +1216,8 @@ def planning_and_control(
         )
     
 
-    print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")
-    print(f"in cmbagent.py: idea_hater_config: {idea_hater_config}")
+    # print(f"in cmbagent.py: idea_maker_config: {idea_maker_config}")
+    # print(f"in cmbagent.py: idea_hater_config: {idea_hater_config}")
     
     end_time = time.time()
     initialization_time_control = end_time - start_time
@@ -1384,6 +1388,7 @@ def one_shot(
             max_n_attempts = 3,
             engineer_model = default_agents_llm_model['engineer'],
             researcher_model = default_agents_llm_model['researcher'],
+            researcher_filename = None,
             agent = 'engineer',
             work_dir = work_dir_default,
             api_keys = None,
@@ -1431,6 +1436,10 @@ def one_shot(
         classy_context = resp.text          # Whole document as one long string
 
         shared_context["classy_context"] = classy_context
+
+
+    if researcher_filename is not None: 
+        shared_context["researcher_filename"] = researcher_filename
 
     # print(f"shared_context: {shared_context}")
     # import sys

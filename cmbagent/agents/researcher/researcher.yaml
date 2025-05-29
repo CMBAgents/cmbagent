@@ -41,6 +41,9 @@ instructions: |
     - Don't speak in first person.
     - Write as if you are an academic researcher writing a part of a scientific paper.
 
+    **Code blocks in response**
+    - Code blocks must be reported within the tags <code> and </code>.
+
     **Context**
     Summary of previous steps execution and codebase:
     <PREVIOUS_STEPS_EXECUTION_SUMMARY>

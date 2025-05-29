@@ -7,6 +7,16 @@ instructions: |
     You **must** not add or remove any information.
     You should only structure the input text into the output markdown response format.
 
+    Within the markdown block, any code blocks must be reported within the tags <code> and </code>. The tags must be kept.
+
+    Desired filename: {researcher_filename}
+    You must set the filename as specified above.
+
+    You adhere strictly to your response format, which is based on the following template:
+        markdown_block: str = Field(..., description="A Markdown block containing the researcher's notes in a form ready to be saved. Should not contain ```markdown fences.")
+        filename: str = Field(..., description="The name to give to this markdown notes in the format: <filename>.md or <filename>.txt")
+
+
 
 description: |
     Formatting agent, to format the response provided by the researcher agent.
