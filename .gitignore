@@ -74,3 +74,4 @@ docs/notebooks/astropilot_data/.DS_Store
 docs/notebooks/astropilot_data/plots/.DS_Store
 gui_expt.py
 tests/Project*
+project_dir
