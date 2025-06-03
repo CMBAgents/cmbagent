@@ -539,8 +539,10 @@ class CMBAgent:
             if shared_context is not None:
                 this_shared_context.update(shared_context)
         
-
-        self.clear_cache() ## obsolete
+        try:
+            self.clear_cache() ## obsolete
+        except:
+            pass
         if self.clear_work_dir_bool:
             self.clear_work_dir()
 
