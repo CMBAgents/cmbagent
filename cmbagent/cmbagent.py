@@ -925,6 +925,9 @@ def planning_and_control_context_carryover(
                             api_keys = None,
                             ):
 
+    # Create work directory if it doesn't exist
+    Path(work_dir).expanduser().resolve().mkdir(parents=True, exist_ok=True)
+
     ## planning
     planning_dir = Path(work_dir).expanduser().resolve() / "planning"
 
@@ -1143,6 +1146,10 @@ def planning_and_control(
                             researcher_filename = None,
                             api_keys = None,
                             ):
+
+    # Create work directory if it doesn't exist
+    Path(work_dir).expanduser().resolve().mkdir(parents=True, exist_ok=True)
+    
 
     ## planning
     planning_dir = Path(work_dir).expanduser().resolve() / "planning"
