@@ -713,16 +713,16 @@ def main():
         with st.expander("Click to configure", expanded=False):
 
             # 📝  Tell users they can skip the boxes if their keys are already exported
-            if not deploy:
-                st.markdown(
-                    """
-                    <span style="font-size:0.9rem;">
-                    <em>If you’ve already set your API keys as environment variables
-                    (e.g., in <code>~/.bashrc</code>), leave these fields blank.</em>
-                    </span>
-                    """,
-                    unsafe_allow_html=True,
-                )
+            # if not deploy:
+            #     st.markdown(
+            #         """
+            #         <span style="font-size:0.9rem;">
+            #         <em>If you’ve already set your API keys as environment variables
+            #         (e.g., in <code>~/.bashrc</code>), leave these fields blank.</em>
+            #         </span>
+            #         """,
+            #         unsafe_allow_html=True,
+            #     )
             st.markdown("<br>", unsafe_allow_html=True)
 
             provider_oai        = st.text_input("OpenAI",      type="password", key="api_key_oai")

@@ -143,7 +143,7 @@ default_agents_llm_model ={
     "cobaya": "gpt-4o-2024-11-20",
     "planck": "gpt-4o-2024-11-20",
 
-    # "camb_context": "gpt-4o-2024-11-20",
+    "camb_context": "gpt-4.1-2025-04-14",
     # "camb_context": "gemini-2.5-flash-preview-04-17",
     # "camb_context": "gemini-2.5-pro-preview-03-25",
     # "camb_context": "gemini-2.5-flash",

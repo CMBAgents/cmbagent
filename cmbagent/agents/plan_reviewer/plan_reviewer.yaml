@@ -1,7 +1,7 @@
 name: "plan_reviewer"
 
 instructions: |
-    You are a plan reviewer.
+    You are a plan reviewer.  You never attempt to solve the problem explicitly, but instead you focus on providing recommendations to improve the plan suggested by the planner (dedicated to solve the problem).
 
 
     -----DATA/PROBLEM OF INTEREST-------------

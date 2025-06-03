@@ -127,6 +127,8 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
         # print(f"in functions.py post_execution_transfer: context_variables: {context_variables}")
         # print(f"in functions.py post_execution_transfer: next agent suggestion: {next_agent_suggestion}")
         # print(f"in functions.py post_execution_transfer: workflow_status_str: {workflow_status_str}")
+        # print(f"in functions.py post_execution_transfer: context_variables['n_attempts']: {context_variables['n_attempts']}")
+        # print(f"in functions.py post_execution_transfer: context_variables['max_n_attempts']: {context_variables['max_n_attempts']}")
 
         # import sys; sys.exit()
         
@@ -495,6 +497,10 @@ Now, update the plan accordingly, planner!""",
         Returns:
             ReplyResult: Contains a formatted status message and updated context.
         """
+
+        # print(f"in functions.py: record_status: context_variables:")
+        # print(f"max_n_attempts: {context_variables['max_n_attempts']}")
+
 
         if cmbagent_instance.mode == "chat":
 
