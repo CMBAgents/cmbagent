@@ -4,37 +4,42 @@ import streamlit as st
 import os
 import re
 from PIL import Image
+from PIL.Image import Image as PILImage
 import pandas as pd
 from IPython.display import Markdown as IPyMarkdown
-# from PIL.Image import Image as PILImage  # <-- this is the actual class
+from IPython.display import Image as IPyImage
 from pandas.io.formats.style import Styler
-os.environ["CMBAGENT_DEBUG"] = "false"
-os.environ["ASTROPILOT_DISABLE_DISPLAY"] = "true"
-os.environ["STREAMLIT_ON"] = "true"
 import json
-# import cmbagent
-from cmbagent.cmbagent import one_shot, planning_and_control_context_carryover
-from cmbagent.utils import get_api_keys_from_env
-
+from io import BytesIO
 import requests
 from contextlib import redirect_stdout
-import glob          # <-- NEW
+import glob
 import traceback
 import base64
 from pathlib import Path
 import uuid
 import argparse
+import tempfile
+import shutil
+from json import JSONDecodeError
+import unicodedata
+import time
+from collections import deque
+
+os.environ["CMBAGENT_DEBUG"] = "false"
+os.environ["ASTROPILOT_DISABLE_DISPLAY"] = "true"
+os.environ["STREAMLIT_ON"] = "true"
+from cmbagent.cmbagent import one_shot, planning_and_control_context_carryover
+from cmbagent.utils import get_api_keys_from_env
 
 IMAGE_WIDTH_FRACTION = 1/2
 
-# ── rolling memory: only used in HUMAN‑IN‑THE‑LOOP mode ───────────────
-from collections import deque
 
 def get_project_dir():
 
     if "project_dir" not in st.session_state:
         
-        temp_dir = f"project_{uuid.uuid4().hex}"
+        temp_dir = f"project_dir_{uuid.uuid4().hex}"
         os.makedirs(temp_dir, exist_ok=True)
         
         st.session_state.project_dir = temp_dir
@@ -42,7 +47,7 @@ def get_project_dir():
     return st.session_state.project_dir
 
 def main():
-    from PIL.Image import Image as PILImage
+    
     MEMORY_WINDOW = None                     # keep last 12 exchanges
     def ensure_memory() -> None:
         """
@@ -81,7 +86,6 @@ def main():
         if obj is None:
             return ""              # genuinely empty
         
-        from IPython.display import Markdown as IPyMarkdown
         if isinstance(obj, str):
             return obj.strip()
 
@@ -154,6 +158,37 @@ def main():
     def read_prompt_from_file(path):
         with open(path, 'r') as f:
             return f.read()
+        
+    def get_latest_mtime_in_folder(folder_path: str) -> float:
+        """
+        Returns the most recent modification time of any file or folder inside the given folder.
+        """
+        latest_mtime = os.path.getmtime(folder_path)
+        for root, dirs, files in os.walk(folder_path):
+            for name in files + dirs:
+                full_path = os.path.join(root, name)
+                try:
+                    mtime = os.path.getmtime(full_path)
+                    if mtime > latest_mtime:
+                        latest_mtime = mtime
+                except FileNotFoundError:
+                    continue  # In case something was removed during walk
+        return latest_mtime
+
+    def delete_old_folders(days_old: int = 1):
+        """
+        Deletes folders in the current directory that start with 'project_dir_'
+        if all their contents are older than `days_old` days.
+        Used for the deployed demo version to avoid size issues.
+        """
+        now = time.time()
+        cutoff = now - (days_old * 86400)
+
+        for entry in os.listdir('.'):
+            if os.path.isdir(entry) and entry.startswith("project_dir_"):
+                latest_mtime = get_latest_mtime_in_folder(entry)
+                if latest_mtime < cutoff:
+                    shutil.rmtree(entry)
 
     # st.set_page_config(
     #     page_title="CMBAgent",
@@ -167,6 +202,7 @@ def main():
     deploy = parser.parse_args().deploy
 
     if deploy:
+        delete_old_folders()
         project_dir = get_project_dir()
     else:
         project_dir = "project_dir"
@@ -338,14 +374,6 @@ def main():
         return str(obj)
 
     # ------------------------------------------------------------------ utils/json
-
-    import tempfile
-    import shutil
-    from json import JSONDecodeError
-    # ── utils/filenames ──────────────────────────────────────────────────────────
-    import unicodedata
-
-
 
     def typewriter(text, placeholder):
         # 1) Load the font once
@@ -1159,7 +1187,7 @@ def main():
             with st.chat_message("assistant", avatar=ASSISTANT_AVATAR) as assistant_message:
 
                     # ── live status banner ─────────────────────────────────────────────
-                import time
+                
                 start_ts = time.perf_counter()
                 status_placeholder = st.empty()
                 status_placeholder.markdown("**Agent running…**")
@@ -1227,9 +1255,6 @@ def main():
 
 
     # … right after your redirect_stdout(...) block …
-
-            from IPython.display import Image as IPyImage
-            # from PIL.Image import Image as PILImage
 
             history        = results.get("chat_history", [])
             tool_responses = results.get("tool_responses", [])
@@ -1374,8 +1399,6 @@ def main():
                         if txt:
                             add_to_memory("assistant", txt)
  
-                
-from io import BytesIO
 
 def display_image_fraction_width(img, fraction=1/3):
     buffered = BytesIO()
