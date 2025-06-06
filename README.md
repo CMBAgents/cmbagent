@@ -61,6 +61,19 @@ cmbagent run
 
 See below if you need to run in terminal, notebooks etc.
 
+
+## Install for developers
+
+```bash
+git clone https://github.com/CMBAgents/cmbagent.git
+cd cmbagent
+python3 -m venv cmbagent_env
+source cmbagent_env/bin/activate
+pip install -e .
+```
+
+You can then open the folder in your VSCode/Cursor/Emacs/... and work on the source code. 
+
 ## Run
 
 We assume you are in the virtual environment where you installed cmbagent. 
