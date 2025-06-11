@@ -13,6 +13,8 @@
 
 Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://github.com/ag2ai/ag2).
 
+Try it on [HuggingFace](https://huggingface.co/spaces/astropilot-ai/cmbagent)!
+
 Check our [demo videos](https://www.youtube.com/@cmbagent) on YouTube!
 
 Join our [Discord Server](https://discord.gg/UG47Yb6gHG) to ask all your questions!
