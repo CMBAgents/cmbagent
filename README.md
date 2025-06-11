@@ -6,14 +6,19 @@
     <img src="https://img.shields.io/badge/YouTube-Subscribe-red?style=flat-square&logo=youtube" alt="Subscribe on YouTube" width="140"/>
 </a> 
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431) 
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431) [![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-blue)](https://huggingface.co/spaces/astropilot-ai/cmbagent)
+[![PyPI version](https://img.shields.io/pypi/v/cmbagent.svg)](https://pypi.org/project/cmbagent/)
+
 <a href="https://discord.gg/UG47Yb6gHG" target="_blank">
     <img src="https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white&style=flat-square" alt="Join us on Discord" width="140"/>
 </a>
 
+
+
+
 Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://github.com/ag2ai/ag2).
 
-Try it on [HuggingFace](https://huggingface.co/spaces/astropilot-ai/cmbagent)!
+Try cmbagent on [HuggingFace](https://huggingface.co/spaces/astropilot-ai/cmbagent)!
 
 Check our [demo videos](https://www.youtube.com/@cmbagent) on YouTube!
 
