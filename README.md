@@ -2,12 +2,13 @@
 <img width="1259" alt="Screenshot 2025-05-06 at 03 09 33" src="https://github.com/user-attachments/assets/750ab69f-53c9-449f-9bb6-f926a95631f5" />
 
 
-<a href="https://www.youtube.com/@cmbagent" target="_blank">
-    <img src="https://img.shields.io/badge/YouTube-Subscribe-red?style=flat-square&logo=youtube" alt="Subscribe on YouTube" width="140"/>
-</a> 
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431) [![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-blue)](https://huggingface.co/spaces/astropilot-ai/cmbagent)
 [![PyPI version](https://img.shields.io/pypi/v/cmbagent.svg)](https://pypi.org/project/cmbagent/)
+
+<a href="https://www.youtube.com/@cmbagent" target="_blank">
+    <img src="https://img.shields.io/badge/YouTube-Subscribe-red?style=flat-square&logo=youtube" alt="Subscribe on YouTube" width="140"/>
+</a> 
 
 <a href="https://discord.gg/UG47Yb6gHG" target="_blank">
     <img src="https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white&style=flat-square" alt="Join us on Discord" width="140"/>
