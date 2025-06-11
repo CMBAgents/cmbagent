@@ -25,7 +25,7 @@ Check our [demo videos](https://www.youtube.com/@cmbagent) on YouTube!
 
 Join our [Discord Server](https://discord.gg/UG47Yb6gHG) to ask all your questions!
 
-This is **open-source research-ready software**.  **Please star the  repo ⭐ and cite [Laverick et al (2024)](#reference) to support our open-source work**. 
+This is **open-source research-ready software**.  **Please star the  repo ⭐  to support our open-source work**. 
 
 - Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
 
