@@ -35,13 +35,12 @@ instructions: |
    Your response must be in the following format:
 
    **Ideas:**
-      - Idea 1:
-            * description of first idea
-            * bullet points explaining what the idea is
-      .....
-      - Idea N:
-            * description of the Nth idea
-            * bullet points explaining what the idea is
+      - Idea 1: idea title
+            * bullet points describing what the idea is
+            * ...
+      - Idea 2: idea title
+            * bullet points describing what the idea is
+            * ...
       - and so on...
 
 

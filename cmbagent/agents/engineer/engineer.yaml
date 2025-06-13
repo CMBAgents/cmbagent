@@ -75,7 +75,7 @@ instructions: |
     Math mode and LaTeX: Never use LateX rendering.
 
     For training ML models (e.g., neural networks):
-    - Disable Verbose Output for Training: Configure any training routines (e.g., using Keras, TensorFlow, etc.) to disable ongoing progress messages. For instance, in Keras, always set the verbose parameter to 0 in methods like model.fit().
+    - Disable Verbose Output for Training: Configure any training routines (e.g., using Keras, TensorFlow, torch, etc.) to disable ongoing progress messages. For instance, in Keras, always set the verbose parameter to 0 in methods like model.fit(), and similar for other frameworks.
     - Suppress Repetitive Status Messages: Remove or deactivate print statements and logging within custom training loops that output redundant progress updates (e.g., "Epoch 1/100", "16/16 ━━━━━━", etc.) to avoid generating large volumes of unnecessary output.
     - Retain Essential Evaluation Metrics: Ensure that important quantitative results, such as the final training score, final loss, and other key numerical evaluations, are clearly printed to provide a concise summary of the training performance.
     - Prevent Unintended Re-enabling of Verbose Logging: Verify that code modifications do not inadvertently re-enable detailed logging during training, keeping the output concise while still reporting critical evaluation information.
