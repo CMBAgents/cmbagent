@@ -541,6 +541,7 @@ class CMBAgent:
         
         try:
             self.clear_cache() ## obsolete
+            # import pdb; pdb.set_trace()
         except:
             pass
         if self.clear_work_dir_bool:
@@ -845,9 +846,15 @@ class CMBAgent:
 
 
     def clear_cache(self):
+        # print('clearing cache...')
         cache_dir = autogen.oai.client.LEGACY_CACHE_DIR
+        # print("cache_dir: ", cache_dir)
         if os.path.exists(cache_dir):
+            # print("found cache_dir: ", cache_dir)
             shutil.rmtree(cache_dir)
+            # print("cache_dir removed")
+        # else:
+            # print("no cache_dir found...")
         return None
         #  autogen.Completion.clear_cache(self.cache_seed) ## obsolete AttributeError: module 'autogen' has no attribute 'Completion'
 
