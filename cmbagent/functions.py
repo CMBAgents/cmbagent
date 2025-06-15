@@ -13,6 +13,7 @@ from autogen import register_function
 from typing import Optional
 import datetime
 import json
+from pathlib import Path
 from .utils import AAS_keywords_dict
 
 cmbagent_debug = autogen.cmbagent_debug
@@ -1183,27 +1184,8 @@ def load_docstrings(directory: str = "codebase"):
 
 def load_plots(directory: str) -> list:
     """
-    Searches the given directory for image files with extensions
-    png, jpg, jpeg, or gif and returns a list of their file paths.
-    
-    Args:
-        directory (str): The directory to search.
-        
-    Returns:
-        list: List of image file paths.
+    Recursively searches for image files (png, jpg, jpeg, gif) in directory and all subdirectories.
     """
     image_extensions = ('.png', '.jpg', '.jpeg', '.gif')
-    image_files = []
-
-    # List of directories to search: base directory + specific subdirectories.
-    dirs_to_search = [directory,
-                      os.path.join(directory, "plots"),
-                      os.path.join(directory, "images"),
-                      os.path.join(directory, "figures")]
-
-    for dir_path in dirs_to_search:
-        if os.path.exists(dir_path) and os.path.isdir(dir_path):
-            for file in os.listdir(dir_path):
-                if file.lower().endswith(image_extensions):
-                    image_files.append(os.path.join(dir_path, file))
-    return image_files
+    directory = Path(directory)
+    return [str(path) for path in directory.rglob('*') if path.suffix.lower() in image_extensions]
