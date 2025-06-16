@@ -1,8 +1,3 @@
-
-<img width="1259" alt="Screenshot 2025-05-06 at 03 09 33" src="https://github.com/user-attachments/assets/750ab69f-53c9-449f-9bb6-f926a95631f5" />
-
-
-
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431) [![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-blue)](https://huggingface.co/spaces/astropilot-ai/cmbagent)
 [![PyPI version](https://img.shields.io/pypi/v/cmbagent.svg)](https://pypi.org/project/cmbagent/)
 
