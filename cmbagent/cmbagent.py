@@ -10,6 +10,7 @@ import copy
 import datetime
 from pathlib import Path
 import time
+import pickle
 from collections import defaultdict
 from openai import OpenAI
 from IPython.display import Image
@@ -942,86 +943,102 @@ def planning_and_control_context_carryover(
                             default_llm_model = default_llm_model_default,
                             work_dir = work_dir_default,
                             api_keys = None,
+                            restart_at_step = -1,   ## if -1, do not restart. if 1, restart from step 1, etc.
                             ):
 
     # Create work directory if it doesn't exist
     Path(work_dir).expanduser().resolve().mkdir(parents=True, exist_ok=True)
-
-    ## planning
-    planning_dir = Path(work_dir).expanduser().resolve() / "planning"
-
-    start_time = time.time()
-
+    
+    context_dir = Path(work_dir).expanduser().resolve() / "context"
+    os.makedirs(context_dir, exist_ok=True)
     if api_keys is None:
         api_keys = get_api_keys_from_env()
 
-    planner_config = get_model_config(planner_model, api_keys)
-    plan_reviewer_config = get_model_config(plan_reviewer_model, api_keys)
-    
-    cmbagent = CMBAgent(work_dir = planning_dir,
-                        default_llm_model = default_llm_model,
-                        agent_llm_configs = {
-                            'planner': planner_config,
-                            'plan_reviewer': plan_reviewer_config,
-                        },
-                        api_keys = api_keys
-                        )
-    end_time = time.time()
-    initialization_time_planning = end_time - start_time
-
-    start_time = time.time()
-    cmbagent.solve(task,
-                max_rounds=max_rounds_planning,
-                initial_agent="plan_setter",
-                shared_context = {'feedback_left': n_plan_reviews,
-                                    'max_n_attempts': max_n_attempts,
-                                    'maximum_number_of_steps_in_plan': max_plan_steps,
-                                    'planner_append_instructions': plan_instructions,
-                                    'engineer_append_instructions': engineer_instructions,
-                                    'researcher_append_instructions': researcher_instructions,
-                                    'plan_reviewer_append_instructions': plan_instructions,
-                                    'hardware_constraints': hardware_constraints}
-                )
-    end_time = time.time()
-    execution_time_planning = end_time - start_time
-
-    # Create a dummy groupchat attribute if it doesn't exist
-    if not hasattr(cmbagent, 'groupchat'):
-        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
-        cmbagent.groupchat = Dummy()
-
-    # Now call display_cost without triggering the AttributeError
-    cmbagent.display_cost()
-
-    planning_output = copy.deepcopy(cmbagent.final_context)
-    number_of_steps_in_plan = planning_output['number_of_steps_in_plan']
-    outfile = save_final_plan(planning_output, planning_dir)
-    print(f"\nStructured plan written to {outfile}")
-    print(f"\nPlanning took {execution_time_planning:.4f} seconds\n")
-
-    # Save timing report as JSON
-    timing_report = {
-        'initialization_time_planning': initialization_time_planning,
-        'execution_time_planning': execution_time_planning, 
-        'total_time': initialization_time_planning + execution_time_planning
-    }
-
-    # Add timestamp
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    # Save to JSON file in workdir
-    timing_path = os.path.join(planning_output['work_dir'], f"time/timing_report_planning_{timestamp}.json")
-    with open(timing_path, 'w') as f:
-        json.dump(timing_report, f, indent=2)
-    
-    print(f"\nTiming report data saved to: {timing_path}\n")
+    ## planning
+    if restart_at_step <= 0:
 
 
-    ## delete empty folders during planning
-    database_full_path = os.path.join(planning_output['work_dir'], planning_output['database_path'])
-    codebase_full_path = os.path.join(planning_output['work_dir'], planning_output['codebase_path'])
-    for folder in [database_full_path, codebase_full_path]:
-        if not os.listdir(folder):
-            os.rmdir(folder)
+        ## planning
+        planning_dir = Path(work_dir).expanduser().resolve() / "planning"
+
+        start_time = time.time()
+
+
+
+        planner_config = get_model_config(planner_model, api_keys)
+        plan_reviewer_config = get_model_config(plan_reviewer_model, api_keys)
+        
+        cmbagent = CMBAgent(work_dir = planning_dir,
+                            default_llm_model = default_llm_model,
+                            agent_llm_configs = {
+                                'planner': planner_config,
+                                'plan_reviewer': plan_reviewer_config,
+                            },
+                            api_keys = api_keys
+                            )
+        end_time = time.time()
+        initialization_time_planning = end_time - start_time
+
+        start_time = time.time()
+        cmbagent.solve(task,
+                    max_rounds=max_rounds_planning,
+                    initial_agent="plan_setter",
+                    shared_context = {'feedback_left': n_plan_reviews,
+                                        'max_n_attempts': max_n_attempts,
+                                        'maximum_number_of_steps_in_plan': max_plan_steps,
+                                        'planner_append_instructions': plan_instructions,
+                                        'engineer_append_instructions': engineer_instructions,
+                                        'researcher_append_instructions': researcher_instructions,
+                                        'plan_reviewer_append_instructions': plan_instructions,
+                                        'hardware_constraints': hardware_constraints}
+                    )
+        end_time = time.time()
+        execution_time_planning = end_time - start_time
+
+        # Create a dummy groupchat attribute if it doesn't exist
+        if not hasattr(cmbagent, 'groupchat'):
+            Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+            cmbagent.groupchat = Dummy()
+
+        # Now call display_cost without triggering the AttributeError
+        cmbagent.display_cost()
+
+        planning_output = copy.deepcopy(cmbagent.final_context)
+        
+        outfile = save_final_plan(planning_output, planning_dir)
+        print(f"\nStructured plan written to {outfile}")
+        print(f"\nPlanning took {execution_time_planning:.4f} seconds\n")
+
+        context_path = os.path.join(context_dir, "context_step_0.pkl") # save the initial context (0: planning)
+        # with open(context_path, 'w') as f:
+        #     json.dump(current_context, f, indent=2)
+        with open(context_path, 'wb') as f:
+            pickle.dump(cmbagent.final_context, f)
+        # Save timing report as JSON
+        timing_report = {
+            'initialization_time_planning': initialization_time_planning,
+            'execution_time_planning': execution_time_planning, 
+            'total_time': initialization_time_planning + execution_time_planning
+        }
+
+        # Add timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Save to JSON file in workdir
+        timing_path = os.path.join(planning_output['work_dir'], f"time/timing_report_planning_{timestamp}.json")
+        with open(timing_path, 'w') as f:
+            json.dump(timing_report, f, indent=2)
+        
+        print(f"\nTiming report data saved to: {timing_path}\n")
+
+
+        ## delete empty folders during planning
+        database_full_path = os.path.join(planning_output['work_dir'], planning_output['database_path'])
+        codebase_full_path = os.path.join(planning_output['work_dir'], planning_output['codebase_path'])
+        for folder in [database_full_path, codebase_full_path]:
+            if not os.listdir(folder):
+                os.rmdir(folder)
+
+
     
     ## control
     engineer_config = get_model_config(engineer_model, api_keys)
@@ -1032,12 +1049,13 @@ def planning_and_control_context_carryover(
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
-    current_context = copy.deepcopy(planning_output)
+    current_context = copy.deepcopy(planning_output) if restart_at_step <= 0 else load_context(os.path.join(context_dir, f"context_step_{restart_at_step-1}.pkl"))
+    number_of_steps_in_plan = current_context['number_of_steps_in_plan']
     step_summaries = []  
     # print("in cmbagent.py: current_context before step loop: ", current_context)
-
-    for step in range(1, number_of_steps_in_plan + 1):
-        clear_work_dir = True if step == 1 else False
+    initial_step = 1 if restart_at_step <= 0 else restart_at_step
+    for step in range(initial_step, number_of_steps_in_plan + 1):
+        clear_work_dir = True if step == 1 and restart_at_step <= 0 else False
         starter_agent = "control" if step == 1 else "control_starter"
         # print(f"in cmbagent.py: step: {step}/{number_of_steps_in_plan}")
         # print("\n\n")
@@ -1138,8 +1156,6 @@ def planning_and_control_context_carryover(
         current_context = copy.deepcopy(cmbagent.final_context)
 
         
-        results['initialization_time_planning'] = initialization_time_planning
-        results['execution_time_planning'] = execution_time_planning
         results['initialization_time_control'] = initialization_time_control
         results['execution_time_control'] = execution_time_control
 
@@ -1169,6 +1185,18 @@ def planning_and_control_context_carryover(
         # Now call display_cost without triggering the AttributeError
         cmbagent.display_cost(name_append = f"step_{step}")
 
+        ## save the chat history and the final context
+        chat_full_path = os.path.join(current_context['work_dir'], "chats")
+        os.makedirs(chat_full_path, exist_ok=True)
+        chat_output_path = os.path.join(chat_full_path, f"chat_history_step_{step}.json")
+        with open(chat_output_path, 'w') as f:
+            json.dump(results['chat_history'], f, indent=2)
+        context_path = os.path.join(context_dir, f"context_step_{step}.pkl")
+        # with open(context_path, 'w') as f:
+        #     json.dump(current_context, f, indent=2)
+        with open(context_path, 'wb') as f:
+            pickle.dump(cmbagent.final_context, f)
+
         # if step == 4:
         #     break
 
@@ -1182,6 +1210,10 @@ def planning_and_control_context_carryover(
 
     return results
 
+def load_context(context_path):
+    with open(context_path, 'rb') as f:
+        context = pickle.load(f)
+    return context
 
 def planning_and_control(
                             task,
@@ -1201,7 +1233,7 @@ def planning_and_control(
                             idea_maker_model = default_agents_llm_model['idea_maker'],
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             work_dir = work_dir_default,
-                            researcher_filename = None,
+                            researcher_filename = shared_context_default['researcher_filename'],
                             api_keys = None,
                             ):
 
@@ -1486,7 +1518,7 @@ def one_shot(
             max_n_attempts = 3,
             engineer_model = default_agents_llm_model['engineer'],
             researcher_model = default_agents_llm_model['researcher'],
-            researcher_filename = None,
+            researcher_filename = shared_context_default['researcher_filename'],
             agent = 'engineer',
             work_dir = work_dir_default,
             api_keys = None,
