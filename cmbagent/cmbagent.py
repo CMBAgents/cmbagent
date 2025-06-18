@@ -599,6 +599,7 @@ class CMBAgent:
         self.last_agent = last_agent
         self.chat_result = chat_result
 
+
     def get_agent_object_from_name(self,name):
         for agent in self.agents:
             if agent.info['name'] == name:
@@ -1014,6 +1015,13 @@ def planning_and_control_context_carryover(
     
     print(f"\nTiming report data saved to: {timing_path}\n")
 
+
+    ## delete empty folders during planning
+    database_full_path = os.path.join(planning_output['work_dir'], planning_output['database_path'])
+    codebase_full_path = os.path.join(planning_output['work_dir'], planning_output['codebase_path'])
+    for folder in [database_full_path, codebase_full_path]:
+        if not os.listdir(folder):
+            os.rmdir(folder)
     
     ## control
     engineer_config = get_model_config(engineer_model, api_keys)
@@ -1164,6 +1172,13 @@ def planning_and_control_context_carryover(
         # if step == 4:
         #     break
 
+    ## delete empty folders during planning
+    database_full_path = os.path.join(current_context['work_dir'], current_context['database_path'])
+    codebase_full_path = os.path.join(current_context['work_dir'], current_context['codebase_path'])
+    for folder in [database_full_path, codebase_full_path]:
+        if not os.listdir(folder):
+            os.rmdir(folder)
+
 
     return results
 
@@ -1247,6 +1262,30 @@ def planning_and_control(
     outfile = save_final_plan(planning_output, planning_dir)
     print(f"Structured plan written to {outfile}")
     print(f"Planning took {execution_time_planning:.4f} seconds")
+
+    # Save timing report as JSON
+    timing_report = {
+        'initialization_time_planning': initialization_time_planning,
+        'execution_time_planning': execution_time_planning, 
+        'total_time': initialization_time_planning + execution_time_planning
+    }
+
+    # Add timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Save to JSON file in workdir
+    timing_path = os.path.join(planning_output['work_dir'], f"time/timing_report_planning_{timestamp}.json")
+    with open(timing_path, 'w') as f:
+        json.dump(timing_report, f, indent=2)
+    
+    print(f"\nTiming report data saved to: {timing_path}\n")
+
+    ## delete empty folders during control
+    database_full_path = os.path.join(planning_output['work_dir'], planning_output['database_path'])
+    codebase_full_path = os.path.join(planning_output['work_dir'], planning_output['codebase_path'])
+    time_full_path = os.path.join(planning_output['work_dir'],'time')
+    for folder in [database_full_path, codebase_full_path, time_full_path]:
+        if not os.listdir(folder):
+            os.rmdir(folder)
     
     ## control
     engineer_config = get_model_config(engineer_model, api_keys)
@@ -1306,7 +1345,7 @@ def planning_and_control(
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # Save to JSON file in workdir
-    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    timing_path = os.path.join(work_dir, f"time/timing_report_{timestamp}.json")
     with open(timing_path, 'w') as f:
         json.dump(timing_report, f, indent=2)
 
@@ -1319,7 +1358,13 @@ def planning_and_control(
     # Now call display_cost without triggering the AttributeError
     cmbagent.display_cost()
 
-
+    ## delete empty folders during control
+    database_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['database_path'])
+    codebase_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['codebase_path'])
+    time_full_path = os.path.join(results['final_context']['work_dir'],'time')
+    for folder in [database_full_path, codebase_full_path, time_full_path]:
+        if not os.listdir(folder):
+            os.rmdir(folder)
     return results
 
 
@@ -1542,7 +1587,7 @@ def one_shot(
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # Save to JSON file in workdir
-    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    timing_path = os.path.join(work_dir, f"time/timing_report_{timestamp}.json")
 
 
     with open(timing_path, 'w') as f:
@@ -1550,6 +1595,14 @@ def one_shot(
 
     print("\nTiming report saved to", timing_path)
     print("\nTask took", f"{execution_time:.4f}", "seconds")
+
+    ## delete empty folders during control
+    database_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['database_path'])
+    codebase_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['codebase_path'])
+    time_full_path = os.path.join(results['final_context']['work_dir'],'time')
+    for folder in [database_full_path, codebase_full_path, time_full_path]:
+        if not os.listdir(folder):
+            os.rmdir(folder)
 
     return results
 
