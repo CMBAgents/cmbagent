@@ -862,7 +862,7 @@ Now, update the plan accordingly, planner!""",
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('control')
                     ## reset the number of code execution attempts for the next step
                     ## (the markdown execution always works)
-                    if cmbagent_instance.mode != "planning_and_control_context_carryover":
+                    if cmbagent_instance.mode != "planning_and_control_context_carryover": ## this is to keep memory of the number of attempts, to save later if needed... currently not used
                         context_variables["n_attempts"] = 0
 
                 # if context_variables["agent_for_sub_task"] == "engineer":

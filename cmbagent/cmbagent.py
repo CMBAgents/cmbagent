@@ -473,9 +473,9 @@ class CMBAgent:
         
         # Save to JSON file in workdir
         if name_append is not None:
-            json_path = os.path.join(self.work_dir, f"cost_report_{name_append}_{timestamp}.json")
+            json_path = os.path.join(self.work_dir, f"cost/cost_report_{name_append}_{timestamp}.json")
         else:
-            json_path = os.path.join(self.work_dir, f"cost_report_{timestamp}.json")
+            json_path = os.path.join(self.work_dir, f"cost/cost_report_{timestamp}.json")
         with open(json_path, 'w') as f:
             json.dump(cost_data, f, indent=2)
             
@@ -550,10 +550,18 @@ class CMBAgent:
         # Define full paths
         database_full_path = os.path.join(self.work_dir, this_shared_context.get("database_path", "data"))
         codebase_full_path = os.path.join(self.work_dir, this_shared_context.get("codebase_path", "codebase"))
+
+        chat_full_path = os.path.join(self.work_dir, "chats")
+        time_full_path = os.path.join(self.work_dir, "time")
+        cost_full_path = os.path.join(self.work_dir, "cost")
         
         # Create directories if they don't exist
         os.makedirs(database_full_path, exist_ok=True)
         os.makedirs(codebase_full_path, exist_ok=True)
+
+        os.makedirs(chat_full_path, exist_ok=True)
+        os.makedirs(time_full_path, exist_ok=True)
+        os.makedirs(cost_full_path, exist_ok=True)
 
         for agent in self.agents:
             try:
@@ -575,7 +583,8 @@ class CMBAgent:
                 agents=[agent.agent for agent in self.agents],
                 initial_agent=self.get_agent_from_name(initial_agent),
                 context_variables=context_variables,
-                group_manager_args = {"llm_config": self.llm_config},
+                group_manager_args = {"llm_config": self.llm_config, 
+                                      "name": "main_cmbagent_chat"},
             )
 
         chat_result, context_variables, last_agent = initiate_group_chat(
@@ -847,7 +856,7 @@ class CMBAgent:
 
     def clear_cache(self):
         # print('clearing cache...')
-        cache_dir = autogen.oai.client.LEGACY_CACHE_DIR
+        cache_dir = autogen.oai.client.LEGACY_CACHE_DIR ## "./cache" 
         # print("cache_dir: ", cache_dir)
         if os.path.exists(cache_dir):
             # print("found cache_dir: ", cache_dir)
@@ -988,6 +997,23 @@ def planning_and_control_context_carryover(
     outfile = save_final_plan(planning_output, planning_dir)
     print(f"\nStructured plan written to {outfile}")
     print(f"\nPlanning took {execution_time_planning:.4f} seconds\n")
+
+    # Save timing report as JSON
+    timing_report = {
+        'initialization_time_planning': initialization_time_planning,
+        'execution_time_planning': execution_time_planning, 
+        'total_time': initialization_time_planning + execution_time_planning
+    }
+
+    # Add timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Save to JSON file in workdir
+    timing_path = os.path.join(planning_output['work_dir'], f"time/timing_report_planning_{timestamp}.json")
+    with open(timing_path, 'w') as f:
+        json.dump(timing_report, f, indent=2)
+    
+    print(f"\nTiming report data saved to: {timing_path}\n")
+
     
     ## control
     engineer_config = get_model_config(engineer_model, api_keys)
@@ -1039,10 +1065,18 @@ def planning_and_control_context_carryover(
             agent_for_step = plan_input[0]['sub_task_agent']
         else:
             agent_for_step = current_context['agent_for_sub_task']
-        # print(f"\nin cmbagent.py: agent_for_step: {agent_for_step}")
+        
+       
 
+        # import sys 
+        # sys.exit()
 
         parsed_context = copy.deepcopy(current_context)
+
+        parsed_context["agent_for_sub_task"] = agent_for_step
+        parsed_context["current_plan_step_number"] = step
+        parsed_context["n_attempts"] = 0 ## reset number of failures for each step. 
+        # print(f"\nin cmbagent.py: agent_for_step {step}: {agent_for_step}")
         # print("xo"*100+"\n\n")
         # print("in cmbagent.py: parsed_context: ", parsed_context["final_plan"])
         # print("in cmbagent.py: parsed_context: ", parsed_context["number_of_steps_in_plan"])
@@ -1103,20 +1137,20 @@ def planning_and_control_context_carryover(
 
         # Save timing report as JSON
         timing_report = {
-            'initialization_time_planning': initialization_time_planning,
-            'execution_time_planning': execution_time_planning, 
             'initialization_time_control': initialization_time_control,
             'execution_time_control': execution_time_control,
-            'total_time': initialization_time_planning + execution_time_planning + initialization_time_control + execution_time_control
+            'total_time': initialization_time_control + execution_time_control
         }
 
         # Add timestamp
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         
         # Save to JSON file in workdir
-        timing_path = os.path.join(work_dir, f"timing_report_step_{step}_{timestamp}.json")
+        timing_path = os.path.join(current_context['work_dir'], f"time/timing_report_step_{step}_{timestamp}.json")
         with open(timing_path, 'w') as f:
             json.dump(timing_report, f, indent=2)
+        
+        print(f"\nTiming report data saved to: {timing_path}\n")
 
         
         # Create a dummy groupchat attribute if it doesn't exist
@@ -1440,7 +1474,7 @@ def one_shot(
     if agent == 'camb_context':
 
         # Fetch the file (30-second safety timeout)
-        resp = requests.get(camb_context_url, timeout=30)
+        resp = requests.get(camb_context_url, timeout=30) # use something different different... debug this lines
         resp.raise_for_status()           # Raises an HTTPError for non-200 codes
         camb_context = resp.text          # Whole document as one long string
 

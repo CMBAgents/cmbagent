@@ -296,8 +296,8 @@ class BaseAgent:
 
         self.agent = CmbAgentUserProxyAgent(
             name= self.name,
-            # update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
-            system_message= self.info["instructions"],
+            update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
+            # system_message= self.info["instructions"],
             code_execution_config=self.info["code_execution_config"],
         )
 

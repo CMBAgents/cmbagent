@@ -188,7 +188,7 @@ def register_all_hand_offs(cmbagent_instance):
     executor_manager = GroupChatManager(
         groupchat=executor_chat,
         llm_config=cmbagent_instance.llm_config,
-        name="executor_manager",
+        name="engineer_nested_chat",
 
     )
 
