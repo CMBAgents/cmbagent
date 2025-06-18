@@ -943,7 +943,7 @@ def planning_and_control_context_carryover(
                             default_llm_model = default_llm_model_default,
                             work_dir = work_dir_default,
                             api_keys = None,
-                            restart_at_step = -1,   ## if -1, do not restart. if 1, restart from step 1, etc.
+                            restart_at_step = -1,   ## if -1 or 0, do not restart. if 1, restart from step 1, etc.
                             ):
 
     # Create work directory if it doesn't exist
@@ -1055,7 +1055,7 @@ def planning_and_control_context_carryover(
     # print("in cmbagent.py: current_context before step loop: ", current_context)
     initial_step = 1 if restart_at_step <= 0 else restart_at_step
     for step in range(initial_step, number_of_steps_in_plan + 1):
-        clear_work_dir = True if step == 1 and restart_at_step <= 0 else False
+        clear_work_dir = True if step == 1 and restart_at_step <= 0 else False ## not fully sure what is the best thing to do, but this is OK for now.
         starter_agent = "control" if step == 1 else "control_starter"
         # print(f"in cmbagent.py: step: {step}/{number_of_steps_in_plan}")
         # print("\n\n")
