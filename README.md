@@ -20,11 +20,11 @@ Check our [demo videos](https://www.youtube.com/@cmbagent) on YouTube!
 
 Join our [Discord Server](https://discord.gg/UG47Yb6gHG) to ask all your questions!
 
-This is **open-source research-ready software**.  **Please star the  repo ⭐  to support our open-source work**. 
+This is open-source research-ready software. 
 
 - Check the [demo notebooks](https://github.com/CMBAgents/cmbagent/tree/main/docs/notebooks).
 
-- Best perfmonces are obtained with [top-scoring models](https://lmarena.ai/?leaderboard).
+- Best performances are obtained with [top-scoring models](https://lmarena.ai/?leaderboard).
 
 We emphasize that [cmbagent](https://github.com/CMBAgents/cmbagent) is under active development and apologize for any bugs. 
 
