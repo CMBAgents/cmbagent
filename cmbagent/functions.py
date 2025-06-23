@@ -276,7 +276,7 @@ For the next agent suggestion, follow these rules:
 
         for keyword in aas_keywords:
             if keyword not in AAS_keywords_dict:
-                return ReplyResult(target=AgentTarget(aas_keyword_finder), ## transfer to control
+                return ReplyResult(target=AgentTarget(aas_keyword_finder), ## loop-back 
                                 message=f"Proposed keyword {keyword} not found in the list of AAS keywords. Extract keywords from provided AAS list!",
                                 context_variables=context_variables)
             
@@ -286,7 +286,7 @@ For the next agent suggestion, follow these rules:
                             [f"- [{keyword}]({AAS_keywords_dict[keyword]})" for keyword in aas_keywords]
                         )
 
-        return ReplyResult(target=AgentTarget(control), ## transfer to control
+        return ReplyResult(target=AgentTarget(control), ## print and finish
                         message=f"""
 **AAS keywords**:\n
 {AAS_keyword_list}
