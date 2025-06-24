@@ -550,12 +550,12 @@ def main():
             "Compute and plot matter P(k) using classy.",
         ],
         "planning_and_control": [
-            "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
-            "Write a pipeline to illustrate how we can constrain H0 using gravitational wave data. Simulate the data for this analysis.",
-            "Write a 10,000 words, three parts dissertation on Imagination, using references drawn from French literature.",
-            "Conduct a multi-step analysis of CMB polarization data. Simulate the data for this analysis.",
+            "Generate simulated stock market data during Trump's tariffs to test validity of the Black-Scholes pricing model under such conditions.",
+            # "Write a pipeline to illustrate how we can constrain H0 using gravitational wave data. Simulate the data for this analysis.",
+            # "Write a 10,000 words, three parts dissertation on Imagination, using references drawn from French literature.",
+            # "Conduct a multi-step analysis of CMB polarization data. Simulate the data for this analysis.",
             "Provide codes and plots to illustrate the links between Game Theory and Reinforcement Learning. Report on the results at the end.",
-            "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
+            # "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
         ],
         "human_in_the_loop": [
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
