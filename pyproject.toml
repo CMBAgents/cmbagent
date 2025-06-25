@@ -13,7 +13,7 @@ name = "cmbagent"
 maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
 description = "multi-agent system for autonomous discovery, made by cosmologists, powered by ag2"
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.12"  # Specify the Python version requirement here
+requires-python = "<3.14,>=3.11"  # Specify the Python version requirement here
 
 
 dependencies = [
