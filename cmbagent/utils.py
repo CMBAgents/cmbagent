@@ -135,6 +135,7 @@ default_agents_llm_model ={
     # "idea_hater": "claude-3-7-sonnet-20250219",
     "idea_hater":  "o3-mini-2025-01-31",
     "idea_maker": "gpt-4.1-2025-04-14",
+    "plot_judge": "gpt-4o-2024-08-06",
 
     # rag agents
     "classy_sz": "gpt-4o-2024-11-20",
@@ -161,6 +162,8 @@ default_agents_llm_model ={
     "researcher_response_formatter": "o3-mini-2025-01-31",
     "executor_response_formatter": "o3-mini-2025-01-31",
     #"executor_response_formatter": "gemini-2.5-pro-preview-03-25",
+    # 'plot_judge_router': 'o3-mini-2025-01-31',
+    'plot_judge_router': 'gpt-4o-2024-11-20',
 }
 
 default_agent_llm_configs = {}

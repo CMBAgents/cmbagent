@@ -399,7 +399,7 @@ class CMBAgent:
 
                 if name in cost_dict["Agent"]:
                     i = cost_dict["Agent"].index(name)
-                    cost_dict["Cost ($)"][i]              += summed_cost
+                    cost_dict["Cost ($)"][i]          += summed_cost
                     cost_dict["Prompt Tokens"][i]     += summed_prompt
                     cost_dict["Completion Tokens"][i] += summed_comp
                     cost_dict["Total Tokens"][i]      += summed_total
@@ -940,6 +940,7 @@ def planning_and_control_context_carryover(
                             idea_maker_model = default_agents_llm_model['idea_maker'],
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             camb_context_model = default_agents_llm_model['camb_context'],
+                            plot_judge_model = default_agents_llm_model['plot_judge'],
                             default_llm_model = default_llm_model_default,
                             work_dir = work_dir_default,
                             api_keys = None,
@@ -1046,6 +1047,7 @@ def planning_and_control_context_carryover(
     camb_context_config = get_model_config(camb_context_model, api_keys)
     idea_maker_config = get_model_config(idea_maker_model, api_keys)
     idea_hater_config = get_model_config(idea_hater_model, api_keys)
+    plot_judge_config = get_model_config(plot_judge_model, api_keys)
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1074,6 +1076,7 @@ def planning_and_control_context_carryover(
                                 'idea_maker': idea_maker_config,
                                 'idea_hater': idea_hater_config,
                                 'camb_context': camb_context_config,
+                                'plot_judge': plot_judge_config,
             },
             mode = "planning_and_control_context_carryover",
             api_keys = api_keys
@@ -1426,6 +1429,7 @@ def control(
             researcher_model = default_agents_llm_model['researcher'],
             idea_maker_model = default_agents_llm_model['idea_maker'],
             idea_hater_model = default_agents_llm_model['idea_hater'],
+            plot_judge_model = default_agents_llm_model['plot_judge'],
             work_dir = work_dir_default,
             clear_work_dir = True,
             api_keys = None,
@@ -1453,7 +1457,7 @@ def control(
     researcher_config = get_model_config(researcher_model, api_keys)
     idea_maker_config = get_model_config(idea_maker_model, api_keys)
     idea_hater_config = get_model_config(idea_hater_model, api_keys)
-        
+    plot_judge_config = get_model_config(plot_judge_model, api_keys)        
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
     start_time = time.time()
@@ -1464,6 +1468,7 @@ def control(
                             'researcher': researcher_config,
                             'idea_maker': idea_maker_config,
                             'idea_hater': idea_hater_config,
+                            'plot_judge': plot_judge_config,
         },
         clear_work_dir = clear_work_dir,
         api_keys = api_keys
@@ -1518,6 +1523,7 @@ def one_shot(
             max_n_attempts = 3,
             engineer_model = default_agents_llm_model['engineer'],
             researcher_model = default_agents_llm_model['researcher'],
+            plot_judge_model = default_agents_llm_model['plot_judge'],
             researcher_filename = shared_context_default['researcher_filename'],
             agent = 'engineer',
             work_dir = work_dir_default,
@@ -1530,6 +1536,7 @@ def one_shot(
     
     engineer_config = get_model_config(engineer_model, api_keys)
     researcher_config = get_model_config(researcher_model, api_keys)
+    plot_judge_config = get_model_config(plot_judge_model, api_keys)
         
     cmbagent = CMBAgent(
         mode = "one_shot",
@@ -1537,6 +1544,7 @@ def one_shot(
         agent_llm_configs = {
                             'engineer': engineer_config,
                             'researcher': researcher_config,
+                            'plot_judge': plot_judge_config,
         },
         api_keys = api_keys
         )
@@ -1601,7 +1609,9 @@ def one_shot(
                'engineer':cmbagent.get_agent_object_from_name('engineer'),
                'engineer_response_formatter':cmbagent.get_agent_object_from_name('engineer_response_formatter'),
                'researcher':cmbagent.get_agent_object_from_name('researcher'),
-               'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter')}
+               'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter'),
+               'plot_judge':cmbagent.get_agent_object_from_name('plot_judge'),
+               'plot_judge_router':cmbagent.get_agent_object_from_name('plot_judge_router')}
     
     
     results['initialization_time'] = initialization_time

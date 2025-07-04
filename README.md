@@ -99,7 +99,7 @@ Then launch jupyterlab:
 jupyter-lab
 ```
 
-Select the cmbagent kernel, and run the the notebook. 
+Select the cmbagent kernel, and run the notebook. 
 
 
 ## API Keys
@@ -117,7 +117,7 @@ export GEMINI_API_KEY="AI...." ## optional
 
 For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) and the same command.
 
-By default, cmbagent uses models from oai/anthropic/google. If you want to pick different LLMs, just adapat `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
+By default, cmbagent uses models from oai/anthropic/google. If you want to pick different LLMs, just adapt `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
 
 ## Docker
 

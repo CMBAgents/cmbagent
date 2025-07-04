@@ -61,7 +61,10 @@ shared_context = {
     "classy_context": None,
 
 
-    "researcher_filename": "provide a suitable filename given the nature of the notes. Prefer markdown extension unless otherwise instructed."
+    "researcher_filename": "provide a suitable filename given the nature of the notes. Prefer markdown extension unless otherwise instructed.",
 
-
+    "latest_plot_path": None,
+    "vlm_plot_analysis": None,
+    "vlm_plot_structured_feedback": None,
+    "latest_executed_code": None,
 }
