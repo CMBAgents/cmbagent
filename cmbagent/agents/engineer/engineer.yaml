@@ -128,7 +128,10 @@ instructions: |
     ----Task-specific instructions for coding-----
     {engineer_append_instructions}
     ----------------------------------------------
-
+    
+    ----VLM Plot Feedback (if applicable)-----
+    {vlm_plot_structured_feedback}
+    ------------------------------------------
 
     We follow the established plan:
 

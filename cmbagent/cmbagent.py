@@ -1528,6 +1528,7 @@ def one_shot(
             agent = 'engineer',
             work_dir = work_dir_default,
             api_keys = None,
+            evaluate_plots = False,
             ):
     start_time = time.time()
 
@@ -1554,7 +1555,7 @@ def one_shot(
 
     start_time = time.time()
 
-    shared_context = {'max_n_attempts': max_n_attempts}
+    shared_context = {'max_n_attempts': max_n_attempts, 'evaluate_plots': evaluate_plots}
 
     if agent == 'camb_context':
 

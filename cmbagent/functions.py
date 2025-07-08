@@ -16,7 +16,7 @@ import datetime
 import json
 from pathlib import Path
 from .utils import AAS_keywords_dict
-from .vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, vlm_model
+from .vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, vlm_model, INJECT_WRONG_PLOT
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -160,28 +160,40 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                 context_variables=context_variables)
             
             if execution_status == "success":
-                # Check if there are new images that need plot_judge review
-                data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
-                image_files = load_plots(data_directory)
-                displayed_images = context_variables.get("displayed_images", [])
-                new_images = [img for img in image_files if img not in displayed_images]
+                # Check if plot evaluation is enabled
+                evaluate_plots = context_variables.get("evaluate_plots", False)
                 
-                if new_images:
-                    # Call VLM for each new image, currently evaluating/processing only the most recent
-                    most_recent_image = new_images[-1]
-                    context_variables["latest_plot_path"] = most_recent_image
-                    if most_recent_image not in context_variables["displayed_images"]:
-                        context_variables["displayed_images"].append(most_recent_image)
-                    # Handoff to plot_judge
-                    return ReplyResult(target=AgentTarget(plot_judge),
-                                    message=f"Plot created: {most_recent_image}. Please analyze this plot using a VLM.",
-                                    context_variables=context_variables)
+                if evaluate_plots:
+                    # Check if there are new images that need plot_judge review
+                    data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
+                    image_files = load_plots(data_directory)
+                    displayed_images = context_variables.get("displayed_images", [])
+                    new_images = [img for img in image_files if img not in displayed_images]
+                    
+                    if new_images:
+                        # Call VLM to evaluate the latest plot
+                        most_recent_image = new_images[-1]
+                        context_variables["latest_plot_path"] = most_recent_image
+                        if most_recent_image not in context_variables["displayed_images"]:
+                            context_variables["displayed_images"].append(most_recent_image)
+                        # Handoff to plot_judge
+                        return ReplyResult(target=AgentTarget(plot_judge),
+                                        message=f"Plot created: {most_recent_image}. Please analyze this plot using a VLM.",
+                                        context_variables=context_variables)
+                    else:
+                        # No new images needing approval, so VLM feedback history is cleared
+                        context_variables["vlm_plot_structured_feedback"] = None
+                        context_variables["latest_executed_code"] = None
+                        
+                        # No new plots to evaluate, continue to control
+                        return ReplyResult(target=AgentTarget(control),
+                                        message="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
+                                        context_variables=context_variables)
                 else:
-                    # Image is approved, so VLM feedback history is cleared
+                    # Plot evaluation disabled, so skip VLM and go straight to control
                     context_variables["vlm_plot_structured_feedback"] = None
                     context_variables["latest_executed_code"] = None
                     
-                    # Previous default without VLM feedback step 
                     return ReplyResult(target=AgentTarget(control),
                                     message="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
                                     context_variables=context_variables)
@@ -281,6 +293,7 @@ For the next agent suggestion, follow these rules:
             )
         
         try:
+            print(f"DEBUG: Reading plot file: {img_path}")
             with open(img_path, 'rb') as img_file:
                 # TODO: design a clean way to inject bad images w/o manually copying base64
                 base_64_img = base64.b64encode(img_file.read()).decode('utf-8')
@@ -295,17 +308,44 @@ For the next agent suggestion, follow these rules:
         try:
             # Send the image to the VLM model and get the analysis
             vlm_prompt = create_vlm_prompt(context_variables)
-            completion = send_image_to_vlm(base_64_img, vlm_prompt)
-            vlm_analysis = completion.choices[0].message.content
-            print(f"VLM analysis: {vlm_analysis}")
+            completion, injected_code = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=INJECT_WRONG_PLOT, context_variables=context_variables)
+            vlm_analysis_json = completion.choices[0].message.content
+            print(f"VLM analysis: \n\n{vlm_analysis_json}\n\n")
             
-            context_variables["vlm_plot_analysis"] = vlm_analysis
+            if injected_code:
+                print(f"DEBUG: Injected code:\n{injected_code}\n")
+            
+            # Parse the structured JSON response
+            try:
+                vlm_analysis_data = json.loads(vlm_analysis_json)
+                vlm_verdict = vlm_analysis_data.get("verdict", "continue")
+                
+                # Store both the raw analysis and the extracted verdict
+                context_variables["vlm_plot_analysis"] = vlm_analysis_json
+                context_variables["vlm_verdict"] = vlm_verdict
+                
+                print(f"VLM verdict: {vlm_verdict}")
+                print(f"DEBUG: context_variables['vlm_verdict'] = '{context_variables['vlm_verdict']}'")
+                
+            except json.JSONDecodeError as e:
+                print(f"Warning: Could not parse VLM JSON response: {e}")
+                # Fall back to text parsing for verdict
+                vlm_verdict = "continue"
+                if "VERDICT: continue" in vlm_analysis_json:
+                    vlm_verdict = "continue"
+                elif "VERDICT: retry" in vlm_analysis_json:
+                    vlm_verdict = "retry"
+                
+                context_variables["vlm_plot_analysis"] = vlm_analysis_json
+                context_variables["vlm_verdict"] = vlm_verdict
+                print(f"VLM verdict (fallback): {vlm_verdict}")
+                print(f"DEBUG: context_variables['vlm_verdict'] = '{context_variables['vlm_verdict']}'")
             
             account_for_external_api_calls(plot_judge, completion)
             
             return ReplyResult(
                 target=AgentTarget(plot_judge_router),
-                message="VLM analysis completed. Please evaluate the plot quality and make routing decision.",
+                message=f"VLM analysis completed. VLM VERDICT: {vlm_verdict}. You must call route_plot_judge_verdict with verdict='{vlm_verdict}'.",
                 context_variables=context_variables
             )
             

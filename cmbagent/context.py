@@ -63,8 +63,11 @@ shared_context = {
 
     "researcher_filename": "provide a suitable filename given the nature of the notes. Prefer markdown extension unless otherwise instructed.",
 
+    "evaluate_plots": False,
     "latest_plot_path": None,
-    "vlm_plot_analysis": None,
-    "vlm_plot_structured_feedback": None,
     "latest_executed_code": None,
+    
+    "vlm_plot_analysis": None,
+    "vlm_verdict": None,
+    "vlm_plot_structured_feedback": None,
 }
