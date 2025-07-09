@@ -21,19 +21,20 @@ cmbagent_debug = autogen.cmbagent_debug
 vlm_model: Literal["gpt-4o", "gemini-2.5-flash"] = "gpt-4o"
 _last_executed_code = None
 _vlm_first_call = True    # Flag first VLM call for injection
-INJECT_WRONG_PLOT = True  # Enable/disable plot injection for testing
+INJECT_WRONG_PLOT = False
 
 
 class VLMAnalysis(BaseModel):
     """
     Structured output schema for VLM plot analysis.
     """
-    scientific_accuracy: str = Field(description="Assessment of scientific accuracy: Are the data points, calculations, and scientific principles accurate? Are the units, scales, and relationships correct? Are there any mathematical or scientific errors?")
-    visual_clarity: str = Field(description="Assessment of visual clarity: Can the plot be interpreted without confusion? Are the data points, lines, and trends clearly visible? Is the color scheme and contrast appropriate?")
-    completeness: str = Field(description="Assessment of completeness: Does it have a clear title, axis labels, and legend? Are units shown where appropriate? Are all necessary data series included? Is the plot self-contained and informative?")
-    professional_presentation: str = Field(description="Assessment of professional presentation: Are labels, legends, and titles clear and appropriate? Is the layout clean and uncluttered? Are fonts, colors, and styling professional?")
-    recommendations: str = Field(description="Specific recommendations for improvement if any criteria are not met. Provide actionable fixes that can be implemented.")
-    verdict: Literal["continue", "retry"] = Field(description="Final verdict: 'continue' if plot meets ALL criteria and is fully accepted, 'retry' if ANY improvements are needed and plot must be fixed and resubmitted")
+    # # TODO: check on ellipses
+    scientific_accuracy: str = Field(..., description="Assessment of scientific accuracy: Are the data points, calculations, and scientific principles accurate? Are the units, scales, and relationships correct? Are there any mathematical or scientific errors?")
+    visual_clarity: str = Field(..., description="Assessment of visual clarity: Can the plot be interpreted without confusion? Are the data points, lines, and trends clearly visible? Is the color scheme and contrast appropriate?")
+    completeness: str = Field(..., description="Assessment of completeness: Does it have a clear title, axis labels, and legend? Are units shown where appropriate? Are all necessary data series included? Is the plot self-contained and informative?")
+    professional_presentation: str = Field(..., description="Assessment of professional presentation: Are labels, legends, and titles clear and appropriate? Is the layout clean and uncluttered? Are fonts, colors, and styling professional?")
+    recommendations: str = Field(..., description="Specific recommendations for improvement if any criteria are not met. Provide actionable fixes that can be implemented.")
+    verdict: Literal["continue", "retry"] = Field(..., description="Final verdict: 'continue' if plot meets ALL criteria and is fully accepted, 'retry' if ANY improvements are needed and plot must be fixed and resubmitted")
 
 
 class OpenAICompletion:
@@ -88,7 +89,7 @@ plt.savefig("plot_6.png")
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
         plt.savefig(tmp_file.name, dpi=100, bbox_inches='tight')
         
-        # Also save a copy to synthetic_output for debugging
+        # Also save a copy to synthetic_output
         try:
             synthetic_dir = "/Users/kahaan/Downloads/cmbagent/synthetic_output"
             os.makedirs(synthetic_dir, exist_ok=True)
@@ -264,11 +265,13 @@ def create_vlm_prompt(context_variables: ContextVariables) -> str:
         # Fetch relevant task context
         # current_task = context_variables.get("current_sub_task", "No specific task provided")
         # current_instructions = context_variables.get("current_instructions", "No specific instructions provided")
-        # improved_main_task = context_variables.get("improved_main_task", "No improved main task provided.")
+        improved_main_task = context_variables.get("improved_main_task", "No improved main task provided.")
         # NOTE: if using the above context, add a criterion for relevance
 
         vlm_prompt = f"""
 You are a plot judge analyzing a scientific plot. Your task is to evaluate the plot's quality and provide structured feedback.
+
+Context about the goal of the plot: {improved_main_task}
 
 Analyze this plot across four key criteria: scientific accuracy, visual clarity, completeness, and professional presentation.
 
