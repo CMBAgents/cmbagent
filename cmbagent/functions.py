@@ -276,6 +276,21 @@ For the next agent suggestion, follow these rules:
         """
         Analyze latest_plot_path (set by post_execution_transfer) using VLM and store the analysis in context.
         """
+        # Check if we've already reached the maximum number of plot evaluations before calling VLM
+        current_evals = context_variables.get("n_plot_evals", 0)
+        max_evals = context_variables.get("max_n_plot_evals", 1)
+        
+        if current_evals >= max_evals:
+            # Clear VLM feedback and executed code
+            context_variables["vlm_plot_structured_feedback"] = None
+            context_variables["latest_executed_code"] = None
+            context_variables["n_plot_evals"] = 0
+            return ReplyResult(target=AgentTarget(control),
+                             message=f"Plot evaluation retry limit ({max_evals}) reached. Accepting current plot and continuing to control.",
+                             context_variables=context_variables)
+        
+        print(f"Plot evaluation {current_evals + 1}/{max_evals}")
+        
         img_path = context_variables.get("latest_plot_path")
         if not img_path:
             return ReplyResult(
@@ -295,7 +310,6 @@ For the next agent suggestion, follow these rules:
         try:
             print(f"DEBUG: Reading plot file: {img_path}")
             with open(img_path, 'rb') as img_file:
-                # TODO: design a clean way to inject bad images w/o manually copying base64
                 base_64_img = base64.b64encode(img_file.read()).decode('utf-8')
                 
         except Exception as e:
@@ -306,9 +320,12 @@ For the next agent suggestion, follow these rules:
             )
         
         try:
-            # Send the image to the VLM model and get the analysis
+            # Send the image to the VLM model and get the analysis (injection checks n_plot_evals before increment)
             vlm_prompt = create_vlm_prompt(context_variables)
             completion, injected_code = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=INJECT_WRONG_PLOT, context_variables=context_variables)
+            
+            # Increment plot evaluation counter after VLM call
+            context_variables["n_plot_evals"] = current_evals + 1
             vlm_analysis_json = completion.choices[0].message.content
             print(f"VLM analysis: \n\n{vlm_analysis_json}\n\n")
             
@@ -384,6 +401,10 @@ For the next agent suggestion, follow these rules:
         """
         print(f"Plot verdict: {verdict}")
 
+        # Get current evaluation count (already incremented in call_vlm_judge)
+        current_evals = context_variables.get("n_plot_evals", 0)
+        max_evals = context_variables.get("max_n_plot_evals", 3)
+
         # Update displayed_images list
         if "latest_plot_path" in context_variables and "displayed_images" in context_variables:
             if context_variables["latest_plot_path"] not in context_variables["displayed_images"]:
@@ -397,6 +418,16 @@ For the next agent suggestion, follow these rules:
                              message="Plot approved. Continuing to control.",
                              context_variables=context_variables)
         else:  # verdict == "retry"
+            # Check if we've reached the maximum number of plot evaluations (retries)
+            if current_evals > max_evals:
+                print(f"Maximum plot evaluation retries ({max_evals}) reached. Accepting current plot and continuing to control.")
+                # Clear VLM feedback and executed code when accepting due to limit
+                context_variables["vlm_plot_structured_feedback"] = None
+                context_variables["latest_executed_code"] = None
+                return ReplyResult(target=AgentTarget(control),
+                                 message=f"Plot evaluation retry limit ({max_evals}) reached. Accepting current plot and continuing to control.",
+                                 context_variables=context_variables)
+            
             # Construct comprehensive VLM feedback with problems, fixes, and code context
             vlm_feedback = ""
             if problems or fixes:
@@ -1392,7 +1423,16 @@ def load_docstrings(directory: str = "codebase"):
 def load_plots(directory: str) -> list:
     """
     Recursively searches for image files (png, jpg, jpeg, gif) in directory and all subdirectories.
+    Excludes checkpoint files from Jupyter notebooks.
+    Returns plots sorted by modification time (oldest first).
     """
     image_extensions = ('.png', '.jpg', '.jpeg', '.gif')
     directory = Path(directory)
-    return [str(path) for path in directory.rglob('*') if path.suffix.lower() in image_extensions]
+    image_files = [path for path in directory.rglob('*') 
+                   if path.suffix.lower() in image_extensions 
+                   and '.ipynb_checkpoints' not in str(path)]
+    
+    # Sort by modification time (oldest first)
+    image_files.sort(key=lambda x: x.stat().st_mtime)
+    
+    return [str(path) for path in image_files]

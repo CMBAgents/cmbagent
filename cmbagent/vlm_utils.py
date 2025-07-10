@@ -18,23 +18,22 @@ import numpy as np
 cmbagent_debug = autogen.cmbagent_debug
 
 # TODO: add this to config
-vlm_model: Literal["gpt-4o", "gemini-2.5-flash"] = "gpt-4o"
+# NOTE: injecting with max_n_plot_evals = 1 will be useless
+vlm_model: Literal["gpt-4o", "gemini-2.5-flash"] = "gemini-2.5-flash"
 _last_executed_code = None
-_vlm_first_call = True    # Flag first VLM call for injection
-INJECT_WRONG_PLOT = False
+INJECT_WRONG_PLOT = True
 
 
 class VLMAnalysis(BaseModel):
     """
     Structured output schema for VLM plot analysis.
     """
-    # # TODO: check on ellipses
     scientific_accuracy: str = Field(..., description="Assessment of scientific accuracy: Are the data points, calculations, and scientific principles accurate? Are the units, scales, and relationships correct? Are there any mathematical or scientific errors?")
-    visual_clarity: str = Field(..., description="Assessment of visual clarity: Can the plot be interpreted without confusion? Are the data points, lines, and trends clearly visible? Is the color scheme and contrast appropriate?")
+    visual_clarity: str = Field(..., description="Assessment of visual clarity: Can the plot be interpreted without confusion? Are the data points, axis scales, lines, and trends clearly visible? Is the color scheme and contrast appropriate?")
     completeness: str = Field(..., description="Assessment of completeness: Does it have a clear title, axis labels, and legend? Are units shown where appropriate? Are all necessary data series included? Is the plot self-contained and informative?")
-    professional_presentation: str = Field(..., description="Assessment of professional presentation: Are labels, legends, and titles clear and appropriate? Is the layout clean and uncluttered? Are fonts, colors, and styling professional?")
+    professional_presentation: str = Field(..., description="Assessment of professional presentation: Are labels, legends, and titles clear and appropriate? Is the layout clean and uncluttered? Are fonts, colors, and styling professional? We don't use LaTeX rendering in plots.")
     recommendations: str = Field(..., description="Specific recommendations for improvement if any criteria are not met. Provide actionable fixes that can be implemented.")
-    verdict: Literal["continue", "retry"] = Field(..., description="Final verdict: 'continue' if plot meets ALL criteria and is fully accepted, 'retry' if ANY improvements are needed and plot must be fixed and resubmitted")
+    verdict: Literal["continue", "retry"] = Field(..., description="Final verdict: 'continue' if plot meets standards, 'retry' if improvements needed. BE STRICT on scientific accuracy, visual clarity, and completeness - any errors should trigger retry. BE MODERATE on professional presentation - only retry for issues that significantly impact scientific communication, not minor aesthetic preferences like tweaks to existing legend placement, title specifity, axis labels, etc.")
 
 
 class OpenAICompletion:
@@ -61,29 +60,62 @@ def generate_wrong_plot_injection():
     Saves a copy to synthetic_output for debugging but uses temp file for VLM.
     """
     # Wrong code
-    wrong_code = """
-import numpy as np
+    wrong_code = r"""
+from classy import Class
 import matplotlib.pyplot as plt
-x = np.linspace(-5, 5, 100)
-y = -x**2
-plt.figure(figsize=(6, 6))
-plt.plot(x, y)
-plt.title("y = x^2")
-plt.xlabel("x")
-plt.ylabel("y")
-plt.grid(True)
-plt.savefig("plot_6.png")
+from math import pi
+
+# Create instance of the class "Class"
+LambdaCDM = Class()
+
+# Pass input parameters
+LambdaCDM.set({'omega_b':0.0223828,'omega_cdm':0.1201075,'h':0.67810,'A_s':2.100549e-09,'n_s':0.9660499,'tau_reio':0.05430842})
+LambdaCDM.set({'output':'tCl,pCl,lCl,mPk','lensing':'yes','P_k_max_1/Mpc':3.0})
+
+# Run class
+LambdaCDM.compute()
+
+# get all C_l output
+cls = LambdaCDM.lensed_cl(1000)
+ll = cls['ell'][2:]
+clTT = cls['tt'][2:]
+
+plt.xscale('linear')
+plt.yscale('linear')
+plt.xlim(2,1000)
+plt.xlabel(r'$\ell$')
+plt.ylabel(r'$[\ell(\ell+1)/2\pi]  C_\ell^\mathrm{TT}$')
+plt.plot(ll,clTT*ll*(ll+1)/2./pi,'r-')
+plt.savefig("power_spectrum.png")
 """
     
     # Generate the actual wrong plot in memory
-    x = np.linspace(-5, 5, 100)
-    y = -x**2
-    plt.figure(figsize=(6, 6))
-    plt.plot(x, y)
-    plt.title("y = x^2")
-    plt.xlabel("x")
-    plt.ylabel("y")
-    plt.grid(True)
+    from classy import Class
+    import matplotlib.pyplot as plt
+    from math import pi
+
+    # Create instance of the class "Class"
+    LambdaCDM = Class()
+
+    # Pass input parameters
+    LambdaCDM.set({'omega_b':0.0223828,'omega_cdm':0.1201075,'h':0.67810,'A_s':2.100549e-09,'n_s':0.9660499,'tau_reio':0.05430842})
+    LambdaCDM.set({'output':'tCl,pCl,lCl,mPk','lensing':'yes','P_k_max_1/Mpc':3.0})
+
+    # Run class
+    LambdaCDM.compute()
+
+    # get all C_l output
+    cls = LambdaCDM.lensed_cl(1000)
+    ll = cls['ell'][2:]
+    clTT = cls['tt'][2:]
+
+    plt.xscale('linear')
+    plt.yscale('linear')
+    plt.xlim(2,1000)
+    plt.xlabel(r'$\ell$')
+    plt.ylabel(r'$[\ell(\ell+1)/2\pi]  C_\ell^\mathrm{TT}$')
+    plt.plot(ll,clTT*ll*(ll+1)/2./pi,'r-')
+    # plt.savefig("power_spectrum.png")
     
     # Save to temporary file for VLM processing
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
@@ -93,7 +125,7 @@ plt.savefig("plot_6.png")
         try:
             synthetic_dir = "/Users/kahaan/Downloads/cmbagent/synthetic_output"
             os.makedirs(synthetic_dir, exist_ok=True)
-            debug_path = os.path.join(synthetic_dir, "injected_wrong_plot.png")
+            debug_path = os.path.join(synthetic_dir, "injected_plot.png")
             plt.savefig(debug_path, dpi=100, bbox_inches='tight')
             print(f"DEBUG: Injected plot saved to {debug_path} for reference")
         except Exception as e:
@@ -117,24 +149,25 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
     Send the encoded image to a VLM model and return the completion.
     Returns (completion, injected_code) where injected_code is None if no injection occurred.
     """
-    global _vlm_first_call
     injected_code = None
     
-    # Inject wrong plot on first call if requested
-    if inject_wrong_plot and _vlm_first_call:
+    # Check if this is the first plot evaluation (n_plot_evals == 0) for injection
+    n_plot_evals = context_variables.get("n_plot_evals", 0) if context_variables else 0
+    
+    # Inject wrong plot on first evaluation if requested
+    if inject_wrong_plot and n_plot_evals == 0:
         print("DEBUG: [INJECTION] Replacing plot with our own wrong plot")
         
         # Generate wrong plot in memory (no disk persistence)
         wrong_code, wrong_plot_base64 = generate_wrong_plot_injection()
         base_64_img = wrong_plot_base64
         injected_code = wrong_code
-        _vlm_first_call = False  # Disable injection for subsequent calls
         
         # Store the injected code in context variables for engineer feedback
         if context_variables:
             context_variables["latest_executed_code"] = wrong_code
     else:
-        print(f"DEBUG: [NO INJECTION] Using real plot (inject_wrong_plot={inject_wrong_plot}, _vlm_first_call={_vlm_first_call})")
+        print(f"DEBUG: [NO INJECTION] Using real plot (inject_wrong_plot={inject_wrong_plot}, n_plot_evals={n_plot_evals})")
     
     api_keys = get_api_keys_from_env()
 
@@ -216,8 +249,6 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
                               total_tokens), injected_code
 
 
-# TODO: explicitly test routing when plotting fails 2+ times (via injection, to be safe)
-
 def account_for_external_api_calls(agent, completion):
     """
     Helper function to add external VLM API call tokens to agent's cost tracking.
@@ -266,7 +297,7 @@ def create_vlm_prompt(context_variables: ContextVariables) -> str:
         # current_task = context_variables.get("current_sub_task", "No specific task provided")
         # current_instructions = context_variables.get("current_instructions", "No specific instructions provided")
         improved_main_task = context_variables.get("improved_main_task", "No improved main task provided.")
-        # NOTE: if using the above context, add a criterion for relevance
+        # NOTE: if using the above context, one can add a criterion for relevance
 
         vlm_prompt = f"""
 You are a plot judge analyzing a scientific plot. Your task is to evaluate the plot's quality and provide structured feedback.

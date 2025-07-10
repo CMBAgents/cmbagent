@@ -198,7 +198,8 @@ def register_all_hand_offs(cmbagent_instance):
     nested_chats = [
         {
             "recipient": executor_manager,
-            "message": lambda recipient, messages, sender, config: f"{messages[-1]['content']}",
+            # NOTE: when output of executed code is an error, this raised IndexError (list index out of range)
+            "message": lambda recipient, messages, sender, config: f"{messages[-1]['content']}" if messages else "",
             "max_turns": 1,
             "summary_method": "last_msg",
         }#,

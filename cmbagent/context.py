@@ -66,6 +66,8 @@ shared_context = {
     "evaluate_plots": False,
     "latest_plot_path": None,
     "latest_executed_code": None,
+    "n_plot_evals": 0,
+    "max_n_plot_evals": 1,
     
     "vlm_plot_analysis": None,
     "vlm_verdict": None,

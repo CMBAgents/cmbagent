@@ -1529,6 +1529,7 @@ def one_shot(
             work_dir = work_dir_default,
             api_keys = None,
             evaluate_plots = False,
+            max_n_plot_evals = 1,
             ):
     start_time = time.time()
 
@@ -1555,7 +1556,7 @@ def one_shot(
 
     start_time = time.time()
 
-    shared_context = {'max_n_attempts': max_n_attempts, 'evaluate_plots': evaluate_plots}
+    shared_context = {'max_n_attempts': max_n_attempts, 'evaluate_plots': evaluate_plots, 'max_n_plot_evals': max_n_plot_evals}
 
     if agent == 'camb_context':
 
