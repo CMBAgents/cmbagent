@@ -7,15 +7,15 @@ instructions: |
   The incoming message contains "VLM VERDICT:" followed by either "continue" or "retry".
   You MUST call route_plot_judge_verdict with the exact verdict specified in the message.
   
-  ## NO ANALYSIS OR INTERPRETATION
-  Do NOT re-analyze the plot. Do NOT interpret the VLM analysis text.
-  Simply extract the verdict from the message and call the function.
-  
   ## FUNCTION CALL:
   - If message says "VLM VERDICT: continue" → Call route_plot_judge_verdict(verdict="continue", problems=None, fixes=None)
   - If message says "VLM VERDICT: retry" → Call route_plot_judge_verdict(verdict="retry", problems=[...], fixes=[...])
   
-  For "retry" verdicts, extract problems and fixes from context_variables["vlm_plot_analysis"].
+  ## For "retry" verdicts:
+  1. Parse the JSON from context_variables["vlm_plot_analysis"]
+  2. Extract problems from the analysis fields (scientific_accuracy, visual_clarity, completeness, professional_presentation)
+  3. Extract fixes from the "recommendations" field
+  4. Convert them to lists of strings for the function call
 
 description: |
   plot_judge_router agent that makes strict routing decisions based on plot quality criteria.
