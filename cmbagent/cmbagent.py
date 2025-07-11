@@ -860,9 +860,9 @@ class CMBAgent:
         # print('clearing cache...')
         cache_dir = autogen.oai.client.LEGACY_CACHE_DIR ## "./cache" 
         # print("cache_dir: ", cache_dir)
-        if os.path.exists(cache_dir):
-            # print("found cache_dir: ", cache_dir)
-            shutil.rmtree(cache_dir)
+        # if os.path.exists(cache_dir):
+        #     # print("found cache_dir: ", cache_dir)
+        #     shutil.rmtree(cache_dir)
             # print("cache_dir removed")
         # else:
             # print("no cache_dir found...")
