@@ -1,7 +1,7 @@
 import os
 from cmbagent.base_agent import BaseAgent
 
-class ContextAgent(BaseAgent):
+class MakerContextAgent(BaseAgent):
     def __init__(self, llm_config=None, **kwargs):
         agent_id = os.path.splitext(os.path.abspath(__file__))[0]
         # Use the user's home directory for the context file
