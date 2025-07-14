@@ -74,7 +74,7 @@ class CMBAgent:
                  llm_api_key=None,
                  llm_api_type=None,
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
-                 agent_list = ['camb','classy_sz','cobaya','planck'],
+                 agent_list = ['camb','classy_sz','cobaya','planck','context'],
                  verbose = False,
                  reset_assistant = False,
                  agent_instructions = {
