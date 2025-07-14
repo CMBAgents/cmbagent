@@ -1,4 +1,4 @@
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg)](https://arxiv.org/abs/2412.00431) [![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-blue)](https://huggingface.co/spaces/astropilot-ai/cmbagent)
+[![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2507.07257-b31b1b.svg)](https://arxiv.org/abs/2507.07257) [![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-blue)](https://huggingface.co/spaces/astropilot-ai/cmbagent)
 [![PyPI version](https://img.shields.io/pypi/v/cmbagent.svg)](https://pypi.org/project/cmbagent/)
 
 <a href="https://www.youtube.com/@cmbagent" target="_blank">
@@ -12,9 +12,11 @@
 
 
 
-Multi-Agent System for Science, Made by Cosmologists, Powered by [AG2](https://github.com/ag2ai/ag2).
+Multi-Agent System for Science, Powered by [AG2](https://github.com/ag2ai/ag2).
 
 Try cmbagent on [HuggingFace](https://huggingface.co/spaces/astropilot-ai/cmbagent)!
+
+We are currently deploying [cmbagent on the cloud](https://cmbagent.cloud/), it will be in production soon!
 
 Check our [demo videos](https://www.youtube.com/@cmbagent) on YouTube!
 
@@ -144,6 +146,17 @@ docker run --rm -it cmbagent bash
 ## References
 
 ```bash
+    @misc{xu2025opensourceplanning,
+        title={Open Source Planning & Control System with Language Agents for Autonomous Scientific Discovery}, 
+        author={Licong Xu and Milind Sarkar and Anto I. Lonappan and Íñigo Zubeldia and Pablo Villanueva-Domingo and Santiago Casas and Christian Fidler and Chetana Amancharla and Ujjwal Tiwari and Adrian Bayer and Chadi Ait Ekiou and Miles Cranmer and Adrian Dimitrov and James Fergusson and Kahaan Gandhi and Sven Krippendorf and Andrew Laverick and Julien Lesgourgues and Antony Lewis and Thomas Meier and Blake Sherwin and Kristen Surrao and Francisco Villaescusa-Navarro and Chi Wang and Xueqing Xu and Boris Bolliet},
+        year={2025},
+        eprint={2507.07257},
+        archivePrefix={arXiv},
+        primaryClass={cs.AI},
+        url={https://arxiv.org/abs/2507.07257}, 
+    }
+
+
    @misc{Laverick:2024fyh,
       author = "Laverick, Andrew and Surrao, Kristen and Zubeldia, Inigo and Bolliet, Boris and Cranmer, Miles and Lewis, Antony and Sherwin, Blake and Lesgourgues, Julien",
       title = "{Multi-Agent System for Cosmological Parameter Analysis}",
