@@ -21,7 +21,7 @@ class ContextResponseFormatterAgent(BaseAgent):
 
 
     class PythonCode(BaseModel):
-        code: Optional[str] = Field(None, description="The draft of the Python code needed for context_context. Keeping all the information provided by the context_context agent.")
+        code: Optional[str] = Field(None, description="The draft of the Python code needed for context. Keeping all the information provided by the context agent.")
 
     class ContextResponse(BaseModel):
 
@@ -35,11 +35,11 @@ class ContextResponseFormatterAgent(BaseAgent):
         )
         docstrings: List[str] = Field(
             ...,
-            description="List of full complete docstrings of the context_context methods needed, not just the function names. These are generally in the documentation in your prompt."
+            description="List of full complete docstrings of the context methods needed, not just the function names. These are generally in the documentation in your prompt."
         )
         results: str = Field(
             ...,
-            description="Results of the file search. Include the full complete docstrings of the context_context methods you used in your response, not just the function names. These are generally in the documentation in your prompt."
+            description="Results of the file search. Include the full complete docstrings of the context methods you used in your response, not just the function names. These are generally in the documentation in your prompt."
         )
         
         python_code: "ContextResponseFormatterAgent.PythonCode" = Field(..., description="Python code snippet related to the task (for guidance only).")
