@@ -440,11 +440,10 @@ For the next agent suggestion, follow these rules:
                 if fixes:
                     vlm_feedback += "Suggested fixes from plot judge:\n" + "\n".join(f"- {f}" for f in fixes) + "\n\n"
                 
-                # Include the code that generated the problematic plot for context
-                executed_code = context_variables.get("latest_executed_code")
-                if executed_code and len(executed_code.strip()) > 0:
-                    # TODO: change the first 5 words here
-                    vlm_feedback += "Code that generated this plot:\n```python\n" + executed_code + "\n```\n"
+                # Include code corresponding to the problematic plot as context
+                code_context = context_variables.get("latest_executed_code")
+                if code_context and len(code_context.strip()) > 0:
+                    vlm_feedback += "Structure of the code that generated this plot:\n```python\n" + code_context + "\n```\n"
             
             # Store structured feedback in context for engineer prompt injection
             context_variables["vlm_plot_structured_feedback"] = vlm_feedback if vlm_feedback else None

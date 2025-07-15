@@ -18,7 +18,7 @@ instructions: |
   ## For "retry" verdicts:
   1. Carefully read the VLM analysis.
   2. For each analysis field, extract any specific problems that require action. Do NOT include aspects that are already satisfactory or working. Some fields may not have problems, in which case you should not include any problems.
-  3. From the "recommendations" field, create actionable and specific fixes that the engineer can implement. Do NOT include optional suggestions/considerations or recommendations for aspects that are already correct.
+  3. From each recommendation in the "recommendations" field, create actionable and specific fixes that the engineer can implement. Do NOT include optional suggestions/considerations or recommendations for aspects that are already correct.
   4. If a scientific issue is identified but the fix is open-ended, include the problem even if it is less precise.
   5. Convert the problems and fixes into lists of strings for the function call.
 

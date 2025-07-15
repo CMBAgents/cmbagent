@@ -38,7 +38,7 @@ class VLMAnalysis(BaseModel):
     completeness: str = Field(
         ...,
         description=(
-            "Assessment of completeness: Does it have appropriate axis labels, title, units? "
+            "Assessment of completeness: Does it have axis labels, a title, and units? "
             "Are all scientifically necessary elements included? "
             "The plot should be self-contained and informative without unnecessary elements."
             "Only comment on a missing legend if there are multiple data series. "

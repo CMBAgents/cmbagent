@@ -8,7 +8,7 @@ from math import pi
 
 # Valid plots to inject
 InjectionPlot = Literal[
-    "wrong_h_value", 
+    "wrong_H0_value", 
     "truncated_multipole_range"
     ]
 
@@ -63,23 +63,69 @@ def _execute_injection_code(code: str) -> str:
     # Generate and return the plot
     return _save_plot_to_files()
 
+
+# TODO: check on None vs False here
+def get_injection(config: dict[str, str] | bool | None = None, injection_name: str = None) -> Tuple[str, str]:
+    """Get injection code and plot. Returns tuple of code to show and plot encoded as base64."""
+    if config is None:
+        config = injection_config
+    if not config:
+        raise ValueError("Injection is disabled (config is False)")
+    if not isinstance(config, dict):
+        raise ValueError("config must be a dict when enabled")
+    
+    config_dict: dict[str, str] = config  # At this point, config is guaranteed to be a dict
+    
+    if injection_name is None:
+        injection_name = config_dict["plot"]
+    if injection_name not in injection_plot_map:
+        available = list(injection_plot_map.keys())
+        raise ValueError(f"Injection '{injection_name}' not found. Available: {available}")
+    
+    # Get the plot and exact code
+    direct_code, plot_base64 = injection_plot_map[injection_name]()
+    
+    # Choose what code to show based on config
+    current_code_type: InjectionCode = config_dict["code"]
+    if current_code_type == "template":
+        code_to_show = cmb_template_code
+    else:  # "exact"
+        code_to_show = direct_code
+    
+    print(f"DEBUG: Using injection '{injection_name}' with code context '{current_code_type}'")
+    
+    return code_to_show, plot_base64
+
+
 # Template code for CMB power spectrum (used when code_to_inject = "template")
 cmb_template_code = """# Imports
 
-# Create instance of the class "Class"
+# Define cosmological parameters using Planck 2018
+pars = camb.set_params(
+    H0    = ___,
+    ombh2 = ___,
+    omch2 = ___,
+    mnu   = ___,  # Neutrino mass (minimal normal hierarchy)
+    omk   = ___,
+    tau   = ___,
+    As    = ___,
+    ns    = ___,
+    lmax  = ___,
+)
 
-# Pass LambdaCDM input parameters
-LambdaCDM.set({'omega_b':___,'omega_cdm':___,'h':___,'A_s':___,'n_s':___,'tau_reio':___})
-LambdaCDM.set({'output':'tCl,pCl,lCl,mPk','lensing':'yes','P_k_max_1/Mpc':___})
+# Run CAMB to get results
 
-# Run class
+# Get the dictionary of CMB power spectra in μK^2
+powers = results.get_cmb_power_spectra(pars, CMB_unit='muK')  # these are already dimensionless (D_ell)
 
-# Get all C_l output
+# Construct multipole array
 
-# Plotting"""
+# Plot total (lensed) temperature power spectrum
 
-def wrong_h_value():
-    """Wrong h parameter: 67.810 instead of 0.67810"""
+# Label plot"""
+
+def wrong_H0_value():
+    """TODO: fix this"""
     direct_code = """from classy import Class
 import matplotlib.pyplot as plt
 from math import pi
@@ -113,31 +159,43 @@ plt.title("LCDM CMB TT Power Spectrum")"""
 
 def truncated_multipole_range():
     """Missing title, using LaTeX, and truncated multipole moment range 2 ≤ l ≤ 1000"""
-    direct_code = """from classy import Class
+    direct_code = """import os
+import camb
+import numpy as np
 import matplotlib.pyplot as plt
-from math import pi
 
-# Create instance of the class "Class"
-LambdaCDM = Class()
+# Define cosmological parameters using Planck 2018
+pars = camb.set_params(
+    H0=67.36,              # Hubble constant (km/s/Mpc)
+    ombh2=0.02237,         # Baryon density
+    omch2=0.1200,          # Cold dark matter density
+    mnu=0.06,              # Neutrino mass (minimal normal hierarchy)
+    omk=0,                 # Flat universe
+    tau=0.0544,            # Optical depth to reionization
+    As=2.100e-9,           # Scalar amplitude
+    ns=0.9649,             # Scalar spectral index
+    lmax=2500
+)
 
-# Pass input parameters
-LambdaCDM.set({'omega_b':0.0223828,'omega_cdm':0.1201075,'h':0.67810,'A_s':2.100549e-09,'n_s':0.9660499,'tau_reio':0.05430842})
-LambdaCDM.set({'output':'tCl,pCl,lCl,mPk','lensing':'yes','P_k_max_1/Mpc':3.0})
+# Run CAMB to get results
+results = camb.get_results(pars)
 
-# Run class
-LambdaCDM.compute()
+# Get the dictionary of CMB power spectra in μK^2
+powers = results.get_cmb_power_spectra(pars, CMB_unit='muK')
+totCL = powers['total']  # Includes lensing
 
-# get all C_l output
-cls = LambdaCDM.lensed_cl(1000)
-ll = cls['ell'][2:]
-clTT = cls['tt'][2:]
+# Multipole array
+ls = np.arange(totCL.shape[0])
 
-plt.xscale('linear')
-plt.yscale('linear')
-plt.xlim(2,1000)
-plt.xlabel(r'$\\ell$')
-plt.ylabel(r'$[\\ell(\\ell+1)/2\\pi]  C_\\ell^\\mathrm{TT}$')
-plt.plot(ll,clTT*ll*(ll+1)/2./pi,'r-')"""
+# Plot total (lensed) temperature power spectrum
+plt.figure(dpi=300)
+plt.plot(ls, totCL[:, 0])
+
+# Labels
+plt.xlim(2, 1000)
+plt.xlabel(r'$ℓ$')
+plt.ylabel(r'$ℓ(ℓ+1) C_ℓ^{TT} / 2π [μK^2]$')
+plt.grid(True)"""
     
     plot_base64 = _execute_injection_code(direct_code)
     return direct_code, plot_base64
@@ -145,37 +203,6 @@ plt.plot(ll,clTT*ll*(ll+1)/2./pi,'r-')"""
 
 # Injection registry (plot generators)
 injection_plot_map = {
-    "wrong_h_value": wrong_h_value,
+    "wrong_H0_value": wrong_H0_value,
     "truncated_multipole_range": truncated_multipole_range,
 }
-
-def get_injection(config: dict[str, str] | bool | None = None, injection_name: str = None) -> Tuple[str, str]:
-    """Get injection code and plot. Returns tuple of code to show and plot encoded as base64."""
-    if config is None:
-        config = injection_config
-    if not config:
-        raise ValueError("Injection is disabled (config is False)")
-    if not isinstance(config, dict):
-        raise ValueError("config must be a dict when enabled")
-    
-    config_dict: dict[str, str] = config  # At this point, config is guaranteed to be a dict
-    
-    if injection_name is None:
-        injection_name = config_dict["plot"]
-    if injection_name not in injection_plot_map:
-        available = list(injection_plot_map.keys())
-        raise ValueError(f"Injection '{injection_name}' not found. Available: {available}")
-    
-    # Get the plot and exact code
-    direct_code, plot_base64 = injection_plot_map[injection_name]()
-    
-    # Choose what code to show based on config
-    current_code_type: InjectionCode = config_dict["code"]
-    if current_code_type == "template":
-        code_to_show = cmb_template_code
-    else:  # "exact"
-        code_to_show = direct_code
-    
-    print(f"DEBUG: Using injection '{injection_name}' with code context '{current_code_type}'")
-    
-    return code_to_show, plot_base64
