@@ -6,29 +6,30 @@ from typing import Tuple, Literal
 from classy import Class
 from math import pi
 
-INJECT_WRONG_PLOT = True # Whether to inject wrong plots
-
-# List of valid plots to inject
+# Valid plots to inject
 InjectionPlot = Literal[
     "wrong_h_value", 
     "truncated_multipole_range"
     ]
 
-plot_to_inject: InjectionPlot = "truncated_multipole_range"             # Which plot to show VLM
-code_to_inject: Literal["template", "direct"] = "template"  # What code to inject as context
+# Valid code context injections
+InjectionCode = Literal["template", "exact"]
+
+# Injection configuration (disabled by default)
+injection_config: dict[str, str] | bool = False
 
 
 def _save_plot_to_files() -> str:
     """Save injected plot to temp file and debug location. All plots named the same."""
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-        plt.savefig(tmp_file.name, dpi=100, bbox_inches='tight')
+        plt.savefig(tmp_file.name, dpi=300, bbox_inches='tight')
         
         # Also save a copy to synthetic_output
         try:
             synthetic_dir = "/Users/kahaan/Downloads/cmbagent/synthetic_output"  # TODO: make this a relative path
             os.makedirs(synthetic_dir, exist_ok=True)
             debug_path = os.path.join(synthetic_dir, "injected_plot.png")
-            plt.savefig(debug_path, dpi=100, bbox_inches='tight')
+            plt.savefig(debug_path, dpi=300, bbox_inches='tight')
             print(f"DEBUG: Injected plot saved to {debug_path} for reference")
         except Exception as e:
             print(f"DEBUG: Could not save injected plot to synthetic_output: {e}")
@@ -148,13 +149,19 @@ injection_plot_map = {
     "truncated_multipole_range": truncated_multipole_range,
 }
 
-def get_injection(injection_name: str = None) -> Tuple[str, str]:
-    """Get injection code and plot. Returns (code_to_show, plot_base64)."""
-    global plot_to_inject, code_to_inject
+def get_injection(config: dict[str, str] | bool | None = None, injection_name: str = None) -> Tuple[str, str]:
+    """Get injection code and plot. Returns tuple of code to show and plot encoded as base64."""
+    if config is None:
+        config = injection_config
+    if not config:
+        raise ValueError("Injection is disabled (config is False)")
+    if not isinstance(config, dict):
+        raise ValueError("config must be a dict when enabled")
+    
+    config_dict: dict[str, str] = config  # At this point, config is guaranteed to be a dict
     
     if injection_name is None:
-        injection_name = plot_to_inject
-    
+        injection_name = config_dict["plot"]
     if injection_name not in injection_plot_map:
         available = list(injection_plot_map.keys())
         raise ValueError(f"Injection '{injection_name}' not found. Available: {available}")
@@ -162,12 +169,13 @@ def get_injection(injection_name: str = None) -> Tuple[str, str]:
     # Get the plot and exact code
     direct_code, plot_base64 = injection_plot_map[injection_name]()
     
-    # Choose what code to show
-    if code_to_inject == "template":
+    # Choose what code to show based on config
+    current_code_type: InjectionCode = config_dict["code"]
+    if current_code_type == "template":
         code_to_show = cmb_template_code
-    else:  # "direct"
+    else:  # "exact"
         code_to_show = direct_code
     
-    print(f"DEBUG: Using injection '{injection_name}' with code context '{code_to_inject}'")
+    print(f"DEBUG: Using injection '{injection_name}' with code context '{current_code_type}'")
     
     return code_to_show, plot_base64

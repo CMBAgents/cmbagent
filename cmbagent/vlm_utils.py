@@ -87,16 +87,15 @@ class OpenAICompletion:
         })()
 
 
-def generate_wrong_plot_injection():
+def generate_wrong_plot_injection(injection_config):
     """
     Generate wrong code and corresponding plot for VLM testing.
     Returns the wrong code as string and base64 encoded plot.
-    Uses the new vlm_injections system for clean, extensible injection management.
     """
     from .vlm_injections import get_injection
     
     # Get the injection using the new system
-    wrong_code, base64_image = get_injection()
+    wrong_code, base64_image = get_injection(injection_config)
     
     return wrong_code, base64_image
 
@@ -117,8 +116,11 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
     if inject_wrong_plot and n_plot_evals == 0:
         print("DEBUG: [INJECTION] Replacing plot with our own wrong plot")
         
-        # Generate wrong plot in memory (no disk persistence)
-        wrong_code, wrong_plot_base64 = generate_wrong_plot_injection()
+        # Get injection config from context variables
+        injection_config = context_variables.get("injection_config", False) if context_variables else False
+        
+        # Generate wrong plot
+        wrong_code, wrong_plot_base64 = generate_wrong_plot_injection(injection_config)
         base_64_img = wrong_plot_base64
         injected_code = wrong_code
         

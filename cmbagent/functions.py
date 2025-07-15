@@ -17,7 +17,6 @@ import json
 from pathlib import Path
 from .utils import AAS_keywords_dict
 from .vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, vlm_model
-from .vlm_injections import INJECT_WRONG_PLOT
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -323,7 +322,8 @@ For the next agent suggestion, follow these rules:
         try:
             # Send the image to the VLM model and get the analysis (injection checks n_plot_evals before increment)
             vlm_prompt = create_vlm_prompt(context_variables)
-            completion, injected_code = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=INJECT_WRONG_PLOT, context_variables=context_variables)
+            injection_config = context_variables.get("injection_config", False)
+            completion, injected_code = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=bool(injection_config), context_variables=context_variables)
             
             # Increment plot evaluation counter after VLM call
             context_variables["n_plot_evals"] = current_evals + 1
