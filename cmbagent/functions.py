@@ -16,7 +16,8 @@ import datetime
 import json
 from pathlib import Path
 from .utils import AAS_keywords_dict
-from .vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, vlm_model, INJECT_WRONG_PLOT
+from .vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, vlm_model
+from .vlm_injections import INJECT_WRONG_PLOT
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -442,6 +443,7 @@ For the next agent suggestion, follow these rules:
                 # Include the code that generated the problematic plot for context
                 executed_code = context_variables.get("latest_executed_code")
                 if executed_code and len(executed_code.strip()) > 0:
+                    # TODO: change the first 5 words here
                     vlm_feedback += "Code that generated this plot:\n```python\n" + executed_code + "\n```\n"
             
             # Store structured feedback in context for engineer prompt injection

@@ -135,7 +135,8 @@ default_agents_llm_model ={
     # "idea_hater": "claude-3-7-sonnet-20250219",
     "idea_hater":  "o3-mini-2025-01-31",
     "idea_maker": "gpt-4.1-2025-04-14",
-    "plot_judge": "gpt-4o-2024-08-06",
+    # "plot_judge": "gpt-4o-2024-08-06",
+    "plot_judge": "o3-mini-2025-01-31",
 
     # rag agents
     "classy_sz": "gpt-4o-2024-11-20",

@@ -9,31 +9,65 @@ from .utils import get_api_keys_from_env
 from pydantic import BaseModel, Field
 import json
 
-# For injecting wrong plots
-import os
-import tempfile
-import matplotlib.pyplot as plt
-import numpy as np
-
 cmbagent_debug = autogen.cmbagent_debug
 
 # TODO: add this to config
 # NOTE: injecting with max_n_plot_evals = 1 will be useless
-vlm_model: Literal["gpt-4o", "gemini-2.5-flash"] = "gemini-2.5-flash"
+vlm_model: Literal["gpt-4o", "gemini-2.5-flash", "o3-2025-04-16"] = "o3-2025-04-16"
 _last_executed_code = None
-INJECT_WRONG_PLOT = True
 
 
 class VLMAnalysis(BaseModel):
     """
     Structured output schema for VLM plot analysis.
     """
-    scientific_accuracy: str = Field(..., description="Assessment of scientific accuracy: Are the data points, calculations, and scientific principles accurate? Are the units, scales, and relationships correct? Are there any mathematical or scientific errors?")
-    visual_clarity: str = Field(..., description="Assessment of visual clarity: Can the plot be interpreted without confusion? Are the data points, axis scales, lines, and trends clearly visible? Is the color scheme and contrast appropriate?")
-    completeness: str = Field(..., description="Assessment of completeness: Does it have a clear title, axis labels, and legend? Are units shown where appropriate? Are all necessary data series included? Is the plot self-contained and informative?")
-    professional_presentation: str = Field(..., description="Assessment of professional presentation: Are labels, legends, and titles clear and appropriate? Is the layout clean and uncluttered? Are fonts, colors, and styling professional? We don't use LaTeX rendering in plots.")
-    recommendations: str = Field(..., description="Specific recommendations for improvement if any criteria are not met. Provide actionable fixes that can be implemented.")
-    verdict: Literal["continue", "retry"] = Field(..., description="Final verdict: 'continue' if plot meets standards, 'retry' if improvements needed. BE STRICT on scientific accuracy, visual clarity, and completeness - any errors should trigger retry. BE MODERATE on professional presentation - only retry for issues that significantly impact scientific communication, not minor aesthetic preferences like tweaks to existing legend placement, title specifity, axis labels, etc.")
+    scientific_accuracy: str = Field(
+        ...,
+        description=(
+            "Assessment of scientific accuracy: Are the data points, calculations, and scientific principles accurate? "
+            "Are the units, scales, and relationships correct? Are there any mathematical or scientific errors?"
+        )
+    )
+    visual_clarity: str = Field(
+        ...,
+        description=(
+            "Assessment of visual clarity: Can the plot be interpreted without confusion? "
+            "Are the data points, axis scales, and lines clearly visible?"
+        )
+    )
+    completeness: str = Field(
+        ...,
+        description=(
+            "Assessment of completeness: Does it have appropriate axis labels, title, units? "
+            "Are all scientifically necessary elements included? "
+            "The plot should be self-contained and informative without unnecessary elements."
+            "Only comment on a missing legend if there are multiple data series. "
+        )
+    )
+    professional_presentation: str = Field(
+        ...,
+        description=(
+            "Assessment of professional presentation: Are existing labels and titles clear and appropriate? "
+            "Is the layout clean and uncluttered? Are fonts, colors, and styling professional? "
+            "We don't use LaTeX rendering in plots."
+        )
+    )
+    recommendations: str = Field(
+        ...,
+        description=(
+            "Specific recommendations for improvement if any criteria are not met. "
+            "Provide actionable fixes that can be implemented."
+        )
+    )
+    verdict: Literal["continue", "retry"] = Field(
+        ...,
+        description=(
+            "Final verdict: 'continue' if plot meets standards, 'retry' if improvements needed. "
+            "BE STRICT on scientific accuracy, visual clarity, and completeness - any errors should trigger retry. "
+            "BE MODERATE on professional presentation - only retry for issues that significantly impact scientific communication, "
+            "not minor aesthetic preferences like tweaks to existing legend placement, title specifity, axis labels, etc."
+        )
+    )
 
 
 class OpenAICompletion:
@@ -57,91 +91,16 @@ def generate_wrong_plot_injection():
     """
     Generate wrong code and corresponding plot for VLM testing.
     Returns the wrong code as string and base64 encoded plot.
-    Saves a copy to synthetic_output for debugging but uses temp file for VLM.
+    Uses the new vlm_injections system for clean, extensible injection management.
     """
-    # Wrong code
-    wrong_code = r"""
-from classy import Class
-import matplotlib.pyplot as plt
-from math import pi
-
-# Create instance of the class "Class"
-LambdaCDM = Class()
-
-# Pass input parameters
-LambdaCDM.set({'omega_b':0.0223828,'omega_cdm':0.1201075,'h':0.67810,'A_s':2.100549e-09,'n_s':0.9660499,'tau_reio':0.05430842})
-LambdaCDM.set({'output':'tCl,pCl,lCl,mPk','lensing':'yes','P_k_max_1/Mpc':3.0})
-
-# Run class
-LambdaCDM.compute()
-
-# get all C_l output
-cls = LambdaCDM.lensed_cl(1000)
-ll = cls['ell'][2:]
-clTT = cls['tt'][2:]
-
-plt.xscale('linear')
-plt.yscale('linear')
-plt.xlim(2,1000)
-plt.xlabel(r'$\ell$')
-plt.ylabel(r'$[\ell(\ell+1)/2\pi]  C_\ell^\mathrm{TT}$')
-plt.plot(ll,clTT*ll*(ll+1)/2./pi,'r-')
-plt.savefig("power_spectrum.png")
-"""
+    from .vlm_injections import get_injection
     
-    # Generate the actual wrong plot in memory
-    from classy import Class
-    import matplotlib.pyplot as plt
-    from math import pi
-
-    # Create instance of the class "Class"
-    LambdaCDM = Class()
-
-    # Pass input parameters
-    LambdaCDM.set({'omega_b':0.0223828,'omega_cdm':0.1201075,'h':0.67810,'A_s':2.100549e-09,'n_s':0.9660499,'tau_reio':0.05430842})
-    LambdaCDM.set({'output':'tCl,pCl,lCl,mPk','lensing':'yes','P_k_max_1/Mpc':3.0})
-
-    # Run class
-    LambdaCDM.compute()
-
-    # get all C_l output
-    cls = LambdaCDM.lensed_cl(1000)
-    ll = cls['ell'][2:]
-    clTT = cls['tt'][2:]
-
-    plt.xscale('linear')
-    plt.yscale('linear')
-    plt.xlim(2,1000)
-    plt.xlabel(r'$\ell$')
-    plt.ylabel(r'$[\ell(\ell+1)/2\pi]  C_\ell^\mathrm{TT}$')
-    plt.plot(ll,clTT*ll*(ll+1)/2./pi,'r-')
-    # plt.savefig("power_spectrum.png")
-    
-    # Save to temporary file for VLM processing
-    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-        plt.savefig(tmp_file.name, dpi=100, bbox_inches='tight')
-        
-        # Also save a copy to synthetic_output
-        try:
-            synthetic_dir = "/Users/kahaan/Downloads/cmbagent/synthetic_output"
-            os.makedirs(synthetic_dir, exist_ok=True)
-            debug_path = os.path.join(synthetic_dir, "injected_plot.png")
-            plt.savefig(debug_path, dpi=100, bbox_inches='tight')
-            print(f"DEBUG: Injected plot saved to {debug_path} for reference")
-        except Exception as e:
-            print(f"DEBUG: Could not save injected plot to synthetic_output: {e}")
-        
-        plt.close()
-        
-        # Read and encode as base64
-        with open(tmp_file.name, 'rb') as f:
-            image_data = f.read()
-            base64_image = base64.b64encode(image_data).decode('utf-8')
-        
-        # Clean up temporary file
-        os.unlink(tmp_file.name)
+    # Get the injection using the new system
+    wrong_code, base64_image = get_injection()
     
     return wrong_code, base64_image
+
+
 
 
 def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool = False, context_variables: ContextVariables = None) -> tuple[str | OpenAICompletion, str | None]:
@@ -172,12 +131,12 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
     api_keys = get_api_keys_from_env()
 
     # Check if model in OpenAI family
-    if vlm_model in ["gpt-4o"]:
+    if vlm_model in ["gpt-4o", "o3-2025-04-16"]:
         client = OpenAI(api_key=api_keys["OPENAI"])
 
         # External OpenAI API call with structured output
         completion = client.chat.completions.create(
-            model='gpt-4o',
+            model=vlm_model,
             messages=[
                 {
                     'role': 'user',
@@ -272,7 +231,8 @@ def account_for_external_api_calls(agent, completion):
     # https://ai.google.dev/gemini-api/docs/pricing
     pricing = {
         "gpt-4o":           {"input": 2.50, "output": 10.00},
-        "gemini-2.5-flash": {"input": 0.00, "output": 0.00},  # Free tier
+        "gemini-2.5-flash": {"input": 0.00, "output":  0.00},  # Free tier
+        "o3-2025-04-16":    {"input": 2.00, "output":  8.00},
     }
     
     # Calculate cost based on model
@@ -301,19 +261,19 @@ def create_vlm_prompt(context_variables: ContextVariables) -> str:
 
         vlm_prompt = f"""
 You are a plot judge analyzing a scientific plot. Your task is to evaluate the plot's quality and provide structured feedback.
-
+Analyze this plot across scientific accuracy, visual clarity, completeness, and professional presentation.
 Context about the goal of the plot: {improved_main_task}
 
-Analyze this plot across four key criteria: scientific accuracy, visual clarity, completeness, and professional presentation.
+Request plot elements that are scientifically beneficial for understanding the plot. 
+Don't request them just for rubric completeness if the plot is clear without them. 
+Don't request additional annotations.
 
-You will respond with a structured JSON object. Be thorough and critical - the plot will only be accepted if ALL criteria are met. 
-
+Be thorough and critical - the plot will only be accepted if ALL criteria are met. 
 If any criterion is not satisfied, provide specific, actionable recommendations for improvement.
 
 Your verdict must be either "continue" (plot fully meets all criteria) or "retry" (plot needs improvements).
 """
  
-        if cmbagent_debug:
-            print(f"VLM prompt:\n{vlm_prompt}")
+        # print(f"DEBUG: VLM prompt:\n{vlm_prompt}")
 
         return vlm_prompt
