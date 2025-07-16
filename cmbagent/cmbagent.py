@@ -183,6 +183,10 @@ class CMBAgent:
 
         self.verbose = verbose
 
+        if work_dir != work_dir_default:
+            # delete work_dir_default as it wont be used
+            shutil.rmtree(work_dir_default, ignore_errors=True)
+
         self.work_dir = work_dir
         self.clear_work_dir_bool = clear_work_dir
         if clear_work_dir:
@@ -1380,7 +1384,7 @@ def planning_and_control(
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # Save to JSON file in workdir
-    timing_path = os.path.join(work_dir, f"time/timing_report_{timestamp}.json")
+    timing_path = os.path.join(results['final_context']['work_dir'], f"time/timing_report_control_{timestamp}.json")
     with open(timing_path, 'w') as f:
         json.dump(timing_report, f, indent=2)
 
@@ -1503,7 +1507,7 @@ def control(
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     
     # Save to JSON file in workdir
-    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    timing_path = os.path.join(results['final_context']['work_dir'], f"time/timing_report_control_{timestamp}.json")
     with open(timing_path, 'w') as f:
         json.dump(timing_report, f, indent=2)
 
@@ -1514,6 +1518,13 @@ def control(
 
     # Now call display_cost without triggering the AttributeError
     cmbagent.display_cost()
+    ## delete empty folders during control
+    database_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['database_path'])
+    codebase_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['codebase_path'])
+    time_full_path = os.path.join(results['final_context']['work_dir'],'time')
+    for folder in [database_full_path, codebase_full_path, time_full_path]:
+        if not os.listdir(folder):
+            os.rmdir(folder)
 
     return results
 
