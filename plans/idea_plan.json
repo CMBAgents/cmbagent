@@ -44,7 +44,8 @@
                 "Consider the critiques and feedback from Step 4.",
                 "Justify your selection with specific references to the strengths identified in previous steps.",
                 "Outline 2-3 key research questions that would guide this project.",
-                "Choose the idea with the most potential for impactful research."
+                "Choose the idea with the most potential for impactful research.",
+                "Out of the 2 improved ideas, report only the idea that you have selected."
             ],
             "sub_task": "Select the best research project idea out of the 2 improved ideas.",
             "sub_task_agent": "idea_maker"
