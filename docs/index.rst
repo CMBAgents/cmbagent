@@ -14,7 +14,7 @@ cmbagent
    :target: https://pypi.org/project/cmbagent/
    :alt: PyPI version
 
-.. image:: https://img.shields.io/badge/license-MIT-blue.svg
+.. image:: https://img.shields.io/badge/license-Apache%202-blue.svg
    :target: LICENSE
    :alt: License
 
@@ -22,53 +22,28 @@ cmbagent
    :target: https://cmbagent.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-.. image:: https://img.shields.io/badge/arXiv-2412.00431-b31b1b.svg
-   :target: https://arxiv.org/abs/2412.00431
+.. image:: https://img.shields.io/badge/arXiv-2507.07257-b31b1b.svg
+   :target: https://arxiv.org/abs/2507.07257
    :alt: arXiv
 
 
-Multi-agent system for data analysis, made by cosmologists, powered by `autogen <https://github.com/autogen-ai/autogen>`_/`ag2 <https://github.com/ag2ai/ag2>`_.
+Multi-agent system for science, powered by `ag2 <https://github.com/ag2ai/ag2>`_.
 
-.. note::
-   This software is under MIT license. We bear no responsibility for any misuse of this software or its outputs.
-
+Documentation is coming soon!
 
 If you would like to cite us, please use:
 
 .. code-block:: bash
 
-   @misc{Laverick:2024fyh,
-      author = "Laverick, Andrew and Surrao, Kristen and Zubeldia, Inigo and Bolliet, Boris and Cranmer, Miles and Lewis, Antony and Sherwin, Blake and Lesgourgues, Julien",
-      title = "{Multi-Agent System for Cosmological Parameter Analysis}",
-      eprint = "2412.00431",
-      archivePrefix = "arXiv",
-      primaryClass = "astro-ph.IM",
-      month = "11",
-      year = "2024"
+   @misc{xu2025opensourceplanning,
+      title={Open Source Planning & Control System with Language Agents for Autonomous Scientific Discovery}, 
+      author={Licong Xu and Milind Sarkar and Anto I. Lonappan and Íñigo Zubeldia and Pablo Villanueva-Domingo and Santiago Casas and Christian Fidler and Chetana Amancharla and Ujjwal Tiwari and Adrian Bayer and Chadi Ait Ekiou and Miles Cranmer and Adrian Dimitrov and James Fergusson and Kahaan Gandhi and Sven Krippendorf and Andrew Laverick and Julien Lesgourgues and Antony Lewis and Thomas Meier and Blake Sherwin and Kristen Surrao and Francisco Villaescusa-Navarro and Chi Wang and Xueqing Xu and Boris Bolliet},
+      year={2025},
+      eprint={2507.07257},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2507.07257}, 
    }
-
-
-Our project is funded by the `Cambridge Centre for Data-Driven Discovery Accelerate Programme <https://science.ai.cam.ac.uk>`_.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Getting Started
-
-   README.md
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Examples
-
-   notebooks/cmbagent
-   notebooks/1_getting_started
-   notebooks/2_stat_class
-   notebooks/3_two_agents_chat
-   notebooks/4_your_rag
-   notebooks/5_memory_agent
-
-
 
 
 
