@@ -1531,6 +1531,7 @@ def one_shot(
             agent = 'engineer',
             work_dir = work_dir_default,
             api_keys = None,
+            context_path = None,
             ):
     start_time = time.time()
 
@@ -1572,13 +1573,15 @@ def one_shot(
         shared_context["classy_context"] = classy_context
 
     if agent == 'contextagent':
-        default_path = os.path.expanduser('~/your_context_library/CAMB.txt')
-        if os.path.exists(default_path):
-            with open(default_path, 'r') as f:
+        # Use the choosen path or the default path
+        path = context_path or os.path.expanduser('~/your_context_library/CAMB.txt')
+        if os.path.exists(path):
+            with open(path, 'r') as f:
                 shared_context["library_context"] = f.read()
+            print(f"\n[DEBUG] Fichier context trouvé ({path}), voici les 100 premiers caractères:\n", shared_context["library_context"][:100], flush=True)
         else:
             shared_context["library_context"] = ""
-            print("\n[DEBUG] Fichier context non trouvé, library_context est vide.\n", flush=True)
+            print(f"\n[DEBUG] Fichier context non trouvé ({path}), library_context est vide.\n", flush=True)
 
     if researcher_filename is not None: 
         shared_context["researcher_filename"] = researcher_filename
