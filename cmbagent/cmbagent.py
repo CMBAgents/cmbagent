@@ -1571,13 +1571,11 @@ def one_shot(
         classy_context = resp.text          # Whole document as one long string
         shared_context["classy_context"] = classy_context
 
-    if agent == 'maker_context':
+    if agent == 'contextagent':
         default_path = os.path.expanduser('~/your_context_library/CAMB.txt')
         if os.path.exists(default_path):
             with open(default_path, 'r') as f:
                 shared_context["library_context"] = f.read()
-            print("\n[DEBUG] Contenu de library_context lu depuis le fichier :\n", flush=True)
-            print(shared_context["library_context"], flush=True)
         else:
             shared_context["library_context"] = ""
             print("\n[DEBUG] Fichier context non trouvé, library_context est vide.\n", flush=True)
