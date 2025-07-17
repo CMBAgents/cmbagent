@@ -41,16 +41,18 @@ def import_non_rag_agents():
         if os.path.isdir(subdir_path):
             for filename in os.listdir(subdir_path):
                 if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
-                    module_name = filename[:-3]  # Remove the .py extension
+                    module_name = filename[:-3]
                     class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
-                    # Assuming the module path is agents.<subdir>.<module_name>
                     module_path = f"cmbagent.agents.{subdir}.{module_name}"
-                    module = importlib.import_module(module_path)
-                    agent_class = getattr(module, class_name)
-                    imported_non_rag_agents[class_name] = {
-                        'agent_class': agent_class,
-                        'agent_name': module_name,
-                    }
+                    try:
+                        module = importlib.import_module(module_path)
+                        agent_class = getattr(module, class_name)
+                        imported_non_rag_agents[class_name] = {
+                            'agent_class': agent_class,
+                            'agent_name': module_name,
+                        }
+                    except Exception as e:
+                        pass  # Optionally, log the error if needed
     return imported_non_rag_agents
 
 from autogen import cmbagent_debug
@@ -1146,7 +1148,7 @@ def planning_and_control_context_carryover(
                 if msg['name'] == agent_for_step or msg['name'] == f"{agent_for_step}_nest" or msg['name'] == f"{agent_for_step}_response_formatter":
                     # print("\nin cmbagent.py: msg['content']: ", msg['content'])
                     this_step_execution_summary = msg['content']
-                    # build this step’s summary
+                    # build this step's summary
                     summary = f"### Step {step}\n{this_step_execution_summary.strip()}"
                     step_summaries.append(summary)  
                     cmbagent.final_context['previous_steps_execution_summary'] = "\n\n".join(step_summaries)
@@ -1308,8 +1310,15 @@ def planning_and_control(
     timing_path = os.path.join(planning_output['work_dir'], f"time/timing_report_planning_{timestamp}.json")
     with open(timing_path, 'w') as f:
         json.dump(timing_report, f, indent=2)
+
     
-    print(f"\nTiming report data saved to: {timing_path}\n")
+    # Create a dummy groupchat attribute if it doesn't exist
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+
+    # Now call display_cost without triggering the AttributeError
+    cmbagent.display_cost()
 
     ## delete empty folders during control
     database_full_path = os.path.join(planning_output['work_dir'], planning_output['database_path'])
@@ -1549,24 +1558,29 @@ def one_shot(
     shared_context = {'max_n_attempts': max_n_attempts}
 
     if agent == 'camb_context':
-
         # Fetch the file (30-second safety timeout)
         resp = requests.get(camb_context_url, timeout=30) # use something different different... debug this lines
         resp.raise_for_status()           # Raises an HTTPError for non-200 codes
         camb_context = resp.text          # Whole document as one long string
-
         shared_context["camb_context"] = camb_context
 
-
     if agent == 'classy_context':
-
         # Fetch the file (30-second safety timeout)
         resp = requests.get(classy_context_url, timeout=30)
         resp.raise_for_status()           # Raises an HTTPError for non-200 codes
         classy_context = resp.text          # Whole document as one long string
-
         shared_context["classy_context"] = classy_context
 
+    if agent == 'maker_context':
+        default_path = os.path.expanduser('~/your_context_library/CAMB.txt')
+        if os.path.exists(default_path):
+            with open(default_path, 'r') as f:
+                shared_context["library_context"] = f.read()
+            print("\n[DEBUG] Contenu de library_context lu depuis le fichier :\n", flush=True)
+            print(shared_context["library_context"], flush=True)
+        else:
+            shared_context["library_context"] = ""
+            print("\n[DEBUG] Fichier context non trouvé, library_context est vide.\n", flush=True)
 
     if researcher_filename is not None: 
         shared_context["researcher_filename"] = researcher_filename
