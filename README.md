@@ -11,12 +11,13 @@
 
 
 
-
 Multi-Agent System for Science, Powered by [AG2](https://github.com/ag2ai/ag2).
 
 Try cmbagent on [HuggingFace](https://huggingface.co/spaces/astropilot-ai/cmbagent)!
 
 We are currently deploying [cmbagent on the cloud](https://cmbagent.cloud/), it will be in production soon!
+
+Cmbagent is part of [Denario](https://astropilot-ai.github.io/DenarioPaperPage/), our end-to-end research system. 
 
 Check our [demo videos](https://www.youtube.com/@cmbagent) on YouTube!
 

@@ -7,9 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'cmbagent'
-copyright = '2024, Bolliet, Laverick, Zubeldia, Surrao, Cranmer, Lewis, Sherwin, Lesgourgues'
-author = 'Bolliet, Laverick, Zubeldia, Surrao, Cranmer, Lewis, Sherwin, Lesgourgues'
-release = '0.0.0'
+copyright = '2025, Boris Bolliet'
+author = 'Boris Bolliet'
+release = '0.0.1'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
