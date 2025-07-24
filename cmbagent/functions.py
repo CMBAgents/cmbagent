@@ -308,7 +308,7 @@ For the next agent suggestion, follow these rules:
             )
         
         try:
-            print(f"DEBUG: Reading plot file: {img_path}")
+            print(f"Reading plot file: {img_path}")
             with open(img_path, 'rb') as img_file:
                 base_64_img = base64.b64encode(img_file.read()).decode('utf-8')
                 
@@ -322,16 +322,16 @@ For the next agent suggestion, follow these rules:
         try:
             # Send the image to the VLM model and get the analysis (injection checks n_plot_evals before increment)
             vlm_prompt = create_vlm_prompt(context_variables)
-            injection_config = context_variables.get("injection_config", False)
-            completion, injected_code = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=bool(injection_config), context_variables=context_variables)
+            inject_wrong_plot = context_variables.get("inject_wrong_plot", False)
+            completion, injected_code = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=inject_wrong_plot, context_variables=context_variables)
             
             # Increment plot evaluation counter after VLM call
             context_variables["n_plot_evals"] = current_evals + 1
             vlm_analysis_json = completion.choices[0].message.content
-            print(f"VLM analysis: \n\n{vlm_analysis_json}\n\n")
+            print(f"\n\nVLM analysis: \n\n{vlm_analysis_json}\n\n")
             
             if injected_code:
-                print(f"DEBUG: Injected code:\n{injected_code}\n")
+                print(f"Injected code:\n{injected_code}\n")
             
             # Parse the structured JSON response
             try:
@@ -342,8 +342,8 @@ For the next agent suggestion, follow these rules:
                 context_variables["vlm_plot_analysis"] = vlm_analysis_json
                 context_variables["vlm_verdict"] = vlm_verdict
                 
-                print(f"VLM verdict: {vlm_verdict}")
-                print(f"DEBUG: context_variables['vlm_verdict'] = '{context_variables['vlm_verdict']}'")
+                if cmbagent_debug:
+                    print(f"context_variables['vlm_verdict'] = '{context_variables['vlm_verdict']}'")
                 
             except json.JSONDecodeError as e:
                 print(f"Warning: Could not parse VLM JSON response: {e}")
@@ -357,13 +357,19 @@ For the next agent suggestion, follow these rules:
                 context_variables["vlm_plot_analysis"] = vlm_analysis_json
                 context_variables["vlm_verdict"] = vlm_verdict
                 print(f"VLM verdict (fallback): {vlm_verdict}")
-                print(f"DEBUG: context_variables['vlm_verdict'] = '{context_variables['vlm_verdict']}'")
+                if cmbagent_debug:
+                    print(f"context_variables['vlm_verdict'] = '{context_variables['vlm_verdict']}'")
             
             account_for_external_api_calls(plot_judge, completion)
             
+            # Track LLM scientific criteria costs if they exist
+            llm_completion = context_variables.get("llm_completion")
+            if llm_completion:
+                account_for_external_api_calls(plot_judge, llm_completion, call_type="LLM")
+            
             return ReplyResult(
                 target=AgentTarget(plot_judge_router),
-                message=f"VLM analysis completed. VLM VERDICT: {vlm_verdict}. You must call route_plot_judge_verdict with verdict='{vlm_verdict}'.",
+                message=f"VLM analysis completed. VLM verdict: {vlm_verdict}. You must call route_plot_judge_verdict with verdict='{vlm_verdict}'.",
                 context_variables=context_variables
             )
             

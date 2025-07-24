@@ -6,22 +6,8 @@ from typing import Tuple, Literal
 from classy import Class
 from math import pi
 
-# Valid plot and code injections
-InjectionCode = Literal["template", "exact"]
-InjectionPlot = Literal[
-    "wrong_scalar_amplitude", 
-    "truncated_multipole_range",
-    "wrong_scalar_spectral_index",
-    "wrong_hubble_constant",
-    "no_rescaling",
-    "incorrect_units",
-    "wrong_cmb_spectra",
-    "wrong_axis_scaling",
-    "overplotting_spectra",
-    "wrong_optical_depth",
-    ]
-
-injection_config: dict[str, str] | bool = False  # Disabled by default
+# Default plot type for VLM injection
+vlm_injection_plot_type: str = "wrong_scalar_amplitude"
 
 
 def _save_plot_to_files() -> str:
@@ -29,15 +15,16 @@ def _save_plot_to_files() -> str:
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
         plt.savefig(tmp_file.name, dpi=300, bbox_inches='tight')
         
-        # Also save a copy to synthetic_output
+        # Also save a copy to synthetic_output for debugging
         try:
-            synthetic_dir = "/Users/kahaan/Downloads/cmbagent/synthetic_output"  # TODO: make this a relative path
+            # Use relative path from current working directory
+            synthetic_dir = os.path.join(os.getcwd(), "synthetic_output")
             os.makedirs(synthetic_dir, exist_ok=True)
             debug_path = os.path.join(synthetic_dir, "injected_plot.png")
             plt.savefig(debug_path, dpi=300, bbox_inches='tight')
-            print(f"DEBUG: Injected plot saved to {debug_path} for reference")
+            print(f"Injected plot saved to {debug_path} for reference")
         except Exception as e:
-            print(f"DEBUG: Could not save injected plot to synthetic_output: {e}")
+            print(f"Could not save injected plot to synthetic_output: {e}")
         
         plt.close()
         
@@ -69,11 +56,13 @@ def _execute_injection_code(code: str) -> str:
     return _save_plot_to_files()
 
 
-def generate_llm_scientific_criteria(plot_description: str, plot_type: str = "scientific plot") -> str:
-    """Generate domain-specific scientific criteria using LLM based on plot description."""
+def generate_llm_scientific_criteria(plot_description: str, plot_type: str = "scientific plot"):
+    """Generate domain-specific scientific criteria using LLM based on plot description.
+    Returns an OpenAICompletion object with cost information."""
     try:
         from openai import OpenAI
         from .utils import get_api_keys_from_env
+        from .vlm_utils import OpenAICompletion
         
         api_keys = get_api_keys_from_env()
         client = OpenAI(api_key=api_keys["OPENAI"])
@@ -101,58 +90,58 @@ Example (stellar main sequence):
 - If shifted bluer (B-V < 0.4): indicates higher metallicity/younger age (invalid for old globular clusters)
 - If shifted redder (B-V > 0.8): indicates lower metallicity/older age (invalid for young open clusters)"
 
-Provide similar specific criteria for this plot type, focusing only on features with well-defined expected values."""
+Provide similar specific criteria for this plot type, focusing only on features with well-defined expected values.
+
+There are cases where specific values are not known beforehand or not the focus of the plot.
+When this is the case, provide other distinct and discrete features that are required to be present.
+
+Example (exoplanet transit light curve):
+Check the following features:
+- Phase of transit dip: should be at phase = 0.0
+    - If not at phase = 0.0 → indicates wrong timing or ephemeris (invalid for phased data)
+- Shape of transit dip: should be symmetric and flat-bottomed
+    - If not symmetric/flat-bottomed → indicates wrong planet/star size or reduction error (invalid for known system)
+- Depth of transit dip: should reach normalized flux ≈ 0.99 (1% depth)
+    - If depth is incorrect → indicates wrong planet/star size or reduction error (invalid for known system)
+- Ingress and egress: should have similar duration
+    - If durations differ → may indicate reduction error or systematics
+- Baseline flux: should be flat at flux = 1.0 before and after transit
+    - If baseline is not flat → indicates improper normalization or stellar variability (invalid for detrended light curves)
+"""
 
         response = client.chat.completions.create(
-            # TODO: make this a config variable
-            # TODO: add tokens to cost tracking
             model="gpt-4o",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=800,
         )
         
-        return response.choices[0].message.content.strip()
+        # Extract cost information
+        prompt_tokens = response.usage.prompt_tokens if response.usage else 0
+        completion_tokens = response.usage.completion_tokens if response.usage else 0
+        total_tokens = response.usage.total_tokens if response.usage else 0
+        
+        # Calculate cost (OpenAI GPT-4o pricing: $2.50 input, $10.00 output per 1M tokens)
+        input_cost = (prompt_tokens / 1_000_000) * 2.50
+        output_cost = (completion_tokens / 1_000_000) * 10.00
+        total_cost = input_cost + output_cost
+        
+        # Return OpenAICompletion object with cost information
+        return OpenAICompletion(
+            text_response=response.choices[0].message.content.strip(),
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            total_cost=total_cost,
+            model="gpt-4o"
+        )
         
     except Exception as e:
         print(f"ERROR: Failed to generate LLM scientific criteria: {e}")
-        return ""
+        return OpenAICompletion("", 0, 0, 0, 0.0, "gpt-4o")
 
 
-# TODO: check on None vs False here
-def get_scientific_context(context_type: str = None, plot_description: str = None) -> str:
-    """Get scientific context for domain-specific accuracy criteria."""
-    if context_type is None:
-        return ""
-    
-    if context_type == "llm_generated":
-        if plot_description:
-            return generate_llm_scientific_criteria(plot_description)
-        else:
-            return ""
-    
-    if context_type not in scientific_context:
-        return ""
-    
-    return scientific_context[context_type]
-
-
-def get_injection(config: dict[str, str] | bool | None = None, injection_name: str = None) -> Tuple[str, str]:
-    """Get injection code and plot. Returns tuple of code to show and plot encoded as base64."""
-    if config is None:
-        config = injection_config
-    
-    if not config:
-        raise ValueError("Injection is disabled (config is False)")
-    if not isinstance(config, dict):
-        raise ValueError("config must be a dict when enabled")
-    
-    config_dict: dict[str, str] = config  # At this point, config is guaranteed to be a dict
-    
-    if injection_name is None:
-        if "plot_for_vlm" not in config_dict:
-            raise ValueError(f"Missing required key 'plot_for_vlm' in injection config. Available keys: {list(config_dict.keys())}")
-        injection_name = config_dict["plot_for_vlm"]
-    
+def get_injection_by_name(injection_name: str, code_template: str = "exact") -> Tuple[str, str]:
+    """Get injection code and plot by name and template type. Returns tuple of code to show and plot encoded as base64."""
     if injection_name not in injection_plot_map:
         available = list(injection_plot_map.keys())
         raise ValueError(f"Injection '{injection_name}' not found. Available: {available}")
@@ -160,16 +149,15 @@ def get_injection(config: dict[str, str] | bool | None = None, injection_name: s
     # Get the plot and exact code
     direct_code, plot_base64 = injection_plot_map[injection_name]()
     
-    # Choose what code to show based on config
-    if "code_for_engineer" not in config_dict:
-        raise ValueError(f"Missing required key 'code_for_engineer' in injection config. Available keys: {list(config_dict.keys())}")
-    
-    current_code_type: InjectionCode = config_dict["code_for_engineer"]
-    
-    if current_code_type == "template":
-        code_to_show = cmb_template_code
-    else:  # "exact"
+    # Choose what code to show based on template type
+    if code_template == "exact":
         code_to_show = direct_code
+    elif code_template == "cmb_power_spectra_template":
+        code_to_show = template_codes["cmb"]
+    elif code_template == "mean_reversion_trading_template":
+        code_to_show = template_codes["trading"]
+    else:
+        raise ValueError(f"Unknown code template: {code_template}")
     
     return code_to_show, plot_base64
 
@@ -199,8 +187,9 @@ Any deviation from these patterns indicates the plot does not represent valid Pl
 }
 
 
-# Template code for CMB power spectrum (used when code_to_inject = "template")
-cmb_template_code = """# Imports
+# Template codes for different plot types
+template_codes = {
+    "cmb": """# Imports
 
 # Define cosmological parameters using Planck 2018
 pars = camb.set_params(
@@ -224,7 +213,32 @@ powers = results.get_cmb_power_spectra(pars, raw_cl=False, CMB_unit='muK')  # Re
 
 # Plot total (lensed) temperature power spectrum
 
-# Label plot"""
+# Label plot""",
+    
+    "trading": """# Imports
+
+# Download historical price data for PLTR from Yahoo finance, using close as reference price
+df = yf.download("PLTR", start="2022-01-01", end="2024-01-01")
+df['Price'] = df['Close']
+
+# Compute 20-day rolling mean and standard deviation bands (±1σ)
+
+# Calculate Z-score: (Price - Mean) / Std
+
+# Handle NaNs appropriately
+df.dropna(inplace=True)
+
+# Generate buy/sell signals
+
+# Compute standard deviation bands
+
+# Plot price, rolling mean, and standard deviation bands.
+
+# Overlay buy and sell signals (s=80 for decluttering)
+
+# Formatting (legend, title, etc.)"""
+}
+
 
 def wrong_scalar_amplitude():
     direct_code = """import os
@@ -674,7 +688,65 @@ plt.grid(True)"""
     return direct_code, plot_base64
 
 
+def wrong_signal_colors():
+    direct_code = """# Imports
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import yfinance as yf
+
+# Download historical price data for PLTR from Yahoo finance, using close as reference price
+df = yf.download("PLTR", start="2022-01-01", end="2024-01-01")
+df['Price'] = df['Close']
+
+# Compute 20-day rolling mean and standard deviation bands (±1σ)
+window = 20
+df['RollingMean'] = df['Price'].rolling(window=window).mean()
+df['RollingStd'] = df['Price'].rolling(window=window).std()
+
+# Calculate Z-score: (Price - Mean) / Std
+df['ZScore'] = (df['Price'] - df['RollingMean']) / df['RollingStd']
+
+# Add the new columns and handle NaNs appropriately
+df.dropna(inplace=True)
+
+# Generate buy/sell signals (Z-score threshold = ±1)
+df['Signal'] = 0
+df.loc[df['ZScore'] < -1, 'Signal'] = 1   # Long
+df.loc[df['ZScore'] > 1, 'Signal'] = -1  # Short
+
+# Compute standard deviation bands
+x = df.index
+y1 = df['RollingMean'] + df['RollingStd']
+y2 = df['RollingMean'] - df['RollingStd']
+
+# Plot price, rolling mean, and standard deviation bands.
+plt.figure(figsize=(14, 7), dpi=150)
+plt.plot(df.index, df['Price'], label='PLTR Price', color='black')
+plt.plot(df.index, df['RollingMean'], label='20-Day Rolling Mean', linestyle='--', color='gray')
+plt.fill_between(x, y1, y2, color='gray', alpha=0.2, label='±1 Std Dev')
+
+# Overlay buy (green upward triangle) and sell (red downward triangle) signals (s=80 for decluttering)
+buy_signals = df[df['Signal'] == 1]
+sell_signals = df[df['Signal'] == -1]
+plt.scatter(buy_signals.index, buy_signals['Price'], marker='^', color='red', label='Buy Signal', s=80)
+plt.scatter(sell_signals.index, sell_signals['Price'], marker='v', color='green', label='Sell Signal', s=80)
+
+# Formatting (legend, title, etc.)
+plt.title("Mean Reversion Signals for PLTR")
+plt.ylabel("Price")
+plt.xlabel("Date")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()"""
+
+    plot_base64 = _execute_injection_code(direct_code)
+    return direct_code, plot_base64
+
+
 injection_plot_map = {
+    # CMB power spectra
     "wrong_scalar_amplitude": wrong_scalar_amplitude,
     "truncated_multipole_range": truncated_multipole_range,
     "wrong_scalar_spectral_index": wrong_scalar_spectral_index,
@@ -685,4 +757,6 @@ injection_plot_map = {
     "wrong_axis_scaling": wrong_axis_scaling,
     "overplotting_spectra": overplotting_spectra,
     "wrong_optical_depth": wrong_optical_depth,
+    # Trading signals
+    "wrong_signal_colors": wrong_signal_colors,
 }
