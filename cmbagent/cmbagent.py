@@ -1541,7 +1541,7 @@ def one_shot(
             api_keys = None,
             evaluate_plots = False,
             max_n_plot_evals = 1,
-            injection_config: dict[str, str] | bool = False,
+            inject_wrong_plot: bool | str = False,
             ):
     start_time = time.time()
 
@@ -1568,7 +1568,7 @@ def one_shot(
 
     start_time = time.time()
 
-    shared_context = {'max_n_attempts': max_n_attempts, 'evaluate_plots': evaluate_plots, 'max_n_plot_evals': max_n_plot_evals, 'injection_config': injection_config}
+    shared_context = {'max_n_attempts': max_n_attempts, 'evaluate_plots': evaluate_plots, 'max_n_plot_evals': max_n_plot_evals, 'inject_wrong_plot': inject_wrong_plot}
 
     if agent == 'camb_context':
 
