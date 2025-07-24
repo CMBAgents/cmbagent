@@ -19,7 +19,7 @@ requires-python = ">=3.12"  # Specify the Python version requirement here
 dependencies = [
     "anthropic",
     "ruamel.yaml",
-    "cmbagent_autogen>=0.0.91post4",
+    "cmbagent_autogen>=0.0.91post5",
     # "google-cloud-aiplatform==1.91.0",
     "jsonref==1.1.0",
 
