@@ -64,7 +64,7 @@ class CMBAgent:
     cmbagent_debug = autogen.cmbagent_debug
 
     def __init__(self,
-                 cache_seed=42,
+                 cache_seed=None,
                  temperature=default_temperature,
                  top_p=default_top_p,
                  timeout=1200,
