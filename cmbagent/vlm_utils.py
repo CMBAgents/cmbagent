@@ -1,4 +1,5 @@
 import base64
+import json
 import autogen
 from typing import Literal
 from openai import OpenAI
@@ -7,18 +8,24 @@ from google.genai import types
 from autogen.agentchat.group import ContextVariables
 from pydantic import BaseModel, Field
 from .utils import get_api_keys_from_env
+from .vlm_injections import scientific_context, get_injection_by_name
 
 cmbagent_debug = autogen.cmbagent_debug
-
-vlm_model: Literal["gpt-4o", "o3-2025-04-16", "gemini-2.5-flash", "gemini-2.5-pro"] = "o3-2025-04-16"
-vlm_criteria_mode: Literal["llm_generated", "cmb_power_spectra"] | None = "llm_generated"
-executed_code_context: Literal["exact", "cmb_power_spectra_template", "mean_reversion_trading_template"] = "exact"
-
 _last_executed_code = None
 
-def create_vlm_analysis_schema(context_variables: ContextVariables = None):
+# VLM model configuration
+# TODO: when refactoring, make a one_shot dictionary argument for all of this
+vlm_model: Literal["gpt-4o", "o3-2025-04-16", "gemini-2.5-flash", "gemini-2.5-pro"] = "gemini-2.5-pro"
+vlm_criteria_mode: Literal["llm_generated", "cmb_power_spectra"] | None = "llm_generated"
+executed_code_context: Literal["exact", "cmb_power_spectra_template", "mean_reversion_trading_template"] = "exact"
+vlm_code_visibility: bool = True
+
+
+def create_vlm_analysis_schema(context_variables: ContextVariables = None, has_code_context: bool = False):
     """
-    Construct structured output schema. Optionally, supplement with domain-specific scientific criteria.
+    Construct structured output schema. 
+    Scientific accuracy field can be supplemented with domain-specific scientific criteria.
+    When code context is available, adds a code_analysis field.
     """
     domain_criteria = ""
     llm_completion = None
@@ -27,14 +34,11 @@ def create_vlm_analysis_schema(context_variables: ContextVariables = None):
         # Generate criteria using LLM based on task context
         task = context_variables.get("improved_main_task", "scientific plot")
         plot_context = f"Task context: {task}. Focus on the plotting/visualization aspects of this task."
-        
-        from .vlm_injections import generate_llm_scientific_criteria
         llm_completion = generate_llm_scientific_criteria(plot_context)
         domain_criteria = llm_completion.choices[0].message.content
         
     elif vlm_criteria_mode == "cmb_power_spectra":
         # Use pre-defined CMB power spectra criteria
-        from .vlm_injections import scientific_context
         domain_criteria = scientific_context["cmb_power_spectra"]
     
     # Build scientific accuracy description
@@ -49,23 +53,21 @@ def create_vlm_analysis_schema(context_variables: ContextVariables = None):
         scientific_accuracy_desc = base_description
         
     print(f"VLM scientific accuracy description:\n{scientific_accuracy_desc}")
-            
-    class VLMAnalysis(BaseModel):
-        """
-        Structured output schema for VLM plot analysis.
-        """
-        scientific_accuracy: str = Field(
+    
+    # Define base fields that are always present
+    base_fields = {
+        "scientific_accuracy": (str, Field(
             ...,
             description=scientific_accuracy_desc
-        )
-        visual_clarity: str = Field(
+        )),
+        "visual_clarity": (str, Field(
             ...,
             description=(
                 "Assessment of visual clarity: Can the plot be interpreted without confusion? "
                 "Are the data points, axis scales, and lines clearly visible?"
             )
-        )
-        completeness: str = Field(
+        )),
+        "completeness": (str, Field(
             ...,
             description=(
                 "Assessment of completeness: Does it have axis labels, a title, and units? "
@@ -73,23 +75,39 @@ def create_vlm_analysis_schema(context_variables: ContextVariables = None):
                 "The plot should be self-contained and informative without unnecessary elements."
                 "Only comment on a missing legend if there are multiple data series. "
             )
-        )
-        professional_presentation: str = Field(
+        )),
+        "professional_presentation": (str, Field(
             ...,
             description=(
                 "Assessment of professional presentation: Are existing labels and titles clear and appropriate? "
                 "Is the layout clean and uncluttered? Are fonts, colors, and styling professional? "
                 "We do not use LaTeX rendering at all in plots, so do not ask for it or comment on unrendered TeX code."
             )
-        )
-        recommendations: str = Field(
+        )),
+    }
+    
+    # Add code analysis field if code context is available
+    if has_code_context:
+        base_fields["code_analysis"] = (str, Field(
+            ...,
+            description=(
+                "Is the code implementation consistent with the plot?"
+                "Is the code implementaiton consistent with the scientific concepts for the intended task?"
+                "When confident about an issue's cause, refer to specific lines or parts of the code to pinpoint errors."
+            )
+        ))
+    
+    # Add final fields
+    base_fields.update({
+        "recommendations": (str, Field(
             ...,
             description=(
                 "Specific recommendations for improvement if any criteria are not met. "
-                "Provide actionable fixes that can be implemented."
+                "Provide actionable fixes that can be implemented." +
+                (" Connect plot improvements to code changes when appropriate." if has_code_context else "")
             )
-        )
-        verdict: Literal["continue", "retry"] = Field(
+        )),
+        "verdict": (Literal["continue", "retry"], Field(
             ...,
             description=(
                 "Final verdict: 'continue' if plot meets standards, 'retry' if improvements needed. "
@@ -97,7 +115,19 @@ def create_vlm_analysis_schema(context_variables: ContextVariables = None):
                 "BE MODERATE on professional presentation - only retry for issues that significantly impact scientific communication, "
                 "not minor aesthetic preferences like tweaks to existing legend placement, title specifity, axis labels, etc."
             )
-        )
+        ))
+    })
+            
+    # Create the VLMAnalysis class dynamically
+    VLMAnalysis = type(
+        "VLMAnalysis",
+        (BaseModel,),
+        {
+            "__annotations__": {field_name: field_type for field_name, (field_type, _) in base_fields.items()},
+            **{field_name: field_info for field_name, (_, field_info) in base_fields.items()},
+            "__doc__": "Structured output schema for VLM plot analysis."
+        }
+    )
     
     # Store LLM completion for cost tracking
     if context_variables and llm_completion:
@@ -132,7 +162,6 @@ def generate_wrong_plot_injection(plot_type: str = "wrong_scalar_amplitude"):
     Generate wrong code and corresponding plot for VLM testing.
     Returns the wrong code as string and base64 encoded plot.
     """
-    from .vlm_injections import get_injection_by_name
     wrong_code, base64_image = get_injection_by_name(plot_type, executed_code_context)
     
     return wrong_code, base64_image
@@ -171,7 +200,11 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
         if cmbagent_debug:
             print(f"Using real plot (inject_wrong_plot={inject_wrong_plot}, n_plot_evals={n_plot_evals})")
     
-    VLMAnalysis = create_vlm_analysis_schema(context_variables)
+    # Check if we have code context
+    executed_code = context_variables.get("latest_executed_code") if context_variables else None
+    has_code_context = vlm_code_visibility and executed_code is not None
+    
+    VLMAnalysis = create_vlm_analysis_schema(context_variables, has_code_context=has_code_context)
     api_keys = get_api_keys_from_env()
 
     if vlm_model in ["gpt-4o", "o3-2025-04-16"]:
@@ -222,10 +255,7 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
         except Exception as e:
             print(f"ERROR: VLM API call failed: {e}")
             # Return a graceful fallback completion
-            fallback_response = OpenAICompletion(
-                '{"scientific_accuracy": "VLM analysis failed - continuing without evaluation", "visual_clarity": "VLM analysis failed", "completeness": "VLM analysis failed", "professional_presentation": "VLM analysis failed", "recommendations": "VLM analysis failed - please check VLM configuration", "verdict": "continue"}',
-                0, 0, 0
-            )
+            fallback_response = _create_fallback_response(has_code_context)
             return fallback_response, injected_code
 
     elif vlm_model in ["gemini-2.5-flash", "gemini-2.5-pro"]:
@@ -270,10 +300,7 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
         except Exception as e:
             print(f"ERROR: VLM API call failed: {e}")
             # Return a graceful fallback completion
-            fallback_response = OpenAICompletion(
-                '{"scientific_accuracy": "VLM analysis failed - continuing without evaluation", "visual_clarity": "VLM analysis failed", "completeness": "VLM analysis failed", "professional_presentation": "VLM analysis failed", "recommendations": "VLM analysis failed - please check VLM configuration", "verdict": "continue"}',
-                0, 0, 0
-            )
+            fallback_response = _create_fallback_response(has_code_context)
             return fallback_response, injected_code
 
 
@@ -334,12 +361,9 @@ def account_for_external_api_calls(agent, completion, call_type="VLM"):
     print(f"{call_type} cost ({model}): ${total_cost:.8f}")
     
 
-def create_vlm_prompt(context_variables: ContextVariables) -> str:
-        # Fetch relevant task context
-        # current_task = context_variables.get("current_sub_task", "No specific task provided")
-        improved_main_task = context_variables.get("improved_main_task", "No improved main task provided.")
-
-        vlm_prompt = f"""
+def _create_base_vlm_prompt(improved_main_task: str) -> str:
+    """Create the base VLM prompt without code context."""
+    return f"""
 You are a plot judge analyzing a scientific plot. Your task is to evaluate the plot's quality and provide structured feedback.
 Analyze this plot across scientific accuracy, visual clarity, completeness, and professional presentation.
 Context about the goal of the plot: {improved_main_task}
@@ -351,10 +375,138 @@ Don't request additional annotations.
 Be thorough and critical - the plot will only be accepted if ALL criteria are met. 
 If any criterion is not satisfied, provide specific, actionable recommendations for improvement.
 
-Your verdict must be either "continue" (plot fully meets all criteria) or "retry" (plot needs improvements).
-"""
- 
-        if cmbagent_debug:
-            print(f"VLM prompt:\n{vlm_prompt}")
+Your verdict must be either "continue" (plot fully meets all criteria) or "retry" (plot needs improvements)."""
 
-        return vlm_prompt
+
+def _create_code_context_section(executed_code: str) -> str:
+    """Create the code context section for VLM prompt."""
+    return f"""
+
+CODE CONTEXT:
+The following is the Python code that generated this plot:
+
+```python
+{executed_code}
+```"""
+
+
+def create_vlm_prompt(context_variables: ContextVariables, executed_code: str = None) -> str:
+    """Create the complete VLM prompt including optional code context."""
+    # Fetch relevant task context
+    improved_main_task = context_variables.get("improved_main_task", "No improved main task provided.")
+    
+    # Create base prompt
+    base_prompt = _create_base_vlm_prompt(improved_main_task)
+    
+    # Add code context if visibility is enabled and code is provided
+    if vlm_code_visibility and executed_code:
+        code_section = _create_code_context_section(executed_code)
+        vlm_prompt = base_prompt + code_section
+    else:
+        vlm_prompt = base_prompt
+ 
+    if cmbagent_debug:
+        print(f"VLM prompt:\n{vlm_prompt}")
+
+    return vlm_prompt
+
+
+def _create_fallback_response(has_code_context: bool = False):
+    """Create a fallback VLM response when API calls fail."""
+    fallback_dict = {
+        "scientific_accuracy": "VLM analysis failed - continuing without evaluation",
+        "visual_clarity": "VLM analysis failed",
+        "completeness": "VLM analysis failed",
+        "professional_presentation": "VLM analysis failed",
+        "recommendations": "VLM analysis failed - please check VLM configuration",
+        "verdict": "continue"
+    }
+    if has_code_context:
+        fallback_dict["code_analysis"] = "VLM analysis failed - code could not be analyzed"
+    
+    return OpenAICompletion(
+        json.dumps(fallback_dict),
+        0, 0, 0
+    )
+    
+
+def generate_llm_scientific_criteria(plot_description: str, plot_type: str = "scientific plot"):
+    """
+    Generate domain-specific scientific criteria using LLM based on plot description.
+    Returns an OpenAICompletion object with cost information.
+    """
+    try:
+        api_keys = get_api_keys_from_env()
+        client = OpenAI(api_key=api_keys["OPENAI"])
+        
+        prompt = f"""You are a scientific expert analyzing plots. Generate domain-specific scientific accuracy criteria for evaluating a {plot_type}.
+
+Context: {plot_description}
+
+First, identify key features that should have specific expected coordinates/values (x-axis, y-axis positions, ratios, etc.). For each feature, specify:
+1. Expected x/y coordinates or values
+2. What deviations indicate and why they're scientifically invalid
+3. What physical processes cause these features
+
+IMPORTANT: Only include features you're confident about. Skip any where the expected values can vary significantly or you're uncertain. 
+It's better to have fewer, more reliable criteria than many uncertain ones.
+
+Example format:
+"Feature name: Expected at x ≈ [value], y ≈ [value]
+- If shifted to x < [value]: indicates [physical cause] (invalid because [reason])
+- If shifted to x > [value]: indicates [physical cause] (invalid because [reason])
+- If shifted to y < [value]: indicates [physical cause] (invalid because [reason])
+
+Example (stellar main sequence):
+"Main sequence turnoff: Expected at B-V ≈ 0.6, M_V ≈ 4.0 for solar metallicity
+- If shifted bluer (B-V < 0.4): indicates higher metallicity/younger age (invalid for old globular clusters)
+- If shifted redder (B-V > 0.8): indicates lower metallicity/older age (invalid for young open clusters)"
+
+Provide similar specific criteria for this plot type, focusing only on features with well-defined expected values.
+
+There are cases where specific values are not known beforehand or not the focus of the plot.
+When this is the case, provide other distinct and discrete features that are required to be present.
+
+Example (exoplanet transit light curve):
+Check the following features:
+- Phase of transit dip: should be at phase = 0.0
+    - If not at phase = 0.0 → indicates wrong timing or ephemeris (invalid for phased data)
+- Shape of transit dip: should be symmetric and flat-bottomed
+    - If not symmetric/flat-bottomed → indicates wrong planet/star size or reduction error (invalid for known system)
+- Depth of transit dip: should reach normalized flux ≈ 0.99 (1% depth)
+    - If depth is incorrect → indicates wrong planet/star size or reduction error (invalid for known system)
+- Ingress and egress: should have similar duration
+    - If durations differ → may indicate reduction error or systematics
+- Baseline flux: should be flat at flux = 1.0 before and after transit
+    - If baseline is not flat → indicates improper normalization or stellar variability (invalid for detrended light curves)
+"""
+
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=800,
+        )
+        
+        # Extract cost information
+        prompt_tokens = response.usage.prompt_tokens if response.usage else 0
+        completion_tokens = response.usage.completion_tokens if response.usage else 0
+        total_tokens = response.usage.total_tokens if response.usage else 0
+        
+        # Calculate cost (OpenAI GPT-4o pricing: $2.50 input, $10.00 output per 1M tokens)
+        input_cost = (prompt_tokens / 1_000_000) * 2.50
+        output_cost = (completion_tokens / 1_000_000) * 10.00
+        total_cost = input_cost + output_cost
+        
+        # Return OpenAICompletion object with cost information
+        return OpenAICompletion(
+            text_response=response.choices[0].message.content.strip(),
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            total_cost=total_cost,
+            model="gpt-4o"
+        )
+        
+    except Exception as e:
+        print(f"ERROR: Failed to generate LLM scientific criteria: {e}")
+        return OpenAICompletion("", 0, 0, 0, 0.0, "gpt-4o")
