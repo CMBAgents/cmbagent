@@ -76,7 +76,7 @@ class CMBAgent:
                  llm_api_key=None,
                  llm_api_type=None,
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
-                 agent_list = ['camb','classy_sz','cobaya','planck','context'],
+                 agent_list = ['camb','classy_sz','cobaya','planck','context', 'contextagent'],
                  verbose = False,
                  reset_assistant = False,
                  agent_instructions = {
@@ -141,6 +141,7 @@ class CMBAgent:
             path_to_assistants (str): Path to the assistants directory.
             llm_api_key (str): OpenAI API key.
             engineer (engineer_agent): Agent for engineering tasks.
+            context (context_agent): Agent for managing context.
             planner (planner_agent): Agent for planning tasks.
             executor (executor_agent): Agent for executing tasks.
 
@@ -1520,7 +1521,7 @@ def control(
     cmbagent.display_cost()
 
     return results
-
+# Balise
 def one_shot(
             task,
             max_rounds = 50,
@@ -1532,6 +1533,7 @@ def one_shot(
             work_dir = work_dir_default,
             api_keys = None,
             context_path = None,
+            attached_file_path = None,
             ):
     start_time = time.time()
 
@@ -1574,7 +1576,7 @@ def one_shot(
 
     if agent == 'contextagent':
         # Use the choosen path or the default path
-        path = context_path or os.path.expanduser('~/your_context_library/CAMB.txt')
+        path = context_path #or os.path.expanduser('~/your_context_library/CAMB.txt')
         if os.path.exists(path):
             with open(path, 'r') as f:
                 shared_context["library_context"] = f.read()
@@ -1582,6 +1584,13 @@ def one_shot(
         else:
             shared_context["library_context"] = ""
             print(f"\n[DEBUG] Fichier context non trouvé ({path}), library_context est vide.\n", flush=True)
+        if attached_file_path:
+            if os.path.exists(attached_file_path):
+                shared_context["attached_file"] = attached_file_path
+                print(f"[DEBUG] Attached file set to: {attached_file_path}")
+            else:
+                raise FileNotFoundError(f"Attached file not found at path: {attached_file_path}")
+
 
     if researcher_filename is not None: 
         shared_context["researcher_filename"] = researcher_filename

@@ -60,8 +60,8 @@ shared_context = {
     "camb_context": None,
     "classy_context": None,
 
+    "attached_file": None, ## New key for attached file
 
     "researcher_filename": "provide a suitable filename given the nature of the notes. Prefer markdown extension unless otherwise instructed."
-
 
 }

@@ -47,6 +47,7 @@ def register_all_hand_offs(cmbagent_instance):
 
     camb_context = cmbagent_instance.get_agent_object_from_name('camb_context')
     classy_context = cmbagent_instance.get_agent_object_from_name('classy_context')
+    contextagent = cmbagent_instance.get_agent_object_from_name('contextagent')
     
 
     mode = cmbagent_instance.mode
@@ -68,12 +69,22 @@ def register_all_hand_offs(cmbagent_instance):
     else:
         classy_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
 
+    contextagent_response_formatter = cmbagent_instance.get_agent_object_from_name('contextagent_response_formatter')
+    contextagent.agent.handoffs.set_after_work(AgentTarget(contextagent_response_formatter.agent))
+
+    if mode == "one_shot":
+        contextagent_response_formatter.agent.handoffs.set_after_work(AgentTarget(engineer.agent))
+    else:
+        contextagent_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+
 
     if not cmbagent_instance.skip_rag_agents:
 
         classy_sz = cmbagent_instance.get_agent_object_from_name('classy_sz_agent')
         classy_sz_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_sz_response_formatter')
         camb = cmbagent_instance.get_agent_object_from_name('camb_agent')
+        contextagent = cmbagent_instance.get_agent_object_from_name('contextagent')
+        contextagent_response_formatter = cmbagent_instance.get_agent_object_from_name('contextagent_response_formatter')
         planck = cmbagent_instance.get_agent_object_from_name('planck_agent')
         cobaya = cmbagent_instance.get_agent_object_from_name('cobaya_agent')
         cobaya_response_formatter = cmbagent_instance.get_agent_object_from_name('cobaya_response_formatter')
