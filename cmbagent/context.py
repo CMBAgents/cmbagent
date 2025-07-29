@@ -64,4 +64,5 @@ shared_context = {
 
     "researcher_filename": "provide a suitable filename given the nature of the notes. Prefer markdown extension unless otherwise instructed."
 
+
 }
