@@ -76,7 +76,7 @@ class CMBAgent:
                  llm_api_key=None,
                  llm_api_type=None,
                  make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
-                 agent_list = ['camb','classy_sz','cobaya','planck','context', 'contextagent'],
+                 agent_list = ['camb','classy_sz','cobaya','planck', 'contextagent'],
                  verbose = False,
                  reset_assistant = False,
                  agent_instructions = {
@@ -141,7 +141,7 @@ class CMBAgent:
             path_to_assistants (str): Path to the assistants directory.
             llm_api_key (str): OpenAI API key.
             engineer (engineer_agent): Agent for engineering tasks.
-            context (context_agent): Agent for managing context.
+            contextagent (contextagent): Agent for managing context.
             planner (planner_agent): Agent for planning tasks.
             executor (executor_agent): Agent for executing tasks.
 
@@ -1624,6 +1624,8 @@ def one_shot(
                'final_context': cmbagent.final_context,
                'engineer':cmbagent.get_agent_object_from_name('engineer'),
                'engineer_response_formatter':cmbagent.get_agent_object_from_name('engineer_response_formatter'),
+               'contextagent':cmbagent.get_agent_from_name('contextagent'),
+               'contextagent_response_formatter':cmbagent.get_agent_object_from_name('contextagent_response_formatter'),
                'researcher':cmbagent.get_agent_object_from_name('researcher'),
                'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter')}
     
@@ -1711,6 +1713,8 @@ def human_in_the_loop(task,
                'engineer':cmbagent.get_agent_object_from_name('engineer'),
                'engineer_nest':cmbagent.get_agent_object_from_name('engineer_nest'),
                'engineer_response_formatter':cmbagent.get_agent_object_from_name('engineer_response_formatter'),
+               'contextagent':cmbagent.get_agent_from_name('contextagent'),
+               'contextagent_response_formatter':cmbagent.get_agent_object_from_name('contextagent_response_formatter'),
                'researcher':cmbagent.get_agent_object_from_name('researcher'),
                'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter')}
     
