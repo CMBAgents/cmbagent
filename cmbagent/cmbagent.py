@@ -41,18 +41,17 @@ def import_non_rag_agents():
         if os.path.isdir(subdir_path):
             for filename in os.listdir(subdir_path):
                 if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
-                    module_name = filename[:-3]
+                    module_name = filename[:-3]  # Remove the .py extension
                     class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
                     module_path = f"cmbagent.agents.{subdir}.{module_name}"
-                    try:
-                        module = importlib.import_module(module_path)
-                        agent_class = getattr(module, class_name)
-                        imported_non_rag_agents[class_name] = {
-                            'agent_class': agent_class,
-                            'agent_name': module_name,
-                        }
-                    except Exception as e:
-                        pass  # Optionally, log the error if needed
+                    # Assuming the module path is agents.<subdir>.<module_name>
+                    module_path = f"cmbagent.agents.{subdir}.{module_name}"
+                    module = importlib.import_module(module_path)
+                    agent_class = getattr(module, class_name)
+                    imported_non_rag_agents[class_name] = {
+                        'agent_class': agent_class,
+                        'agent_name': module_name,
+                    }
     return imported_non_rag_agents
 
 from autogen import cmbagent_debug
@@ -1149,7 +1148,7 @@ def planning_and_control_context_carryover(
                 if msg['name'] == agent_for_step or msg['name'] == f"{agent_for_step}_nest" or msg['name'] == f"{agent_for_step}_response_formatter":
                     # print("\nin cmbagent.py: msg['content']: ", msg['content'])
                     this_step_execution_summary = msg['content']
-                    # build this step's summary
+                    # build this step’s summary
                     summary = f"### Step {step}\n{this_step_execution_summary.strip()}"
                     step_summaries.append(summary)  
                     cmbagent.final_context['previous_steps_execution_summary'] = "\n\n".join(step_summaries)
@@ -1176,7 +1175,6 @@ def planning_and_control_context_carryover(
         timing_path = os.path.join(current_context['work_dir'], f"time/timing_report_step_{step}_{timestamp}.json")
         with open(timing_path, 'w') as f:
             json.dump(timing_report, f, indent=2)
-        
         print(f"\nTiming report data saved to: {timing_path}\n")
 
         
