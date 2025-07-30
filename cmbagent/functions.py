@@ -321,7 +321,8 @@ For the next agent suggestion, follow these rules:
         
         try:
             # Send the image to the VLM model and get the analysis (injection checks n_plot_evals before increment)
-            vlm_prompt = create_vlm_prompt(context_variables)
+            executed_code = context_variables.get("latest_executed_code")
+            vlm_prompt = create_vlm_prompt(context_variables, executed_code)
             inject_wrong_plot = context_variables.get("inject_wrong_plot", False)
             completion, injected_code = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=inject_wrong_plot, context_variables=context_variables)
             
