@@ -2,7 +2,7 @@ import os
 from cmbagent.base_agent import BaseAgent
 
 
-class PlotJudgeRouterAgent(BaseAgent):
+class PlotDebuggerAgent(BaseAgent):
     
     def __init__(self, llm_config=None, **kwargs):
 
