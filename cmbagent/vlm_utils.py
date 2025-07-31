@@ -18,7 +18,7 @@ _last_executed_code = None
 vlm_model: Literal["gpt-4o", "o3-2025-04-16", "gemini-2.5-flash", "gemini-2.5-pro"] = "gemini-2.5-pro"
 vlm_criteria_mode: Literal["llm_generated", "cmb_power_spectra"] | None = "llm_generated"
 executed_code_context: Literal["exact", "cmb_power_spectra_template", "mean_reversion_trading_template"] = "exact"
-vlm_code_visibility: bool = True
+show_code_to_plot_judge: bool = False
 
 
 def create_vlm_analysis_schema(context_variables: ContextVariables = None, has_code_context: bool = False):
@@ -81,7 +81,6 @@ def create_vlm_analysis_schema(context_variables: ContextVariables = None, has_c
             description=(
                 "Assessment of professional presentation: Are existing labels and titles clear and appropriate? "
                 "Is the layout clean and uncluttered? Are fonts, colors, and styling professional? "
-                "We do not use LaTeX rendering at all in plots, so do not ask for it or comment on unrendered TeX code."
             )
         )),
     }
@@ -99,12 +98,13 @@ def create_vlm_analysis_schema(context_variables: ContextVariables = None, has_c
     
     # Add final fields
     base_fields.update({
-        "recommendations": (str, Field(
+        "problems": (list[str], Field(
             ...,
             description=(
-                "Specific recommendations for improvement if any criteria are not met. "
-                "Provide actionable fixes that can be implemented." +
-                (" Connect plot improvements to code changes when appropriate." if has_code_context else "")
+                "List of specific problems found in the plot. Each problem should be a clear, "
+                "actionable issue that needs to be addressed. Be precise and descriptive since "
+                "this will be passed to a debugger with code access but no image access. "
+                "Only list actual problems - if a criterion is satisfied, don't include it."
             )
         )),
         "verdict": (Literal["continue", "retry"], Field(
@@ -202,7 +202,7 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
     
     # Check if we have code context
     executed_code = context_variables.get("latest_executed_code") if context_variables else None
-    has_code_context = vlm_code_visibility and executed_code is not None
+    has_code_context = show_code_to_plot_judge and executed_code is not None
     
     VLMAnalysis = create_vlm_analysis_schema(context_variables, has_code_context=has_code_context)
     api_keys = get_api_keys_from_env()
@@ -368,12 +368,14 @@ You are a plot judge analyzing a scientific plot. Your task is to evaluate the p
 Analyze this plot across scientific accuracy, visual clarity, completeness, and professional presentation.
 Context about the goal of the plot: {improved_main_task}
 
+IMPORTANT: We do not use LaTeX rendering at all in plots, so do not ask for it or comment on unrendered TeX code.
+
 Request plot elements that are scientifically beneficial for understanding the plot. 
 Don't request them just for rubric completeness if the plot is clear without them. 
 Don't request additional annotations.
 
 Be thorough and critical - the plot will only be accepted if ALL criteria are met. 
-If any criterion is not satisfied, provide specific, actionable recommendations for improvement.
+If any criterion is not satisfied, list the specific problems found in the problems field.
 
 Your verdict must be either "continue" (plot fully meets all criteria) or "retry" (plot needs improvements)."""
 
@@ -384,10 +386,7 @@ def _create_code_context_section(executed_code: str) -> str:
 
 CODE CONTEXT:
 The following is the Python code that generated this plot:
-
-```python
-{executed_code}
-```"""
+{executed_code}"""
 
 
 def create_vlm_prompt(context_variables: ContextVariables, executed_code: str = None) -> str:
@@ -399,14 +398,12 @@ def create_vlm_prompt(context_variables: ContextVariables, executed_code: str = 
     base_prompt = _create_base_vlm_prompt(improved_main_task)
     
     # Add code context if visibility is enabled and code is provided
-    if vlm_code_visibility and executed_code:
+    if show_code_to_plot_judge and executed_code:
         code_section = _create_code_context_section(executed_code)
         vlm_prompt = base_prompt + code_section
     else:
         vlm_prompt = base_prompt
  
-    if cmbagent_debug:
-        print(f"VLM prompt:\n{vlm_prompt}")
 
     return vlm_prompt
 
@@ -418,7 +415,7 @@ def _create_fallback_response(has_code_context: bool = False):
         "visual_clarity": "VLM analysis failed",
         "completeness": "VLM analysis failed",
         "professional_presentation": "VLM analysis failed",
-        "recommendations": "VLM analysis failed - please check VLM configuration",
+        "problems": ["VLM analysis failed - please check VLM configuration"],
         "verdict": "continue"
     }
     if has_code_context:
@@ -442,6 +439,8 @@ def generate_llm_scientific_criteria(plot_description: str, plot_type: str = "sc
         prompt = f"""You are a scientific expert analyzing plots. Generate domain-specific scientific accuracy criteria for evaluating a {plot_type}.
 
 Context: {plot_description}
+
+Your response will be used as criteria in a VLM prompt, so be direct and specific. Do not include conversational phrases.
 
 First, identify key features that should have specific expected coordinates/values (x-axis, y-axis positions, ratios, etc.). For each feature, specify:
 1. Expected x/y coordinates or values
@@ -510,3 +509,80 @@ Check the following features:
     except Exception as e:
         print(f"ERROR: Failed to generate LLM scientific criteria: {e}")
         return OpenAICompletion("", 0, 0, 0, 0.0, "gpt-4o")
+
+
+class PlotDebuggerResponse(BaseModel):
+    """Structured response from plot debugger."""
+    fixes: list[str] = Field(
+        ...,
+        description="List of targeted, actionable fixes for the code. Each fix should reference specific code lines when possible, or provide helpful considerations for broader issues."
+    )
+
+
+def call_external_plot_debugger(task_context: str, vlm_analysis: str, problems: list[str], executed_code: str) -> list[str]:
+    """
+    Call external Gemini 2.5 Pro to analyze problems and generate targeted fixes.
+    
+    Args:
+        task_context: The main task context
+        vlm_analysis: Full VLM analysis JSON
+        problems: List of problems identified by VLM
+        executed_code: The code that generated the plot
+    
+    Returns:
+        List of targeted fixes, or empty list on failure
+    """
+    try:
+        from google import genai
+        from google.genai import types
+        
+        api_keys = get_api_keys_from_env()
+        if not api_keys.get("GEMINI"):
+            print("WARNING: No Gemini API key found, returning empty fixes")
+            return []
+            
+        client = genai.Client(api_key=api_keys["GEMINI"])
+        
+        prompt = f"""You are a plot debugging expert. The VLM has identified problems with a plot, and you need to provide targeted code fixes.
+
+TASK CONTEXT:
+{task_context}
+
+VLM ANALYSIS:
+{vlm_analysis}
+
+PROBLEMS IDENTIFIED:
+{'\n'.join(f"- {p}" for p in problems)}
+
+EXECUTED CODE:
+{executed_code}
+
+YOUR JOB:
+Analyze the code and provide targeted fixes for each problem. Multiple problems can often be caused by a single underlying issue in the code, so focus on root causes rather than symptoms.
+
+For each fix:
+- If you can identify specific code lines/sections: Reference them directly (e.g., "Line 15: change plt.xlim() to...")  
+- If the issue is broader: Provide helpful considerations for the engineer
+- Be concrete and actionable, focusing on code changes needed to address the visual/scientific issues
+- Group related problems into single fixes when appropriate"""
+
+        
+        response = client.models.generate_content(
+            model="gemini-2.5-pro",
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "response_schema": PlotDebuggerResponse.model_json_schema(),
+                "temperature": 0.1,
+            }
+        )
+        
+        # Parse structured response
+        debugger_response = response.candidates[0].content.parts[0].text
+        parsed_response = PlotDebuggerResponse.model_validate_json(debugger_response)
+        
+        return parsed_response.fixes
+            
+    except Exception as e:
+        print(f"ERROR: External Gemini debugger failed: {e}")
+        return []

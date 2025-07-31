@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, List
 import os
 import re
 import ast
@@ -16,7 +16,7 @@ import datetime
 import json
 from pathlib import Path
 from .utils import AAS_keywords_dict
-from .vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, vlm_model
+from .vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, call_external_plot_debugger, vlm_model
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -81,7 +81,7 @@ def register_functions_to_agents(cmbagent_instance):
     camb_context = cmbagent_instance.get_agent_from_name('camb_context')
     classy_context = cmbagent_instance.get_agent_from_name('classy_context')
     plot_judge = cmbagent_instance.get_agent_from_name('plot_judge')
-    plot_judge_router = cmbagent_instance.get_agent_from_name('plot_judge_router')
+    plot_debugger = cmbagent_instance.get_agent_from_name('plot_debugger')
     
     if not cmbagent_instance.skip_rag_agents:
         classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')
@@ -294,7 +294,7 @@ For the next agent suggestion, follow these rules:
         img_path = context_variables.get("latest_plot_path")
         if not img_path:
             return ReplyResult(
-                target=AgentTarget(plot_judge_router),
+                target=AgentTarget(plot_debugger),
                 message="No plot path found in context",
                 context_variables=context_variables
             )
@@ -302,7 +302,7 @@ For the next agent suggestion, follow these rules:
         # Check if file exists
         if not os.path.exists(img_path):
             return ReplyResult(
-                target=AgentTarget(plot_judge_router),
+                target=AgentTarget(plot_debugger),
                 message=f"Plot file not found at {img_path}",
                 context_variables=context_variables
             )
@@ -314,7 +314,7 @@ For the next agent suggestion, follow these rules:
                 
         except Exception as e:
             return ReplyResult(
-                target=AgentTarget(plot_judge_router),
+                target=AgentTarget(plot_debugger),
                 message=f"Error reading image file: {str(e)}",
                 context_variables=context_variables
             )
@@ -338,13 +338,12 @@ For the next agent suggestion, follow these rules:
             try:
                 vlm_analysis_data = json.loads(vlm_analysis_json)
                 vlm_verdict = vlm_analysis_data.get("verdict", "continue")
+                vlm_problems = vlm_analysis_data.get("problems", [])
                 
-                # Store both the raw analysis and the extracted verdict
+                # Store verdict and problems in shared context
                 context_variables["vlm_plot_analysis"] = vlm_analysis_json
                 context_variables["vlm_verdict"] = vlm_verdict
-                
-                if cmbagent_debug:
-                    print(f"context_variables['vlm_verdict'] = '{context_variables['vlm_verdict']}'")
+                context_variables["plot_problems"] = vlm_problems
                 
             except json.JSONDecodeError as e:
                 print(f"Warning: Could not parse VLM JSON response: {e}")
@@ -357,9 +356,8 @@ For the next agent suggestion, follow these rules:
                 
                 context_variables["vlm_plot_analysis"] = vlm_analysis_json
                 context_variables["vlm_verdict"] = vlm_verdict
-                print(f"VLM verdict (fallback): {vlm_verdict}")
-                if cmbagent_debug:
-                    print(f"context_variables['vlm_verdict'] = '{context_variables['vlm_verdict']}'")
+                context_variables["plot_problems"] = ["VLM parsing failed - analysis may be incomplete"]
+                print(f"VLM VERDICT (fallback): {vlm_verdict}")
             
             account_for_external_api_calls(plot_judge, completion)
             
@@ -367,10 +365,10 @@ For the next agent suggestion, follow these rules:
             llm_completion = context_variables.get("llm_completion")
             if llm_completion:
                 account_for_external_api_calls(plot_judge, llm_completion, call_type="LLM")
-            
+                        
             return ReplyResult(
-                target=AgentTarget(plot_judge_router),
-                message=f"VLM analysis completed. VLM verdict: {vlm_verdict}. You must call route_plot_judge_verdict with verdict='{vlm_verdict}'.",
+                target=AgentTarget(plot_debugger),
+                message=f"VLM analysis completed with verdict: {vlm_verdict}.",
                 context_variables=context_variables
             )
             
@@ -378,7 +376,7 @@ For the next agent suggestion, follow these rules:
             error_msg = f"Error calling VLM API: {str(e)}"
             context_variables["vlm_plot_analysis"] = f"ERROR: {error_msg}"
             return ReplyResult(
-                target=AgentTarget(plot_judge_router),
+                target=AgentTarget(plot_debugger),
                 message=f"VLM analysis failed: {error_msg}. Please handle this error.",
                 context_variables=context_variables
             )
@@ -392,26 +390,20 @@ For the next agent suggestion, follow these rules:
         """,
     )
     
-    def route_plot_judge_verdict(
-        context_variables: ContextVariables,
-        verdict: Literal["continue", "retry"],
-        problems: Optional[list[str]] = None,
-        fixes: Optional[list[str]] = None
-    ) -> ReplyResult:
+    def route_plot_judge_verdict(context_variables: ContextVariables, verdict: Literal["continue", "retry"]) -> ReplyResult:
         """
         Route based on plot_judge verdict: continue to control, retry to engineer.
+        Handles all debugging logic internally for retry cases.
         
         Args:
-            context_variables: Context variables for the current execution
-            verdict: Final decision: 'continue' only if plot is scientifically accurate, visually clear, complete, relevant to task, and professionally presented. 'retry' if ANY criteria are not met - this will send the plot back to engineer for improvements. The workflow will continue retrying until ALL criteria are satisfied.
-            problems: Required whenever verdict is 'retry': List of specific, actionable problems found.
-            fixes: Required whenever verdict is 'retry': List of specific, actionable fixes that the engineer can implement.
+            verdict (str): Final decision - either 'continue' or 'retry'
         """
-        print(f"Plot verdict: {verdict}")
-
+        # Get problems from shared context (set by VLM)
+        vlm_problems = context_variables.get("plot_problems", [])
+        
         # Get current evaluation count (already incremented in call_vlm_judge)
         current_evals = context_variables.get("n_plot_evals", 0)
-        max_evals = context_variables.get("max_n_plot_evals", 3)
+        max_evals = context_variables.get("max_n_plot_evals", 1)
 
         # Update displayed_images list
         if "latest_plot_path" in context_variables and "displayed_images" in context_variables:
@@ -419,9 +411,11 @@ For the next agent suggestion, follow these rules:
                 context_variables["displayed_images"].append(context_variables["latest_plot_path"])
 
         if verdict == "continue":
-            # Clear VLM feedback and executed code when plot is approved
+            # Clear VLM feedback, problems, and fixes when plot is approved
             context_variables["vlm_plot_structured_feedback"] = None
             context_variables["latest_executed_code"] = None
+            context_variables["plot_problems"] = []
+            context_variables["plot_fixes"] = []
             return ReplyResult(target=AgentTarget(control),
                              message="Plot approved. Continuing to control.",
                              context_variables=context_variables)
@@ -432,29 +426,68 @@ For the next agent suggestion, follow these rules:
                 # Clear VLM feedback and executed code when accepting due to limit
                 context_variables["vlm_plot_structured_feedback"] = None
                 context_variables["latest_executed_code"] = None
+                context_variables["plot_problems"] = []
+                context_variables["plot_fixes"] = []
                 return ReplyResult(target=AgentTarget(control),
                                  message=f"Plot evaluation retry limit ({max_evals}) reached. Accepting current plot and continuing to control.",
                                  context_variables=context_variables)
             
-            # Construct comprehensive VLM feedback with problems, fixes, and code context
-            vlm_feedback = ""
-            if problems or fixes:
-                vlm_feedback = "The VLM plot judge has identified issues with the current plot. Please address the following problems and implement the suggested fixes:\n\n"
+            # Call external debugger to generate fixes if we have problems
+            fixes = []
+            if vlm_problems:                
+                task_context = context_variables.get("improved_main_task", "No task context")
+                vlm_analysis = context_variables.get("vlm_plot_analysis", "No VLM analysis")
+                executed_code = context_variables.get("latest_executed_code", "No code available")
                 
-                if problems:
-                    vlm_feedback += "Problems found by plot judge:\n" + "\n".join(f"- {p}" for p in problems) + "\n\n"
+                fixes = call_external_plot_debugger(
+                    task_context=task_context,
+                    vlm_analysis=vlm_analysis, 
+                    problems=vlm_problems,
+                    executed_code=executed_code
+                )
+                
+                # Store fixes in shared context
+                context_variables["plot_fixes"] = fixes
+            
+            # Construct comprehensive feedback with problems from VLM and fixes from debugger
+            engineer_feedback = ""
+            if vlm_problems or fixes:
+                engineer_feedback = "The plot has been analyzed and needs improvements:\n\n"
+                
+                if vlm_problems:
+                    engineer_feedback += "Problems identified by plot judge:\n" + "\n".join(f"- {p}" for p in vlm_problems) + "\n\n"
                 
                 if fixes:
-                    vlm_feedback += "Suggested fixes from plot judge:\n" + "\n".join(f"- {f}" for f in fixes) + "\n\n"
+                    engineer_feedback += "Targeted fixes from code debugger:\n" + "\n".join(f"- {f}" for f in fixes) + "\n\n"
                 
                 # Include code corresponding to the problematic plot as context
                 code_context = context_variables.get("latest_executed_code")
                 if code_context and len(code_context.strip()) > 0:
-                    vlm_feedback += "Structure of the code that generated this plot:\n```python\n" + code_context + "\n```\n"
+                    engineer_feedback += "Code that generated this plot:\n```python\n" + code_context + "\n```\n"
             
             # Store structured feedback in context for engineer prompt injection
-            context_variables["vlm_plot_structured_feedback"] = vlm_feedback if vlm_feedback else None
-            print(vlm_feedback) if vlm_feedback else print("No VLM feedback")
+            context_variables["vlm_plot_structured_feedback"] = engineer_feedback if engineer_feedback else None
+                        
+            print(f"\n=== ENGINEER FEEDBACK ===")
+            if vlm_problems:
+                print("Problems identified by plot judge:")
+                for i, problem in enumerate(vlm_problems, 1):
+                    print(f"  {i}. {problem}")
+                print()
+            
+            if fixes:
+                print("Targeted fixes from plot debugger:")
+                for i, fix in enumerate(fixes, 1):
+                    print(f"  {i}. {fix}")
+                print()
+            
+            if context_variables.get("latest_executed_code"):
+                print("Code that generated this plot:")
+                print("```python")
+                print(context_variables.get("latest_executed_code"))
+                print("```")
+            
+            print("=== END ENGINEER FEEDBACK ===\n")
             
             return ReplyResult(target=AgentTarget(engineer),
                             message="Plot needs fixes. Returning to engineer.",
@@ -462,10 +495,11 @@ For the next agent suggestion, follow these rules:
 
     register_function(
         route_plot_judge_verdict,
-        caller=plot_judge_router,
-        executor=plot_judge_router,
+        caller=plot_debugger,
+        executor=plot_debugger,
         description=r"""
         Route based on plot_judge verdict: continue to control, retry to engineer.
+        Handles external debugging calls internally for retry cases.
         """,
     )
 

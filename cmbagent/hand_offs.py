@@ -45,7 +45,7 @@ def register_all_hand_offs(cmbagent_instance):
     idea_maker_nest = cmbagent_instance.get_agent_object_from_name('idea_maker_nest')
     idea_saver = cmbagent_instance.get_agent_object_from_name('idea_saver')
     plot_judge = cmbagent_instance.get_agent_object_from_name('plot_judge')
-    plot_judge_router = cmbagent_instance.get_agent_object_from_name('plot_judge_router')
+    plot_debugger = cmbagent_instance.get_agent_object_from_name('plot_debugger')
 
     camb_context = cmbagent_instance.get_agent_object_from_name('camb_context')
     classy_context = cmbagent_instance.get_agent_object_from_name('classy_context')

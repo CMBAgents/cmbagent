@@ -71,5 +71,7 @@ shared_context = {
     
     "vlm_plot_analysis": None,
     "vlm_verdict": None,
+    "plot_problems": [],
+    "plot_fixes": [],
     "vlm_plot_structured_feedback": None,
 }

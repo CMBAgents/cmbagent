@@ -162,8 +162,7 @@ default_agents_llm_model ={
     "researcher_response_formatter": "o3-mini-2025-01-31",
     "executor_response_formatter": "o3-mini-2025-01-31",
     #"executor_response_formatter": "gemini-2.5-pro-preview-03-25",
-    # 'plot_judge_router': 'o3-mini-2025-01-31',
-    'plot_judge_router': 'gpt-4o-2024-11-20',
+    'plot_debugger': 'gpt-4o-2024-11-20',
 }
 
 default_agent_llm_configs = {}

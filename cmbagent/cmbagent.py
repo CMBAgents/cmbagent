@@ -1625,7 +1625,7 @@ def one_shot(
                'researcher':cmbagent.get_agent_object_from_name('researcher'),
                'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter'),
                'plot_judge':cmbagent.get_agent_object_from_name('plot_judge'),
-               'plot_judge_router':cmbagent.get_agent_object_from_name('plot_judge_router')}
+               'plot_debugger':cmbagent.get_agent_object_from_name('plot_debugger')}
     
     
     results['initialization_time'] = initialization_time
