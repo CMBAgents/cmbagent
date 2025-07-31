@@ -960,8 +960,9 @@ def main():
         """, unsafe_allow_html=True)
         
         # Create one row with 4 columns
-        row1_col1, row1_col2 , row2_col1, row2_col2 = st.columns([1,1,1,1], gap="large")
-
+        # row1_col1, row1_col2 , row2_col1, row2_col2 = st.columns([2,2,2,2], gap="large")
+        row1_col1, row1_col2 = st.columns([1,1], gap="small")
+        row2_col1, row2_col2 = st.columns([1,1], gap="small")
         with row1_col1:
             if st.button("One Shot\n \n ***Instant, single-pass responses***\n " \
             "***Ideal for quick answers***\n ***No follow-up context retained***", key="one_shot_btn", use_container_width=True):
