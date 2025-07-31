@@ -401,18 +401,23 @@ class CMBAgent:
                 summed_comp   = int(sum(agent.cost_dict["Completion Tokens"]))
                 summed_total  = int(sum(agent.cost_dict["Total Tokens"]))
 
+                model_name = agent.cost_dict["Model"][0]
+                
+
                 if name in cost_dict["Agent"]:
                     i = cost_dict["Agent"].index(name)
                     cost_dict["Cost ($)"][i]              += summed_cost
                     cost_dict["Prompt Tokens"][i]     += summed_prompt
                     cost_dict["Completion Tokens"][i] += summed_comp
                     cost_dict["Total Tokens"][i]      += summed_total
+                    cost_dict["Model"][i]             += model_name
                 else:
                     cost_dict["Agent"].append(name)
                     cost_dict["Cost ($)"].append(summed_cost)
                     cost_dict["Prompt Tokens"].append(summed_prompt)
                     cost_dict["Completion Tokens"].append(summed_comp)
                     cost_dict["Total Tokens"].append(summed_total)
+                    cost_dict["Model"].append(model_name)
 
         # --- build DataFrame & totals ----------------------------------------------
         df = pd.DataFrame(cost_dict)

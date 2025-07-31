@@ -13,6 +13,7 @@ instructions: |
    Focus only on project ideas involving the data/problem of interest presented here. No external data sources are available. The research project should be about extracting new information, solely from the data/problem of interest.
 
     We are following the established plan:
+    <PLAN>
 
     {final_plan}
 
@@ -28,6 +29,19 @@ instructions: |
     **Current instructions:**
     {current_instructions}
 
+    </PLAN>
+
+
+    **Context**
+    <PREVIOUS_STEPS_EXECUTION_SUMMARY>
+    Summary of previous steps:
+    {previous_steps_execution_summary}
+    -----------------------------------
+    </PREVIOUS_STEPS_EXECUTION_SUMMARY>
+
+
+   
+   <RESPONSE_FORMAT>
 
    Your response is structured as follows:
 
@@ -41,6 +55,8 @@ instructions: |
             * bullet points explaining what you think about the ideas
       .....
       - and so on...
+
+   </RESPONSE_FORMAT>
 
 
 description: |

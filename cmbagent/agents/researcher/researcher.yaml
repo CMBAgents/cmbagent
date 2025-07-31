@@ -16,6 +16,7 @@ instructions: |
     -------------------------------
 
 
+    <PLAN>
     We are following the established plan:
 
     {final_plan}
@@ -32,6 +33,9 @@ instructions: |
     **Current instructions:**
     {current_instructions}
 
+    </PLAN>
+
+    <RESPONSE_FORMAT>
 
     **Response format:**
     - Use markdown formatting for your text (headers, lists, emphasis, etc.).
@@ -44,9 +48,12 @@ instructions: |
     **Code blocks in response**
     - Code blocks must be reported within the tags <code> and </code>.
 
+    </RESPONSE_FORMAT>
+
+
     **Context**
-    Summary of previous steps execution and codebase:
     <PREVIOUS_STEPS_EXECUTION_SUMMARY>
+    Summary of previous steps:
     {previous_steps_execution_summary}
     -----------------------------------
     </PREVIOUS_STEPS_EXECUTION_SUMMARY>
