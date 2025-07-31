@@ -27,7 +27,7 @@ import time
 from collections import deque
 
 os.environ["CMBAGENT_DEBUG"] = "false"
-os.environ["ASTROPILOT_DISABLE_DISPLAY"] = "true"
+os.environ["CMBAGENT_DISABLE_DISPLAY"] = "true"
 os.environ["STREAMLIT_ON"] = "true"
 from cmbagent.cmbagent import one_shot, planning_and_control_context_carryover
 from cmbagent.utils import get_api_keys_from_env
@@ -542,6 +542,7 @@ def main():
     # Example prompts for each mode
     EXAMPLE_PROMPTS = {
         "one_shot": [
+            "Plot a 3D Möbius strip using matplotlib.",
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
             "Tell me about the similarities between game theory and evolutionary biology.",
             "Download daily S&P 500 closing prices for 2024. Plot the time series and daily log returns.",
@@ -551,11 +552,15 @@ def main():
         ],
         "planning_and_control": [
             "Generate simulated stock market data during Trump's tariffs to test validity of the Black-Scholes pricing model under such conditions.",
-            # "Write a pipeline to illustrate how we can constrain H0 using gravitational wave data. Simulate the data for this analysis.",
+            "Write a pipeline to illustrate how to constrain H0 using gravitational wave data.",
             # "Write a 10,000 words, three parts dissertation on Imagination, using references drawn from French literature.",
             # "Conduct a multi-step analysis of CMB polarization data. Simulate the data for this analysis.",
-            "Provide codes and plots to illustrate the links between Game Theory and Reinforcement Learning. Report on the results at the end.",
+            # "Provide codes and plots to illustrate the links between Game Theory and Reinforcement Learning. Report on the results at the end.",
             # "Generate a simulated temperature CMB map using camb and healpy, and plot it and its power spectrum.",
+        ],
+        "idea_generation": [
+            "Bank customer data during covid-19.",
+
         ],
         "human_in_the_loop": [
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
@@ -602,7 +607,7 @@ def main():
 
         st.write("Choose the CMBAgent mode")
 
-        modes = ["One shot","Planning and control","Human in the loop"]
+        modes = ["One shot","Planning and control","Idea Generation","Human in the loop"]
         page_selected = st.selectbox("Modes:", modes, index=None)
         if page_selected=="One shot":
             st.session_state.page        = "one_shot"
@@ -612,6 +617,11 @@ def main():
         elif page_selected=="Planning and control":
             st.session_state.page        = "planning_and_control"
             st.session_state.chat_mode   = "planning-and-control"
+            st.session_state.messages    = []
+            st.session_state.cur_hist = None
+        elif page_selected=="Idea Generation":
+            st.session_state.page        = "idea_generation"
+            st.session_state.chat_mode   = "idea-generation"
             st.session_state.messages    = []
             st.session_state.cur_hist = None
         elif page_selected=="Human in the loop":
@@ -646,9 +656,8 @@ def main():
             "engineer": {
                 "label": "Engineer",
                 "models": [
-                    "gpt-4.1","gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
-                    "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
-                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash", "gemini-2.5-pro-preview-05-06","gemini-2.5-flash-preview-05-20"
+                    "gemini-2.5-pro", "claude-sonnet-4-20250514", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
+                    "gemini-2.0-flash",
 
                     # "sonar-pro", "sonar"
                 ]
@@ -656,9 +665,8 @@ def main():
             "researcher": {
                 "label": "Researcher",
                 "models": [
-                    "gpt-4.1", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
-                    "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
-                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash", "gemini-2.5-pro-preview-05-06","gemini-2.5-flash-preview-05-20"
+                    "claude-sonnet-4-20250514", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
+                    "gemini-2.5-pro", "gemini-2.0-flash",
                     # "sonar-pro", "sonar"
                 ]
             }
@@ -950,19 +958,21 @@ def main():
         </style>
         """, unsafe_allow_html=True)
         
-        col1, col2, col3 = st.columns([2,2,2], gap="large")
-
-        with col1:
+        # Create one row with 4 columns
+        # row1_col1, row1_col2 , row2_col1, row2_col2 = st.columns([2,2,2,2], gap="large")
+        row1_col1, row1_col2 = st.columns([1,1], gap="small")
+        row2_col1, row2_col2 = st.columns([1,1], gap="small")
+        with row1_col1:
             if st.button("One Shot\n \n ***Instant, single-pass responses***\n " \
             "***Ideal for quick answers***\n ***No follow-up context retained***", key="one_shot_btn", use_container_width=True):
                 st.session_state.page        = "one_shot"
                 st.session_state.chat_mode   = "one-shot"
                 st.session_state.messages    = []
                 # inside the mode-select buttons
-                st.session_state.cur_hist = None      # ← we’ll create it after the first prompt
+                st.session_state.cur_hist = None      # ← we'll create it after the first prompt
 
                 st.rerun()
-        with col2:
+        with row1_col2:
             if st.button("Planning and Control\n\n" \
             "***Automatic multi-step planning***\n ***Iterative review & refinement***\n " \
             "***Deep, structured analysis***", key="planning_btn", use_container_width=True):
@@ -970,11 +980,21 @@ def main():
                 st.session_state.chat_mode   = "planning-and-control"
                 st.session_state.messages    = []
                 # inside the mode-select buttons
-                st.session_state.cur_hist = None      # ← we’ll create it after the first prompt
+                st.session_state.cur_hist = None      # ← we'll create it after the first prompt
 
                 st.rerun()
 
-        with col3:
+        with row2_col1:
+            if st.button("Idea Generation\n\n" \
+            "***Generate research project ideas***\n ***Iterative critique & refinement***\n " \
+            "***Best idea selection & reporting***", key="idea_generation_btn", use_container_width=True):
+                st.session_state.page        = "idea_generation"
+                st.session_state.chat_mode   = "idea-generation"
+                st.session_state.messages    = []
+                st.session_state.cur_hist    = None
+                st.rerun()
+
+        with row2_col2:
             if st.button("Human-in-the-loop\n\n ***Single-pass answers with memory***\n" \
             "***Maintain context across turns***\n ***Ask related follow-ups freely***", key="human_loop", use_container_width=True):
                 st.session_state.page        = "human_in_the_loop"
@@ -998,6 +1018,8 @@ def main():
                 header = "One Shot"
             elif st.session_state.page == "planning_and_control":
                 header = "Planning and Control"
+            elif st.session_state.page == "idea_generation":
+                header = "Idea Generation"
             else:
                 header = "Human-in-the-loop"
             st.markdown(
@@ -1058,6 +1080,47 @@ def main():
                         ),
                         height=68
                 )
+            elif st.session_state.page == "idea_generation":  # idea_generation
+                col1, col2 = st.columns(2)
+                with col1:
+                    max_rounds_control = st.slider(
+                        "**Max Session Duration** \n\n ***\n\n *The total number of messages exchanged between agents in the session*", min_value=1, max_value=1000, value=500, step=1
+                    )
+                    n_plan_reviews = st.slider(
+                        "**Plan Reviews** \n\n *Number of rounds the plans are reviewed*", min_value=0, max_value=5, value=1, step=1
+                    )
+                with col2:
+                    # max_n_attempts = st.slider(
+                    #     "**Max Execution Attempts** \n\n \n\n *The maximum number of failed code execution before exiting.*", min_value=1, max_value=10, value=6, step=1
+                    # )
+                    max_plan_steps = st.slider(
+                        "**Max Plan Steps** \n\n *The maximum number of steps for the task to be solved*", min_value=1, max_value=10, value=6, step=1
+                    )
+                # ← NEW TEXT‐AREA FOR PLAN INSTRUCTIONS
+                plan_instructions = st.text_area(
+                        "**Plan Instructions**",
+                        value=(
+                            r"""Given these datasets, and information, make a plan according to the following instructions: 
+
+- Ask idea_maker to generate 5 new research project ideas related to the datasets.
+- Ask idea_hater to critique these ideas.
+- Ask idea_maker to select and improve 2 out of the 5 research project ideas given the output of the idea_hater.
+- Ask idea_hater to critique the 2 improved ideas. 
+- Ask idea_maker to select the best idea out of the 2. 
+- Ask idea_maker to report the best idea in the form of a scientific paper title with a 5-sentence description. 
+
+The goal of this task is to generate a research project idea based on the data of interest. 
+Don't suggest to perform any calculations or analyses here. The only goal of this task is to obtain the best possible project idea."""
+                        ),
+                        height=280
+                )
+                # hardware_constraints = st.text_area(
+                #         "**Hardware Constraints**",
+                #         value=(
+                #             " "
+                #         ),
+                #         height=68
+                # )
             elif st.session_state.page == "human_in_the_loop":
                 c1, c2 = st.columns(2)
                 with c1:
@@ -1213,7 +1276,7 @@ def main():
                         elif st.session_state.page == "planning_and_control":
                             results = planning_and_control_context_carryover(
                                 user_input,
-                                max_rounds_control = 500,
+                                max_rounds_control = max_rounds_control,
                                 n_plan_reviews = n_plan_reviews,
                                 max_n_attempts = max_n_attempts,
                                 max_plan_steps= max_plan_steps,
@@ -1225,10 +1288,30 @@ def main():
                                 work_dir = project_dir,
                             )
 
+                        elif st.session_state.page == "idea_generation":
+                            results = planning_and_control_context_carryover(
+                                user_input,
+                                max_rounds_control = max_rounds_control,
+                                n_plan_reviews = n_plan_reviews,
+                                # max_n_attempts = max_n_attempts,
+                                max_plan_steps= max_plan_steps,
+                                engineer_model = engineer_model,
+                                researcher_model = researcher_model,
+                                plan_instructions = plan_instructions,
+                                # hardware_constraints = hardware_constraints,
+                                api_keys = api_keys,
+                                work_dir = project_dir,
+                            )
+
                         elif st.session_state.page == "human_in_the_loop":
                             context = memory_as_text()                    # may be empty
+                            # print(f"--------------------------------")
+                            # print(f"context: {context}")
+                            # print(f"user_input: {user_input}")
+                            # print(f"!"*90)
+                            # print(f"\n\n")
                             prompt_for_agent = f"{context}\n\n[Human]: {user_input}".lstrip()
-
+                            ### currently we do this by injecting the previous conversation history into the prompt
                             results = one_shot(
                                 prompt_for_agent,
                                 max_rounds       = max_rounds,

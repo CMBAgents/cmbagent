@@ -187,7 +187,7 @@ class CMBAgent:
             # delete work_dir_default as it wont be used
             shutil.rmtree(work_dir_default, ignore_errors=True)
 
-        self.work_dir = work_dir
+        self.work_dir = os.path.expanduser(work_dir)
         self.clear_work_dir_bool = clear_work_dir
         if clear_work_dir:
             self.clear_work_dir()
@@ -401,18 +401,23 @@ class CMBAgent:
                 summed_comp   = int(sum(agent.cost_dict["Completion Tokens"]))
                 summed_total  = int(sum(agent.cost_dict["Total Tokens"]))
 
+                model_name = agent.cost_dict["Model"][0]
+                
+
                 if name in cost_dict["Agent"]:
                     i = cost_dict["Agent"].index(name)
                     cost_dict["Cost ($)"][i]          += summed_cost
                     cost_dict["Prompt Tokens"][i]     += summed_prompt
                     cost_dict["Completion Tokens"][i] += summed_comp
                     cost_dict["Total Tokens"][i]      += summed_total
+                    cost_dict["Model"][i]             += model_name
                 else:
                     cost_dict["Agent"].append(name)
                     cost_dict["Cost ($)"].append(summed_cost)
                     cost_dict["Prompt Tokens"].append(summed_prompt)
                     cost_dict["Completion Tokens"].append(summed_comp)
                     cost_dict["Total Tokens"].append(summed_total)
+                    cost_dict["Model"].append(model_name)
 
         # --- build DataFrame & totals ----------------------------------------------
         df = pd.DataFrame(cost_dict)
@@ -1409,6 +1414,7 @@ def planning_and_control(
 
 def load_plan(plan_path):
     """Load a plan from a JSON file into a dictionary"""
+    plan_path = os.path.expanduser(plan_path)  # Expands '~' 
     with open(plan_path, 'r') as f:
         plan_dict = json.load(f)
     
@@ -1544,6 +1550,7 @@ def one_shot(
             inject_wrong_plot: bool | str = False,
             ):
     start_time = time.time()
+    work_dir = os.path.expanduser(work_dir)
 
     if api_keys is None:
         api_keys = get_api_keys_from_env()
