@@ -953,10 +953,22 @@ def planning_and_control_context_carryover(
                             work_dir = work_dir_default,
                             api_keys = None,
                             restart_at_step = -1,   ## if -1 or 0, do not restart. if 1, restart from step 1, etc.
+                            clear_work_dir = False,
                             ):
 
     # Create work directory if it doesn't exist
     Path(work_dir).expanduser().resolve().mkdir(parents=True, exist_ok=True)
+    work_dir = os.path.expanduser(work_dir)
+
+    if clear_work_dir:
+        # Clear everything inside work_dir if it exists
+        if os.path.exists(work_dir):
+            for item in os.listdir(work_dir):
+                item_path = os.path.join(work_dir, item)
+                if os.path.isfile(item_path):
+                    os.unlink(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
     
     context_dir = Path(work_dir).expanduser().resolve() / "context"
     os.makedirs(context_dir, exist_ok=True)
@@ -1539,6 +1551,7 @@ def one_shot(
             agent = 'engineer',
             work_dir = work_dir_default,
             api_keys = None,
+            clear_work_dir = False,
             ):
     start_time = time.time()
     work_dir = os.path.expanduser(work_dir)
@@ -1556,6 +1569,7 @@ def one_shot(
                             'engineer': engineer_config,
                             'researcher': researcher_config,
         },
+        clear_work_dir = clear_work_dir,
         api_keys = api_keys
         )
         

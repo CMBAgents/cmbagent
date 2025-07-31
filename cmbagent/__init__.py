@@ -32,7 +32,7 @@ def print_cmbagent_logo():
     # print(base_dir)
     if not cmbagent_disable_display:
         display(Image(filename=png_path, width=IMG_WIDTH))
-        print(LOGO)
+        display(Markdown(LOGO))
     # ANSI hyperlink: Note that support varies by terminal.
     # HTML link for GitHub with icon
     # github_html = '''

@@ -962,7 +962,7 @@ def main():
         # row1_col1, row1_col2 , row2_col1, row2_col2 = st.columns([2,2,2,2], gap="large")
         row1_col1, row1_col2 = st.columns([1,1], gap="small")
         row2_col1, row2_col2 = st.columns([1,1], gap="small")
-        with row1_col1:
+        with row1_col2:
             if st.button("One Shot\n \n ***Instant, single-pass responses***\n " \
             "***Ideal for quick answers***\n ***No follow-up context retained***", key="one_shot_btn", use_container_width=True):
                 st.session_state.page        = "one_shot"
@@ -972,7 +972,7 @@ def main():
                 st.session_state.cur_hist = None      # ← we'll create it after the first prompt
 
                 st.rerun()
-        with row1_col2:
+        with row1_col1:
             if st.button("Planning and Control\n\n" \
             "***Automatic multi-step planning***\n ***Iterative review & refinement***\n " \
             "***Deep, structured analysis***", key="planning_btn", use_container_width=True):
