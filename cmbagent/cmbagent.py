@@ -187,7 +187,7 @@ class CMBAgent:
             # delete work_dir_default as it wont be used
             shutil.rmtree(work_dir_default, ignore_errors=True)
 
-        self.work_dir = work_dir
+        self.work_dir = os.path.expanduser(work_dir)
         self.clear_work_dir_bool = clear_work_dir
         if clear_work_dir:
             self.clear_work_dir()
@@ -1411,6 +1411,7 @@ def planning_and_control(
 
 def load_plan(plan_path):
     """Load a plan from a JSON file into a dictionary"""
+    plan_path = os.path.expanduser(plan_path)  # Expands '~' 
     with open(plan_path, 'r') as f:
         plan_dict = json.load(f)
     
@@ -1540,6 +1541,7 @@ def one_shot(
             api_keys = None,
             ):
     start_time = time.time()
+    work_dir = os.path.expanduser(work_dir)
 
     if api_keys is None:
         api_keys = get_api_keys_from_env()

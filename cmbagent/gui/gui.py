@@ -542,6 +542,7 @@ def main():
     # Example prompts for each mode
     EXAMPLE_PROMPTS = {
         "one_shot": [
+            "Plot a 3D Möbius strip using matplotlib.",
             "Generate a Poisson point process on S^2, compute the corresponding scalar field using a Gaussian smoothing kernel, and plot both the field and its angular power spectrum.",
             "Tell me about the similarities between game theory and evolutionary biology.",
             "Download daily S&P 500 closing prices for 2024. Plot the time series and daily log returns.",
@@ -655,9 +656,8 @@ def main():
             "engineer": {
                 "label": "Engineer",
                 "models": [
-                    "gemini-2.5-pro","gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
-                    "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
-                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro-preview-03-25", "gemini-2.0-flash", "gemini-2.5-pro-preview-05-06","gemini-2.5-flash-preview-05-20"
+                    "gemini-2.5-pro", "claude-sonnet-4-20250514", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
+                    "gemini-2.0-flash",
 
                     # "sonar-pro", "sonar"
                 ]
@@ -665,9 +665,8 @@ def main():
             "researcher": {
                 "label": "Researcher",
                 "models": [
-                    "claude-3-7-sonnet", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
-                    "claude-3-7-sonnet-20250219", "claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022",
-                    "gemini-2.5-flash-preview-04-17", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-2.5-pro-preview-05-06","gemini-2.5-flash-preview-05-20"
+                    "claude-sonnet-4-20250514", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
+                    "gemini-2.5-pro", "gemini-2.0-flash",
                     # "sonar-pro", "sonar"
                 ]
             }
