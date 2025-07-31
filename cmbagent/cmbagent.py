@@ -1545,6 +1545,7 @@ def one_shot(
             agent = 'engineer',
             work_dir = work_dir_default,
             api_keys = None,
+            clear_work_dir = False,
             evaluate_plots = False,
             max_n_plot_evals = 1,
             inject_wrong_plot: bool | str = False,
