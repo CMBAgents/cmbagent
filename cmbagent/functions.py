@@ -390,15 +390,13 @@ For the next agent suggestion, follow these rules:
         """,
     )
     
-    def route_plot_judge_verdict(context_variables: ContextVariables, verdict: Literal["continue", "retry"]) -> ReplyResult:
+    def route_plot_judge_verdict(context_variables: ContextVariables) -> ReplyResult:
         """
-        Route based on plot_judge verdict: continue to control, retry to engineer.
+        Route based on plot_judge verdict stored in context: continue to control, retry to engineer.
         Handles all debugging logic internally for retry cases.
-        
-        Args:
-            verdict (str): Final decision - either 'continue' or 'retry'
         """
-        # Get problems from shared context (set by VLM)
+        # Get verdict and problems from shared context
+        verdict = context_variables.get("vlm_verdict", "continue")
         vlm_problems = context_variables.get("plot_problems", [])
         
         # Get current evaluation count (already incremented in call_vlm_judge)
@@ -498,7 +496,7 @@ For the next agent suggestion, follow these rules:
         caller=plot_debugger,
         executor=plot_debugger,
         description=r"""
-        Route based on plot_judge verdict: continue to control, retry to engineer.
+        Route based on plot_judge verdict stored in context: continue to control, retry to engineer.
         Handles external debugging calls internally for retry cases.
         """,
     )

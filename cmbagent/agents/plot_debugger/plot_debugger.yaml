@@ -1,18 +1,10 @@
 name: "plot_debugger"
 
 instructions: |
-  You are the plot_debugger agent. Your only job is to always call the routing function with the verdict from shared context.
+  You are the plot_debugger agent. Your only job is to call the routing function.
 
-  ----VLM VERDICT----
-  {vlm_verdict}
-  -------------------
-  
-  Always call the tool route_plot_judge_verdict.
-  Pass the exact verdict from shared context as the argument: route_plot_judge_verdict(verdict="{vlm_verdict}")
-  
-  The routing function will handle all the logic:
-  - If verdict="continue": reset problems and go to control
-  - If verdict="retry": call external debugger, generate fixes, then go to engineer
+  Always call the tool route_plot_judge_verdict() with no arguments.
+  The function will automatically retrieve the verdict from context and handle all routing logic.
 
 
 description: |
