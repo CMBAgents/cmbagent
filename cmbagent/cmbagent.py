@@ -1555,6 +1555,7 @@ def one_shot(
             engineer_model = default_agents_llm_model['engineer'],
             researcher_model = default_agents_llm_model['researcher'],
             plot_judge_model = default_agents_llm_model['plot_judge'],
+            camb_context_model = default_agents_llm_model['camb_context'],
             researcher_filename = shared_context_default['researcher_filename'],
             agent = 'engineer',
             work_dir = work_dir_default,
@@ -1573,7 +1574,7 @@ def one_shot(
     engineer_config = get_model_config(engineer_model, api_keys)
     researcher_config = get_model_config(researcher_model, api_keys)
     plot_judge_config = get_model_config(plot_judge_model, api_keys)
-        
+    camb_context_config = get_model_config(camb_context_model, api_keys)
     cmbagent = CMBAgent(
         mode = "one_shot",
         work_dir = work_dir,
@@ -1581,6 +1582,7 @@ def one_shot(
                             'engineer': engineer_config,
                             'researcher': researcher_config,
                             'plot_judge': plot_judge_config,
+                            'camb_context': camb_context_config,    
         },
         clear_work_dir = clear_work_dir,
         api_keys = api_keys
