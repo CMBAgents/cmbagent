@@ -3,7 +3,6 @@ import base64
 import tempfile
 import matplotlib.pyplot as plt
 from typing import Tuple, Literal
-from classy import Class
 from math import pi
 
 # Default plot type for VLM injection
