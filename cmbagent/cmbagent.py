@@ -955,6 +955,7 @@ def planning_and_control_context_carryover(
                             api_keys = None,
                             restart_at_step = -1,   ## if -1 or 0, do not restart. if 1, restart from step 1, etc.
                             clear_work_dir = False,
+                            researcher_filename = shared_context_default['researcher_filename'],
                             ):
 
     # Create work directory if it doesn't exist
@@ -1012,7 +1013,8 @@ def planning_and_control_context_carryover(
                                         'engineer_append_instructions': engineer_instructions,
                                         'researcher_append_instructions': researcher_instructions,
                                         'plan_reviewer_append_instructions': plan_instructions,
-                                        'hardware_constraints': hardware_constraints}
+                                        'hardware_constraints': hardware_constraints,
+                                        'researcher_filename': researcher_filename}
                     )
         end_time = time.time()
         execution_time_planning = end_time - start_time
