@@ -210,7 +210,7 @@ def create_vlm_discovery_schema(context_variables: ContextVariables = None, has_
             description="What specific measurements, regions, or aspects warrant closer scientific examination?"
         )),
         "verdict": (str, Field(
-            description="'continue' or 'explore' - only choose 'explore' if there are compelling scientific features that merit investigation"
+            description="'continue' or 'explore' - choose 'explore' if you identified ANY genuine scientific anomalies, patterns, or deviations that could lead to new insights. If you found systematic deviations, asymmetric behavior, model tensions, unusual scatter patterns, or anything scientifically noteworthy, choose 'explore'. Only choose 'continue' if the plot shows completely normal, expected behavior with no interesting features whatsoever."
         ))
     }
     
@@ -607,13 +607,51 @@ def _create_base_scientific_vlm_prompt(improved_main_task: str) -> str:
         plot_context = f"Task context: {improved_main_task}. Focus on the scientific discovery aspects of this analysis."
         llm_completion = generate_llm_scientific_criteria(plot_context, mode="discovery")
         domain_criteria = llm_completion.choices[0].message.content
+        print(f"Domain-specific anomaly detection criteria:\n{domain_criteria}\n")
     
     # Build discovery criteria description
-    base_description = """You are an expert scientist focusing on discovery opportunities. 
+    base_description = """You are an expert scientist with a keen eye for scientific anomalies and discovery opportunities. 
 
-Analyze this scientific plot for interesting patterns, anomalies, and opportunities for further investigation. Your goal is to identify scientifically meaningful features that merit deeper exploration.
+Systematically analyze this scientific plot for patterns that deviate from expectations and suggest deeper investigation. Look beyond surface-level aesthetics to identify genuinely compelling scientific features.
 
-IMPORTANT: Only flag features that are genuinely scientifically interesting. Most plots may not have significant anomalies or discovery opportunities - that's perfectly normal. Be selective and only highlight truly noteworthy patterns."""
+ANOMALY DETECTION FRAMEWORK:
+Scan the plot methodically for these types of scientific anomalies:
+
+**STATISTICAL DEVIATIONS:**
+- Data points that fall significantly outside expected distributions or error bars
+- Systematic trends in residuals that suggest model inadequacy
+- Unusual clustering or gaps in parameter space
+- Asymmetries where symmetry is expected
+- Excess scatter beyond measurement uncertainties
+
+**PARAMETER BEHAVIOR:**
+- Parameters that are unexpectedly well or poorly constrained
+- Strong correlations or degeneracies between parameters that weren't anticipated
+- Parameters hitting prior boundaries or showing edge effects
+- Bimodal or multi-modal parameter distributions
+- Parameter values that differ significantly from theoretical predictions
+
+**MODEL PERFORMANCE INDICATORS:**
+- Regions where theory-data agreement breaks down systematically
+- Scale-dependent deviations that might indicate missing physics
+- Frequency, energy, or redshift ranges showing anomalous behavior
+- Convergence failures or sampling issues in specific parameter regions
+- Prior sensitivity indicating weak observational constraints
+
+**STRUCTURAL PATTERNS:**
+- Power-law slopes that deviate from theoretical expectations
+- Break points, transitions, or threshold effects in relationships
+- Periodic or quasi-periodic features that might indicate systematic effects
+- Correlations between observables that suggest new physical connections
+- Missing expected features or unexpectedly prominent features
+
+**EXPERIMENTAL DESIGN INSIGHTS:**
+- Regions of parameter space that are poorly sampled or constrained
+- Measurements that provide disproportionate constraining power
+- Systematic effects that dominate over statistical uncertainties
+- Data quality variations that might mask or create apparent signals
+
+IMPORTANT: If you observe ANY scientifically interesting patterns - even subtle ones like asymmetric scatter, systematic model deviations, or unexpected parameter behavior - these warrant exploration. Err on the side of scientific curiosity. Only choose 'continue' if the plot is completely mundane with no noteworthy features. Remember: systematic deviations, model tensions, asymmetric behavior, and unusual patterns are exactly what scientific discovery is built on."""
     
     if domain_criteria:
         discovery_description = f"{base_description}\n\nADDITIONAL DOMAIN-SPECIFIC DISCOVERY CRITERIA:\n{domain_criteria}"
@@ -730,23 +768,23 @@ Context: {plot_description}
 
 Your response will be used as criteria in a VLM prompt, so be direct and specific. Do not include conversational phrases.
 
-Focus on patterns that suggest deeper scientific exploration is needed:
-1. Parameter degeneracies and correlations that reveal physics
+Focus on patterns that deviate from expected behavior and suggest deeper scientific investigation:
+1. Parameter degeneracies and unexpected correlations
 2. Model inadequacy signatures (systematic residuals, poor fits)  
-3. Statistical significance patterns (outliers, anomalous scatter)
-4. Convergence and sampling issues in inference
-5. Prior sensitivity and robustness indicators
-6. Unexpected trends that deviate from theoretical predictions
+3. Statistical anomalies (nos, excess scatter beyond uncertainties)
+4. Convergence failures and sampling issues in inference
+5. Prior sensitivity indicating weak constraints
+6. Systematic deviations from theoretical predictions
 
-IMPORTANT: Focus on signs that suggest "there's more science here to explore" rather than "this is wrong."
-Look for patterns that hint at interesting physics, parameter relationships, or experimental opportunities.
+IMPORTANT: Focus on anomalous patterns that suggest "something unexpected is happening" rather than "this is wrong."
+Look for deviations that hint at new physics, parameter relationships, or experimental opportunities.
 
-Examples of discovery-worthy patterns:
-- Parameter degeneracy: Strong correlation between parameters suggesting need for additional constraints
-- Model tension: Systematic residuals indicating missing physics or model components
-- Statistical anomalies: Outliers or scatter patterns that exceed expected measurement uncertainties
-- Prior sensitivity: Results that change significantly with different prior choices, indicating weak constraints
-- Unexpected correlations: Parameter relationships that deviate from theoretical predictions
+Examples of scientifically anomalous patterns:
+- Parameter degeneracy: Unexpected correlations suggesting missing constraints or new physics
+- Model tension: Systematic residuals indicating inadequate model components
+- Statistical anomalies: Outliers or scatter exceeding expected measurement uncertainties
+- Prior sensitivity: Results changing significantly with priors, indicating weak observational constraints
+- Systematic trends: Parameter relationships deviating from theoretical predictions
 """
 
         response = client.chat.completions.create(
@@ -855,7 +893,6 @@ For each fix:
             print("ERROR: Empty debugger response text")
             return []
             
-        print(f"DEBUG: Debugger response text: {debugger_response}")
         parsed_response = PlotDebuggerResponse.model_validate_json(debugger_response)
         
         return parsed_response.fixes
@@ -885,7 +922,7 @@ class Enhanced3PhaseProposalResponse(BaseModel):
     """Structured response for Phase 1: Discovery & Proposal."""
     experiments: list[ExperimentDetails] = Field(..., description="List of 3-5 structured experiments to implement")
     comparison_metric: str = Field(..., description="Single metric to use for comparing all experiments (e.g., 'R²', 'AIC', 'chi²', 'log-likelihood', etc.)")
-    comparison_strategy: str = Field(..., description="Brief description of how to create the comparison visualization showing all experiments together")
+    comparison_strategy: str = Field(..., description="Description of how to create the comparison visualization. Default: single plot showing all experiments with their metric values (bar chart, table, etc.). When comparing different models to same data or overlaying multiple theoretical curves, use subplots: left panel showing the metric comparison, right panel showing the overlaid models/theories vs data.")
 
 
 class ExperimentResult(BaseModel):
@@ -966,16 +1003,13 @@ Design experiments that:
 
 Choose ONE quantitative metric that can be calculated for all experiments (R², AIC, χ², log-likelihood, RMSE, etc.).
 
-Your comparison strategy should create a single visualization showing all experiments with their metric values - like a bar chart, comparison plot, or table.
+**COMPARISON VISUALIZATION STRATEGY:**
+- **Default approach**: Single plot showing all experiments with their metric values (bar chart, table, comparison plot)
+- **When comparing models to data**: Use subplots with left panel showing metric comparison and right panel showing all models overlaid on the same dataset
+- **When testing different theoretical curves**: Use subplots with left panel showing metric values and right panel showing theory vs data comparisons
+- **Goal**: Always include one final comparison visualization that clearly displays all metric values
 
 Each experiment should have clear implementation guidance for the engineer."""
-
-        print(f"DEBUG: Sending prompt to OpenAI Phase 1:")
-        print(f"- Task context: {task_context}")
-        print(f"- VLM analysis length: {len(vlm_analysis)} chars")
-        print(f"- Observations: {len(observations)}")
-        print(f"- Potential causes: {len(potential_causes)}")
-        print(f"- Signals: {len(signals_to_investigate)}")
 
         # Generate OpenAI-compatible schema with additionalProperties: false at all levels
         def fix_openai_schema(schema_dict):
@@ -1007,9 +1041,18 @@ Each experiment should have clear implementation guidance for the engineer."""
             }
         )
         
-        print(f"DEBUG: Phase 1 proposer response object: {response}")
         response_content = response.choices[0].message.content
-        print(f"DEBUG: Phase 1 proposer response content: {repr(response_content)}")
+        
+        # Show the generated experiments clearly
+        if response_content:
+            try:
+                parsed_preview = Enhanced3PhaseProposalResponse.model_validate_json(response_content)
+                print(f"\nExperiments generated:")
+                for i, exp in enumerate(parsed_preview.experiments, 1):
+                    print(f"{i}. {exp.name}: {exp.description}")
+                print(f"Comparison metric: {parsed_preview.comparison_metric}\n")
+            except Exception:
+                pass
         
         if not response_content:
             print("ERROR: Empty phase 1 proposer response content")

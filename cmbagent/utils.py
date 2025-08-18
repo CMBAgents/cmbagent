@@ -137,7 +137,7 @@ default_agents_llm_model ={
     # "plot_judge": "gpt-4o-2024-08-06",
     "plot_judge": "o3-mini-2025-01-31",
     "plot_scientist": "o3-mini-2025-01-31",
-    "plot_experiment_proposer": "gpt-4o-2024-11-20",
+    "experiment_designer": "gpt-4o-2024-11-20",
 
     # rag agents
     "classy_sz": "gpt-4o-2024-11-20",

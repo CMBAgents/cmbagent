@@ -88,7 +88,7 @@ def register_functions_to_agents(cmbagent_instance):
     plot_judge = cmbagent_instance.get_agent_from_name('plot_judge')
     plot_debugger = cmbagent_instance.get_agent_from_name('plot_debugger')
     plot_scientist = cmbagent_instance.get_agent_from_name('plot_scientist')
-    plot_experiment_proposer = cmbagent_instance.get_agent_from_name('plot_experiment_proposer')
+    experiment_designer = cmbagent_instance.get_agent_from_name('experiment_designer')
     
     if not cmbagent_instance.skip_rag_agents:
         classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')
@@ -197,7 +197,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                         context_variables=context_variables)
                 
                 elif evaluate_plots == "discovery":
-                    # Discovery mode triggers plot scientist and plot experiment proposer
+                    # Discovery mode triggers plot scientist and experiment designer
                     data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
                     image_files = load_plots(data_directory)
                     displayed_images = context_variables.get("displayed_images", [])
@@ -572,36 +572,33 @@ For the next agent suggestion, follow these rules:
         if discovery_pass == 2 and comparison_plot_path and os.path.exists(comparison_plot_path):
             # Pass 2: Use comparison plot for evaluation
             img_path = comparison_plot_path
-            print(f"Discovery Pass 2: Evaluating comparison plot for winner selection")
-        else:
-            # Pass 1: Use regular plot for interest evaluation
-            print(f"Discovery Pass 1: Evaluating scientific interest of plot")
         
         if not img_path or not os.path.exists(img_path):
-            return ReplyResult(target=AgentTarget(plot_experiment_proposer),
+            return ReplyResult(target=AgentTarget(experiment_designer),
                              message=f"No valid plot found for discovery pass {discovery_pass}",
                              context_variables=context_variables)
         
         try:
             # Read plot image
-            print(f"Reading plot file for VLM analysis: {img_path}")
             with open(img_path, 'rb') as img_file:
                 base_64_img = base64.b64encode(img_file.read()).decode('utf-8')
             
             if discovery_pass == 1:
-                # Pass 1: Judge if scientifically interesting
+                # Pass 1: Detect scientific anomalies
+                print("Scanning plot for scientific anomalies...")
+                
                 executed_code = context_variables.get("latest_executed_code")
                 vlm_prompt = create_vlm_scientific_prompt(context_variables, executed_code)
                 inject_wrong_plot = context_variables.get("inject_wrong_plot", False)
                 completion, injected_code = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=inject_wrong_plot, context_variables=context_variables, mode="discovery")
                 
                 vlm_analysis_json = completion.choices[0].message.content
-                print(f"\nDiscovery Pass 1 - VLM Interest Analysis:\n{vlm_analysis_json}\n")
+                print(f"\nVLM scientific anomaly analysis:\n{vlm_analysis_json}\n")
                 
                 if injected_code:
                     print(f"Injected code:\n{injected_code}\n")
                 
-                # Parse interest verdict
+                # Parse anomaly detection verdict
                 try:
                     vlm_data = json.loads(vlm_analysis_json)
                     verdict = vlm_data.get("verdict", "continue")
@@ -611,7 +608,10 @@ For the next agent suggestion, follow these rules:
                     context_variables["potential_causes"] = vlm_data.get("potential_causes", [])
                     context_variables["signals_to_investigate"] = vlm_data.get("signals_to_investigate", [])
                     
-                    print(f"Scientific interest verdict: {verdict}")
+                    if verdict == "explore":
+                        print("Scientific anomalies detected - proceeding with experimental investigation")
+                    else:
+                        print("No significant anomalies detected")
                 except json.JSONDecodeError as e:
                     print(f"Warning: Could not parse VLM JSON: {e}")
                     verdict = "continue"
@@ -622,46 +622,46 @@ For the next agent suggestion, follow these rules:
                     context_variables["signals_to_investigate"] = []
                 
                 account_for_external_api_calls(plot_scientist, completion)
-                return ReplyResult(target=AgentTarget(plot_experiment_proposer),
-                                 message=f"Discovery Pass 1 complete. Scientific interest verdict: {verdict}",
+                return ReplyResult(target=AgentTarget(experiment_designer),
+                                 message=f"Anomaly detection verdict: {verdict}",
                                  context_variables=context_variables)
                 
             elif discovery_pass == 2:
                 # Pass 2: Evaluate which experiment performed best
+                print("Evaluating experiment comparison plot...")
+                
                 vlm_prompt = create_vlm_evaluation_prompt(context_variables)
                 completion, _ = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=False, context_variables=context_variables, mode="evaluation")
                 
                 vlm_analysis_json = completion.choices[0].message.content
-                print(f"\nDiscovery Pass 2 - VLM Experiment Evaluation:\n{vlm_analysis_json}\n")
+                print(f"\nVLM experiment evaluation:\n{vlm_analysis_json}\n")
                 
                 # Parse winner selection
                 try:
                     vlm_data = json.loads(vlm_analysis_json)
                     winner = vlm_data.get("winner_selection", "Original")
                     reasoning = vlm_data.get("winner_reasoning", "No reasoning provided")
-                    context_variables["vlm_winner_selection"] = winner  # Fixed: matches expected variable name
-                    context_variables["vlm_winner_reasoning"] = reasoning  # Fixed: was missing
+                    context_variables["vlm_winner_selection"] = winner
+                    context_variables["vlm_winner_reasoning"] = reasoning
                     context_variables["vlm_evaluation_analysis"] = vlm_analysis_json
                     context_variables["vlm_verdict"] = "explore"  # Signal to create final task
                     
-                    print(f"Winner selected: {winner}")
-                    print(f"Reasoning: {reasoning}")
                 except json.JSONDecodeError as e:
                     print(f"Warning: Could not parse evaluation JSON: {e}")
-                    context_variables["vlm_winner_selection"] = "Original"  # Fixed: matches expected variable name
-                    context_variables["vlm_winner_reasoning"] = "JSON parsing failed"  # Fixed: was missing
+                    context_variables["vlm_winner_selection"] = "Original"
+                    context_variables["vlm_winner_reasoning"] = "JSON parsing failed"
                     context_variables["vlm_evaluation_analysis"] = vlm_analysis_json
                     context_variables["vlm_verdict"] = "explore"
                 
                 account_for_external_api_calls(plot_scientist, completion)
-                return ReplyResult(target=AgentTarget(plot_experiment_proposer),
-                                 message=f"Discovery Pass 2 complete. Winner: {context_variables.get('vlm_winner_selection', 'Original')}",
+                return ReplyResult(target=AgentTarget(experiment_designer),
+                                 message=f"Winner selected: {context_variables.get('vlm_winner_selection', 'Original')}",
                                  context_variables=context_variables)
             
         except Exception as e:
             error_msg = f"Discovery Pass {discovery_pass} VLM analysis failed: {str(e)}"
             print(f"ERROR: {error_msg}")
-            return ReplyResult(target=AgentTarget(plot_experiment_proposer),
+            return ReplyResult(target=AgentTarget(experiment_designer),
                              message=error_msg,
                              context_variables=context_variables)
     
@@ -676,7 +676,7 @@ For the next agent suggestion, follow these rules:
     
     def route_scientific_discovery(context_variables: ContextVariables) -> ReplyResult:
         """
-        Simplified discovery workflow router for plot_experiment_proposer.
+        Simplified discovery workflow router for experiment_designer.
         Pass 1: Generate experiments if plot is interesting
         Pass 2: Create final task based on VLM's winner selection
         Pass 3+: Max reached, return to control
@@ -711,7 +711,7 @@ For the next agent suggestion, follow these rules:
         
         if discovery_pass == 1:
             # Pass 1: Generate experiments based on scientific observations
-            print(f"\n=== Discovery Pass 1: Generating Experiments ===")
+            print("Generating experiments...")
             
             # Call experiment proposer to generate structured experiments
             proposal_result = call_enhanced_experiment_proposer_phase1(context_variables)
@@ -745,7 +745,7 @@ For the next agent suggestion, follow these rules:
                 engineer_feedback += f"   Expected outcome: {exp['expected_outcome']}\n\n"
             
             engineer_feedback += f"**COMPARISON STRATEGY:**\n{proposal_result['comparison_strategy']}\n\n"
-            engineer_feedback += f"**DELIVERABLE:** One final comparison visualization showing all approaches with their {proposal_result['comparison_metric']} values clearly displayed.\n\n"
+            engineer_feedback += f"**DELIVERABLE:** One final comparison visualization showing all approaches with their {proposal_result['comparison_metric']} values clearly displayed. If comparing models to data, consider using subplots: left panel with metric comparison, right panel with all models overlaid on data.\n\n"
             
             engineer_feedback += "=" * 60 + "\n"
             engineer_feedback += "**NEW PRIMARY TASK - END**\n"
@@ -754,17 +754,14 @@ For the next agent suggestion, follow these rules:
             engineer_feedback += "**IMPORTANT:** This task REPLACES your original task. Focus entirely on implementing and comparing these experiments."
             
             context_variables["vlm_plot_structured_feedback"] = engineer_feedback
-            
-            print(f"Generated {len(proposal_result['experiments'])} experiments for comparison")
-            print(f"Comparison metric: {proposal_result['comparison_metric']}")
-            
+                        
             return ReplyResult(target=AgentTarget(engineer),
-                             message="Discovery Pass 1 complete. Experiments proposed. Starting multi-experiment implementation.",
+                             message="Experiments proposed. Starting multi-experiment implementation.",
                              context_variables=context_variables)
         
         elif discovery_pass == 2:
             # Pass 2: Create final task based on VLM's winner selection
-            print(f"\n=== Discovery Pass 2: Creating Final Task ===")
+            print("Creating final implementation task...")
             
             # Get VLM winner selection from call_vlm_scientist
             winner = context_variables.get("vlm_winner_selection", "Original")
@@ -811,11 +808,9 @@ For the next agent suggestion, follow these rules:
             engineer_feedback += "**IMPORTANT:** This new task REPLACES your original task completely. Focus entirely on implementing the winning approach."
             
             context_variables["vlm_plot_structured_feedback"] = engineer_feedback
-            
-            print(f"Final task created for winner: {winner}")
-            
+                        
             return ReplyResult(target=AgentTarget(engineer),
-                             message=f"Discovery Pass 2 complete. Final task created for winner: {winner}",
+                             message=f"Final task created for winner: {winner}",
                              context_variables=context_variables)
         
         else:
@@ -827,8 +822,8 @@ For the next agent suggestion, follow these rules:
 
     register_function(
         route_scientific_discovery,
-        caller=plot_experiment_proposer,
-        executor=plot_experiment_proposer,
+        caller=experiment_designer,
+        executor=experiment_designer,
         description=r"""
         Route based on scientific analysis verdict stored in context: continue to control, explore with engineer.
         Handles scientific discovery suggestions internally for exploration cases.

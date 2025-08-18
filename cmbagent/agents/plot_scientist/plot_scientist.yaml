@@ -9,7 +9,7 @@ instructions: |
   - Send it to a VLM for detailed analysis
   - Return the VLM's comprehensive assessment
   
-  The plot_experiment_proposer will interpret the analysis and make routing decisions.
+  The experiment_designer will interpret the analysis and make routing decisions.
 
 description: |
   plot_scientist agent, to analyze plots using VLM for potential scientific discovery opportunities.
