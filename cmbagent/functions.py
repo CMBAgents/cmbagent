@@ -16,7 +16,12 @@ import datetime
 import json
 from pathlib import Path
 from .utils import AAS_keywords_dict
-from .vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, call_external_plot_debugger, vlm_model
+from .vlm_utils import (
+    account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, create_vlm_scientific_prompt,
+    call_external_plot_debugger, call_external_experiment_proposer, call_enhanced_experiment_proposer_phase1,
+    call_enhanced_experiment_evaluator_phase3, call_vlm_evaluation_analysis_phase3,
+    call_experiment_proposer_final_task_phase3, create_vlm_evaluation_schema, create_vlm_evaluation_prompt
+)
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -82,6 +87,8 @@ def register_functions_to_agents(cmbagent_instance):
     classy_context = cmbagent_instance.get_agent_from_name('classy_context')
     plot_judge = cmbagent_instance.get_agent_from_name('plot_judge')
     plot_debugger = cmbagent_instance.get_agent_from_name('plot_debugger')
+    plot_scientist = cmbagent_instance.get_agent_from_name('plot_scientist')
+    plot_experiment_proposer = cmbagent_instance.get_agent_from_name('plot_experiment_proposer')
     
     if not cmbagent_instance.skip_rag_agents:
         classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')
@@ -160,25 +167,24 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                 context_variables=context_variables)
             
             if execution_status == "success":
-                # Check if plot evaluation is enabled
-                evaluate_plots = context_variables.get("evaluate_plots", False)
+                evaluate_plots = context_variables.get("evaluate_plots", "none")  # "none", "correction", or "discovery"
                 
-                if evaluate_plots:
-                    # Check if there are new images that need plot_judge review
+                if evaluate_plots == "correction":
+                    # Correction mode triggers plot judge and plot debugger
                     data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
                     image_files = load_plots(data_directory)
                     displayed_images = context_variables.get("displayed_images", [])
                     new_images = [img for img in image_files if img not in displayed_images]
                     
                     if new_images:
-                        # Call VLM to evaluate the latest plot
+                        # Call VLM to evaluate the latest plot for errors
                         most_recent_image = new_images[-1]
                         context_variables["latest_plot_path"] = most_recent_image
                         if most_recent_image not in context_variables["displayed_images"]:
                             context_variables["displayed_images"].append(most_recent_image)
-                        # Handoff to plot_judge
+                        # Handoff to plot_judge for error correction
                         return ReplyResult(target=AgentTarget(plot_judge),
-                                        message=f"Plot created: {most_recent_image}. Please analyze this plot using a VLM.",
+                                        message=f"Plot created: {most_recent_image}. Please analyze this plot for errors using a VLM.",
                                         context_variables=context_variables)
                     else:
                         # No new images needing approval, so VLM feedback history is cleared
@@ -189,8 +195,48 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                         return ReplyResult(target=AgentTarget(control),
                                         message="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
                                         context_variables=context_variables)
-                else:
-                    # Plot evaluation disabled, so skip VLM and go straight to control
+                
+                elif evaluate_plots == "discovery":
+                    # Discovery mode triggers plot scientist and plot experiment proposer
+                    data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
+                    image_files = load_plots(data_directory)
+                    displayed_images = context_variables.get("displayed_images", [])
+                    new_images = [img for img in image_files if img not in displayed_images]
+                    
+                    if new_images:
+                        # Call VLM to analyze the latest plot for opportunities for scientific discovery
+                        most_recent_image = new_images[-1]
+                        context_variables["latest_plot_path"] = most_recent_image
+                        if most_recent_image not in context_variables["displayed_images"]:
+                            context_variables["displayed_images"].append(most_recent_image)
+                        
+                        # Check if this looks like a comparison plot for pass 2
+                        discovery_pass = context_variables.get("discovery_pass_number", 1)
+                        proposed_experiments = context_variables.get("proposed_experiments", [])
+                        
+                        # If we have proposed experiments and this is a new plot, it's likely the comparison plot
+                        if discovery_pass == 2 and proposed_experiments:
+                            print(f"Detected comparison plot for discovery pass 2: {most_recent_image}")
+                            context_variables["comparison_plot_path"] = most_recent_image
+                            
+                            # VLM will evaluate the comparison plot visually - no need to extract metrics
+                        
+                        # Handoff to plot_scientist for VLM analysis
+                        return ReplyResult(target=AgentTarget(plot_scientist),
+                                        message=f"Plot created: {most_recent_image}. Please analyze this plot for scientific discovery opportunities using a VLM.",
+                                        context_variables=context_variables)
+                    else:
+                        # No new images to analyze, clear context and continue to control
+                        context_variables["vlm_plot_structured_feedback"] = None
+                        context_variables["latest_executed_code"] = None
+                        
+                        # No new plots for scientific analysis, continue to control
+                        return ReplyResult(target=AgentTarget(control),
+                                        message="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
+                                        context_variables=context_variables)
+                
+                else:  # evaluate_plots == "none" or any other value
+                    # Plot evaluation disabled, skip VLM and go straight to control
                     context_variables["vlm_plot_structured_feedback"] = None
                     context_variables["latest_executed_code"] = None
                     
@@ -498,6 +544,294 @@ For the next agent suggestion, follow these rules:
         description=r"""
         Route based on plot_judge verdict stored in context: continue to control, retry to engineer.
         Handles external debugging calls internally for retry cases.
+        """,
+    )
+
+    def call_vlm_scientist(context_variables: ContextVariables) -> ReplyResult:
+        """
+        VLM for discovery mode only.
+        Pass 1 (discovery_pass_number=1): Judge if plot is scientifically interesting
+        Pass 2 (discovery_pass_number=2): Evaluate which experiment performed best
+        Pass 3+: Max reached, return to control
+        """
+        discovery_pass = context_variables.get("discovery_pass_number", 1)
+        
+        if discovery_pass >= 3:
+            # Pass 3+: Max reached, reset and return to control
+            context_variables["vlm_plot_structured_feedback"] = None
+            context_variables["latest_executed_code"] = None
+            context_variables["discovery_pass_number"] = 1  # Reset for next workflow
+            return ReplyResult(target=AgentTarget(control),
+                             message="Discovery workflow complete (3 passes reached). Returning to control.",
+                             context_variables=context_variables)
+        
+        # Determine which plot to analyze
+        img_path = context_variables.get("latest_plot_path")
+        comparison_plot_path = context_variables.get("comparison_plot_path")
+        
+        if discovery_pass == 2 and comparison_plot_path and os.path.exists(comparison_plot_path):
+            # Pass 2: Use comparison plot for evaluation
+            img_path = comparison_plot_path
+            print(f"Discovery Pass 2: Evaluating comparison plot for winner selection")
+        else:
+            # Pass 1: Use regular plot for interest evaluation
+            print(f"Discovery Pass 1: Evaluating scientific interest of plot")
+        
+        if not img_path or not os.path.exists(img_path):
+            return ReplyResult(target=AgentTarget(plot_experiment_proposer),
+                             message=f"No valid plot found for discovery pass {discovery_pass}",
+                             context_variables=context_variables)
+        
+        try:
+            # Read plot image
+            print(f"Reading plot file for VLM analysis: {img_path}")
+            with open(img_path, 'rb') as img_file:
+                base_64_img = base64.b64encode(img_file.read()).decode('utf-8')
+            
+            if discovery_pass == 1:
+                # Pass 1: Judge if scientifically interesting
+                executed_code = context_variables.get("latest_executed_code")
+                vlm_prompt = create_vlm_scientific_prompt(context_variables, executed_code)
+                inject_wrong_plot = context_variables.get("inject_wrong_plot", False)
+                completion, injected_code = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=inject_wrong_plot, context_variables=context_variables, mode="discovery")
+                
+                vlm_analysis_json = completion.choices[0].message.content
+                print(f"\nDiscovery Pass 1 - VLM Interest Analysis:\n{vlm_analysis_json}\n")
+                
+                if injected_code:
+                    print(f"Injected code:\n{injected_code}\n")
+                
+                # Parse interest verdict
+                try:
+                    vlm_data = json.loads(vlm_analysis_json)
+                    verdict = vlm_data.get("verdict", "continue")
+                    context_variables["vlm_plot_analysis"] = vlm_analysis_json
+                    context_variables["vlm_verdict"] = verdict
+                    context_variables["scientific_observations"] = vlm_data.get("scientific_observations", [])
+                    context_variables["potential_causes"] = vlm_data.get("potential_causes", [])
+                    context_variables["signals_to_investigate"] = vlm_data.get("signals_to_investigate", [])
+                    
+                    print(f"Scientific interest verdict: {verdict}")
+                except json.JSONDecodeError as e:
+                    print(f"Warning: Could not parse VLM JSON: {e}")
+                    verdict = "continue"
+                    context_variables["vlm_plot_analysis"] = vlm_analysis_json
+                    context_variables["vlm_verdict"] = verdict
+                    context_variables["scientific_observations"] = ["JSON parsing failed"]
+                    context_variables["potential_causes"] = []
+                    context_variables["signals_to_investigate"] = []
+                
+                account_for_external_api_calls(plot_scientist, completion)
+                return ReplyResult(target=AgentTarget(plot_experiment_proposer),
+                                 message=f"Discovery Pass 1 complete. Scientific interest verdict: {verdict}",
+                                 context_variables=context_variables)
+                
+            elif discovery_pass == 2:
+                # Pass 2: Evaluate which experiment performed best
+                vlm_prompt = create_vlm_evaluation_prompt(context_variables)
+                completion, _ = send_image_to_vlm(base_64_img, vlm_prompt, inject_wrong_plot=False, context_variables=context_variables, mode="evaluation")
+                
+                vlm_analysis_json = completion.choices[0].message.content
+                print(f"\nDiscovery Pass 2 - VLM Experiment Evaluation:\n{vlm_analysis_json}\n")
+                
+                # Parse winner selection
+                try:
+                    vlm_data = json.loads(vlm_analysis_json)
+                    winner = vlm_data.get("winner_selection", "Original")
+                    reasoning = vlm_data.get("winner_reasoning", "No reasoning provided")
+                    context_variables["vlm_winner_selection"] = winner  # Fixed: matches expected variable name
+                    context_variables["vlm_winner_reasoning"] = reasoning  # Fixed: was missing
+                    context_variables["vlm_evaluation_analysis"] = vlm_analysis_json
+                    context_variables["vlm_verdict"] = "explore"  # Signal to create final task
+                    
+                    print(f"Winner selected: {winner}")
+                    print(f"Reasoning: {reasoning}")
+                except json.JSONDecodeError as e:
+                    print(f"Warning: Could not parse evaluation JSON: {e}")
+                    context_variables["vlm_winner_selection"] = "Original"  # Fixed: matches expected variable name
+                    context_variables["vlm_winner_reasoning"] = "JSON parsing failed"  # Fixed: was missing
+                    context_variables["vlm_evaluation_analysis"] = vlm_analysis_json
+                    context_variables["vlm_verdict"] = "explore"
+                
+                account_for_external_api_calls(plot_scientist, completion)
+                return ReplyResult(target=AgentTarget(plot_experiment_proposer),
+                                 message=f"Discovery Pass 2 complete. Winner: {context_variables.get('vlm_winner_selection', 'Original')}",
+                                 context_variables=context_variables)
+            
+        except Exception as e:
+            error_msg = f"Discovery Pass {discovery_pass} VLM analysis failed: {str(e)}"
+            print(f"ERROR: {error_msg}")
+            return ReplyResult(target=AgentTarget(plot_experiment_proposer),
+                             message=error_msg,
+                             context_variables=context_variables)
+    
+    register_function(
+        call_vlm_scientist,
+        caller=plot_scientist,
+        executor=plot_scientist,
+        description=r"""
+        Call a VLM to analyze the plot for opportunities for scientific discovery.
+        """,
+    )
+    
+    def route_scientific_discovery(context_variables: ContextVariables) -> ReplyResult:
+        """
+        Simplified discovery workflow router for plot_experiment_proposer.
+        Pass 1: Generate experiments if plot is interesting
+        Pass 2: Create final task based on VLM's winner selection
+        Pass 3+: Max reached, return to control
+        """
+        verdict = context_variables.get("vlm_verdict", "continue")
+        discovery_pass = context_variables.get("discovery_pass_number", 1)
+        
+        # Update displayed_images list
+        if "latest_plot_path" in context_variables and "displayed_images" in context_variables:
+            if context_variables["latest_plot_path"] not in context_variables["displayed_images"]:
+                context_variables["displayed_images"].append(context_variables["latest_plot_path"])
+        
+        if verdict == "continue":
+            # No discovery needed, clear context and continue
+            context_variables["vlm_plot_structured_feedback"] = None
+            context_variables["latest_executed_code"] = None
+            context_variables["discovery_pass_number"] = 1  # Reset for next workflow
+            return ReplyResult(target=AgentTarget(control),
+                             message="VLM analysis complete. No scientific discovery opportunities identified.",
+                             context_variables=context_variables)
+        
+        # verdict == "explore" - handle based on current pass
+        if discovery_pass >= 3:
+            # Pass 3+: Max reached, reset and return to control
+            print(f"Discovery workflow complete (3 passes reached). Returning to control.")
+            context_variables["vlm_plot_structured_feedback"] = None
+            context_variables["latest_executed_code"] = None
+            context_variables["discovery_pass_number"] = 1  # Reset for next workflow
+            return ReplyResult(target=AgentTarget(control),
+                             message="Discovery workflow complete (3 passes reached). Returning to control.",
+                             context_variables=context_variables)
+        
+        if discovery_pass == 1:
+            # Pass 1: Generate experiments based on scientific observations
+            print(f"\n=== Discovery Pass 1: Generating Experiments ===")
+            
+            # Call experiment proposer to generate structured experiments
+            proposal_result = call_enhanced_experiment_proposer_phase1(context_variables)
+            
+            if not proposal_result.get("experiments"):
+                # No experiments proposed, continue to control
+                context_variables["discovery_pass_number"] = 1  # Reset
+                return ReplyResult(target=AgentTarget(control),
+                                 message="No experiments proposed. Continuing to control.",
+                                 context_variables=context_variables)
+            
+            # Store proposal results and advance to pass 2
+            context_variables["proposed_experiments"] = proposal_result["experiments"]
+            context_variables["comparison_metric"] = proposal_result["comparison_metric"]
+            context_variables["discovery_pass_number"] = 2  # Advance to pass 2
+            
+            # Generate engineer feedback for multi-experiment implementation
+            engineer_feedback = f"**SCIENTIFIC DISCOVERY MODE - EXPERIMENTS TO IMPLEMENT**\n\n"
+            engineer_feedback += f"You will implement and compare {len(proposal_result['experiments'])} different experimental approaches using the metric: **{proposal_result['comparison_metric']}**\n\n"
+            
+            engineer_feedback += "=" * 60 + "\n"
+            engineer_feedback += "**NEW PRIMARY TASK - START**\n"
+            engineer_feedback += "=" * 60 + "\n\n"
+            
+            engineer_feedback += f"**MAIN TASK:** Create a comprehensive comparison showing all {len(proposal_result['experiments'])} experiments with their {proposal_result['comparison_metric']} values.\n\n"
+            
+            engineer_feedback += "**EXPERIMENTS TO IMPLEMENT:**\n"
+            for i, exp in enumerate(proposal_result["experiments"], 1):
+                engineer_feedback += f"{i}. **{exp['name']}**: {exp['description']}\n"
+                engineer_feedback += f"   Implementation: {exp['implementation_hints']}\n"
+                engineer_feedback += f"   Expected outcome: {exp['expected_outcome']}\n\n"
+            
+            engineer_feedback += f"**COMPARISON STRATEGY:**\n{proposal_result['comparison_strategy']}\n\n"
+            engineer_feedback += f"**DELIVERABLE:** One final comparison visualization showing all approaches with their {proposal_result['comparison_metric']} values clearly displayed.\n\n"
+            
+            engineer_feedback += "=" * 60 + "\n"
+            engineer_feedback += "**NEW PRIMARY TASK - END**\n"
+            engineer_feedback += "=" * 60 + "\n\n"
+            
+            engineer_feedback += "**IMPORTANT:** This task REPLACES your original task. Focus entirely on implementing and comparing these experiments."
+            
+            context_variables["vlm_plot_structured_feedback"] = engineer_feedback
+            
+            print(f"Generated {len(proposal_result['experiments'])} experiments for comparison")
+            print(f"Comparison metric: {proposal_result['comparison_metric']}")
+            
+            return ReplyResult(target=AgentTarget(engineer),
+                             message="Discovery Pass 1 complete. Experiments proposed. Starting multi-experiment implementation.",
+                             context_variables=context_variables)
+        
+        elif discovery_pass == 2:
+            # Pass 2: Create final task based on VLM's winner selection
+            print(f"\n=== Discovery Pass 2: Creating Final Task ===")
+            
+            # Get VLM winner selection from call_vlm_scientist
+            winner = context_variables.get("vlm_winner_selection", "Original")
+            
+            # Create final task using experiment proposer
+            final_task_result = call_experiment_proposer_final_task_phase3(context_variables)
+            
+            if not final_task_result.get("final_task_description"):
+                print("Warning: Could not create final task, falling back to original")
+                final_task_result = {
+                    "final_task_description": "Continue with original task incorporating insights from experiments",
+                    "implementation_specifics": "Apply the best performing approach from the comparison",
+                    "success_criteria": "Successfully implement the improved approach",
+                    "differences_from_original": "Enhanced with experimental insights"
+                }
+            
+            # Store final task and advance to pass 3 (completion)
+            context_variables["final_task_description"] = final_task_result["final_task_description"]
+            context_variables["discovery_pass_number"] = 3  # Advance to completion
+            
+            # Generate engineer feedback for final implementation
+            engineer_feedback = f"**SCIENTIFIC DISCOVERY MODE - FINAL IMPLEMENTATION**\n\n"
+            engineer_feedback += f"**WINNER SELECTED:** {winner}\n\n"
+            
+            engineer_feedback += "=" * 60 + "\n"
+            engineer_feedback += "**NEW PRIMARY TASK - START**\n"
+            engineer_feedback += "=" * 60 + "\n\n"
+            
+            engineer_feedback += f"{final_task_result['final_task_description']}\n\n"
+            
+            engineer_feedback += "**IMPLEMENTATION SPECIFICS:**\n"
+            engineer_feedback += f"{final_task_result['implementation_specifics']}\n\n"
+            
+            engineer_feedback += "**SUCCESS CRITERIA:**\n"
+            engineer_feedback += f"{final_task_result['success_criteria']}\n\n"
+            
+            engineer_feedback += "**KEY DIFFERENCES FROM ORIGINAL:**\n"
+            engineer_feedback += f"{final_task_result['differences_from_original']}\n\n"
+            
+            engineer_feedback += "=" * 60 + "\n"
+            engineer_feedback += "**NEW PRIMARY TASK - END**\n"
+            engineer_feedback += "=" * 60 + "\n\n"
+            
+            engineer_feedback += "**IMPORTANT:** This new task REPLACES your original task completely. Focus entirely on implementing the winning approach."
+            
+            context_variables["vlm_plot_structured_feedback"] = engineer_feedback
+            
+            print(f"Final task created for winner: {winner}")
+            
+            return ReplyResult(target=AgentTarget(engineer),
+                             message=f"Discovery Pass 2 complete. Final task created for winner: {winner}",
+                             context_variables=context_variables)
+        
+        else:
+            # Fallback: should not reach here, but handle gracefully
+            context_variables["discovery_pass_number"] = 1  # Reset
+            return ReplyResult(target=AgentTarget(control),
+                             message="Discovery workflow error: unexpected pass number. Returning to control.",
+                             context_variables=context_variables)
+
+    register_function(
+        route_scientific_discovery,
+        caller=plot_experiment_proposer,
+        executor=plot_experiment_proposer,
+        description=r"""
+        Route based on scientific analysis verdict stored in context: continue to control, explore with engineer.
+        Handles scientific discovery suggestions internally for exploration cases.
         """,
     )
 
