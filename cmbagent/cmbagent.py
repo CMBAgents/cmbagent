@@ -950,6 +950,7 @@ def planning_and_control_context_carryover(
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             camb_context_model = default_agents_llm_model['camb_context'],
                             plot_judge_model = default_agents_llm_model['plot_judge'],
+                            plot_scientist_model = default_agents_llm_model['plot_scientist'],
                             default_llm_model = default_llm_model_default,
                             work_dir = work_dir_default,
                             api_keys = None,
@@ -1071,6 +1072,7 @@ def planning_and_control_context_carryover(
     idea_maker_config = get_model_config(idea_maker_model, api_keys)
     idea_hater_config = get_model_config(idea_hater_model, api_keys)
     plot_judge_config = get_model_config(plot_judge_model, api_keys)
+    plot_scientist_config = get_model_config(plot_scientist_model, api_keys)
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
 
@@ -1100,6 +1102,7 @@ def planning_and_control_context_carryover(
                                 'idea_hater': idea_hater_config,
                                 'camb_context': camb_context_config,
                                 'plot_judge': plot_judge_config,
+                                'plot_scientist': plot_scientist_config,
             },
             mode = "planning_and_control_context_carryover",
             api_keys = api_keys
@@ -1555,13 +1558,14 @@ def one_shot(
             engineer_model = default_agents_llm_model['engineer'],
             researcher_model = default_agents_llm_model['researcher'],
             plot_judge_model = default_agents_llm_model['plot_judge'],
+            plot_scientist_model = default_agents_llm_model['plot_scientist'],
             camb_context_model = default_agents_llm_model['camb_context'],
             researcher_filename = shared_context_default['researcher_filename'],
             agent = 'engineer',
             work_dir = work_dir_default,
             api_keys = None,
             clear_work_dir = False,
-            evaluate_plots = False,
+            evaluate_plots = "none",  # Can be "none", "correction", or "discovery"
             max_n_plot_evals = 1,
             inject_wrong_plot: bool | str = False,
             ):
@@ -1574,6 +1578,7 @@ def one_shot(
     engineer_config = get_model_config(engineer_model, api_keys)
     researcher_config = get_model_config(researcher_model, api_keys)
     plot_judge_config = get_model_config(plot_judge_model, api_keys)
+    plot_scientist_config = get_model_config(plot_scientist_model, api_keys)
     camb_context_config = get_model_config(camb_context_model, api_keys)
     cmbagent = CMBAgent(
         mode = "one_shot",
@@ -1582,6 +1587,7 @@ def one_shot(
                             'engineer': engineer_config,
                             'researcher': researcher_config,
                             'plot_judge': plot_judge_config,
+                            'plot_scientist': plot_scientist_config,
                             'camb_context': camb_context_config,    
         },
         clear_work_dir = clear_work_dir,

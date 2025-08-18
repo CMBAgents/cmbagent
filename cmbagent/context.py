@@ -63,7 +63,7 @@ shared_context = {
 
     "researcher_filename": "provide a suitable filename given the nature of the notes. Prefer markdown extension unless otherwise instructed.",
 
-    "evaluate_plots": False,
+    "evaluate_plots": "none",  # Can be "none", "correction", or "discovery"
     "latest_plot_path": None,
     "latest_executed_code": None,
     "n_plot_evals": 0,
@@ -71,7 +71,23 @@ shared_context = {
     
     "vlm_plot_analysis": None,
     "vlm_verdict": None,
+    "vlm_plot_structured_feedback": None,
+    
+    # Correction mode specific  
     "plot_problems": [],
     "plot_fixes": [],
-    "vlm_plot_structured_feedback": None,
+    
+    # Discovery mode specific
+    "scientific_observations": [],
+    "potential_causes": [],
+    "signals_to_investigate": [],
+    "experiment_suggestions": [],
+    
+    # Discovery workflow (3-pass system)
+    "discovery_pass_number": 1,      # 1=interest+experiments, 2=evaluation+final_task, 3=max_reached
+    "proposed_experiments": [],      # From pass 1: list of structured experiment details
+    "comparison_metric": None,       # From pass 1: evaluation metric chosen by experiment proposer
+    "comparison_plot_path": None,    # From pass 2: path to comparison plot created by engineer
+    "winning_experiment": None,      # From pass 2: winner chosen by plot scientist
+    "final_task_description": None,  # From pass 2: final task created by experiment proposer
 }

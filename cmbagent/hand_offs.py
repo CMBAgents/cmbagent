@@ -46,6 +46,8 @@ def register_all_hand_offs(cmbagent_instance):
     idea_saver = cmbagent_instance.get_agent_object_from_name('idea_saver')
     plot_judge = cmbagent_instance.get_agent_object_from_name('plot_judge')
     plot_debugger = cmbagent_instance.get_agent_object_from_name('plot_debugger')
+    plot_scientist = cmbagent_instance.get_agent_object_from_name('plot_scientist')
+    plot_experiment_proposer = cmbagent_instance.get_agent_object_from_name('plot_experiment_proposer')
 
     camb_context = cmbagent_instance.get_agent_object_from_name('camb_context')
     classy_context = cmbagent_instance.get_agent_object_from_name('classy_context')
