@@ -36,7 +36,6 @@ path_to_agents = os.path.join(path_to_basedir, "agents/")
 
 if "site-packages" in path_to_basedir or "dist-packages" in path_to_basedir:
     work_dir_default = os.path.join(os.getcwd(), "cmbagent_output")
-    os.makedirs(work_dir_default, exist_ok=True)
 else:
     work_dir_default = os.path.join(path_to_basedir, "../output")
 
