@@ -93,6 +93,7 @@ python -c "import cmbagent; task='''Draw two random numbers and give me their su
 If you want to run the notebooks, first create the ipykernel (assuming your virtual environment is called cmbagent_env):
 
 ```bash
+pip install ipykernel jupyterlab
 python -m ipykernel install --user --name cmbagent_env --display-name "Python (cmbagent_env)"
 ```
 

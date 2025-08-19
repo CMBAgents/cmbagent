@@ -938,9 +938,9 @@ def planning_and_control_context_carryover(
                             max_plan_steps = 3,
                             n_plan_reviews = 1,
                             plan_instructions = '',
-                            engineer_instructions = '',
-                            researcher_instructions = '',
-                            hardware_constraints = '',
+                            engineer_instructions = '', # append to engineer instructions
+                            researcher_instructions = '', # append to researcher instructions
+                            hardware_constraints = '', 
                             max_n_attempts = 3,
                             planner_model = default_agents_llm_model['planner'],
                             plan_reviewer_model = default_agents_llm_model['plan_reviewer'],
