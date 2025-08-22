@@ -713,6 +713,15 @@ class CMBAgent:
                     llm_config.pop('temperature')
                     llm_config.pop('top_p')
 
+                # Pop temperature if using GPT-5 model
+                if 'gpt-5' in llm_config['config_list'][0]['model']:
+                    llm_config.pop('temperature', None)
+                    llm_config.pop('top_p', None)
+
+                # print('\nin cmbagent.py: llm_config: ', llm_config)
+
+                
+
                 if llm_config['config_list'][0]['api_type'] == 'google':
                     llm_config.pop('top_p') 
                 
