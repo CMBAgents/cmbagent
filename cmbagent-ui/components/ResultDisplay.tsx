@@ -52,78 +52,164 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
     console.log(`Loading cost data from: ${results.work_dir} (attempt ${retryAttempt + 1}/${maxRetries})`)
 
     try {
-      // Direct path to cost folder
-      const costDir = `${results.work_dir}/cost`
-      console.log('Cost directory:', costDir)
-
-      // List files in cost directory
-      const listResponse = await fetch(`/api/files/list?path=${encodeURIComponent(costDir)}`)
+      // Check if this is Planning & Control mode (has planning/control subfolders) or One Shot mode
+      let costFiles: any[] = []
+      let allCostData: any[] = []
       
-      if (!listResponse.ok) {
-        if (listResponse.status === 404) {
-          throw new Error('Cost directory not found - task may still be generating cost reports')
-        }
-        throw new Error(`Failed to list cost directory: ${listResponse.status}`)
-      }
-
-      const listData = await listResponse.json()
-      console.log('Cost directory listing:', listData)
-
-      // Find the most recent cost report file
-      const costFiles = listData.items?.filter((file: any) => 
-        file.name.startsWith('cost_report_') && file.name.endsWith('.json')
-      ) || []
-
-      if (costFiles.length === 0) {
-        throw new Error('No cost report files found - task may still be generating reports')
-      }
-
-      // Sort by modification time to get the most recent
-      costFiles.sort((a: any, b: any) => (b.modified || 0) - (a.modified || 0))
-      const latestCostFile = costFiles[0]
-      console.log('Latest cost file:', latestCostFile)
-
-      // Read the cost data
-      const contentResponse = await fetch(`/api/files/content?path=${encodeURIComponent(latestCostFile.path)}`)
+      // Try to detect mode by checking for planning/control folders
+      const planningDir = `${results.work_dir}/planning/cost`
+      const controlDir = `${results.work_dir}/control/cost`
+      const oneShötCostDir = `${results.work_dir}/cost`
       
-      if (!contentResponse.ok) {
-        throw new Error(`Failed to read cost file: ${contentResponse.status}`)
+      // Check for planning directory first
+      let isPlanningControlMode = false
+      try {
+        const planningResponse = await fetch(`/api/files/list?path=${encodeURIComponent(planningDir)}`)
+        if (planningResponse.ok) {
+          isPlanningControlMode = true
+          console.log('Detected Planning & Control mode')
+        }
+      } catch (e) {
+        // Planning folder doesn't exist, try One Shot mode
       }
 
-      const contentData = await contentResponse.json()
-      console.log('Cost file content loaded')
-
-      if (contentData.content) {
-        // Clean the JSON content to handle NaN values
-        let cleanedContent = contentData.content
+      if (isPlanningControlMode) {
+        // Planning & Control mode - collect from multiple folders
+        const costDirs = [planningDir, controlDir]
         
-        // Replace NaN with null in the JSON string
-        cleanedContent = cleanedContent.replace(/:\s*NaN/g, ': null')
-        
-        try {
-          const parsedCostData = JSON.parse(cleanedContent)
+        for (const costDir of costDirs) {
+          console.log('Checking cost directory:', costDir)
           
-          // Validate and clean the parsed data
-          const validatedData = parsedCostData.map((item: any) => ({
-            Agent: item.Agent || 'Unknown',
-            'Cost ($)': typeof item['Cost ($)'] === 'number' && !isNaN(item['Cost ($)']) ? item['Cost ($)'] : 0,
-            'Prompt Tokens': typeof item['Prompt Tokens'] === 'number' && !isNaN(item['Prompt Tokens']) ? item['Prompt Tokens'] : 0,
-            'Completion Tokens': typeof item['Completion Tokens'] === 'number' && !isNaN(item['Completion Tokens']) ? item['Completion Tokens'] : 0,
-            'Total Tokens': typeof item['Total Tokens'] === 'number' && !isNaN(item['Total Tokens']) ? item['Total Tokens'] : 0,
-            Model: item.Model || 'N/A'
-          }))
-          
-          console.log('Cost data parsed and validated successfully:', validatedData)
-          setCostData(validatedData)
-          setLastCostUpdate(new Date())
-          setCostLoadError(null)
-          
-        } catch (parseError) {
-          throw new Error(`Failed to parse cost data: ${parseError}`)
+          try {
+            const listResponse = await fetch(`/api/files/list?path=${encodeURIComponent(costDir)}`)
+            if (listResponse.ok) {
+              const listData = await listResponse.json()
+              const dirCostFiles = listData.items?.filter((file: any) => 
+                file.name.startsWith('cost_report_') && file.name.endsWith('.json')
+              ) || []
+              
+              // Read all cost files from this directory
+              for (const costFile of dirCostFiles) {
+                const contentResponse = await fetch(`/api/files/content?path=${encodeURIComponent(costFile.path)}`)
+                if (contentResponse.ok) {
+                  const contentData = await contentResponse.json()
+                  if (contentData.content) {
+                    // Clean and parse the JSON
+                    let cleanedContent = contentData.content.replace(/:\s*NaN/g, ': null')
+                    const parsedData = JSON.parse(cleanedContent)
+                    
+                    // Filter out Total rows (we'll calculate our own)
+                    const nonTotalData = parsedData.filter((item: any) => item.Agent !== 'Total')
+                    allCostData.push(...nonTotalData)
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.log(`Could not access ${costDir}:`, e)
+          }
         }
+        
+        if (allCostData.length === 0) {
+          throw new Error('No cost report files found in planning/control directories - task may still be generating reports')
+        }
+        
       } else {
-        throw new Error('Cost file is empty')
+        // One Shot mode - single cost directory
+        console.log('Detected One Shot mode')
+        const listResponse = await fetch(`/api/files/list?path=${encodeURIComponent(oneShötCostDir)}`)
+        
+        if (!listResponse.ok) {
+          if (listResponse.status === 404) {
+            throw new Error('Cost directory not found - task may still be generating cost reports')
+          }
+          throw new Error(`Failed to list cost directory: ${listResponse.status}`)
+        }
+
+        const listData = await listResponse.json()
+        const costFiles = listData.items?.filter((file: any) => 
+          file.name.startsWith('cost_report_') && file.name.endsWith('.json')
+        ) || []
+
+        if (costFiles.length === 0) {
+          throw new Error('No cost report files found - task may still be generating reports')
+        }
+
+        // Get the most recent cost file
+        costFiles.sort((a: any, b: any) => (b.modified || 0) - (a.modified || 0))
+        const latestCostFile = costFiles[0]
+
+        const contentResponse = await fetch(`/api/files/content?path=${encodeURIComponent(latestCostFile.path)}`)
+        if (!contentResponse.ok) {
+          throw new Error(`Failed to read cost file: ${contentResponse.status}`)
+        }
+
+        const contentData = await contentResponse.json()
+        if (contentData.content) {
+          let cleanedContent = contentData.content.replace(/:\s*NaN/g, ': null')
+          const parsedData = JSON.parse(cleanedContent)
+          allCostData = parsedData
+        }
       }
+
+      // Process and validate all cost data
+      const processedData = allCostData.map((item: any) => ({
+        Agent: item.Agent || 'Unknown',
+        'Cost ($)': typeof item['Cost ($)'] === 'number' && !isNaN(item['Cost ($)']) ? item['Cost ($)'] : 0,
+        'Prompt Tokens': typeof item['Prompt Tokens'] === 'number' && !isNaN(item['Prompt Tokens']) ? item['Prompt Tokens'] : 0,
+        'Completion Tokens': typeof item['Completion Tokens'] === 'number' && !isNaN(item['Completion Tokens']) ? item['Completion Tokens'] : 0,
+        'Total Tokens': typeof item['Total Tokens'] === 'number' && !isNaN(item['Total Tokens']) ? item['Total Tokens'] : 0,
+        Model: item.Model || 'N/A'
+      }))
+
+      // For Planning & Control mode, calculate totals across all steps
+      if (isPlanningControlMode) {
+        // Aggregate data by agent (combining costs from different steps)
+        const agentTotals = new Map()
+        
+        processedData.forEach((item: any) => {
+          if (item.Agent === 'Total') return // Skip existing total rows
+          
+          const key = item.Agent
+          if (agentTotals.has(key)) {
+            const existing = agentTotals.get(key)
+            existing['Cost ($)'] += item['Cost ($)']
+            existing['Prompt Tokens'] += item['Prompt Tokens']
+            existing['Completion Tokens'] += item['Completion Tokens']
+            existing['Total Tokens'] += item['Total Tokens']
+          } else {
+            agentTotals.set(key, { ...item })
+          }
+        })
+
+        const aggregatedData = Array.from(agentTotals.values())
+        
+        // Calculate overall totals
+        const totals = aggregatedData.reduce((acc: any, item: any) => ({
+          'Cost ($)': acc['Cost ($)'] + item['Cost ($)'],
+          'Prompt Tokens': acc['Prompt Tokens'] + item['Prompt Tokens'],
+          'Completion Tokens': acc['Completion Tokens'] + item['Completion Tokens'],
+          'Total Tokens': acc['Total Tokens'] + item['Total Tokens']
+        }), { 'Cost ($)': 0, 'Prompt Tokens': 0, 'Completion Tokens': 0, 'Total Tokens': 0 })
+
+        // Add total row
+        aggregatedData.push({
+          Agent: 'Total',
+          'Cost ($)': totals['Cost ($)'],
+          'Prompt Tokens': totals['Prompt Tokens'],
+          'Completion Tokens': totals['Completion Tokens'],
+          'Total Tokens': totals['Total Tokens'],
+          Model: null
+        })
+
+        setCostData(aggregatedData)
+      } else {
+        setCostData(processedData)
+      }
+      
+      setLastCostUpdate(new Date())
+      setCostLoadError(null)
+      console.log('Cost data loaded successfully:', isPlanningControlMode ? 'Planning & Control' : 'One Shot')
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'

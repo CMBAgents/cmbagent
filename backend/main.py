@@ -422,14 +422,23 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
         api_keys = get_api_keys_from_env()
         
         # Map frontend config to CMBAgent parameters
+        mode = config.get("mode", "one-shot")
         engineer_model = config.get("model", "gpt-4o")
         max_rounds = config.get("maxRounds", 25)
         max_attempts = config.get("maxAttempts", 6)
         agent = config.get("agent", "engineer")
         
+        # Planning & Control specific parameters
+        planner_model = config.get("plannerModel", "gpt-4.1-2025-04-14")
+        plan_reviewer_model = config.get("planReviewerModel", "o3-mini-2025-01-31")
+        researcher_model = config.get("researcherModel", "gpt-4.1-2025-04-14")
+        max_plan_steps = config.get("maxPlanSteps", 2)
+        n_plan_reviews = config.get("nPlanReviews", 1)
+        plan_instructions = config.get("planInstructions", "")
+        
         await websocket.send_json({
             "type": "output",
-            "data": f"🚀 Starting CMBAgent with {engineer_model} model"
+            "data": f"🚀 Starting CMBAgent in {mode.replace('-', ' ').title()} mode"
         })
         
         await websocket.send_json({
@@ -437,10 +446,16 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             "data": f"📋 Task: {task}"
         })
         
-        await websocket.send_json({
-            "type": "output",
-            "data": f"⚙️ Configuration: Agent={agent}, MaxRounds={max_rounds}, MaxAttempts={max_attempts}"
-        })
+        if mode == "planning-control":
+            await websocket.send_json({
+                "type": "output",
+                "data": f"⚙️ Configuration: Planner={planner_model}, Engineer={engineer_model}, Researcher={researcher_model}, Plan Reviewer={plan_reviewer_model}"
+            })
+        else:
+            await websocket.send_json({
+                "type": "output",
+                "data": f"⚙️ Configuration: Agent={agent}, Model={engineer_model}, MaxRounds={max_rounds}, MaxAttempts={max_attempts}"
+            })
         
         # Create a custom stdout/stderr capture
         stream_capture = StreamCapture(websocket, task_id)
@@ -469,17 +484,35 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                 original_print = builtins.print
                 builtins.print = custom_print
                 
-                # Execute CMBAgent one_shot
-                results = cmbagent.one_shot(
-                    task=task,
-                    max_rounds=max_rounds,
-                    max_n_attempts=max_attempts,
-                    engineer_model=engineer_model,
-                    agent=agent,
-                    work_dir=task_work_dir,
-                    api_keys=api_keys,
-                    clear_work_dir=False
-                )
+                # Execute CMBAgent based on mode
+                if mode == "planning-control":
+                    results = cmbagent.planning_and_control_context_carryover(
+                        task=task,
+                        max_rounds_control=max_rounds,
+                        max_n_attempts=max_attempts,
+                        max_plan_steps=max_plan_steps,
+                        n_plan_reviews=n_plan_reviews,
+                        engineer_model=engineer_model,
+                        researcher_model=researcher_model,
+                        planner_model=planner_model,
+                        plan_reviewer_model=plan_reviewer_model,
+                        plan_instructions=plan_instructions if plan_instructions.strip() else None,
+                        work_dir=task_work_dir,
+                        api_keys=api_keys,
+                        clear_work_dir=False
+                    )
+                else:
+                    # One Shot mode
+                    results = cmbagent.one_shot(
+                        task=task,
+                        max_rounds=max_rounds,
+                        max_n_attempts=max_attempts,
+                        engineer_model=engineer_model,
+                        agent=agent,
+                        work_dir=task_work_dir,
+                        api_keys=api_keys,
+                        clear_work_dir=False
+                    )
                 
                 return results
                 
