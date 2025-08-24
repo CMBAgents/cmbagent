@@ -117,7 +117,7 @@ export default function ConsoleOutput({ output, isRunning, onClear }: ConsoleOut
       <div className="flex items-center justify-between px-3 py-2 bg-black/40 border-b border-white/10">
         <div className="flex items-center space-x-2">
           <Terminal className="w-5 h-5 text-green-400" />
-          <h3 className="text-white font-medium text-sm">Console Output</h3>
+          {/* <h3 className="text-white font-medium text-sm">Console Output</h3> */}
           {isRunning && (
             <div className="flex items-center space-x-1">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
