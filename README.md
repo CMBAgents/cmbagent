@@ -188,15 +188,15 @@ docker-compose up --build
 
 ```bash
 # Build the image
-docker build -f Dockerfile.nextjs -t cmbagent-ui .
+docker build -f Dockerfile.nextjs -t cmbagent-nextjs .
 
-# Run the container
+# Run the container (add --platform linux/amd64 for Apple Silicon Macs)
 docker run -p 3000:3000 -p 8000:8000 \
   -e OPENAI_API_KEY="sk-..." \
   -e ANTHROPIC_API_KEY="sk-..." \
   -v /path/to/service-account-key.json:/app/service-account-key.json \
   -e GOOGLE_APPLICATION_CREDENTIALS="/app/service-account-key.json" \
-  --rm cmbagent-ui
+  --rm cmbagent-nextjs
 ```
 
 **Pushing to Docker Hub:**
