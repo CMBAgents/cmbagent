@@ -1,6 +1,6 @@
-# CMBAgent UI
+# CMBAGENT
 
-A modern Next.js web interface for CMBAgent - an AI-powered scientific computing platform. This UI provides real-time interaction with CMBAgent's one-shot execution mode, featuring live console output streaming and result visualization.
+A modern Next.js web interface for CMBAgent - an Autonomous Research Backend  platform. This UI provides real-time interaction with CMBAgent's one-shot execution mode, featuring live console output streaming and result visualization.
 
 ## Features
 

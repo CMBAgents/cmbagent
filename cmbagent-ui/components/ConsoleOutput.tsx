@@ -18,13 +18,8 @@ export default function ConsoleOutput({ output, isRunning, onClear }: ConsoleOut
   useEffect(() => {
     const scrollToBottom = () => {
       if (consoleRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = consoleRef.current
-        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-
-        // Only auto-scroll if user is near the bottom or if it's the first message
-        if (isNearBottom || output.length <= 1) {
-          consoleRef.current.scrollTop = scrollHeight
-        }
+        // Always scroll to bottom when new output arrives
+        consoleRef.current.scrollTop = consoleRef.current.scrollHeight
       }
     }
 
@@ -45,8 +40,8 @@ export default function ConsoleOutput({ output, isRunning, onClear }: ConsoleOut
     const handleScroll = () => {
       if (consoleRef.current) {
         const { scrollTop, scrollHeight, clientHeight } = consoleRef.current
-        const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-        setShowScrollButton(!isNearBottom && output.length > 5)
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 50
+        setShowScrollButton(!isNearBottom && output.length > 3)
       }
     }
 

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# CMBAgent UI Startup Script
+# CMBAGENT Startup Script
 # This script starts both the backend and frontend servers
 
-echo "🚀 Starting CMBAgent UI..."
+echo "🚀 Starting CMBAGENT..."
 echo "================================"
 
 # Check if we're in the right directory
@@ -87,7 +87,7 @@ FRONTEND_PID=$!
 cd ..
 
 echo ""
-echo "✅ CMBAgent UI is starting up!"
+echo "✅ CMBAGENT is starting up!"
 echo "================================"
 echo "🔗 Frontend: http://localhost:3000"
 echo "🔗 Backend:  http://localhost:8000"

@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'CMBAgent UI',
-  description: 'Interactive UI for CMBAgent - AI-powered scientific computing',
+  title: 'CMBAGENT',
+  description: 'Interactive UI for CMBAgent - Autonomous Research Backend ',
 }
 
 export default function RootLayout({
@@ -16,6 +16,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap" rel="stylesheet" />
+      </head>
       <body className={inter.className}>
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
           {children}

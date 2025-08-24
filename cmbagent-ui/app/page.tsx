@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import TaskInput from '@/components/TaskInput'
 import ConsoleOutput from '@/components/ConsoleOutput'
 import ResultDisplay from '@/components/ResultDisplay'
@@ -77,11 +77,12 @@ export default function Home() {
   const handleOpenDirectory = useCallback((path: string) => {
     setDirectoryToOpen(path)
     // Create a mock results object to show the file browser
-    setResults({
+    const mockResults = {
       execution_time: 0,
       base_work_dir: path,
       work_dir: path
-    })
+    }
+    setResults(mockResults)
   }, [])
 
 
@@ -90,14 +91,14 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <Header status={status} isConnected={isConnected} />
+      <Header />
 
       <main className="flex-1 flex flex-col min-h-0">
         {/* Upper 60% - Task Input and Results */}
-        <div className="h-[60%] container mx-auto px-4 py-4 min-h-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+        <div className="h-[60%] container mx-auto px-4 py-2 min-h-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
             {/* Left Panel - Task Input */}
-            <div className="space-y-4 overflow-y-auto">
+            <div className="overflow-y-auto">
               <TaskInput
                 onSubmit={handleTaskSubmit}
                 onStop={handleStopTask}
@@ -115,7 +116,7 @@ export default function Home() {
         </div>
 
         {/* Lower 40% - Console Output */}
-        <div className="h-[40%] px-4 pb-4 min-h-0">
+        <div className="h-[40%] px-4 pb-2 min-h-0">
           <ConsoleOutput
             output={consoleOutput}
             isRunning={isRunning}
