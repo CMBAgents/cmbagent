@@ -123,6 +123,41 @@ For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) an
 
 By default, cmbagent uses models from oai/anthropic/google. If you want to pick different LLMs, just adapt `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
 
+## CMBAgent UI - Local Development
+
+To launch the Next.js web interface locally:
+
+**Prerequisites:**
+- Node.js (v18+)
+- Python 3.12+
+- API keys set as environment variables (OpenAI required, others optional)
+
+**Setup:**
+
+1. **Backend (FastAPI server) - Terminal 1:**
+```bash
+cd cmbagent
+python3 -m venv cmbagent_env
+source cmbagent_env/bin/activate
+pip install -e .
+cd backend
+python main.py
+```
+
+2. **Frontend (Next.js) - Terminal 2:**
+```bash
+cd cmbagent-ui
+npm install
+npm run dev
+```
+
+3. **Access the UI:**
+   Open http://localhost:3000 in your browser
+
+**Note:** You need to run both servers simultaneously in separate terminals for the UI to work properly.
+
+The UI supports three execution modes: One Shot, Planning & Control, and Idea Generation.
+
 ## Docker
 
 You can run the cmbagent GUI in a [docker container](https://www.docker.com/). You may need `sudo` permission to run docker, [or follow the instructions of this link](https://docs.docker.com/engine/install/linux-postinstall/). To build the docker image run:
