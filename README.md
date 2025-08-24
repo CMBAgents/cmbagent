@@ -221,19 +221,34 @@ docker buildx build --platform linux/amd64 \
 
 Replace `yourusername` with your Docker Hub username. The `--platform` flag ensures compatibility across different architectures (Intel/AMD and ARM).
 
-**Using a published Docker Hub image:**
+**Using the published Docker Hub image:**
 
-To run a pre-built image from Docker Hub, users need to provide their own API keys at runtime:
+The CMBAgent Next.js UI is available as a pre-built multi-platform image on Docker Hub. Simply pull and run:
 
 ```bash
 # Pull and run the published image
-docker pull docker.io/yourusername/cmbagent-ui:latest
+docker pull docker.io/borisbolliet/cmbagent-ui:latest
 
+# Option 1: Using environment variables (if already set)
+docker run -p 3000:3000 -p 8000:8000 \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  -v $GOOGLE_APPLICATION_CREDENTIALS:/app/service-account-key.json \
+  -e GOOGLE_APPLICATION_CREDENTIALS="/app/service-account-key.json" \
+  --rm docker.io/borisbolliet/cmbagent-ui:latest
+
+# Option 2: Direct key specification
 docker run -p 3000:3000 -p 8000:8000 \
   -e OPENAI_API_KEY="your-openai-key-here" \
   -e ANTHROPIC_API_KEY="your-anthropic-key-here" \
-  --rm docker.io/yourusername/cmbagent-ui:latest
+  -v /path/to/service-account-key.json:/app/service-account-key.json \
+  -e GOOGLE_APPLICATION_CREDENTIALS="/app/service-account-key.json" \
+  --rm docker.io/borisbolliet/cmbagent-ui:latest
 ```
+
+Access the UI at:
+- Frontend: http://localhost:3000  
+- Backend API: http://localhost:8000
 
 **Note:** API keys are **not** included in the Docker image for security reasons. Each user must provide their own credentials at container runtime.
 
