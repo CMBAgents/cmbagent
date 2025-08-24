@@ -59,13 +59,13 @@ source cmbagent_env/bin/activate
 pip install cmbagent
 ```
 
-Go ahead and launch the GUI:
+Go ahead and launch the Streamlit GUI:
 
 ```bash
 cmbagent run
 ```
 
-See below if you need to run in terminal, notebooks etc.
+See below for other options including the Next.js web UI, terminal usage, notebooks etc.
 
 
 ## Install for developers
@@ -115,7 +115,7 @@ For Unix-based systems (Linux, macOS), do:
 ```bash
 export OPENAI_API_KEY="sk-..."  ## mandatory for the RAG agents
 export ANTHROPIC_API_KEY="sk-..." ## optional 
-export GEMINI_API_KEY="AI...." ## optional 
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json" ## optional for Vertex AI 
 ```
 (paste in your bashrc or zshrc file, if possible.)
 
@@ -160,22 +160,117 @@ The UI supports three execution modes: One Shot, Planning & Control, and Idea Ge
 
 ## Docker
 
-You can run the cmbagent GUI in a [docker container](https://www.docker.com/). You may need `sudo` permission to run docker, [or follow the instructions of this link](https://docs.docker.com/engine/install/linux-postinstall/). To build the docker image run:
+### CMBAgent UI (Next.js) with Docker
+
+**Docker Compose vs Docker Direct:**
+- **Docker Compose**: Orchestrates multiple services with a single command. Handles environment variables, port mapping, volumes, and service dependencies automatically via a configuration file (`docker-compose.yml`).
+- **Docker Direct**: Manual control over individual containers. Requires specifying all parameters (ports, environment variables, volumes) in command line arguments.
+
+**Using Docker Compose (Recommended):**
+
+1. **Set environment variables:**
+```bash
+export OPENAI_API_KEY="sk-..."
+export ANTHROPIC_API_KEY="sk-..."  # optional
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"  # optional for Vertex AI
+```
+
+2. **Run with Docker Compose:**
+```bash
+docker-compose up --build
+```
+
+3. **Access the UI:**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8000
+
+**Using Docker directly:**
 
 ```bash
+# Build the image
+docker build -f Dockerfile.nextjs -t cmbagent-ui .
+
+# Run the container
+docker run -p 3000:3000 -p 8000:8000 \
+  -e OPENAI_API_KEY="sk-..." \
+  -e ANTHROPIC_API_KEY="sk-..." \
+  -v /path/to/service-account-key.json:/app/service-account-key.json \
+  -e GOOGLE_APPLICATION_CREDENTIALS="/app/service-account-key.json" \
+  --rm cmbagent-ui
+```
+
+**Pushing to Docker Hub:**
+
+To build and push the CMBAgent UI image to Docker Hub for cross-platform compatibility:
+
+```bash
+# Login to Docker Hub
+docker login
+
+# Build and push Next.js UI image (multi-platform)
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -f Dockerfile.nextjs \
+  -t docker.io/yourusername/cmbagent-ui:latest \
+  --no-cache --push .
+
+# Build and push original Streamlit image (AMD64 only)
+docker buildx build --platform linux/amd64 \
+  -t docker.io/yourusername/cmbagent:latest \
+  --no-cache --push .
+```
+
+Replace `yourusername` with your Docker Hub username. The `--platform` flag ensures compatibility across different architectures (Intel/AMD and ARM).
+
+**Using a published Docker Hub image:**
+
+To run a pre-built image from Docker Hub, users need to provide their own API keys at runtime:
+
+```bash
+# Pull and run the published image
+docker pull docker.io/yourusername/cmbagent-ui:latest
+
+docker run -p 3000:3000 -p 8000:8000 \
+  -e OPENAI_API_KEY="your-openai-key-here" \
+  -e ANTHROPIC_API_KEY="your-anthropic-key-here" \
+  --rm docker.io/yourusername/cmbagent-ui:latest
+```
+
+**Note:** API keys are **not** included in the Docker image for security reasons. Each user must provide their own credentials at container runtime.
+
+### Streamlit GUI with Docker
+
+You can also run the original cmbagent Streamlit GUI in a [docker container](https://www.docker.com/). You may need `sudo` permission to run docker, [or follow the instructions of this link](https://docs.docker.com/engine/install/linux-postinstall/).
+
+**Building and running locally:**
+```bash
+# Build the image
 docker build -t cmbagent .
+
+# Run the Streamlit GUI
+docker run -p 8501:8501 \
+  -e OPENAI_API_KEY="sk-..." \
+  -e ANTHROPIC_API_KEY="sk-..." \
+  -v /path/to/service-account-key.json:/app/service-account-key.json \
+  -e GOOGLE_APPLICATION_CREDENTIALS="/app/service-account-key.json" \
+  --rm cmbagent
 ```
 
-To run the cmbagent GUI:
-
+**Using published image:**
 ```bash
-docker run -p 8501:8501 --rm cmbagent
+# Pull and run from Docker Hub
+docker pull docker.io/yourusername/cmbagent:latest
+
+docker run -p 8501:8501 \
+  -e OPENAI_API_KEY="your-openai-key-here" \
+  -e ANTHROPIC_API_KEY="your-anthropic-key-here" \
+  -v /path/to/service-account-key.json:/app/service-account-key.json \
+  -e GOOGLE_APPLICATION_CREDENTIALS="/app/service-account-key.json" \
+  --rm docker.io/yourusername/cmbagent:latest
 ```
 
-That command exposes the default streamlit port `8501`, change it to use a different port. You can mount additional volumes to share data with the docker container using the `-v` flag.
+Access the Streamlit GUI at http://localhost:8501
 
-If you want to enter the docker container in interactive mode to use cmbagent without the GUI, run:
-
+**Interactive container access:**
 ```bash
 docker run --rm -it cmbagent bash
 ```

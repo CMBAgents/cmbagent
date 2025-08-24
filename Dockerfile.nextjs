@@ -1,0 +1,80 @@
+# Multi-stage build for CMBAgent with Next.js UI
+FROM node:18-slim AS frontend-builder
+
+# Set working directory for frontend
+WORKDIR /app/cmbagent-ui
+
+# Copy package files
+COPY cmbagent-ui/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy frontend source
+COPY cmbagent-ui/ ./
+
+# Build the Next.js application
+RUN npm run build
+
+# Production stage
+FROM python:3.12-slim
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV NODE_ENV=production
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies including Node.js
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    ca-certificates \
+    gnupg && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && \
+    apt-get install -y nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy Python requirements and install dependencies
+COPY pyproject.toml setup.py ./
+COPY cmbagent/ ./cmbagent/
+RUN pip install --no-cache-dir -e .
+
+# Copy backend
+COPY backend/ ./backend/
+
+# Copy built frontend from builder stage
+COPY --from=frontend-builder /app/cmbagent-ui/.next ./cmbagent-ui/.next
+COPY --from=frontend-builder /app/cmbagent-ui/public ./cmbagent-ui/public
+COPY --from=frontend-builder /app/cmbagent-ui/package*.json ./cmbagent-ui/
+COPY --from=frontend-builder /app/cmbagent-ui/next.config.js ./cmbagent-ui/
+COPY cmbagent-ui/node_modules ./cmbagent-ui/node_modules
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+cd /app/backend && python main.py &\n\
+BACKEND_PID=$!\n\
+cd /app/cmbagent-ui && npm start &\n\
+FRONTEND_PID=$!\n\
+echo "Backend PID: $BACKEND_PID"\n\
+echo "Frontend PID: $FRONTEND_PID"\n\
+echo "CMBAgent UI available at http://localhost:3000"\n\
+echo "Backend API available at http://localhost:8000"\n\
+wait $BACKEND_PID $FRONTEND_PID\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Expose ports
+EXPOSE 3000 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+
+# Command to run both services
+CMD ["/app/start.sh"]
