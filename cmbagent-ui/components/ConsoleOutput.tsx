@@ -101,7 +101,7 @@ export default function ConsoleOutput({ output, isRunning, onClear }: ConsoleOut
     }
 
     return (
-      <div key={index} className={`${className} font-mono text-sm leading-relaxed`}>
+      <div key={index} className={`${className} font-mono text-xs leading-tight`}>
         <span className="text-gray-500 select-none mr-2">
           {String(index + 1).padStart(3, '0')}
         </span>
@@ -114,14 +114,14 @@ export default function ConsoleOutput({ output, isRunning, onClear }: ConsoleOut
   return (
     <div className="h-full flex flex-col bg-console-bg rounded-xl border border-white/20 overflow-hidden relative">
       {/* Console Header */}
-      <div className="flex items-center justify-between p-4 bg-black/40 border-b border-white/10">
+      <div className="flex items-center justify-between px-3 py-2 bg-black/40 border-b border-white/10">
         <div className="flex items-center space-x-2">
           <Terminal className="w-5 h-5 text-green-400" />
-          <h3 className="text-white font-medium">Console Output</h3>
+          <h3 className="text-white font-medium text-sm">Console Output</h3>
           {isRunning && (
             <div className="flex items-center space-x-1">
               <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-green-400 text-sm">Running</span>
+              <span className="text-green-400 text-xs">Running</span>
             </div>
           )}
         </div>
@@ -129,21 +129,21 @@ export default function ConsoleOutput({ output, isRunning, onClear }: ConsoleOut
         <div className="flex items-center space-x-2">
           <button
             onClick={scrollToBottom}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 text-gray-400 hover:text-white transition-colors"
             title="Scroll to bottom"
           >
             <ArrowDown className="w-4 h-4" />
           </button>
           <button
             onClick={copyToClipboard}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 text-gray-400 hover:text-white transition-colors"
             title="Copy to clipboard"
           >
             <Copy className="w-4 h-4" />
           </button>
           <button
             onClick={clearConsole}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 text-gray-400 hover:text-white transition-colors"
             title="Clear console"
           >
             <Trash2 className="w-4 h-4" />
@@ -154,7 +154,7 @@ export default function ConsoleOutput({ output, isRunning, onClear }: ConsoleOut
       {/* Console Content */}
       <div
         ref={consoleRef}
-        className="flex-1 p-4 overflow-y-auto console-scrollbar"
+        className="flex-1 px-3 py-2 overflow-y-auto console-scrollbar"
         style={{ minHeight: 0 }}
       >
         {output.length === 0 ? (
@@ -169,7 +169,7 @@ export default function ConsoleOutput({ output, isRunning, onClear }: ConsoleOut
           <div className="space-y-1">
             {output.map((line, index) => formatOutput(line, index))}
             {isRunning && (
-              <div className="flex items-center space-x-2 text-green-400 font-mono text-sm">
+              <div className="flex items-center space-x-2 text-green-400 font-mono text-xs">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span className="typing-animation">Processing...</span>
               </div>
@@ -191,7 +191,7 @@ export default function ConsoleOutput({ output, isRunning, onClear }: ConsoleOut
       )}
 
       {/* Console Footer */}
-      <div className="p-3 bg-black/40 border-t border-white/10">
+      <div className="px-3 py-1.5 bg-black/40 border-t border-white/10">
         <div className="flex items-center justify-between text-xs text-gray-400">
           <span>{output.length} lines</span>
           <span>CMBAgent Console v1.0</span>

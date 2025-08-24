@@ -275,12 +275,6 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
   if (!results) {
     return (
       <div className="h-full flex flex-col bg-black/20 rounded-xl border border-white/20">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-lg font-semibold text-white">Results</h2>
-          <div className="text-sm text-gray-400">Ready</div>
-        </div>
-
         {/* Placeholder Content */}
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center">
@@ -310,11 +304,6 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
           <p className="text-2xl font-bold text-green-400">
             {results.execution_time ? `${results.execution_time.toFixed(2)}s` : 'N/A'}
           </p>
-        </div>
-
-        <div className="bg-black/20 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-300 mb-2">Status</h4>
-          <p className="text-2xl font-bold text-green-400">✅ Complete</p>
         </div>
 
         <div className="bg-black/20 rounded-lg p-4">
@@ -514,11 +503,6 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
 
   return (
     <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden">
-      {/* Header */}
-      <div className="p-4 bg-black/40 border-b border-white/10">
-        <h3 className="text-white font-medium">Execution Results</h3>
-      </div>
-
       {/* Tabs */}
       <div className="flex border-b border-white/10">
         {tabs.map((tab) => (

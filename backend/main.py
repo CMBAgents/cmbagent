@@ -432,9 +432,13 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
         planner_model = config.get("plannerModel", "gpt-4.1-2025-04-14")
         plan_reviewer_model = config.get("planReviewerModel", "o3-mini-2025-01-31")
         researcher_model = config.get("researcherModel", "gpt-4.1-2025-04-14")
-        max_plan_steps = config.get("maxPlanSteps", 2)
+        max_plan_steps = config.get("maxPlanSteps", 6 if mode == "idea-generation" else 2)
         n_plan_reviews = config.get("nPlanReviews", 1)
         plan_instructions = config.get("planInstructions", "")
+        
+        # Idea Generation specific parameters
+        idea_maker_model = config.get("ideaMakerModel", "gpt-4.1-2025-04-14")
+        idea_hater_model = config.get("ideaHaterModel", "o3-mini-2025-01-31")
         
         await websocket.send_json({
             "type": "output",
@@ -450,6 +454,11 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             await websocket.send_json({
                 "type": "output",
                 "data": f"⚙️ Configuration: Planner={planner_model}, Engineer={engineer_model}, Researcher={researcher_model}, Plan Reviewer={plan_reviewer_model}"
+            })
+        elif mode == "idea-generation":
+            await websocket.send_json({
+                "type": "output",
+                "data": f"⚙️ Configuration: Idea Maker={idea_maker_model}, Idea Hater={idea_hater_model}, Planner={planner_model}, Plan Reviewer={plan_reviewer_model}"
             })
         else:
             await websocket.send_json({
@@ -494,6 +503,23 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         n_plan_reviews=n_plan_reviews,
                         engineer_model=engineer_model,
                         researcher_model=researcher_model,
+                        planner_model=planner_model,
+                        plan_reviewer_model=plan_reviewer_model,
+                        plan_instructions=plan_instructions if plan_instructions.strip() else None,
+                        work_dir=task_work_dir,
+                        api_keys=api_keys,
+                        clear_work_dir=False
+                    )
+                elif mode == "idea-generation":
+                    # Idea Generation mode - uses planning_and_control_context_carryover with idea agents
+                    results = cmbagent.planning_and_control_context_carryover(
+                        task=task,
+                        max_rounds_control=max_rounds,
+                        max_n_attempts=max_attempts,
+                        max_plan_steps=max_plan_steps,
+                        n_plan_reviews=n_plan_reviews,
+                        idea_maker_model=idea_maker_model,
+                        idea_hater_model=idea_hater_model,
                         planner_model=planner_model,
                         plan_reviewer_model=plan_reviewer_model,
                         plan_instructions=plan_instructions if plan_instructions.strip() else None,
