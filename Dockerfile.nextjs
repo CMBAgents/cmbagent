@@ -24,13 +24,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_ENV=production
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies including Node.js
+# Install system dependencies including Node.js and build tools
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
     curl \
     ca-certificates \
-    gnupg && \
+    gnupg \
+    gfortran \
+    build-essential \
+    pkg-config && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
     echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
     apt-get update && \
@@ -42,7 +45,7 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy Python requirements and install dependencies
-COPY pyproject.toml setup.py ./
+COPY pyproject.toml ./
 COPY cmbagent/ ./cmbagent/
 RUN pip install --no-cache-dir -e .
 
@@ -51,10 +54,9 @@ COPY backend/ ./backend/
 
 # Copy built frontend from builder stage
 COPY --from=frontend-builder /app/cmbagent-ui/.next ./cmbagent-ui/.next
-COPY --from=frontend-builder /app/cmbagent-ui/public ./cmbagent-ui/public
 COPY --from=frontend-builder /app/cmbagent-ui/package*.json ./cmbagent-ui/
 COPY --from=frontend-builder /app/cmbagent-ui/next.config.js ./cmbagent-ui/
-COPY cmbagent-ui/node_modules ./cmbagent-ui/node_modules
+COPY --from=frontend-builder /app/cmbagent-ui/node_modules ./cmbagent-ui/node_modules
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
