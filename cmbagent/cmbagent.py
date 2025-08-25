@@ -713,6 +713,15 @@ class CMBAgent:
                     llm_config.pop('temperature')
                     llm_config.pop('top_p')
 
+                # Pop temperature if using GPT-5 model
+                if 'gpt-5' in llm_config['config_list'][0]['model']:
+                    llm_config.pop('temperature', None)
+                    llm_config.pop('top_p', None)
+
+                # print('\nin cmbagent.py: llm_config: ', llm_config)
+
+                
+
                 if llm_config['config_list'][0]['api_type'] == 'google':
                     llm_config.pop('top_p') 
                 
@@ -938,9 +947,9 @@ def planning_and_control_context_carryover(
                             max_plan_steps = 3,
                             n_plan_reviews = 1,
                             plan_instructions = '',
-                            engineer_instructions = '',
-                            researcher_instructions = '',
-                            hardware_constraints = '',
+                            engineer_instructions = '', # append to engineer instructions
+                            researcher_instructions = '', # append to researcher instructions
+                            hardware_constraints = '', 
                             max_n_attempts = 3,
                             planner_model = default_agents_llm_model['planner'],
                             plan_reviewer_model = default_agents_llm_model['plan_reviewer'],

@@ -36,7 +36,6 @@ path_to_agents = os.path.join(path_to_basedir, "agents/")
 
 if "site-packages" in path_to_basedir or "dist-packages" in path_to_basedir:
     work_dir_default = os.path.join(os.getcwd(), "cmbagent_output")
-    os.makedirs(work_dir_default, exist_ok=True)
 else:
     work_dir_default = os.path.join(path_to_basedir, "../output")
 
@@ -159,6 +158,7 @@ default_agents_llm_model ={
     "camb_response_formatter": "gpt-4.1-2025-04-14",
     "classy_response_formatter": "gpt-4.1-2025-04-14",
     "cobaya_response_formatter": "gpt-4o-2024-11-20",
+    # "engineer_response_formatter": "gpt-4.1-2025-04-14",
     "engineer_response_formatter": "o3-mini-2025-01-31",
     # "engineer_response_formatter": "gemini-2.5-pro-preview-03-25",
     "researcher_response_formatter": "o3-mini-2025-01-31",

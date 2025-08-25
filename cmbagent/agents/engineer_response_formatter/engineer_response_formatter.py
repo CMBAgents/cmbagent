@@ -35,7 +35,7 @@ class EngineerResponseFormatterAgent(BaseAgent):
             description="Copy of the engineer's summary of any modifications made to fix errors from the previous version."
         )
         python_code: str = Field(
-            ..., description="Copy of the engineer's Python code in a form ready to execute. Should not contain anything else than code."
+            ..., description="Copy of the engineer's Python code in a form ready to execute. Should not contain anything else than code. Indentation has to be carefully checked, line by line, and fixed."
         )
 
         def format(self) -> str:

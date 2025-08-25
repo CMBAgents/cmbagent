@@ -1,5 +1,5 @@
 # Use an official Python image as base
-FROM python:3.13-slim
+FROM python:3.12-slim
 
 # Set environment variables to avoid interactive prompts during package installs
 ENV DEBIAN_FRONTEND=noninteractive

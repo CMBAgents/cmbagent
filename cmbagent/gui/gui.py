@@ -656,7 +656,7 @@ def main():
             "engineer": {
                 "label": "Engineer",
                 "models": [
-                    "gemini-2.5-pro", "claude-sonnet-4-20250514", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
+                    "gpt-4.1-2025-04-14", "gpt-5-2025-08-07", "gemini-2.5-pro", "claude-sonnet-4-20250514", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview",  "o3", "o4-mini", "o3-mini",
                     "gemini-2.0-flash",
 
                     # "sonar-pro", "sonar"
@@ -665,7 +665,7 @@ def main():
             "researcher": {
                 "label": "Researcher",
                 "models": [
-                    "claude-sonnet-4-20250514", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
+                    "gpt-4.1-2025-04-14", "gpt-5-2025-08-07",  "claude-sonnet-4-20250514", "gpt-4o", "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.5-preview", "o3", "o4-mini", "o3-mini",
                     "gemini-2.5-pro", "gemini-2.0-flash",
                     # "sonar-pro", "sonar"
                 ]
