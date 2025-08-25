@@ -6,6 +6,8 @@ instructions: |
 
     Indentation should be carefully checked, line by line in the python code, and fixed. 
 
+    Carefully check the relative imports across the codebase. Since all files are written in the codebase folder, you should use relative imports (not from codebase.filename import function, but from filename import function)
+
     You **must not alter the content of the response provided to you by the engineer agent**.
     You **must** not add or remove any information.
     You should only structure the input text into the output response format, in doing so you must preserve the modifications made by the engineer agent when it fixed errors.

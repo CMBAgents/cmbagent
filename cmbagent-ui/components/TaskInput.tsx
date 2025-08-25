@@ -56,7 +56,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     workDir: '~/cmbagent_workdir',
     mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation',
     // Planning & Control specific options
-    maxPlanSteps: 6,
+    maxPlanSteps: 2,
     nPlanReviews: 1,
     planInstructions: '',
     plannerModel: 'gpt-4.1-2025-04-14',
@@ -572,7 +572,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                     </Tooltip>
                     <input
                       type="number"
-                      value={config.nPlanReviews || 1}
+                      value={config.nPlanReviews}
                       onChange={(e) => setConfig({...config, nPlanReviews: parseInt(e.target.value)})}
                       min="0"
                       max="5"
