@@ -1,28 +1,83 @@
-# Use an official Python image as base
+# Multi-stage build for CMBAgent with Next.js UI on Hugging Face Spaces
+FROM node:18-slim AS frontend-builder
+
+# Set working directory for frontend
+WORKDIR /app/cmbagent-ui
+
+# Copy package files
+COPY cmbagent-ui/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy frontend source
+COPY cmbagent-ui/ ./
+
+# Build the Next.js application
+RUN npm run build
+
+# Production stage - Python base for Hugging Face Spaces
 FROM python:3.12-slim
 
-# Set environment variables to avoid interactive prompts during package installs
+# Set environment variables for Hugging Face Spaces
 ENV DEBIAN_FRONTEND=noninteractive
+ENV NODE_ENV=production
+ENV PYTHONUNBUFFERED=1
+ENV GRADIO_SERVER_NAME=0.0.0.0
+ENV GRADIO_SERVER_PORT=7860
 
-# Install system dependencies
+# Install system dependencies including Node.js
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
-    curl && \
+    curl \
+    ca-certificates \
+    gnupg \
+    gfortran \
+    build-essential \
+    pkg-config && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && \
+    apt-get install -y nodejs && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Set working directory
-WORKDIR /cmbagent
+WORKDIR /app
 
-# Copy all the app code to the docker
-COPY . .
+# Copy Python requirements and install dependencies
+COPY pyproject.toml ./
+COPY cmbagent/ ./cmbagent/
+RUN pip install --no-cache-dir -e .
 
-# Install
-RUN pip install .
+# Copy backend
+COPY backend/ ./backend/
 
-# This informs Docker that the container will listen on port 8501 at runtime.
-EXPOSE 8501
+# Copy built frontend from builder stage
+COPY --from=frontend-builder /app/cmbagent-ui/.next ./cmbagent-ui/.next
+COPY --from=frontend-builder /app/cmbagent-ui/package*.json ./cmbagent-ui/
+COPY --from=frontend-builder /app/cmbagent-ui/next.config.js ./cmbagent-ui/
+COPY --from=frontend-builder /app/cmbagent-ui/node_modules ./cmbagent-ui/node_modules
 
-# Command to run the app
-CMD ["cmbagent", "run"]
+# Create startup script for Hugging Face Spaces
+RUN echo '#!/bin/bash\n\
+cd /app/backend && python run.py &\n\
+BACKEND_PID=$!\n\
+cd /app/cmbagent-ui && ./node_modules/.bin/next start -p 7860 &\n\
+FRONTEND_PID=$!\n\
+echo "🚀 CMBAgent UI available at http://localhost:7860"\n\
+echo "📡 Backend API available at http://localhost:8000"\n\
+echo "📖 API docs: http://localhost:8000/docs"\n\
+wait $BACKEND_PID $FRONTEND_PID\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Expose port 7860 (Hugging Face Spaces standard)
+EXPOSE 7860
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:7860 || exit 1
+
+# Command to run services
+CMD ["/app/start.sh"]
