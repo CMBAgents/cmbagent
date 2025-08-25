@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Play, Settings, Zap, Folder, HelpCircle } from 'lucide-react'
+import { Play, Settings, Zap, HelpCircle } from 'lucide-react'
 import { CredentialsKeyIcon } from './CredentialsKeyIcon'
 import { CredentialsModal } from './CredentialsModal'
 import { ModelSelector } from './ModelSelector'
@@ -33,7 +33,6 @@ interface TaskInputProps {
 export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = false, onOpenDirectory }: TaskInputProps) {
   const [task, setTask] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [showWorkDir, setShowWorkDir] = useState(false)
   const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation'>('one-shot')
   const [showCredentialsModal, setShowCredentialsModal] = useState(false)
   const [showOpenAIError, setShowOpenAIError] = useState(false)
@@ -45,7 +44,8 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     refreshCredentials, 
     getValidation, 
     getAvailableModels,
-    isModelAvailable 
+    isModelAvailable,
+    credentialStatus 
   } = useCredentials()
 
   const [config, setConfig] = useState({
@@ -53,7 +53,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     maxRounds: 25,
     maxAttempts: 1,
     agent: 'engineer',
-    workDir: '~/Desktop/cmbdir',
+    workDir: '~/cmbagent_workdir',
     mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation',
     // Planning & Control specific options
     maxPlanSteps: 6,
@@ -228,7 +228,10 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         {/* OpenAI Required Error - Main UI (Red Key) */}
         {(() => {
           const validation = getValidation();
-          const shouldShow = showOpenAIError || (!validation.canSubmitTask && !validation.openaiValid);
+          
+          // Only show warning if credentials have been loaded and OpenAI is invalid
+          const credentialsLoaded = credentialStatus !== null;
+          const shouldShow = showOpenAIError || (credentialsLoaded && !validation.canSubmitTask && !validation.openaiValid);
           
           return shouldShow && (
             <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4 text-sm animate-pulse">
@@ -598,90 +601,78 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                   </div>
                 </>
               )}
+
+              {/* Working Directory */}
+              <div className="col-span-2">
+                <Tooltip text="Directory where task files, results, and outputs will be saved" wide position="bottom">
+                  <label className="block text-xs text-gray-400 mb-1">Working Directory</label>
+                </Tooltip>
+                <div className="space-y-2">
+                  <div className="flex gap-1">
+                    <input
+                      type="text"
+                      value={config.workDir}
+                      onChange={(e) => setConfig({...config, workDir: e.target.value})}
+                      placeholder="~/cmbagent_workdir"
+                      className="flex-1 px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      disabled={isRunning}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setConfig({...config, workDir: '~/cmbagent_workdir'})}
+                      disabled={isRunning}
+                      className="px-2 py-1 bg-gray-600/20 text-gray-300 rounded text-xs hover:bg-gray-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Reset to default"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (confirm('Are you sure you want to clear the working directory? This will remove all task files.')) {
+                          try {
+                            const response = await fetch(`/api/files/clear-directory?path=${encodeURIComponent(config.workDir)}`, {
+                              method: 'DELETE'
+                            })
+
+                            if (response.ok) {
+                              const result = await response.json()
+                              alert(`Successfully cleared directory. ${result.items_deleted} items removed.`)
+                            } else {
+                              const error = await response.json()
+                              alert(`Error clearing directory: ${error.detail}`)
+                            }
+                          } catch (error) {
+                            alert(`Error clearing directory: ${error}`)
+                          }
+                        }
+                      }}
+                      disabled={isRunning}
+                      className="px-2 py-1 bg-red-600/20 text-red-300 rounded text-xs hover:bg-red-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Clear all files in directory"
+                    >
+                      Clear Directory
+                    </button>
+                    {onOpenDirectory && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenDirectory(config.workDir)}
+                        disabled={isRunning}
+                        className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs hover:bg-green-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Open directory"
+                      >
+                        Open Directory
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Working Directory - Collapsible */}
-        <div className="border border-gray-500/20 rounded">
-          <button
-            type="button"
-            onClick={() => setShowWorkDir(!showWorkDir)}
-            className="w-full flex items-center justify-between p-2 text-xs text-gray-400 hover:text-gray-300 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Folder className="w-3 h-3" />
-              <span>Working Directory: {config.workDir}</span>
-            </div>
-            <span className="text-xs">{showWorkDir ? '▼' : '▶'}</span>
-          </button>
-
-          {showWorkDir && (
-            <div className="p-2 border-t border-gray-500/20 bg-gray-500/5">
-              <div className="space-y-1">
-                <div className="flex gap-1">
-                  <input
-                    type="text"
-                    value={config.workDir}
-                    onChange={(e) => setConfig({...config, workDir: e.target.value})}
-                    placeholder="~/Desktop/cmbdir"
-                    className="flex-1 px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                    disabled={isRunning}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setConfig({...config, workDir: '~/Desktop/cmbdir'})}
-                    disabled={isRunning}
-                    className="px-2 py-1 bg-gray-600/20 text-gray-300 rounded text-xs hover:bg-gray-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Reset to default"
-                  >
-                    Reset
-                  </button>
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (confirm('Are you sure you want to clear the working directory? This will remove all task files.')) {
-                        try {
-                          const response = await fetch(`/api/files/clear-directory?path=${encodeURIComponent(config.workDir)}`, {
-                            method: 'DELETE'
-                          })
-
-                          if (response.ok) {
-                            const result = await response.json()
-                            alert(`Successfully cleared directory. ${result.items_deleted} items removed.`)
-                          } else {
-                            const error = await response.json()
-                            alert(`Error clearing directory: ${error.detail}`)
-                          }
-                        } catch (error) {
-                          alert(`Error clearing directory: ${error}`)
-                        }
-                      }
-                    }}
-                    disabled={isRunning}
-                    className="px-2 py-1 bg-red-600/20 text-red-300 rounded text-xs hover:bg-red-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Clear all files in directory"
-                  >
-                    Clear Directory
-                  </button>
-                  {onOpenDirectory && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenDirectory(config.workDir)}
-                      disabled={isRunning}
-                      className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs hover:bg-green-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Open directory"
-                    >
-                      Open Directory
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
 
         {/* Submit/Stop Button */}
