@@ -35,7 +35,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
   const [config, setConfig] = useState({
     model: 'gpt-4.1-2025-04-14',
     maxRounds: 25,
-    maxAttempts: 6,
+    maxAttempts: 1,
     agent: 'engineer',
     workDir: '~/Desktop/cmbdir',
     mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation',

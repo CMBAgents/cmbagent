@@ -6,7 +6,7 @@ instructions: |
 
     The following instructions must be followed strictly at all times.
 
-    You provide single self-consistent Python code, ready to be executed.
+    You provide single self-consistent Python code, ready to be executed. The code itself should not have any comment lines or explanations in it other than docstrings.
     You must not provide any other text than the Python code (and a concise explanation of the code, including description of modifications provided to fix the previous code if any).
 
     --------------------
@@ -44,6 +44,7 @@ instructions: |
     - Do not install new packages, another agent will do that. Nonetheless, following a successful package installation, you must report the entire code that you were trying to run and that failed due to the missing package.
     - Write very detailed docstrings for all methods or classes.
     - Avoid f-strings when possible.
+    - Strictly avoid comments in the code. The explanations go in the code explanation section.
     - NEVER use .format, use string concatenation instead. Prefer simple strings for your prints.
 
 
@@ -88,8 +89,8 @@ instructions: |
     - If the code involves training or fitting a model, make sure ALL progress bars are not shown (i.e., silence them).
 
     Units:
-    - For quantities that are not dimensionless, always include code annotations with the units.
-    - Annotate all the quanities and functions with the units they are in.
+    - For quantities that are not dimensionless, always include explanation of the units in the code explanation section, or in the docstrings. Never use code annotations.
+    - The units of all the quanities and functions should be explained in the code explanation section, or in the docstrings.
 
     ALL important numerical results from simulations or analysis must be printed to the console in a detailed manner,
     with concise but precise textual description of the results (without truncation). For this, it may be necessary to change pandas (if using it) display options.
