@@ -96,9 +96,9 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
   }
 
   return (
-    <div className="h-full bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Mode Selection Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 px-4 pt-4">
         <div className="flex items-center space-x-1">
           <Tooltip text="Direct execution - CMBAgent executes your task immediately without planning" position="bottom">
             <button
@@ -166,7 +166,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 flex flex-col space-y-3">
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col space-y-3 px-4 pb-4">
 
 
         {/* Task Input */}
