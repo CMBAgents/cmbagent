@@ -196,7 +196,7 @@ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"  # opt
 
 2. **Run with Docker Compose:**
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 3. **Access the UI:**
