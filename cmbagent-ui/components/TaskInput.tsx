@@ -2,6 +2,10 @@
 
 import { useState } from 'react'
 import { Play, Settings, Zap, Folder, HelpCircle } from 'lucide-react'
+import { CredentialsKeyIcon } from './CredentialsKeyIcon'
+import { CredentialsModal } from './CredentialsModal'
+import { ModelSelector } from './ModelSelector'
+import { useCredentials } from '../hooks/useCredentials'
 
 // Tooltip component - tooltip appears only when hovering over the question mark icon
 const Tooltip = ({ children, text, wide = false, position = 'auto' }: { children: React.ReactNode; text?: string; wide?: boolean; position?: 'auto' | 'top' | 'bottom' }) => (
@@ -31,6 +35,18 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showWorkDir, setShowWorkDir] = useState(false)
   const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation'>('one-shot')
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false)
+  const [showOpenAIError, setShowOpenAIError] = useState(false)
+  
+  // Use credentials hook
+  const { 
+    refreshKey, 
+    handleStatusChange, 
+    refreshCredentials, 
+    getValidation, 
+    getAvailableModels,
+    isModelAvailable 
+  } = useCredentials()
 
   const [config, setConfig] = useState({
     model: 'gpt-4.1-2025-04-14',
@@ -90,6 +106,27 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    const validation = getValidation()
+    console.log('Validation result:', validation) // Debug log
+    if (!validation.canSubmitTask) {
+      // OpenAI missing - show error in main UI (red key scenario)
+      console.log('Showing OpenAI error - canSubmitTask is false')
+      setShowOpenAIError(true)
+      // Auto-hide after 5 seconds
+      setTimeout(() => setShowOpenAIError(false), 5000)
+      return
+    }
+    
+    // Check if selected model is available
+    if (!isModelAvailable(config.model)) {
+      const availableModels = getAvailableModels()
+      const fallbackModel = availableModels.openai[0] || 'gpt-4.1-2025-04-14'
+      alert(`Selected model "${config.model}" requires additional credentials. Switching to "${fallbackModel}".`)
+      setConfig(prev => ({ ...prev, model: fallbackModel }))
+      return
+    }
+    
     if (task.trim() && !isRunning) {
       onSubmit(task, { ...config, mode })
     }
@@ -164,6 +201,11 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         >
           <Settings className="w-4 h-4" />
         </button>
+        <CredentialsKeyIcon
+          refreshKey={refreshKey}
+          onOpenCredentialsModal={() => setShowCredentialsModal(true)}
+          onStatusChange={handleStatusChange}
+        />
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col space-y-3 px-4 pb-4">
@@ -182,6 +224,40 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
             disabled={isRunning}
           />
         </div>
+
+        {/* OpenAI Required Error - Main UI (Red Key) */}
+        {(() => {
+          const validation = getValidation();
+          const shouldShow = showOpenAIError || (!validation.canSubmitTask && !validation.openaiValid);
+          
+          return shouldShow && (
+            <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4 text-sm animate-pulse">
+              <div className="flex items-start gap-3">
+                <div className="text-red-400 text-2xl">🚨</div>
+                <div>
+                  <div className="text-red-200 font-bold mb-2 text-base">⚠️ OpenAI API Key Required!</div>
+                  <div className="text-red-200/90 text-sm leading-relaxed mb-3">
+                    You must provide at least a valid OpenAI API key to submit tasks.
+                    <br />
+                    <br />📝 <strong>How to fix:</strong>
+                    <br />• Click the <strong>red key icon (🔑)</strong> in the top right
+                    <br />• Enter your OpenAI API key 
+                    <br />• Click "Save & Test" to validate
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowOpenAIError(false)
+                      setShowCredentialsModal(true)
+                    }}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors"
+                  >
+                    🔑 Configure API Key
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Example Tasks */}
         <div>
@@ -209,6 +285,25 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
             <h3 className="text-xs font-medium text-gray-300">
               Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Planning & Control' : 'Idea Generation'} Mode
             </h3>
+            
+            {/* Credential Status Message in Advanced Section */}
+            {(() => {
+              const validation = getValidation();
+              if (!validation.canSubmitTask) {
+                return (
+                  <div className="text-xs text-red-400 bg-red-900/20 border border-red-500/20 rounded px-2 py-1">
+                    ⚠️ {validation.statusMessage}
+                  </div>
+                );
+              } else if (!validation.anthropicValid || !validation.vertexValid) {
+                return (
+                  <div className="text-xs text-orange-400 bg-orange-900/20 border border-orange-500/20 rounded px-2 py-1">
+                    ℹ️ {validation.statusMessage}
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <div className="grid grid-cols-2 gap-3">
               {/* Idea Generation Agent Models */}
@@ -588,6 +683,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
           )}
         </div>
 
+
         {/* Submit/Stop Button */}
         <div className="flex space-x-2">
           <button
@@ -624,6 +720,16 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
           )}
         </div>
       </form>
+      
+      {/* Credentials Modal */}
+      <CredentialsModal
+        isOpen={showCredentialsModal}
+        onClose={() => setShowCredentialsModal(false)}
+        onCredentialsUpdated={() => {
+          refreshCredentials(); // Use the hook's refresh function
+          setShowOpenAIError(false); // Clear OpenAI error message
+        }}
+      />
     </div>
   )
 }

@@ -22,6 +22,15 @@ sys.path.append(str(Path(__file__).parent.parent))
 try:
     import cmbagent
     from cmbagent.utils import get_api_keys_from_env
+    from credentials import (
+        test_all_credentials, 
+        test_openai_credentials, 
+        test_anthropic_credentials, 
+        test_vertex_credentials,
+        store_credentials_in_env,
+        CredentialStorage,
+        CredentialTest
+    )
 except ImportError as e:
     print(f"Error importing cmbagent: {e}")
     print("Make sure cmbagent is installed and accessible")
@@ -32,7 +41,13 @@ app = FastAPI(title="CMBAgent API", version="1.0.0")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Next.js dev server
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://localhost:3002",
+        "http://localhost:3003",
+        "http://localhost:3004"
+    ],  # Next.js dev server on various ports
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -352,6 +367,86 @@ async def serve_image(path: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error serving image: {str(e)}")
+
+# API Credentials endpoints
+@app.get("/api/credentials/test-all")
+async def test_all_api_credentials():
+    """Test all configured API credentials"""
+    try:
+        results = await test_all_credentials()
+        return {
+            "status": "success",
+            "results": results,
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error testing credentials: {str(e)}")
+
+@app.post("/api/credentials/test")
+async def test_specific_credentials(credentials: CredentialStorage):
+    """Test specific credentials provided by the user"""
+    try:
+        results = {}
+        
+        if credentials.openai_key:
+            results['openai'] = await test_openai_credentials(credentials.openai_key)
+        
+        if credentials.anthropic_key:
+            results['anthropic'] = await test_anthropic_credentials(credentials.anthropic_key)
+        
+        if credentials.vertex_json:
+            results['vertex'] = await test_vertex_credentials(credentials.vertex_json)
+        
+        return {
+            "status": "success",
+            "results": results,
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error testing credentials: {str(e)}")
+
+@app.post("/api/credentials/store")
+async def store_api_credentials(credentials: CredentialStorage):
+    """Store API credentials in environment variables (session only)"""
+    try:
+        updates = store_credentials_in_env(credentials)
+        
+        # Test the newly stored credentials
+        test_results = await test_all_credentials()
+        
+        return {
+            "status": "success",
+            "message": "Credentials stored successfully",
+            "updates": updates,
+            "test_results": test_results,
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error storing credentials: {str(e)}")
+
+@app.get("/api/credentials/status")
+async def get_credentials_status():
+    """Get current status of all API credentials"""
+    try:
+        results = await test_all_credentials()
+        
+        # Create summary status
+        summary = {
+            "total": len(results),
+            "valid": sum(1 for r in results.values() if r.status == "valid"),
+            "invalid": sum(1 for r in results.values() if r.status == "invalid"),
+            "not_configured": sum(1 for r in results.values() if r.status == "not_configured"),
+            "errors": sum(1 for r in results.values() if r.status == "error")
+        }
+        
+        return {
+            "status": "success",
+            "summary": summary,
+            "results": results,
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting credentials status: {str(e)}")
 
 @app.websocket("/ws/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
