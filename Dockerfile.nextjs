@@ -49,9 +49,8 @@ COPY pyproject.toml ./
 COPY cmbagent/ ./cmbagent/
 RUN pip install --no-cache-dir -e .
 
-# Copy backend and install backend dependencies
+# Copy backend (dependencies already installed via pyproject.toml)
 COPY backend/ ./backend/
-RUN pip install --no-cache-dir -r backend/requirements.txt
 
 # Copy built frontend from builder stage
 COPY --from=frontend-builder /app/cmbagent-ui/.next ./cmbagent-ui/.next
@@ -61,14 +60,13 @@ COPY --from=frontend-builder /app/cmbagent-ui/node_modules ./cmbagent-ui/node_mo
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
-cd /app/backend && python main.py &\n\
+cd /app/backend && python run.py &\n\
 BACKEND_PID=$!\n\
 cd /app/cmbagent-ui && ./node_modules/.bin/next start &\n\
 FRONTEND_PID=$!\n\
-echo "Backend PID: $BACKEND_PID"\n\
-echo "Frontend PID: $FRONTEND_PID"\n\
-echo "CMBAgent UI available at http://localhost:3000"\n\
-echo "Backend API available at http://localhost:8000"\n\
+echo "🚀 CMBAgent UI available at http://localhost:3000"\n\
+echo "📡 Backend API available at http://localhost:8000"\n\
+echo "📖 API docs: http://localhost:8000/docs"\n\
 wait $BACKEND_PID $FRONTEND_PID\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 

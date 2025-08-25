@@ -26,6 +26,13 @@ dependencies = [
     "streamlit",
     "ipython", ## needed for streamlit
     
+    # FastAPI backend dependencies
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    "websockets>=12.0",
+    "python-multipart>=0.0.6",
+    "pydantic>=2.7.4",
+    
 
     # astronomy/astrophysics
     "camb >= 1.6.0",

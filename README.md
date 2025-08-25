@@ -132,16 +132,37 @@ To launch the Next.js web interface locally:
 - Python 3.12+
 - API keys set as environment variables (OpenAI required, others optional)
 
-**Setup:**
+**Quick Start (One Command):**
+
+First activate your virtual environment, then launch both backend and frontend:
+
+```bash
+cd cmbagent
+source your_venv/bin/activate  # Activate your virtual environment first
+./start-cmbagent.sh
+```
+
+This script will:
+- **Start the FastAPI backend server** (port 8000) 
+- **Start the Next.js frontend** (with auto-browser opening)
+- **Handle cleanup** when you press Ctrl+C
+
+**Manual Setup (Two Terminals):**
+
+If you prefer to run servers separately, first activate your virtual environment:
+
+```bash
+cd cmbagent
+source your_venv/bin/activate  # Activate your virtual environment
+pip install -e .               # Install CMBAgent dependencies
+```
+
+Then in separate terminals:
 
 1. **Backend (FastAPI server) - Terminal 1:**
 ```bash
-cd cmbagent
-python3 -m venv cmbagent_env
-source cmbagent_env/bin/activate
-pip install -e .
-cd backend
-python main.py
+cd cmbagent/backend
+python run.py
 ```
 
 2. **Frontend (Next.js) - Terminal 2:**
@@ -152,9 +173,7 @@ npm run dev
 ```
 
 3. **Access the UI:**
-   Open http://localhost:3000 in your browser
-
-**Note:** You need to run both servers simultaneously in separate terminals for the UI to work properly.
+   The browser will open automatically, or go to http://localhost:3000
 
 The UI supports three execution modes: One Shot, Planning & Control, and Idea Generation.
 
