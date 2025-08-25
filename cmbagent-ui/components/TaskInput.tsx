@@ -167,7 +167,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
               disabled={isRunning}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 mode === 'planning-control'
-                  ? 'bg-purple-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
@@ -187,7 +187,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
               disabled={isRunning}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 mode === 'idea-generation'
-                  ? 'bg-green-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
