@@ -1,7 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Play, Settings, Zap, Folder, HelpCircle } from 'lucide-react'
+import { Play, Settings, Zap, HelpCircle } from 'lucide-react'
+import { CredentialsKeyIcon } from './CredentialsKeyIcon'
+import { CredentialsModal } from './CredentialsModal'
+import { ModelSelector } from './ModelSelector'
+import { useCredentials } from '../hooks/useCredentials'
 
 // Tooltip component - tooltip appears only when hovering over the question mark icon
 const Tooltip = ({ children, text, wide = false, position = 'auto' }: { children: React.ReactNode; text?: string; wide?: boolean; position?: 'auto' | 'top' | 'bottom' }) => (
@@ -29,18 +33,30 @@ interface TaskInputProps {
 export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = false, onOpenDirectory }: TaskInputProps) {
   const [task, setTask] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [showWorkDir, setShowWorkDir] = useState(false)
   const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation'>('one-shot')
+  const [showCredentialsModal, setShowCredentialsModal] = useState(false)
+  const [showOpenAIError, setShowOpenAIError] = useState(false)
+  
+  // Use credentials hook
+  const { 
+    refreshKey, 
+    handleStatusChange, 
+    refreshCredentials, 
+    getValidation, 
+    getAvailableModels,
+    isModelAvailable,
+    credentialStatus 
+  } = useCredentials()
 
   const [config, setConfig] = useState({
     model: 'gpt-4.1-2025-04-14',
     maxRounds: 25,
     maxAttempts: 1,
     agent: 'engineer',
-    workDir: '~/Desktop/cmbdir',
+    workDir: '~/cmbagent_workdir',
     mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation',
     // Planning & Control specific options
-    maxPlanSteps: 6,
+    maxPlanSteps: 2,
     nPlanReviews: 1,
     planInstructions: '',
     plannerModel: 'gpt-4.1-2025-04-14',
@@ -90,6 +106,27 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    const validation = getValidation()
+    console.log('Validation result:', validation) // Debug log
+    if (!validation.canSubmitTask) {
+      // OpenAI missing - show error in main UI (red key scenario)
+      console.log('Showing OpenAI error - canSubmitTask is false')
+      setShowOpenAIError(true)
+      // Auto-hide after 5 seconds
+      setTimeout(() => setShowOpenAIError(false), 5000)
+      return
+    }
+    
+    // Check if selected model is available
+    if (!isModelAvailable(config.model)) {
+      const availableModels = getAvailableModels()
+      const fallbackModel = availableModels.openai[0] || 'gpt-4.1-2025-04-14'
+      alert(`Selected model "${config.model}" requires additional credentials. Switching to "${fallbackModel}".`)
+      setConfig(prev => ({ ...prev, model: fallbackModel }))
+      return
+    }
+    
     if (task.trim() && !isRunning) {
       onSubmit(task, { ...config, mode })
     }
@@ -130,7 +167,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
               disabled={isRunning}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 mode === 'planning-control'
-                  ? 'bg-purple-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
@@ -150,7 +187,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
               disabled={isRunning}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 mode === 'idea-generation'
-                  ? 'bg-green-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
@@ -164,6 +201,11 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         >
           <Settings className="w-4 h-4" />
         </button>
+        <CredentialsKeyIcon
+          refreshKey={refreshKey}
+          onOpenCredentialsModal={() => setShowCredentialsModal(true)}
+          onStatusChange={handleStatusChange}
+        />
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col space-y-3 px-4 pb-4">
@@ -182,6 +224,43 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
             disabled={isRunning}
           />
         </div>
+
+        {/* OpenAI Required Error - Main UI (Red Key) */}
+        {(() => {
+          const validation = getValidation();
+          
+          // Only show warning if credentials have been loaded and OpenAI is invalid
+          const credentialsLoaded = credentialStatus !== null;
+          const shouldShow = showOpenAIError || (credentialsLoaded && !validation.canSubmitTask && !validation.openaiValid);
+          
+          return shouldShow && (
+            <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4 text-sm animate-pulse">
+              <div className="flex items-start gap-3">
+                <div className="text-red-400 text-2xl">🚨</div>
+                <div>
+                  <div className="text-red-200 font-bold mb-2 text-base">⚠️ OpenAI API Key Required!</div>
+                  <div className="text-red-200/90 text-sm leading-relaxed mb-3">
+                    You must provide at least a valid OpenAI API key to submit tasks.
+                    <br />
+                    <br />📝 <strong>How to fix:</strong>
+                    <br />• Click the <strong>red key icon (🔑)</strong> in the top right
+                    <br />• Enter your OpenAI API key 
+                    <br />• Click "Save & Test" to validate
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowOpenAIError(false)
+                      setShowCredentialsModal(true)
+                    }}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded transition-colors"
+                  >
+                    🔑 Configure API Key
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Example Tasks */}
         <div>
@@ -209,6 +288,25 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
             <h3 className="text-xs font-medium text-gray-300">
               Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Planning & Control' : 'Idea Generation'} Mode
             </h3>
+            
+            {/* Credential Status Message in Advanced Section */}
+            {(() => {
+              const validation = getValidation();
+              if (!validation.canSubmitTask) {
+                return (
+                  <div className="text-xs text-red-400 bg-red-900/20 border border-red-500/20 rounded px-2 py-1">
+                    ⚠️ {validation.statusMessage}
+                  </div>
+                );
+              } else if (!validation.anthropicValid || !validation.vertexValid) {
+                return (
+                  <div className="text-xs text-orange-400 bg-orange-900/20 border border-orange-500/20 rounded px-2 py-1">
+                    ℹ️ {validation.statusMessage}
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <div className="grid grid-cols-2 gap-3">
               {/* Idea Generation Agent Models */}
@@ -474,7 +572,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                     </Tooltip>
                     <input
                       type="number"
-                      value={config.nPlanReviews || 1}
+                      value={config.nPlanReviews}
                       onChange={(e) => setConfig({...config, nPlanReviews: parseInt(e.target.value)})}
                       min="0"
                       max="5"
@@ -503,90 +601,79 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                   </div>
                 </>
               )}
+
+              {/* Working Directory */}
+              <div className="col-span-2">
+                <Tooltip text="Directory where task files, results, and outputs will be saved" wide position="bottom">
+                  <label className="block text-xs text-gray-400 mb-1">Working Directory</label>
+                </Tooltip>
+                <div className="space-y-2">
+                  <div className="flex gap-1">
+                    <input
+                      type="text"
+                      value={config.workDir}
+                      onChange={(e) => setConfig({...config, workDir: e.target.value})}
+                      placeholder="~/cmbagent_workdir"
+                      className="flex-1 px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      disabled={isRunning}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setConfig({...config, workDir: '~/cmbagent_workdir'})}
+                      disabled={isRunning}
+                      className="px-2 py-1 bg-gray-600/20 text-gray-300 rounded text-xs hover:bg-gray-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Reset to default"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (confirm('Are you sure you want to clear the working directory? This will remove all task files.')) {
+                          try {
+                            const response = await fetch(`/api/files/clear-directory?path=${encodeURIComponent(config.workDir)}`, {
+                              method: 'DELETE'
+                            })
+
+                            if (response.ok) {
+                              const result = await response.json()
+                              alert(`Successfully cleared directory. ${result.items_deleted} items removed.`)
+                            } else {
+                              const error = await response.json()
+                              alert(`Error clearing directory: ${error.detail}`)
+                            }
+                          } catch (error) {
+                            alert(`Error clearing directory: ${error}`)
+                          }
+                        }
+                      }}
+                      disabled={isRunning}
+                      className="px-2 py-1 bg-red-600/20 text-red-300 rounded text-xs hover:bg-red-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Clear all files in directory"
+                    >
+                      Clear Directory
+                    </button>
+                    {onOpenDirectory && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenDirectory(config.workDir)}
+                        disabled={isRunning}
+                        className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs hover:bg-green-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Open directory"
+                      >
+                        Open Directory
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Working Directory - Collapsible */}
-        <div className="border border-gray-500/20 rounded">
-          <button
-            type="button"
-            onClick={() => setShowWorkDir(!showWorkDir)}
-            className="w-full flex items-center justify-between p-2 text-xs text-gray-400 hover:text-gray-300 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Folder className="w-3 h-3" />
-              <span>Working Directory: {config.workDir}</span>
-            </div>
-            <span className="text-xs">{showWorkDir ? '▼' : '▶'}</span>
-          </button>
 
-          {showWorkDir && (
-            <div className="p-2 border-t border-gray-500/20 bg-gray-500/5">
-              <div className="space-y-1">
-                <div className="flex gap-1">
-                  <input
-                    type="text"
-                    value={config.workDir}
-                    onChange={(e) => setConfig({...config, workDir: e.target.value})}
-                    placeholder="~/Desktop/cmbdir"
-                    className="flex-1 px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                    disabled={isRunning}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setConfig({...config, workDir: '~/Desktop/cmbdir'})}
-                    disabled={isRunning}
-                    className="px-2 py-1 bg-gray-600/20 text-gray-300 rounded text-xs hover:bg-gray-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Reset to default"
-                  >
-                    Reset
-                  </button>
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (confirm('Are you sure you want to clear the working directory? This will remove all task files.')) {
-                        try {
-                          const response = await fetch(`/api/files/clear-directory?path=${encodeURIComponent(config.workDir)}`, {
-                            method: 'DELETE'
-                          })
-
-                          if (response.ok) {
-                            const result = await response.json()
-                            alert(`Successfully cleared directory. ${result.items_deleted} items removed.`)
-                          } else {
-                            const error = await response.json()
-                            alert(`Error clearing directory: ${error.detail}`)
-                          }
-                        } catch (error) {
-                          alert(`Error clearing directory: ${error}`)
-                        }
-                      }
-                    }}
-                    disabled={isRunning}
-                    className="px-2 py-1 bg-red-600/20 text-red-300 rounded text-xs hover:bg-red-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Clear all files in directory"
-                  >
-                    Clear Directory
-                  </button>
-                  {onOpenDirectory && (
-                    <button
-                      type="button"
-                      onClick={() => onOpenDirectory(config.workDir)}
-                      disabled={isRunning}
-                      className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-xs hover:bg-green-600/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Open directory"
-                    >
-                      Open Directory
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Submit/Stop Button */}
         <div className="flex space-x-2">
@@ -624,6 +711,16 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
           )}
         </div>
       </form>
+      
+      {/* Credentials Modal */}
+      <CredentialsModal
+        isOpen={showCredentialsModal}
+        onClose={() => setShowCredentialsModal(false)}
+        onCredentialsUpdated={() => {
+          refreshCredentials(); // Use the hook's refresh function
+          setShowOpenAIError(false); // Clear OpenAI error message
+        }}
+      />
     </div>
   )
 }

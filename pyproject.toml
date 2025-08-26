@@ -8,7 +8,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1post56"
+version = "0.0.1post58"
 name = "cmbagent"
 maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
 description = "multi-agent system for autonomous discovery, made by cosmologists, powered by ag2"
@@ -32,6 +32,7 @@ dependencies = [
     "websockets>=12.0",
     "python-multipart>=0.0.6",
     "pydantic>=2.7.4",
+    "aiohttp>=3.9.0",
     
 
     # astronomy/astrophysics
@@ -87,6 +88,12 @@ jupyter = [
     "jupyter-kernel-gateway",
     "jupyter-client>=8.6.0",
     "ipykernel>=6.29.0",
+]
+
+nextjs = [
+    # Note: The Next.js interface requires installation from source
+    # pip install does not include the Next.js frontend files
+    # Use: git clone + pip install -e . for Next.js support
 ]
 
 [tool.setuptools.package-data]

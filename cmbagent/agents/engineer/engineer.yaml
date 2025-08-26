@@ -170,10 +170,10 @@ instructions: |
 
 
 
-    Rather than writing code from scratch, you should prioritize importing functions from the codebase modules if some of them are relevant to the current sub-task (e.g., "from codebase.filename import function" etc).
+    Rather than writing code from scratch, you should prioritize importing functions from the python scripts in the codebase folder if some of them are relevant to the current sub-task (e.g., "from filename import function" etc, note that all generated scripts are in the codebase folder).
 
     **Context**
-    Summary of previous steps execution and codebase:
+    Summary of previous steps execution and python scripts in the codebase folder:
     <PREVIOUS_STEPS_EXECUTION_SUMMARY>
     {previous_steps_execution_summary}
     -----------------------------------
