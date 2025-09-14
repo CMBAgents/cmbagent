@@ -992,6 +992,7 @@ def planning_and_control_context_carryover(
 
         ## planning
         planning_dir = Path(work_dir).expanduser().resolve() / "planning"
+        planning_dir.mkdir(parents=True, exist_ok=True)
 
         start_time = time.time()
 
@@ -1082,6 +1083,7 @@ def planning_and_control_context_carryover(
     plot_judge_config = get_model_config(plot_judge_model, api_keys)
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
+    control_dir.mkdir(parents=True, exist_ok=True)
 
     current_context = copy.deepcopy(planning_output) if restart_at_step <= 0 else load_context(os.path.join(context_dir, f"context_step_{restart_at_step-1}.pkl"))
     number_of_steps_in_plan = current_context['number_of_steps_in_plan']
@@ -1278,6 +1280,7 @@ def planning_and_control(
 
     ## planning
     planning_dir = Path(work_dir).expanduser().resolve() / "planning"
+    planning_dir.mkdir(parents=True, exist_ok=True)
 
     start_time = time.time()
     
@@ -1361,6 +1364,7 @@ def planning_and_control(
     idea_hater_config = get_model_config(idea_hater_model, api_keys)
         
     control_dir = Path(work_dir).expanduser().resolve() / "control"
+    control_dir.mkdir(parents=True, exist_ok=True)
 
     start_time = time.time()
     cmbagent = CMBAgent(
@@ -1492,6 +1496,7 @@ def control(
     idea_hater_config = get_model_config(idea_hater_model, api_keys)
     plot_judge_config = get_model_config(plot_judge_model, api_keys)        
     control_dir = Path(work_dir).expanduser().resolve() / "control"
+    control_dir.mkdir(parents=True, exist_ok=True)
 
     start_time = time.time()
     cmbagent = CMBAgent(
