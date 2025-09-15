@@ -21,6 +21,7 @@ from .agents.planner_response_formatter.planner_response_formatter import save_f
 from .utils import work_dir_default
 from .utils import default_llm_model as default_llm_model_default
 from .utils import default_formatter_model as default_formatter_model_default
+from .utils import clean_llm_config
 
 from .utils import (path_to_assistants, path_to_apis,path_to_agents, update_yaml_preserving_format, get_model_config,
                     default_top_p, default_temperature, default_max_round,default_llm_config_list, default_agent_llm_configs,
@@ -718,22 +719,7 @@ class CMBAgent:
             if agent_name in agent_llm_configs:
                 llm_config = copy.deepcopy(self.llm_config)
                 llm_config['config_list'][0].update(agent_llm_configs[agent_name])
-
-                if "reasoning_effort" in llm_config['config_list'][0]:
-                    llm_config.pop('temperature')
-                    llm_config.pop('top_p')
-
-                # Pop temperature if using GPT-5 model
-                if 'gpt-5' in llm_config['config_list'][0]['model']:
-                    llm_config.pop('temperature', None)
-                    llm_config.pop('top_p', None)
-
-                # print('\nin cmbagent.py: llm_config: ', llm_config)
-
-                
-
-                if llm_config['config_list'][0]['api_type'] == 'google':
-                    llm_config.pop('top_p') 
+                clean_llm_config(llm_config)
                 
                 if cmbagent_debug:
                     print('in cmbagent.py: found agent_llm_configs for: ', agent_name)
@@ -772,8 +758,15 @@ class CMBAgent:
         for agent in self.agents:
 
             if "formatter" in agent.name:
-                agent.llm_config = get_model_config(default_formatter_model, self.api_keys)
-                # print('\n\nagent.name: ', agent.name)
+
+                # print("="*10)
+                # print('\n\nagent.name BEFORE: ', agent.name)
+                # print('agent.llm_config: ', agent.llm_config)
+                # print('\n\n')
+
+                agent.llm_config['config_list'][0].update(get_model_config(default_formatter_model, self.api_keys))
+                clean_llm_config(agent.llm_config)
+                # print('\n\nagent.name AFTER: ', agent.name)
                 # print('agent.llm_config: ', agent.llm_config)
                 # print('\n\n')
 

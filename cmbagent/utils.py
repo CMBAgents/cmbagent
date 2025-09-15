@@ -276,3 +276,21 @@ AAS_keywords_string = ', '.join(AAS_keywords_dict.keys())
 camb_context_url = "https://camb.readthedocs.io/en/latest/_static/camb_docs_combined.md"
 classy_context_url = "https://github.com/santiagocasas/clapp/tree/main/classy_docs.md"
 
+
+
+def clean_llm_config(llm_config):
+    if "reasoning_effort" in llm_config['config_list'][0]:
+        llm_config.pop('temperature')
+        llm_config.pop('top_p')
+
+    # Pop temperature if using GPT-5 model
+    if 'gpt-5' in llm_config['config_list'][0]['model']:
+        llm_config.pop('temperature', None)
+        llm_config.pop('top_p', None)
+
+    # print('\nin cmbagent.py: llm_config: ', llm_config)
+
+    
+
+    if llm_config['config_list'][0]['api_type'] == 'google':
+        llm_config.pop('top_p') 
