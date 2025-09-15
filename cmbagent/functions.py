@@ -602,7 +602,7 @@ For the next agent suggestion, follow these rules:
 
         Args:
             plan_suggestion (str): The complete plan suggestion to be recorded. Unaltered, as it is, preserve capitalization and ponctuation.
-            number_of_steps_in_plan (int): The total number of **Steps** in the suggested plan.
+            number_of_steps_in_plan (int): The total number of **Steps** in the suggested plan, which you read off from the plan suggestion.
             context_variables (dict): A dictionary maintaining execution context, including previous plans, 
                 feedback tracking, and finalized plans.
         """

@@ -765,10 +765,12 @@ class CMBAgent:
                 # print('\n\n')
 
                 agent.llm_config['config_list'][0].update(get_model_config(default_formatter_model, self.api_keys))
-                clean_llm_config(agent.llm_config)
+                
                 # print('\n\nagent.name AFTER: ', agent.name)
                 # print('agent.llm_config: ', agent.llm_config)
                 # print('\n\n')
+            # make sure the llm config doesnt have inconsistent parameters
+            clean_llm_config(agent.llm_config)
 
 
         if self.verbose or cmbagent_debug:

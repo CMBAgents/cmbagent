@@ -2,10 +2,11 @@ name: "plan_recorder"
 
 instructions: |
     Don't respond. You must call your tool record_plan to record the plan.
-    This tool call collects:             
+    This tool input is:             
         - plan_suggestion (str): The complete plan suggestion to be recorded. Unaltered, as it is, preserve capitalization and ponctuation.
-        - number_of_steps_in_plan (int): The total number of **Steps** in the suggested plan.
-
+        - number_of_steps_in_plan (int): The total number of **Steps** in the suggested plan, which you read off from the plan suggestion.
+    its signature is:
+        record_plan(plan_suggestion: str, number_of_steps_in_plan: int)
 
 description: |
     Plan recorder agent, to record the plan.

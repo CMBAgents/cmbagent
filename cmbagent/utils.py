@@ -127,7 +127,7 @@ default_agents_llm_model ={
     "task_recorder": "gpt-4o-2024-11-20",
     # "control": "gpt-4o-2024-11-20",
     # "control": "gemini-2.5-pro-preview-03-25",
-    # "terminator": "gpt-4o-2024-11-20",
+    # "terminator": "gpt-5",
     # "terminator": "gemini-2.5-pro-preview-03-25",
     "researcher": "gpt-4.1-2025-04-14",
     "perplexity": "o3-mini-2025-01-31",
@@ -280,17 +280,23 @@ classy_context_url = "https://github.com/santiagocasas/clapp/tree/main/classy_do
 
 def clean_llm_config(llm_config):
     if "reasoning_effort" in llm_config['config_list'][0]:
-        llm_config.pop('temperature')
-        llm_config.pop('top_p')
+        if 'temperature' in llm_config:
+            llm_config.pop('temperature')
+        if 'top_p' in llm_config:
+            llm_config.pop('top_p')
+
 
     # Pop temperature if using GPT-5 model
     if 'gpt-5' in llm_config['config_list'][0]['model']:
-        llm_config.pop('temperature', None)
-        llm_config.pop('top_p', None)
+        if 'temperature' in llm_config:
+            llm_config.pop('temperature', None)
+        if 'top_p' in llm_config:
+            llm_config.pop('top_p', None)
 
     # print('\nin cmbagent.py: llm_config: ', llm_config)
 
     
 
     if llm_config['config_list'][0]['api_type'] == 'google':
-        llm_config.pop('top_p') 
+        if 'top_p' in llm_config:
+            llm_config.pop('top_p') 
