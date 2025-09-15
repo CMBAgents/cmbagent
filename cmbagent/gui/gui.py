@@ -1100,7 +1100,7 @@ def main():
                 plan_instructions = st.text_area(
                         "**Plan Instructions**",
                         value=(
-                            r"""Given these datasets, and information, make a plan according to the following instructions: 
+                            r"""Given these datasets, and information, make a plan in 6 steps according to the following instructions: 
 
 - Ask idea_maker to generate 5 new research project ideas related to the datasets.
 - Ask idea_hater to critique these ideas.

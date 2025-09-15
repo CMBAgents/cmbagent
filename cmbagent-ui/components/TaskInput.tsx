@@ -70,7 +70,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
   // Default plan instructions for different modes
   const getDefaultPlanInstructions = (mode: string) => {
     if (mode === 'idea-generation') {
-      return `Given these datasets, and information, make a plan according to the following instructions: 
+      return `Given these datasets, and information, make a plan in 6 steps according to the following instructions: 
 
 - Ask idea_maker to generate 5 new research project ideas related to the datasets.
 - Ask idea_hater to critique these ideas.
@@ -161,6 +161,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                 setConfig(prev => ({ 
                   ...prev, 
                   mode: 'planning-control',
+                  maxPlanSteps: 2,
                   planInstructions: getDefaultPlanInstructions('planning-control')
                 }))
               }}
@@ -171,7 +172,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                   : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              📋 Planning & Control
+              📋 Deep Research
             </button>
           </Tooltip>
           <Tooltip text="Generate research ideas using idea maker and idea hater agents in iterative workflow" wide position="bottom">
@@ -181,6 +182,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                 setConfig(prev => ({ 
                   ...prev, 
                   mode: 'idea-generation',
+                  maxPlanSteps: 6,
                   planInstructions: getDefaultPlanInstructions('idea-generation')
                 }))
               }}
@@ -286,7 +288,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         {showAdvanced && (
           <div className="space-y-2 p-2 bg-black/20 rounded-lg border border-white/10">
             <h3 className="text-xs font-medium text-gray-300">
-              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Planning & Control' : 'Idea Generation'} Mode
+              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Deep Research' : 'Idea Generation'} Mode
             </h3>
             
             {/* Credential Status Message in Advanced Section */}

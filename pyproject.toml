@@ -8,7 +8,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1post60"
+version = "0.0.1post61"
 name = "cmbagent"
 maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
 description = "multi-agent system for autonomous discovery, made by cosmologists, powered by ag2"
@@ -19,7 +19,7 @@ requires-python = ">=3.12"  # Specify the Python version requirement here
 dependencies = [
     "anthropic",
     "ruamel.yaml",
-    "cmbagent_autogen>=0.0.91post9",
+    "cmbagent_autogen>=0.0.91post10",
     # "google-cloud-aiplatform==1.91.0",
     "jsonref==1.1.0",
 
