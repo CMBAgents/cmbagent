@@ -5,6 +5,7 @@ import pickle
 import logging
 from ruamel.yaml import YAML
 from autogen.cmbagent_utils import cmbagent_debug
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='[%(name)s] %(message)s')
@@ -38,6 +39,9 @@ if "site-packages" in path_to_basedir or "dist-packages" in path_to_basedir:
     work_dir_default = os.path.join(os.getcwd(), "cmbagent_output")
 else:
     work_dir_default = os.path.join(path_to_basedir, "../output")
+
+
+work_dir_default = Path(work_dir_default).expanduser().resolve()
 
 if cmbagent_debug:
     print('\n\n\n\n\nwork_dir_default: ', work_dir_default)
@@ -110,6 +114,7 @@ default_max_round = 50
 default_llm_model = 'gpt-4.1-2025-04-14'
 # default_llm_model = 'gpt-4o-mini'
 # default_llm_model = "gemini-2.0-flash"
+default_formatter_model = 'o3-mini-2025-01-31'
 
 
 
@@ -152,15 +157,15 @@ default_agents_llm_model ={
     # "classy_context": "gpt-4o-2024-11-20",
     
     # structured output agents
-    "classy_sz_response_formatter": "gpt-4o-2024-11-20",
-    "camb_response_formatter": "gpt-4.1-2025-04-14",
-    "classy_response_formatter": "gpt-4.1-2025-04-14",
-    "cobaya_response_formatter": "gpt-4o-2024-11-20",
-    # "engineer_response_formatter": "gpt-4.1-2025-04-14",
-    "engineer_response_formatter": "o3-mini-2025-01-31",
-    # "engineer_response_formatter": "gemini-2.5-pro-preview-03-25",
-    "researcher_response_formatter": "o3-mini-2025-01-31",
-    "executor_response_formatter": "o3-mini-2025-01-31",
+    # "classy_sz_response_formatter": "gpt-4o-2024-11-20",
+    # "camb_response_formatter": "gpt-4.1-2025-04-14",
+    # "classy_response_formatter": "gpt-4.1-2025-04-14",
+    # "cobaya_response_formatter": "gpt-4o-2024-11-20",
+    # # "engineer_response_formatter": "gpt-4.1-2025-04-14",
+    # "engineer_response_formatter": default_formatter_model,
+    # # "engineer_response_formatter": "gemini-2.5-pro-preview-03-25",
+    # "researcher_response_formatter": default_formatter_model,
+    # "executor_response_formatter": default_formatter_model,
     #"executor_response_formatter": "gemini-2.5-pro-preview-03-25",
     'plot_debugger': 'gpt-4o-2024-11-20',
 }

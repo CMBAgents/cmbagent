@@ -20,6 +20,7 @@ from autogen.agentchat.group.patterns import AutoPattern
 from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
 from .utils import work_dir_default
 from .utils import default_llm_model as default_llm_model_default
+from .utils import default_formatter_model as default_formatter_model_default
 
 from .utils import (path_to_assistants, path_to_apis,path_to_agents, update_yaml_preserving_format, get_model_config,
                     default_top_p, default_temperature, default_max_round,default_llm_config_list, default_agent_llm_configs,
@@ -106,6 +107,7 @@ class CMBAgent:
                  skip_rag_software_formatter = True,
                  skip_rag_agents = True,
                  default_llm_model = default_llm_model_default,
+                 default_formatter_model = default_formatter_model_default,
                  default_llm_config_list = default_llm_config_list,
                  agent_llm_configs = default_agent_llm_configs,
                  agent_type = 'swarm',# None,# 'swarm',
@@ -146,8 +148,8 @@ class CMBAgent:
             This class initializes various agents and configurations for cosmological data analysis.
         """
         if default_llm_model != default_llm_model_default:
-            print(f"Warning: default_llm_model is set to {default_llm_model} in cmbagent.py")
-            default_llm_config_list = [get_model_config(default_llm_model)]
+
+            default_llm_config_list = [get_model_config(default_llm_model, api_keys)]
 
         self.kwargs = kwargs
 
@@ -183,9 +185,14 @@ class CMBAgent:
 
         self.verbose = verbose
 
+
+
         if work_dir != work_dir_default:
             # delete work_dir_default as it wont be used
-            shutil.rmtree(work_dir_default, ignore_errors=True)
+            # exception if we are working within work_dir_default, i.e., work_dir is a subdirectory of work_dir_default
+            if not work_dir_default.resolve() in work_dir.resolve().parents:
+                shutil.rmtree(work_dir_default, ignore_errors=True)
+            # shutil.rmtree(work_dir_default, ignore_errors=True)
 
         self.work_dir = os.path.expanduser(work_dir)
         self.clear_work_dir_bool = clear_work_dir
@@ -246,7 +253,10 @@ class CMBAgent:
             for agent in self.agent_llm_configs.keys():                
                 self.agent_llm_configs[agent] = get_model_config(self.agent_llm_configs[agent]["model"], api_keys)
 
-        self.init_agents(agent_llm_configs=self.agent_llm_configs) # initialize agents
+
+        self.api_keys = api_keys
+
+        self.init_agents(agent_llm_configs=self.agent_llm_configs, default_formatter_model=default_formatter_model) # initialize agents
 
         if cmbagent_debug:
             print("\n\n All agents instantiated!!!\n\n")
@@ -624,7 +634,7 @@ class CMBAgent:
         print(f"get_agent_from_name: agent {name} not found")
         sys.exit()
 
-    def init_agents(self,agent_llm_configs=None):
+    def init_agents(self,agent_llm_configs=None, default_formatter_model=default_formatter_model_default):
 
         # this automatically loads all the agents from the assistants folder
         imported_rag_agents = import_rag_agents()
@@ -758,6 +768,15 @@ class CMBAgent:
                 print('\n\nagent.name: ', agent.name)
                 print('agent.llm_config: ', agent.llm_config)
                 print('\n\n')
+
+        for agent in self.agents:
+
+            if "formatter" in agent.name:
+                agent.llm_config = get_model_config(default_formatter_model, self.api_keys)
+                # print('\n\nagent.name: ', agent.name)
+                # print('agent.llm_config: ', agent.llm_config)
+                # print('\n\n')
+
 
         if self.verbose or cmbagent_debug:
 
@@ -960,6 +979,7 @@ def planning_and_control_context_carryover(
                             camb_context_model = default_agents_llm_model['camb_context'],
                             plot_judge_model = default_agents_llm_model['plot_judge'],
                             default_llm_model = default_llm_model_default,
+                            default_formatter_model = default_formatter_model_default,
                             work_dir = work_dir_default,
                             api_keys = None,
                             restart_at_step = -1,   ## if -1 or 0, do not restart. if 1, restart from step 1, etc.
@@ -983,6 +1003,10 @@ def planning_and_control_context_carryover(
     
     context_dir = Path(work_dir).expanduser().resolve() / "context"
     os.makedirs(context_dir, exist_ok=True)
+
+    print("Created context directory: ", context_dir)
+
+
     if api_keys is None:
         api_keys = get_api_keys_from_env()
 
@@ -1000,9 +1024,11 @@ def planning_and_control_context_carryover(
 
         planner_config = get_model_config(planner_model, api_keys)
         plan_reviewer_config = get_model_config(plan_reviewer_model, api_keys)
-        
+    
+
         cmbagent = CMBAgent(work_dir = planning_dir,
                             default_llm_model = default_llm_model,
+                            default_formatter_model = default_formatter_model,
                             agent_llm_configs = {
                                 'planner': planner_config,
                                 'plan_reviewer': plan_reviewer_config,
@@ -1013,6 +1039,7 @@ def planning_and_control_context_carryover(
         initialization_time_planning = end_time - start_time
 
         start_time = time.time()
+
         cmbagent.solve(task,
                     max_rounds=max_rounds_planning,
                     initial_agent="plan_setter",
@@ -1104,6 +1131,7 @@ def planning_and_control_context_carryover(
             work_dir = control_dir,
             clear_work_dir = clear_work_dir,
             default_llm_model = default_llm_model,
+            default_formatter_model = default_formatter_model,
             agent_llm_configs = {
                                 'engineer': engineer_config,
                                 'researcher': researcher_config,
@@ -1570,6 +1598,8 @@ def one_shot(
             researcher_model = default_agents_llm_model['researcher'],
             plot_judge_model = default_agents_llm_model['plot_judge'],
             camb_context_model = default_agents_llm_model['camb_context'],
+            default_llm_model = default_llm_model_default,
+            default_formatter_model = default_formatter_model_default,
             researcher_filename = shared_context_default['researcher_filename'],
             agent = 'engineer',
             work_dir = work_dir_default,
@@ -1581,6 +1611,7 @@ def one_shot(
             ):
     start_time = time.time()
     work_dir = os.path.expanduser(work_dir)
+    work_dir = Path(work_dir).expanduser().resolve()
 
     if api_keys is None:
         api_keys = get_api_keys_from_env()
@@ -1589,6 +1620,8 @@ def one_shot(
     researcher_config = get_model_config(researcher_model, api_keys)
     plot_judge_config = get_model_config(plot_judge_model, api_keys)
     camb_context_config = get_model_config(camb_context_model, api_keys)
+
+    
     cmbagent = CMBAgent(
         mode = "one_shot",
         work_dir = work_dir,
@@ -1599,7 +1632,10 @@ def one_shot(
                             'camb_context': camb_context_config,    
         },
         clear_work_dir = clear_work_dir,
-        api_keys = api_keys
+        api_keys = api_keys,
+
+        default_llm_model = default_llm_model,
+        default_formatter_model = default_formatter_model,
         )
         
     end_time = time.time()
