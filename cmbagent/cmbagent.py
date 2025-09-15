@@ -572,6 +572,9 @@ class CMBAgent:
         database_full_path = os.path.join(self.work_dir, this_shared_context.get("database_path", "data"))
         codebase_full_path = os.path.join(self.work_dir, this_shared_context.get("codebase_path", "codebase"))
 
+        # add the codebase to the python path so we can import modules from it
+        sys.path.append(codebase_full_path)
+
         chat_full_path = os.path.join(self.work_dir, "chats")
         time_full_path = os.path.join(self.work_dir, "time")
         cost_full_path = os.path.join(self.work_dir, "cost")
