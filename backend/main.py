@@ -522,6 +522,14 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
         max_rounds = config.get("maxRounds", 25)
         max_attempts = config.get("maxAttempts", 6)
         agent = config.get("agent", "engineer")
+        default_formatter_model = config.get("defaultFormatterModel", "o3-mini-2025-01-31")
+        default_llm_model = config.get("defaultModel", "gpt-4.1-2025-04-14")
+        
+        # Debug: Log the received config
+        print(f"DEBUG: Received config: {config}")
+        print(f"DEBUG: defaultModel = {default_llm_model}")
+        print(f"DEBUG: defaultFormatterModel = {default_formatter_model}")
+
         
         # Planning & Control specific parameters
         planner_model = config.get("plannerModel", "gpt-4.1-2025-04-14")
@@ -540,6 +548,18 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             "data": f"🚀 Starting CMBAgent in {mode.replace('-', ' ').title()} mode"
         })
         
+        await websocket.send_json({
+            "type": "output",
+            "data": f"🚀 Default LLM Model: {default_llm_model}"
+        })
+
+        await websocket.send_json({
+            "type": "output",
+            "data": f"🚀 Default Formatter Model: {default_formatter_model}"
+        })
+
+
+
         await websocket.send_json({
             "type": "output", 
             "data": f"📋 Task: {task}"
@@ -603,7 +623,10 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         plan_instructions=plan_instructions if plan_instructions.strip() else None,
                         work_dir=task_work_dir,
                         api_keys=api_keys,
-                        clear_work_dir=False
+                        clear_work_dir=False,
+                        default_formatter_model=default_formatter_model,
+                        default_llm_model=default_llm_model
+
                     )
                 elif mode == "idea-generation":
                     # Idea Generation mode - uses planning_and_control_context_carryover with idea agents
@@ -620,7 +643,9 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         plan_instructions=plan_instructions if plan_instructions.strip() else None,
                         work_dir=task_work_dir,
                         api_keys=api_keys,
-                        clear_work_dir=False
+                        clear_work_dir=False,
+                        default_formatter_model=default_formatter_model,
+                        default_llm_model=default_llm_model
                     )
                 else:
                     # One Shot mode
@@ -632,7 +657,9 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         agent=agent,
                         work_dir=task_work_dir,
                         api_keys=api_keys,
-                        clear_work_dir=False
+                        clear_work_dir=False,
+                        default_formatter_model=default_formatter_model,
+                        default_llm_model=default_llm_model
                     )
                 
                 return results
@@ -692,4 +719,7 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             "type": "error",
             "message": error_msg
         })
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 

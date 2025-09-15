@@ -55,6 +55,9 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     agent: 'engineer',
     workDir: '~/cmbagent_workdir',
     mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation',
+    // Global model options
+    defaultModel: 'gpt-4.1-2025-04-14',
+    defaultFormatterModel: 'o3-mini-2025-01-31',
     // Planning & Control specific options
     maxPlanSteps: 2,
     nPlanReviews: 1,
@@ -516,6 +519,43 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                   </div>
                 </>
               )}
+
+              {/* Global Model Options - Available for all modes */}
+              <div>
+                <Tooltip text="Default model used for general orchestration tasks and fallback scenarios" position="bottom">
+                  <label className="block text-xs text-gray-400 mb-1">Default Model</label>
+                </Tooltip>
+                <select
+                  value={config.defaultModel || 'gpt-4.1-2025-04-14'}
+                  onChange={(e) => setConfig({...config, defaultModel: e.target.value})}
+                  className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={isRunning}
+                >
+                  <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
+                  <option value="o3-mini-2025-01-31">o3-mini</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini</option>
+                  <option value="gpt-4o">GPT-4o</option>
+                  <option value="gpt-5-2025-08-07">GPT-5</option>
+                </select>
+              </div>
+
+              <div>
+                <Tooltip text="Model used for formatting and structuring output" position="bottom">
+                  <label className="block text-xs text-gray-400 mb-1">Default Formatter Model</label>
+                </Tooltip>
+                <select
+                  value={config.defaultFormatterModel || 'o3-mini-2025-01-31'}
+                  onChange={(e) => setConfig({...config, defaultFormatterModel: e.target.value})}
+                  className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={isRunning}
+                >
+                  <option value="o3-mini-2025-01-31">o3-mini</option>
+                  <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini</option>
+                  <option value="gpt-4o">GPT-4o</option>
+                  <option value="gpt-5-2025-08-07">GPT-5</option>
+                </select>
+              </div>
 
               <div>
                 <Tooltip text="Maximum number of conversation rounds between agents before stopping" position="bottom">
