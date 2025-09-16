@@ -1297,6 +1297,8 @@ def planning_and_control(
                             idea_hater_model = default_agents_llm_model['idea_hater'],
                             work_dir = work_dir_default,
                             researcher_filename = shared_context_default['researcher_filename'],
+                            default_llm_model = default_llm_model_default,
+                            default_formatter_model = default_formatter_model_default,
                             api_keys = None,
                             ):
 
@@ -1317,6 +1319,8 @@ def planning_and_control(
     plan_reviewer_config = get_model_config(plan_reviewer_model, api_keys)
     
     cmbagent = CMBAgent(work_dir = planning_dir,
+                        default_llm_model = default_llm_model,
+                        default_formatter_model = default_formatter_model,
                         agent_llm_configs = {
                             'planner': planner_config,
                             'plan_reviewer': plan_reviewer_config,
@@ -1395,6 +1399,8 @@ def planning_and_control(
     start_time = time.time()
     cmbagent = CMBAgent(
         work_dir = control_dir,
+        default_llm_model = default_llm_model,
+        default_formatter_model = default_formatter_model,
         agent_llm_configs = {
                             'engineer': engineer_config,
                             'researcher': researcher_config,
