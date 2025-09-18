@@ -1506,6 +1506,11 @@ def _parse_formatted_content(content):
         date_match = re.search(r'\*\*Date:\*\*\s*(.+)', content)
         if date_match:
             summary_data['date'] = date_match.group(1).strip()
+
+        # Extract journal
+        journal_match = re.search(r'\*\*Journal:\*\*\s*(.+)', content)
+        if journal_match:
+            summary_data['journal'] = journal_match.group(1).strip()
         
         # Extract abstract
         abstract_match = re.search(r'\*\*Abstract:\*\*\s*(.+?)(?=\n\n\*\*|\n\*\*|\Z)', content, re.DOTALL)
@@ -1576,11 +1581,9 @@ def summarize_document(markdown_document_path,
                        work_dir = work_dir_default, 
                        clear_work_dir = True,
                        summarizer_model = default_agents_llm_model['summarizer'],
-                       summarizer_response_formatter_model = default_agents_llm_model['summarizer_response_formatter'],
-                       api_keys = None):
+                       summarizer_response_formatter_model = default_agents_llm_model['summarizer_response_formatter']):
     
-    if api_keys is None:
-        api_keys = get_api_keys_from_env()
+    api_keys = get_api_keys_from_env()
     # load the document from the document_path to markdown file:
     with open(markdown_document_path, 'r') as f:
         markdown_document = f.read()
@@ -1607,7 +1610,7 @@ def summarize_document(markdown_document_path,
     cmbagent.solve(markdown_document,
                     max_rounds=10,
                     initial_agent="summarizer",
-                    shared_context = {'markdown_document': markdown_document}
+                    shared_context = {'current_plan_step_number': 'document_summarizer' }
                     )
     end_time = time.time()
     execution_time_summarization = end_time - start_time
@@ -1654,16 +1657,19 @@ def summarize_document(markdown_document_path,
         except Exception as e:
             print(f"Warning: Could not save document_summary.json: {e}")
     
-    # Return structured output
-    result = {
-        'chat_history': chat_result.chat_history if hasattr(chat_result, 'chat_history') else [],
-        'final_context': final_context,
-        'execution_time': execution_time_summarization,
-        'work_dir': work_dir,
-        'document_summary': document_summary,
-    }
+    # # Return structured output
+    # result = {
+    #     'chat_history': chat_result.chat_history if hasattr(chat_result, 'chat_history') else [],
+    #     'final_context': final_context,
+    #     'execution_time': execution_time_summarization,
+    #     'work_dir': work_dir,
+    #     'document_summary': document_summary,
+    # }
+    # pretty print the document_summary
+    print(json.dumps(document_summary, indent=4))
     
-    return result
+
+    return document_summary
 
 
 

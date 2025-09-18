@@ -87,3 +87,6 @@ cmbagent-ui/.env.production.local
 
 # Test files
 test_*.py
+
+
+tests/testdocs/*
