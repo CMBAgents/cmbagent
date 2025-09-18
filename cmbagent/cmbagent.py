@@ -954,7 +954,15 @@ class CMBAgent:
         return
 
 
-
+def clean_work_dir(work_dir):
+    # Clear everything inside work_dir if it exists
+    if os.path.exists(work_dir):
+        for item in os.listdir(work_dir):
+            item_path = os.path.join(work_dir, item)
+            if os.path.isfile(item_path):
+                os.unlink(item_path)
+            elif os.path.isdir(item_path):
+                shutil.rmtree(item_path)
 
 
 def planning_and_control_context_carryover(
@@ -990,14 +998,7 @@ def planning_and_control_context_carryover(
     work_dir = os.path.expanduser(work_dir)
 
     if clear_work_dir:
-        # Clear everything inside work_dir if it exists
-        if os.path.exists(work_dir):
-            for item in os.listdir(work_dir):
-                item_path = os.path.join(work_dir, item)
-                if os.path.isfile(item_path):
-                    os.unlink(item_path)
-                elif os.path.isdir(item_path):
-                    shutil.rmtree(item_path)
+        clean_work_dir(work_dir)
     
     context_dir = Path(work_dir).expanduser().resolve() / "context"
     os.makedirs(context_dir, exist_ok=True)
@@ -1478,6 +1479,44 @@ def load_plan(plan_path):
         plan_dict = json.load(f)
     
     return plan_dict
+
+
+def summarize_document(markdown_document_path, 
+                       work_dir = work_dir_default, 
+                       clear_work_dir = True,
+                       summarizer_model = default_agents_llm_model['summarizer'],
+                       summarizer_response_formatter_model = default_agents_llm_model['summarizer_response_formatter'],
+                       api_keys = None):
+    # load the document from the document_path to markdown file:
+    with open(markdown_document_path, 'r') as f:
+        markdown_document = f.read()
+    
+        # Create work directory if it doesn't exist
+    Path(work_dir).expanduser().resolve().mkdir(parents=True, exist_ok=True)
+    work_dir = os.path.expanduser(work_dir)
+
+    if clear_work_dir:
+        clean_work_dir(work_dir)
+
+    summarizer_config = get_model_config(summarizer_model, api_keys)
+    summarizer_response_formatter_config = get_model_config(summarizer_response_formatter_model, api_keys)
+    cmbagent = CMBAgent(
+        work_dir = work_dir,
+        agent_llm_configs = {
+                            'summarizer': summarizer_config,
+                            'summarizer_response_formatter': summarizer_response_formatter_config,
+        },
+        api_keys = api_keys
+    )
+
+    start_time = time.time()
+    cmbagent.solve(markdown_document,
+                    max_rounds=10,
+                    initial_agent="summarizer",
+                    shared_context = {'markdown_document': markdown_document}
+                    )
+    end_time = time.time()
+    execution_time_summarization = end_time - start_time
 
 
 

@@ -49,6 +49,9 @@ def register_all_hand_offs(cmbagent_instance):
 
     camb_context = cmbagent_instance.get_agent_object_from_name('camb_context')
     classy_context = cmbagent_instance.get_agent_object_from_name('classy_context')
+
+    summarizer = cmbagent_instance.get_agent_object_from_name('summarizer')
+    summarizer_response_formatter = cmbagent_instance.get_agent_object_from_name('summarizer_response_formatter')
     
 
     mode = cmbagent_instance.mode
@@ -98,6 +101,12 @@ def register_all_hand_offs(cmbagent_instance):
 
         # planck handoffs   
         planck.agent.handoffs.set_after_work(AgentTarget(control.agent))
+
+    # Summarizer handoffs
+    summarizer.agent.handoffs.set_after_work(AgentTarget(summarizer_response_formatter.agent))
+
+    # Summarizer response formatter handoffs
+    summarizer_response_formatter.agent.handoffs.set_after_work(AgentTarget(terminator.agent))
 
     # Task improver handoffs
     task_improver.agent.handoffs.set_after_work(AgentTarget(task_recorder.agent))
@@ -172,7 +181,7 @@ def register_all_hand_offs(cmbagent_instance):
 
     context_handling.add_to_agent(idea_hater_response_formatter.agent)
 
-
+    context_handling.add_to_agent(summarizer_response_formatter.agent)
 
 
     # Nested chat for code execution
