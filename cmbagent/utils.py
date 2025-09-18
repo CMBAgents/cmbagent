@@ -177,6 +177,7 @@ def get_api_keys_from_env():
         "OPENAI" : os.getenv("OPENAI_API_KEY"),
         "GEMINI" : os.getenv("GEMINI_API_KEY"),
         "ANTHROPIC" : os.getenv("ANTHROPIC_API_KEY"),
+        "MISTRAL" : os.getenv("MISTRAL_API_KEY"),
     }
     return api_keys
 

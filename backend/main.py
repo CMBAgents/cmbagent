@@ -543,6 +543,13 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
         idea_maker_model = config.get("ideaMakerModel", "gpt-4.1-2025-04-14")
         idea_hater_model = config.get("ideaHaterModel", "o3-mini-2025-01-31")
         
+        # OCR specific parameters
+        save_markdown = config.get("saveMarkdown", True)
+        save_json = config.get("saveJson", True)
+        save_text = config.get("saveText", False)
+        max_workers = config.get("maxWorkers", 4)
+        ocr_output_dir = config.get("ocrOutputDir", None)
+        
         await websocket.send_json({
             "type": "output",
             "data": f"🚀 Starting CMBAgent in {mode.replace('-', ' ').title()} mode"
@@ -574,6 +581,11 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             await websocket.send_json({
                 "type": "output",
                 "data": f"⚙️ Configuration: Idea Maker={idea_maker_model}, Idea Hater={idea_hater_model}, Planner={planner_model}, Plan Reviewer={plan_reviewer_model}"
+            })
+        elif mode == "ocr":
+            await websocket.send_json({
+                "type": "output",
+                "data": f"⚙️ Configuration: Save Markdown={save_markdown}, Save JSON={save_json}, Save Text={save_text}, Max Workers={max_workers}"
             })
         else:
             await websocket.send_json({
@@ -647,6 +659,45 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         default_formatter_model=default_formatter_model,
                         default_llm_model=default_llm_model
                     )
+                elif mode == "ocr":
+                    # OCR mode - process PDFs with Mistral OCR
+                    import os
+                    
+                    # task should be the path to PDF file or folder
+                    pdf_path = task.strip()
+                    
+                    # Expand user path if needed
+                    if pdf_path.startswith("~"):
+                        pdf_path = os.path.expanduser(pdf_path)
+                    
+                    # Check if path exists
+                    if not os.path.exists(pdf_path):
+                        raise ValueError(f"Path does not exist: {pdf_path}")
+                    
+                    # Use OCR output directory if specified, otherwise use default logic
+                    output_dir = ocr_output_dir if ocr_output_dir and ocr_output_dir.strip() else None
+                    
+                    if os.path.isfile(pdf_path):
+                        # Single PDF file
+                        results = cmbagent.process_single_pdf(
+                            pdf_path=pdf_path,
+                            save_markdown=save_markdown,
+                            save_json=save_json,
+                            save_text=save_text,
+                            output_dir=output_dir
+                        )
+                    elif os.path.isdir(pdf_path):
+                        # Folder containing PDFs
+                        results = cmbagent.process_folder(
+                            folder_path=pdf_path,
+                            save_markdown=save_markdown,
+                            save_json=save_json,
+                            save_text=save_text,
+                            output_dir=output_dir,
+                            max_workers=max_workers
+                        )
+                    else:
+                        raise ValueError(f"Path is neither a file nor a directory: {pdf_path}")
                 else:
                     # One Shot mode
                     results = cmbagent.one_shot(

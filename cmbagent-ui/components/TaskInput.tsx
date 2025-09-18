@@ -33,7 +33,7 @@ interface TaskInputProps {
 export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = false, onOpenDirectory }: TaskInputProps) {
   const [task, setTask] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation'>('one-shot')
+  const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation' | 'ocr'>('one-shot')
   const [showCredentialsModal, setShowCredentialsModal] = useState(false)
   const [showOpenAIError, setShowOpenAIError] = useState(false)
   
@@ -54,7 +54,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     maxAttempts: 1,
     agent: 'engineer',
     workDir: '~/cmbagent_workdir',
-    mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation',
+    mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation' | 'ocr',
     // Global model options
     defaultModel: 'gpt-4.1-2025-04-14',
     defaultFormatterModel: 'o3-mini-2025-01-31',
@@ -67,7 +67,13 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     planReviewerModel: 'o3-mini-2025-01-31',
     // Idea Generation specific options
     ideaMakerModel: 'gpt-4.1-2025-04-14',
-    ideaHaterModel: 'o3-mini-2025-01-31'
+    ideaHaterModel: 'o3-mini-2025-01-31',
+    // OCR specific options
+    saveMarkdown: true,
+    saveJson: true,
+    saveText: false,
+    maxWorkers: 4,
+    ocrOutputDir: ''
   })
 
   // Default plan instructions for different modes
@@ -98,6 +104,12 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         'Bank customer data during covid-19',
         'Galaxy cluster observations from Hubble telescope', 
         'Climate change temperature records 1900-2020'
+      ]
+    } else if (mode === 'ocr') {
+      return [
+        '/Users/username/Documents/research_papers/',
+        '/Users/username/Desktop/scientific_paper.pdf',
+        '~/Downloads/reports/'
       ]
     }
     return [
@@ -140,23 +152,6 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
       {/* Mode Selection Header */}
       <div className="flex items-center justify-between mb-3 px-4 pt-4">
         <div className="flex items-center space-x-1">
-          <Tooltip text="Direct execution - CMBAgent executes your task immediately without planning" position="bottom">
-            <button
-              onClick={() => {
-                setMode('one-shot')
-                setConfig(prev => ({ ...prev, mode: 'one-shot' }))
-              }}
-              disabled={isRunning}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                mode === 'one-shot'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              <Zap className="w-3 h-3 mr-1 inline" />
-              One Shot
-            </button>
-          </Tooltip>
           <Tooltip text="Task is broken into steps by a planner, then executed step-by-step" position="bottom">
             <button
               onClick={() => {
@@ -178,6 +173,23 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
               📋 Deep Research
             </button>
           </Tooltip>
+          <Tooltip text="Direct execution - CMBAgent executes your task immediately without planning" position="bottom">
+            <button
+              onClick={() => {
+                setMode('one-shot')
+                setConfig(prev => ({ ...prev, mode: 'one-shot' }))
+              }}
+              disabled={isRunning}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                mode === 'one-shot'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <Zap className="w-3 h-3 mr-1 inline" />
+              One Shot
+            </button>
+          </Tooltip>
           <Tooltip text="Generate research ideas using idea maker and idea hater agents in iterative workflow" wide position="bottom">
             <button
               onClick={() => {
@@ -197,6 +209,22 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               💡 Idea Generation
+            </button>
+          </Tooltip>
+          <Tooltip text="Process PDFs with OCR - Extract text from PDF files or folders containing PDFs" wide position="bottom">
+            <button
+              onClick={() => {
+                setMode('ocr')
+                setConfig(prev => ({ ...prev, mode: 'ocr' }))
+              }}
+              disabled={isRunning}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                mode === 'ocr'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              📄 OCR
             </button>
           </Tooltip>
         </div>
@@ -223,6 +251,8 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
             onChange={(e) => setTask(e.target.value)}
             placeholder={mode === 'idea-generation' ? 
               "Describe dataset or problem of interest..." : 
+              mode === 'ocr' ?
+              "Enter path to PDF file or folder containing PDFs..." :
               "Describe the task here..."
             }
             className="w-full h-28 px-3 py-2 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
@@ -291,7 +321,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         {showAdvanced && (
           <div className="space-y-2 p-2 bg-black/20 rounded-lg border border-white/10">
             <h3 className="text-xs font-medium text-gray-300">
-              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Deep Research' : 'Idea Generation'} Mode
+              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Deep Research' : mode === 'idea-generation' ? 'Idea Generation' : 'OCR'} Mode
             </h3>
             
             {/* Credential Status Message in Advanced Section */}
@@ -478,6 +508,83 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
+                  </div>
+                </>
+              ) : mode === 'ocr' ? (
+                /* OCR Configuration */
+                <>
+                  <div>
+                    <Tooltip text="Save extracted text as Markdown files" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Save Markdown</label>
+                    </Tooltip>
+                    <select
+                      value={config.saveMarkdown ? 'true' : 'false'}
+                      onChange={(e) => setConfig({...config, saveMarkdown: e.target.value === 'true'})}
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    >
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Tooltip text="Save extracted text as JSON files with structured data" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Save JSON</label>
+                    </Tooltip>
+                    <select
+                      value={config.saveJson ? 'true' : 'false'}
+                      onChange={(e) => setConfig({...config, saveJson: e.target.value === 'true'})}
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    >
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Tooltip text="Save extracted text as plain text files" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Save Text</label>
+                    </Tooltip>
+                    <select
+                      value={config.saveText ? 'true' : 'false'}
+                      onChange={(e) => setConfig({...config, saveText: e.target.value === 'true'})}
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    >
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Tooltip text="Maximum number of parallel workers for processing multiple PDFs" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Max Workers</label>
+                    </Tooltip>
+                    <input
+                      type="number"
+                      value={config.maxWorkers || 4}
+                      onChange={(e) => setConfig({...config, maxWorkers: parseInt(e.target.value)})}
+                      min="1"
+                      max="8"
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <Tooltip text="Directory where OCR output files will be saved (optional, defaults to input_path_processed)" wide position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Output Directory (optional)</label>
+                    </Tooltip>
+                    <input
+                      type="text"
+                      value={config.ocrOutputDir || ''}
+                      onChange={(e) => setConfig({...config, ocrOutputDir: e.target.value})}
+                      placeholder="Leave empty for auto-generated directory name"
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    />
                   </div>
                 </>
               ) : (
