@@ -246,18 +246,29 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
 
         {/* Task Input */}
         <div>
-          <textarea
-            value={task}
-            onChange={(e) => setTask(e.target.value)}
-            placeholder={mode === 'idea-generation' ? 
-              "Describe dataset or problem of interest..." : 
-              mode === 'ocr' ?
-              "Enter path to PDF file or folder containing PDFs..." :
-              "Describe the task here..."
-            }
-            className="w-full h-28 px-3 py-2 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
-            disabled={isRunning}
-          />
+          {mode === 'ocr' ? (
+            /* Single-line input for OCR mode */
+            <input
+              type="text"
+              value={task}
+              onChange={(e) => setTask(e.target.value)}
+              placeholder="Enter path to PDF file or folder containing PDFs..."
+              className="w-full px-3 py-2 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              disabled={isRunning}
+            />
+          ) : (
+            /* Multi-line textarea for other modes */
+            <textarea
+              value={task}
+              onChange={(e) => setTask(e.target.value)}
+              placeholder={mode === 'idea-generation' ? 
+                "Describe dataset or problem of interest..." : 
+                "Describe the task here..."
+              }
+              className="w-full h-28 px-3 py-2 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+              disabled={isRunning}
+            />
+          )}
         </div>
 
         {/* OpenAI Required Error - Main UI (Red Key) */}
@@ -627,74 +638,78 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                 </>
               )}
 
-              {/* Global Model Options - Available for all modes */}
-              <div>
-                <Tooltip text="Default model used for general orchestration tasks and fallback scenarios" position="bottom">
-                  <label className="block text-xs text-gray-400 mb-1">Default Model</label>
-                </Tooltip>
-                <select
-                  value={config.defaultModel || 'gpt-4.1-2025-04-14'}
-                  onChange={(e) => setConfig({...config, defaultModel: e.target.value})}
-                  className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  disabled={isRunning}
-                >
-                  <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
-                  <option value="o3-mini-2025-01-31">o3-mini</option>
-                  <option value="gpt-4o-mini">GPT-4o Mini</option>
-                  <option value="gpt-4o">GPT-4o</option>
-                  <option value="gpt-5-2025-08-07">GPT-5</option>
-                </select>
-              </div>
+              {/* Global Model Options - Available for all modes except OCR */}
+              {mode !== 'ocr' && (
+                <>
+                  <div>
+                    <Tooltip text="Default model used for general orchestration tasks and fallback scenarios" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Default Model</label>
+                    </Tooltip>
+                    <select
+                      value={config.defaultModel || 'gpt-4.1-2025-04-14'}
+                      onChange={(e) => setConfig({...config, defaultModel: e.target.value})}
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    >
+                      <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
+                      <option value="o3-mini-2025-01-31">o3-mini</option>
+                      <option value="gpt-4o-mini">GPT-4o Mini</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                      <option value="gpt-5-2025-08-07">GPT-5</option>
+                    </select>
+                  </div>
 
-              <div>
-                <Tooltip text="Model used for formatting and structuring output" position="bottom">
-                  <label className="block text-xs text-gray-400 mb-1">Default Formatter Model</label>
-                </Tooltip>
-                <select
-                  value={config.defaultFormatterModel || 'o3-mini-2025-01-31'}
-                  onChange={(e) => setConfig({...config, defaultFormatterModel: e.target.value})}
-                  className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  disabled={isRunning}
-                >
-                  <option value="o3-mini-2025-01-31">o3-mini</option>
-                  <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
-                  <option value="gpt-4o-mini">GPT-4o Mini</option>
-                  <option value="gpt-4o">GPT-4o</option>
-                  <option value="gpt-5-2025-08-07">GPT-5</option>
-                </select>
-              </div>
+                  <div>
+                    <Tooltip text="Model used for formatting and structuring output" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Default Formatter Model</label>
+                    </Tooltip>
+                    <select
+                      value={config.defaultFormatterModel || 'o3-mini-2025-01-31'}
+                      onChange={(e) => setConfig({...config, defaultFormatterModel: e.target.value})}
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    >
+                      <option value="o3-mini-2025-01-31">o3-mini</option>
+                      <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
+                      <option value="gpt-4o-mini">GPT-4o Mini</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                      <option value="gpt-5-2025-08-07">GPT-5</option>
+                    </select>
+                  </div>
 
-              <div>
-                <Tooltip text="Maximum number of conversation rounds between agents before stopping" position="bottom">
-                  <label className="block text-xs text-gray-400 mb-1">
-                    {mode === 'planning-control' ? 'Max Control Rounds' : 'Max Rounds'}
-                  </label>
-                </Tooltip>
-                <input
-                  type="number"
-                  value={config.maxRounds}
-                  onChange={(e) => setConfig({...config, maxRounds: parseInt(e.target.value)})}
-                  min="1"
-                  max="100"
-                  className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  disabled={isRunning}
-                />
-              </div>
+                  <div>
+                    <Tooltip text="Maximum number of conversation rounds between agents before stopping" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">
+                        {mode === 'planning-control' ? 'Max Control Rounds' : 'Max Rounds'}
+                      </label>
+                    </Tooltip>
+                    <input
+                      type="number"
+                      value={config.maxRounds}
+                      onChange={(e) => setConfig({...config, maxRounds: parseInt(e.target.value)})}
+                      min="1"
+                      max="100"
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    />
+                  </div>
 
-              <div>
-                <Tooltip text="Maximum number of retry attempts when tasks fail or encounter errors" position="bottom">
-                  <label className="block text-xs text-gray-400 mb-1">Max Attempts</label>
-                </Tooltip>
-                <input
-                  type="number"
-                  value={config.maxAttempts}
-                  onChange={(e) => setConfig({...config, maxAttempts: parseInt(e.target.value)})}
-                  min="1"
-                  max="20"
-                  className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  disabled={isRunning}
-                />
-              </div>
+                  <div>
+                    <Tooltip text="Maximum number of retry attempts when tasks fail or encounter errors" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Max Attempts</label>
+                    </Tooltip>
+                    <input
+                      type="number"
+                      value={config.maxAttempts}
+                      onChange={(e) => setConfig({...config, maxAttempts: parseInt(e.target.value)})}
+                      min="1"
+                      max="20"
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Additional Planning & Control and Idea Generation Options */}
               {(mode === 'planning-control' || mode === 'idea-generation') && (

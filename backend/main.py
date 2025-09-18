@@ -684,7 +684,8 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                             save_markdown=save_markdown,
                             save_json=save_json,
                             save_text=save_text,
-                            output_dir=output_dir
+                            output_dir=output_dir,
+                            work_dir=task_work_dir
                         )
                     elif os.path.isdir(pdf_path):
                         # Folder containing PDFs
@@ -694,7 +695,8 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                             save_json=save_json,
                             save_text=save_text,
                             output_dir=output_dir,
-                            max_workers=max_workers
+                            max_workers=max_workers,
+                            work_dir=task_work_dir
                         )
                     else:
                         raise ValueError(f"Path is neither a file nor a directory: {pdf_path}")
@@ -753,7 +755,8 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                 "chat_history": getattr(results, 'chat_history', []) if hasattr(results, 'chat_history') else [],
                 "final_context": getattr(results, 'final_context', {}) if hasattr(results, 'final_context') else {},
                 "work_dir": task_work_dir,
-                "base_work_dir": work_dir
+                "base_work_dir": work_dir,
+                "mode": mode  # Include mode so UI knows how to display results
             }
         })
         

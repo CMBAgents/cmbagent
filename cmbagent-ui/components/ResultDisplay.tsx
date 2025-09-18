@@ -13,6 +13,21 @@ interface CostData {
   Model: string
 }
 
+interface OCRCostData {
+  total_pages_processed: number
+  total_cost_usd: number
+  cost_per_page: number
+  entries: {
+    filename: string
+    pages_processed: number
+    doc_size_bytes: number
+    cost_usd: number
+    cost_per_page: number
+    timestamp: number
+  }[]
+  last_updated: number
+}
+
 interface ResultDisplayProps {
   results?: {
     chat_history?: any[]
@@ -23,16 +38,87 @@ interface ResultDisplayProps {
     code_outputs?: string[]
     work_dir?: string
     base_work_dir?: string
+    mode?: string  // Add mode to identify OCR vs other modes
   } | null
 }
 
 export default function ResultDisplay({ results }: ResultDisplayProps) {
   const [activeTab, setActiveTab] = useState('summary')
   const [costData, setCostData] = useState<CostData[]>([])
+  const [ocrCostData, setOcrCostData] = useState<OCRCostData | null>(null)
   const [isLoadingCost, setIsLoadingCost] = useState(false)
   const [costLoadError, setCostLoadError] = useState<string | null>(null)
   const [costLoadAttempts, setCostLoadAttempts] = useState(0)
   const [lastCostUpdate, setLastCostUpdate] = useState<Date | null>(null)
+  
+  // Check if this is OCR mode
+  const isOCRMode = results?.mode === 'ocr'
+
+  // Function to load OCR cost data
+  const loadOCRCostData = async (retryAttempt = 0): Promise<void> => {
+    if (!results?.work_dir) {
+      console.log('No work directory available')
+      setCostLoadError('No work directory available')
+      return
+    }
+
+    const maxRetries = 5
+    const retryDelays = [2000, 3000, 5000, 8000, 12000] // Exponential backoff
+
+    setIsLoadingCost(true)
+    setCostLoadError(null)
+    setCostLoadAttempts(retryAttempt + 1)
+    
+    console.log(`Loading OCR cost data from: ${results.work_dir} (attempt ${retryAttempt + 1}/${maxRetries})`)
+
+    try {
+      const ocrCostPath = `${results.work_dir}/ocr_cost.json`
+      const contentResponse = await fetch(`/api/files/content?path=${encodeURIComponent(ocrCostPath)}`)
+      
+      if (!contentResponse.ok) {
+        if (contentResponse.status === 404) {
+          throw new Error('OCR cost file not found - OCR processing may still be in progress')
+        }
+        throw new Error(`Failed to load OCR cost file: ${contentResponse.status}`)
+      }
+
+      const contentData = await contentResponse.json()
+      if (contentData.content) {
+        const parsedData: OCRCostData = JSON.parse(contentData.content)
+        setOcrCostData(parsedData)
+        setLastCostUpdate(new Date())
+        setCostLoadError(null)
+        console.log('OCR cost data loaded successfully:', parsedData)
+      } else {
+        throw new Error('OCR cost file is empty')
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Error loading OCR cost data:', errorMessage)
+      
+      // Retry if we haven't exceeded max attempts and it's a retryable error
+      if (retryAttempt < maxRetries - 1 && 
+          (errorMessage.includes('not found') || 
+           errorMessage.includes('still be') || 
+           errorMessage.includes('empty'))) {
+        
+        console.log(`Retrying OCR cost load in ${retryDelays[retryAttempt]}ms...`)
+        setTimeout(() => {
+          loadOCRCostData(retryAttempt + 1)
+        }, retryDelays[retryAttempt])
+        return
+      }
+      
+      // Final failure
+      setCostLoadError(errorMessage)
+      setIsLoadingCost(false)
+    }
+    
+    if (retryAttempt === 0 || ocrCostData) {
+      setIsLoadingCost(false)
+    }
+  }
 
   // Improved function to load cost data with retry logic and error handling
   const loadCostData = async (retryAttempt = 0): Promise<void> => {
@@ -241,25 +327,34 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
   // Load cost data when results become available (task completion)
   useEffect(() => {
     if (results?.work_dir) {
-      console.log('Results available, loading cost data...')
+      console.log('Results available, loading cost data...', 'Mode:', results.mode)
       
       // Reset states for new task
       setCostData([])
+      setOcrCostData(null)
       setCostLoadError(null)
       setCostLoadAttempts(0)
       setLastCostUpdate(null)
       
       // Longer delay to ensure cost file is written (3 seconds)
       const timer = setTimeout(() => {
-        loadCostData()
+        if (isOCRMode) {
+          loadOCRCostData()
+        } else {
+          loadCostData()
+        }
       }, 3000)
       
       return () => clearTimeout(timer)
     }
-  }, [results?.work_dir])
+  }, [results?.work_dir, results?.mode])
 
   // Extract total cost from cost data
   const getTotalCost = () => {
+    if (isOCRMode) {
+      return ocrCostData?.total_cost_usd || null
+    }
+    
     if (costData.length === 0) return null
     
     const totalRow = costData.find((row) => row.Agent === 'Total')
@@ -372,10 +467,12 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
       )}
 
       {/* Cost Breakdown Section */}
-      {(costData.length > 0 || isLoadingCost || costLoadError) && (
+      {(costData.length > 0 || ocrCostData || isLoadingCost || costLoadError) && (
         <div className="bg-black/20 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium text-gray-300">Cost Breakdown</h4>
+            <h4 className="text-sm font-medium text-gray-300">
+              {isOCRMode ? 'OCR Cost Breakdown' : 'Cost Breakdown'}
+            </h4>
             <div className="flex items-center space-x-2">
               {lastCostUpdate && !isLoadingCost && (
                 <span className="text-xs text-gray-500">
@@ -383,7 +480,7 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
                 </span>
               )}
               <button
-                onClick={() => loadCostData()}
+                onClick={() => isOCRMode ? loadOCRCostData() : loadCostData()}
                 disabled={isLoadingCost}
                 className="px-2 py-1 text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded border border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -417,8 +514,67 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
                 Retry Loading Cost Data
               </button>
             </div>
-          ) : (
-            /* Success state - show the table */
+          ) : isOCRMode && ocrCostData ? (
+            /* OCR Success state - show OCR specific table */
+            <div className="space-y-4">
+              {/* OCR Summary */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-black/20 rounded-lg p-3">
+                  <h5 className="text-xs font-medium text-gray-400 mb-1">Total Pages</h5>
+                  <p className="text-lg font-bold text-blue-400">{ocrCostData.total_pages_processed}</p>
+                </div>
+                <div className="bg-black/20 rounded-lg p-3">
+                  <h5 className="text-xs font-medium text-gray-400 mb-1">Files Processed</h5>
+                  <p className="text-lg font-bold text-green-400">{ocrCostData.entries.length}</p>
+                </div>
+                <div className="bg-black/20 rounded-lg p-3">
+                  <h5 className="text-xs font-medium text-gray-400 mb-1">Cost per Page</h5>
+                  <p className="text-lg font-bold text-orange-400">${ocrCostData.cost_per_page.toFixed(3)}</p>
+                </div>
+              </div>
+              
+              {/* OCR Files Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left pb-2 text-gray-400">Filename</th>
+                      <th className="text-right pb-2 text-gray-400">Pages</th>
+                      <th className="text-right pb-2 text-gray-400">Size (KB)</th>
+                      <th className="text-right pb-2 text-gray-400">Cost ($)</th>
+                      <th className="text-right pb-2 text-gray-400">Processed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ocrCostData.entries.map((entry, index) => (
+                      <tr key={index} className="border-b border-white/5">
+                        <td className="py-1 text-gray-300 max-w-[200px] truncate" title={entry.filename}>
+                          {entry.filename}
+                        </td>
+                        <td className="py-1 text-right text-blue-400">{entry.pages_processed}</td>
+                        <td className="py-1 text-right text-gray-300">{(entry.doc_size_bytes / 1024).toFixed(1)}</td>
+                        <td className="py-1 text-right text-yellow-400">${entry.cost_usd.toFixed(3)}</td>
+                        <td className="py-1 text-right text-gray-300">
+                          {new Date(entry.timestamp * 1000).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    ))}
+                    {/* Total Row for OCR */}
+                    <tr className="border-t-2 border-white/20 bg-white/5">
+                      <td className="py-2 font-semibold text-white">Total</td>
+                      <td className="py-2 text-right font-semibold text-blue-400">{ocrCostData.total_pages_processed}</td>
+                      <td className="py-2 text-right font-semibold text-white">
+                        {(ocrCostData.entries.reduce((sum, entry) => sum + entry.doc_size_bytes, 0) / 1024).toFixed(1)}
+                      </td>
+                      <td className="py-2 text-right font-semibold text-yellow-400">${ocrCostData.total_cost_usd.toFixed(3)}</td>
+                      <td className="py-2 text-right font-semibold text-white">-</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : !isOCRMode ? (
+            /* LLM Success state - show the standard LLM table */
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
@@ -473,7 +629,7 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
                 </tbody>
               </table>
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>

@@ -58,7 +58,8 @@ class MistralOCRProcessor:
                        output_dir: str = None,
                        meta_data_path: str = None,
                        max_depth: int = 10,
-                       max_workers: int = 4) -> Dict[str, Any]:
+                       max_workers: int = 4,
+                       work_dir: str = None) -> Dict[str, Any]:
         """
         Process all PDF files in a folder and its subfolders.
         
@@ -71,6 +72,7 @@ class MistralOCRProcessor:
             meta_data_path: Path to the metadata file
             max_depth: Maximum depth to search for PDF files
             max_workers: Number of parallel workers for processing
+            work_dir: Working directory for cost tracking (optional)
         
         Returns:
             Dictionary with processing results summary
@@ -82,7 +84,13 @@ class MistralOCRProcessor:
         
         # Set up output directory
         if output_dir is None:
-            output_dir = folder_path.parent / f"{folder_path.name}_processed"
+            if work_dir is not None:
+                # Use work_dir with source folder name + _processed
+                source_name = folder_path.name
+                output_dir = Path(work_dir) / f"{source_name}_processed"
+            else:
+                # Original behavior: same level as source with _processed
+                output_dir = folder_path.parent / f"{folder_path.name}_processed"
         else:
             output_dir = Path(output_dir)
         
@@ -125,7 +133,8 @@ class MistralOCRProcessor:
                     save_json,
                     save_text,
                     output_dir,
-                    meta_data_path
+                    meta_data_path,
+                    work_dir
                 ): pdf_path for pdf_path in pdf_files
             }
             
@@ -216,7 +225,8 @@ class MistralOCRProcessor:
                                         save_json: bool,
                                         save_text: bool,
                                         output_dir: Path,
-                                        meta_data_path: str) -> Dict[str, Any]:
+                                        meta_data_path: str,
+                                        work_dir: str = None) -> Dict[str, Any]:
         """Process a single PDF with error handling for parallel execution."""
         try:
             # Write files directly to the main output directory (no subfolders)
@@ -226,7 +236,8 @@ class MistralOCRProcessor:
                 save_json=save_json,
                 save_text=save_text,
                 output_dir=str(output_dir),
-                meta_data_path=meta_data_path
+                meta_data_path=meta_data_path,
+                work_dir=work_dir
             )
             
             return {
@@ -252,7 +263,8 @@ class MistralOCRProcessor:
                            save_json: bool = True, 
                            save_text: bool = False,
                            output_dir: str = None,
-                           meta_data_path: str = None) -> Dict[str, Any]:
+                           meta_data_path: str = None,
+                           work_dir: str = None) -> Dict[str, Any]:
         """
         Process a single PDF file with Mistral OCR.
         
@@ -263,15 +275,21 @@ class MistralOCRProcessor:
             save_text: Whether to save text files
             output_dir: Directory to save the output files
             meta_data_path: Path to the metadata file
+            work_dir: Working directory for cost tracking (optional)
         Returns:
-            Dictionary with extracted text by page
+            Dictionary with extracted text by page and cost information
         """
         pdf_file = Path(pdf_path)
 
-        # if output dir is not specified, the output it is at  the same level as the folder containing the documents and named same with "_processed"
-        # if output dir is specified, it will be used as is
+        # if output dir is not specified, use work_dir structure or default behavior
         if output_dir is None:
-            output_dir = os.path.join(pdf_file.parent, f"{pdf_file.stem}_processed")
+            if work_dir is not None:
+                # Use work_dir with source name + _processed
+                source_name = pdf_file.stem
+                output_dir = os.path.join(work_dir, f"{source_name}_processed")
+            else:
+                # Original behavior: same level as source with _processed
+                output_dir = os.path.join(pdf_file.parent, f"{pdf_file.stem}_processed")
         
         # Always ensure the output directory exists
         os.makedirs(output_dir, exist_ok=True)
@@ -314,8 +332,19 @@ class MistralOCRProcessor:
                 bbox_annotation_format=response_format_from_pydantic_model(Image),
             )
             
+            # Extract usage information and calculate cost
+            usage_info = ocr_response.usage_info if hasattr(ocr_response, 'usage_info') else None
+            cost_info = self._calculate_cost_info(usage_info, pdf_file.name)
+            
+            # Save cost information to work_dir if provided
+            if work_dir is not None:
+                self._save_cost_info(cost_info, work_dir)
+            
             # Extract structured content
             structured_content = self._extract_structured_content(ocr_response, pdf_file.stem)
+            
+            # Add cost information to the result
+            structured_content["cost_info"] = cost_info
             
             # Save outputs
             base_name = pdf_file.stem
@@ -454,6 +483,79 @@ class MistralOCRProcessor:
             print(f"Error saving text output: {str(e)}")
             raise
 
+    def _calculate_cost_info(self, usage_info, filename: str) -> Dict[str, Any]:
+        """Calculate cost information from Mistral OCR usage data."""
+        if usage_info is None:
+            return {
+                "filename": filename,
+                "pages_processed": 0,
+                "doc_size_bytes": 0,
+                "cost_usd": 0.0,
+                "cost_per_page": 0.001,  # $1 per 1000 pages
+                "timestamp": time.time()
+            }
+        
+        pages_processed = usage_info.pages_processed if hasattr(usage_info, 'pages_processed') else 0
+        doc_size_bytes = usage_info.doc_size_bytes if hasattr(usage_info, 'doc_size_bytes') else 0
+        
+        # Cost calculation: $1 per 1000 pages
+        cost_usd = (pages_processed / 1000.0) * 1.0
+        
+        return {
+            "filename": filename,
+            "pages_processed": pages_processed,
+            "doc_size_bytes": doc_size_bytes,
+            "cost_usd": cost_usd,
+            "cost_per_page": 0.001,
+            "timestamp": time.time()
+        }
+
+    def _save_cost_info(self, cost_info: Dict[str, Any], work_dir: str) -> None:
+        """Save cost information to ocr_cost.json in work directory."""
+        cost_file_path = os.path.join(work_dir, "ocr_cost.json")
+        
+        # Load existing cost data if file exists
+        existing_costs = []
+        if os.path.exists(cost_file_path):
+            try:
+                with open(cost_file_path, 'r', encoding='utf-8') as f:
+                    existing_data = json.load(f)
+                    if isinstance(existing_data, dict) and 'entries' in existing_data:
+                        # Existing cost summary format - extract entries
+                        existing_costs = existing_data['entries']
+                    elif isinstance(existing_data, list):
+                        # Legacy list format
+                        existing_costs = existing_data
+                    elif isinstance(existing_data, dict):
+                        # Single entry format
+                        existing_costs = [existing_data]
+            except Exception as e:
+                print(f"Warning: Could not read existing cost file: {e}")
+        
+        # Append new cost info
+        existing_costs.append(cost_info)
+        
+        # Calculate total costs
+        total_pages = sum(item.get("pages_processed", 0) for item in existing_costs)
+        total_cost = sum(item.get("cost_usd", 0.0) for item in existing_costs)
+        
+        # Create summary with individual entries
+        cost_summary = {
+            "total_pages_processed": total_pages,
+            "total_cost_usd": total_cost,
+            "cost_per_page": 0.001,
+            "entries": existing_costs,
+            "last_updated": time.time()
+        }
+        
+        try:
+            with open(cost_file_path, 'w', encoding='utf-8') as f:
+                json.dump(cost_summary, f, indent=2, ensure_ascii=False)
+            print(f"Updated cost tracking: {cost_file_path}")
+            print(f"Session total: {total_pages} pages, ${total_cost:.3f}")
+        except Exception as e:
+            print(f"Error saving cost information: {str(e)}")
+
 
 # User-facing convenience functions
 def process_single_pdf(pdf_path: str, 
@@ -461,7 +563,8 @@ def process_single_pdf(pdf_path: str,
                       save_json: bool = True, 
                       save_text: bool = False,
                       output_dir: str = None,
-                      meta_data_path: str = None):
+                      meta_data_path: str = None,
+                      work_dir: str = None):
     """
     Process a single PDF file with Mistral OCR.
     
@@ -472,9 +575,10 @@ def process_single_pdf(pdf_path: str,
         save_text: Whether to save text files
         output_dir: Directory to save the output files
         meta_data_path: Path to the metadata file
+        work_dir: Working directory for cost tracking (optional)
     
     Returns:
-        Dictionary with extracted text by page
+        Dictionary with extracted text by page and cost information
     """
     processor = MistralOCRProcessor()
     return processor.process_single_pdf(
@@ -483,7 +587,8 @@ def process_single_pdf(pdf_path: str,
         save_json=save_json,
         save_text=save_text,
         output_dir=output_dir,
-        meta_data_path=meta_data_path
+        meta_data_path=meta_data_path,
+        work_dir=work_dir
     )
 
 def process_folder(folder_path: str, 
@@ -493,7 +598,8 @@ def process_folder(folder_path: str,
                    output_dir: str = None,
                    meta_data_path: str = None,
                    max_depth: int = 10,
-                   max_workers: int = 4):
+                   max_workers: int = 4,
+                   work_dir: str = None):
     """
     Process all PDF files in a folder and its subfolders.
     
@@ -506,6 +612,7 @@ def process_folder(folder_path: str,
         meta_data_path: Path to the metadata file
         max_depth: Maximum depth to search for PDF files
         max_workers: Number of parallel workers for processing
+        work_dir: Working directory for cost tracking (optional)
     
     Returns:
         Dictionary with processing results summary
@@ -519,6 +626,7 @@ def process_folder(folder_path: str,
         output_dir=output_dir,
         meta_data_path=meta_data_path,
         max_depth=max_depth,
-        max_workers=max_workers
+        max_workers=max_workers,
+        work_dir=work_dir
     )
 
