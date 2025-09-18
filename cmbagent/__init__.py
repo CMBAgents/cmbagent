@@ -25,7 +25,10 @@ from .cmbagent import planning_and_control, one_shot, get_keywords, human_in_the
 from .cmbagent import planning_and_control_context_carryover as deep_research
 
 # OCR functionality
-from .ocr import process_single_pdf, process_folder 
+from .ocr import process_single_pdf, process_folder
+
+# arXiv downloader functionality
+from .arxiv_downloader import arxiv_filter 
 
 
 def print_cmbagent_logo():

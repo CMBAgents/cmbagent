@@ -84,6 +84,15 @@ class DirectoryListing(BaseModel):
     items: List[FileItem]
     parent: Optional[str] = None
 
+class ArxivFilterRequest(BaseModel):
+    input_text: str
+    work_dir: Optional[str] = None
+
+class ArxivFilterResponse(BaseModel):
+    status: str
+    result: Dict[str, Any]
+    message: str
+
 class StreamCapture:
     """Capture stdout/stderr and send to WebSocket"""
     
@@ -448,6 +457,47 @@ async def get_credentials_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting credentials status: {str(e)}")
 
+# arXiv Filter API endpoint
+@app.post("/api/arxiv/filter", response_model=ArxivFilterResponse)
+async def arxiv_filter_endpoint(request: ArxivFilterRequest):
+    """
+    Extract arXiv URLs from input text and download corresponding PDFs.
+    
+    Args:
+        request: ArxivFilterRequest containing input_text and optional work_dir
+        
+    Returns:
+        ArxivFilterResponse with download results and metadata
+    """
+    try:
+        print(f"Processing arXiv filter request...")
+        print(f"Input text length: {len(request.input_text)} characters")
+        if request.work_dir:
+            print(f"Work directory: {request.work_dir}")
+        
+        # Use work_dir from request or fall back to cmbagent's default
+        work_dir = request.work_dir if request.work_dir else None
+        
+        # Call the arxiv_filter function
+        result = cmbagent.arxiv_filter(
+            input_text=request.input_text,
+            work_dir=work_dir
+        )
+        
+        # Create success response
+        return ArxivFilterResponse(
+            status="success",
+            result=result,
+            message=f"Successfully processed {result['downloads_successful']} downloads out of {len(result['urls_found'])} URLs found"
+        )
+        
+    except Exception as e:
+        print(f"Error in arxiv_filter_endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error processing arXiv filter request: {str(e)}"
+        )
+
 @app.websocket("/ws/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     await websocket.accept()
@@ -587,6 +637,11 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                 "type": "output",
                 "data": f"⚙️ Configuration: Save Markdown={save_markdown}, Save JSON={save_json}, Save Text={save_text}, Max Workers={max_workers}"
             })
+        elif mode == "arxiv":
+            await websocket.send_json({
+                "type": "output",
+                "data": f"⚙️ Configuration: arXiv Filter mode - Scanning text for arXiv URLs and downloading papers"
+            })
         else:
             await websocket.send_json({
                 "type": "output",
@@ -700,6 +755,12 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         )
                     else:
                         raise ValueError(f"Path is neither a file nor a directory: {pdf_path}")
+                elif mode == "arxiv":
+                    # arXiv Filter mode - scan text for arXiv URLs and download papers
+                    results = cmbagent.arxiv_filter(
+                        input_text=task,
+                        work_dir=task_work_dir
+                    )
                 else:
                     # One Shot mode
                     results = cmbagent.one_shot(

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Play, Settings, Zap, HelpCircle } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Play, Settings, Zap, HelpCircle, ChevronDown } from 'lucide-react'
 import { CredentialsKeyIcon } from './CredentialsKeyIcon'
 import { CredentialsModal } from './CredentialsModal'
 import { ModelSelector } from './ModelSelector'
@@ -33,9 +33,25 @@ interface TaskInputProps {
 export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = false, onOpenDirectory }: TaskInputProps) {
   const [task, setTask] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation' | 'ocr'>('one-shot')
+  const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation' | 'ocr' | 'arxiv'>('one-shot')
+  const [showOcrDropdown, setShowOcrDropdown] = useState(false)
   const [showCredentialsModal, setShowCredentialsModal] = useState(false)
   const [showOpenAIError, setShowOpenAIError] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowOcrDropdown(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
   
   // Use credentials hook
   const { 
@@ -54,7 +70,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     maxAttempts: 1,
     agent: 'engineer',
     workDir: '~/cmbagent_workdir',
-    mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation' | 'ocr',
+    mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation' | 'ocr' | 'arxiv',
     // Global model options
     defaultModel: 'gpt-4.1-2025-04-14',
     defaultFormatterModel: 'o3-mini-2025-01-31',
@@ -110,6 +126,12 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         '/Users/username/Documents/research_papers/',
         '/Users/username/Desktop/scientific_paper.pdf',
         '~/Downloads/reports/'
+      ]
+    } else if (mode === 'arxiv') {
+      return [
+        'Fuzzy dark matter models at https://arxiv.org/pdf/1610.08297',
+        'Recent JWST observations show Little Red Dots at https://arxiv.org/abs/2509.02664',
+        'Black hole mass measurements https://arxiv.org/html/2508.21748'
       ]
     }
     return [
@@ -211,22 +233,63 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
               💡 Idea Generation
             </button>
           </Tooltip>
-          <Tooltip text="Process PDFs with OCR - Extract text from PDF files or folders containing PDFs" wide position="bottom">
-            <button
-              onClick={() => {
-                setMode('ocr')
-                setConfig(prev => ({ ...prev, mode: 'ocr' }))
-              }}
-              disabled={isRunning}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                mode === 'ocr'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              📄 OCR
-            </button>
-          </Tooltip>
+          {/* More Tools Dropdown */}
+          <div className="relative" ref={dropdownRef}>
+            <Tooltip text={
+              mode === 'arxiv' ? "Filter text for arXiv URLs and download papers" :
+              mode === 'ocr' ? "Process PDFs with OCR - Extract text from PDF files or folders containing PDFs" :
+              "Additional tools for document processing and content filtering"
+            } wide position="bottom">
+              <button
+                onClick={() => setShowOcrDropdown(!showOcrDropdown)}
+                disabled={isRunning}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
+                  mode === 'ocr' || mode === 'arxiv'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {mode === 'arxiv' ? '📚 arXiv Filter' : mode === 'ocr' ? '📄 PDF OCR' : '🔧 More Tools'}
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </Tooltip>
+            
+            {/* Dropdown Menu */}
+            {showOcrDropdown && (
+              <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-white/20 rounded-lg shadow-lg z-50 min-w-[160px]">
+                <button
+                  onClick={() => {
+                    setMode('arxiv')
+                    setConfig(prev => ({ ...prev, mode: 'arxiv' }))
+                    setShowOcrDropdown(false)
+                  }}
+                  disabled={isRunning}
+                  className={`w-full px-3 py-2 text-left text-sm transition-colors rounded-t-lg ${
+                    mode === 'arxiv'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  📚 arXiv Filter
+                </button>
+                <button
+                  onClick={() => {
+                    setMode('ocr')
+                    setConfig(prev => ({ ...prev, mode: 'ocr' }))
+                    setShowOcrDropdown(false)
+                  }}
+                  disabled={isRunning}
+                  className={`w-full px-3 py-2 text-left text-sm transition-colors rounded-b-lg ${
+                    mode === 'ocr'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  📄 PDF OCR
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
@@ -254,6 +317,15 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
               onChange={(e) => setTask(e.target.value)}
               placeholder="Enter path to PDF file or folder containing PDFs..."
               className="w-full px-3 py-2 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              disabled={isRunning}
+            />
+          ) : mode === 'arxiv' ? (
+            /* Multi-line textarea for arXiv mode */
+            <textarea
+              value={task}
+              onChange={(e) => setTask(e.target.value)}
+              placeholder="Enter text containing arXiv URLs to extract and download papers..."
+              className="w-full h-28 px-3 py-2 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
               disabled={isRunning}
             />
           ) : (
@@ -332,7 +404,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         {showAdvanced && (
           <div className="space-y-2 p-2 bg-black/20 rounded-lg border border-white/10">
             <h3 className="text-xs font-medium text-gray-300">
-              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Deep Research' : mode === 'idea-generation' ? 'Idea Generation' : 'OCR'} Mode
+              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Deep Research' : mode === 'idea-generation' ? 'Idea Generation' : mode === 'arxiv' ? 'arXiv Filter' : 'OCR'} Mode
             </h3>
             
             {/* Credential Status Message in Advanced Section */}
@@ -598,6 +670,15 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                     />
                   </div>
                 </>
+              ) : mode === 'arxiv' ? (
+                /* ArXiv Configuration - No specific options needed */
+                <>
+                  <div className="col-span-2">
+                    <div className="text-xs text-gray-400 p-2 bg-blue-900/20 border border-blue-500/20 rounded">
+                      ℹ️ arXiv Filter will scan your text for arXiv URLs and download the corresponding papers to the docs folder in your work directory.
+                    </div>
+                  </div>
+                </>
               ) : (
                 /* One Shot Model Selection */
                 <>
@@ -638,8 +719,8 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                 </>
               )}
 
-              {/* Global Model Options - Available for all modes except OCR */}
-              {mode !== 'ocr' && (
+              {/* Global Model Options - Available for all modes except OCR and arXiv */}
+              {mode !== 'ocr' && mode !== 'arxiv' && (
                 <>
                   <div>
                     <Tooltip text="Default model used for general orchestration tasks and fallback scenarios" position="bottom">
