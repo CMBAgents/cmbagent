@@ -168,6 +168,10 @@ default_agents_llm_model ={
     # "executor_response_formatter": default_formatter_model,
     #"executor_response_formatter": "gemini-2.5-pro-preview-03-25",
     'plot_debugger': 'gpt-4o-2024-11-20',
+    
+    # Summarizer agents
+    'summarizer': default_llm_model,
+    'summarizer_response_formatter': default_formatter_model,
 }
 
 default_agent_llm_configs = {}

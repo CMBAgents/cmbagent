@@ -1,0 +1,11 @@
+name: "session_summarizer"
+
+instructions: |
+   You summarize the session.
+description: |
+   You summarize the session. 
+
+
+allowed_transitions:
+  - admin 
+

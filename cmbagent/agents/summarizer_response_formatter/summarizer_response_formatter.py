@@ -28,6 +28,10 @@ class SummarizerResponseFormatterAgent(BaseAgent):
             ...,
             description="A list of authors of the document, if more than 5, only list the first 5 and add et al."
         )
+        date: str = Field(
+            ...,
+            description="The date of the document"
+        )
         abstract: str = Field(
             ...,
             description="A 3 sentence summary of the abstract"
@@ -72,10 +76,13 @@ class SummarizerResponseFormatterAgent(BaseAgent):
             data_sources_text = "\n".join(f"- {source}" for source in self.data_sources)
             data_sets_text = "\n".join(f"- {dataset}" for dataset in self.data_sets)
             data_analysis_methods_text = "\n".join(f"- {method}" for method in self.data_analysis_methods)
+
+            # Note: JSON saving is handled by the main summarizer function
             
             return (
                 f"# {self.title}\n\n"
                 f"**Authors:** {authors_text}\n\n"
+                f"**Date:** {self.date}\n\n"
                 f"**Abstract:** {self.abstract}\n\n"
                 f"**Keywords:** {keywords_text}\n\n"
                 f"**Key Findings:**\n{key_findings_text}\n\n"

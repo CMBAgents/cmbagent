@@ -693,7 +693,7 @@ class CMBAgent:
         # remove agents that are not set to be skipped
         if self.skip_memory:
             # self.agent_classes.pop('memory')
-            self.agent_classes.pop('summarizer')
+            self.agent_classes.pop('session_summarizer')
         
         if self.skip_executor:
             self.agent_classes.pop('executor')
@@ -1481,19 +1481,113 @@ def load_plan(plan_path):
     return plan_dict
 
 
+def _parse_formatted_content(content):
+    """
+    Parse the formatted markdown content from summarizer_response_formatter to extract structured data.
+    The content is in markdown format with specific sections.
+    """
+    import re
+    
+    summary_data = {}
+    
+    try:
+        # Extract title (first heading)
+        title_match = re.search(r'^# (.+)', content, re.MULTILINE)
+        if title_match:
+            summary_data['title'] = title_match.group(1).strip()
+        
+        # Extract authors
+        authors_match = re.search(r'\*\*Authors:\*\*\s*(.+)', content)
+        if authors_match:
+            authors_text = authors_match.group(1).strip()
+            summary_data['authors'] = [author.strip() for author in authors_text.split(',')]
+        
+        # Extract date  
+        date_match = re.search(r'\*\*Date:\*\*\s*(.+)', content)
+        if date_match:
+            summary_data['date'] = date_match.group(1).strip()
+        
+        # Extract abstract
+        abstract_match = re.search(r'\*\*Abstract:\*\*\s*(.+?)(?=\n\n\*\*|\n\*\*|\Z)', content, re.DOTALL)
+        if abstract_match:
+            summary_data['abstract'] = abstract_match.group(1).strip()
+        
+        # Extract keywords
+        keywords_match = re.search(r'\*\*Keywords:\*\*\s*(.+?)(?=\n\n\*\*|\n\*\*|\Z)', content, re.DOTALL)
+        if keywords_match:
+            keywords_text = keywords_match.group(1).strip()
+            summary_data['keywords'] = [keyword.strip() for keyword in keywords_text.split(',')]
+        
+        # Extract key findings
+        findings_match = re.search(r'\*\*Key Findings:\*\*\s*\n(.*?)(?=\n\n\*\*|\n\*\*|\Z)', content, re.DOTALL)
+        if findings_match:
+            findings_text = findings_match.group(1).strip()
+            findings_lines = [line.strip('- ').strip() for line in findings_text.split('\n') if line.strip() and line.strip().startswith('-')]
+            summary_data['key_findings'] = findings_lines
+        
+        # Extract scientific software
+        software_match = re.search(r'\*\*Scientific Software:\*\*\s*\n(.*?)(?=\n\n\*\*|\n\*\*|\Z)', content, re.DOTALL)
+        if software_match:
+            software_text = software_match.group(1).strip()
+            if software_text and not software_text.lower().startswith('none'):
+                software_lines = [line.strip('- ').strip() for line in software_text.split('\n') if line.strip() and line.strip().startswith('-')]
+                summary_data['scientific_software'] = software_lines
+            else:
+                summary_data['scientific_software'] = []
+        
+        # Extract data sources
+        sources_match = re.search(r'\*\*Data Sources:\*\*\s*\n(.*?)(?=\n\n\*\*|\n\*\*|\Z)', content, re.DOTALL)
+        if sources_match:
+            sources_text = sources_match.group(1).strip()
+            if sources_text and not sources_text.lower().startswith('none'):
+                sources_lines = [line.strip('- ').strip() for line in sources_text.split('\n') if line.strip() and line.strip().startswith('-')]
+                summary_data['data_sources'] = sources_lines
+            else:
+                summary_data['data_sources'] = []
+        
+        # Extract data sets
+        datasets_match = re.search(r'\*\*Data Sets:\*\*\s*\n(.*?)(?=\n\n\*\*|\n\*\*|\Z)', content, re.DOTALL)
+        if datasets_match:
+            datasets_text = datasets_match.group(1).strip()
+            if datasets_text and not datasets_text.lower().startswith('none'):
+                datasets_lines = [line.strip('- ').strip() for line in datasets_text.split('\n') if line.strip() and line.strip().startswith('-')]
+                summary_data['data_sets'] = datasets_lines
+            else:
+                summary_data['data_sets'] = []
+        
+        # Extract data analysis methods
+        methods_match = re.search(r'\*\*Data Analysis Methods:\*\*\s*\n(.*?)(?=\n\n\*\*|\n\*\*|\Z)', content, re.DOTALL)
+        if methods_match:
+            methods_text = methods_match.group(1).strip()
+            if methods_text:
+                methods_lines = [line.strip('- ').strip() for line in methods_text.split('\n') if line.strip() and line.strip().startswith('-')]
+                summary_data['data_analysis_methods'] = methods_lines
+            else:
+                summary_data['data_analysis_methods'] = []
+                
+    except Exception as e:
+        print(f"Warning: Error parsing formatted content: {e}")
+        return None
+    
+    return summary_data if summary_data else None
+
+
 def summarize_document(markdown_document_path, 
                        work_dir = work_dir_default, 
                        clear_work_dir = True,
                        summarizer_model = default_agents_llm_model['summarizer'],
                        summarizer_response_formatter_model = default_agents_llm_model['summarizer_response_formatter'],
                        api_keys = None):
+    
+    if api_keys is None:
+        api_keys = get_api_keys_from_env()
     # load the document from the document_path to markdown file:
     with open(markdown_document_path, 'r') as f:
         markdown_document = f.read()
     
-        # Create work directory if it doesn't exist
-    Path(work_dir).expanduser().resolve().mkdir(parents=True, exist_ok=True)
-    work_dir = os.path.expanduser(work_dir)
+    # Create work directory if it doesn't exist  
+    work_dir = Path(work_dir).expanduser().resolve()
+    work_dir.mkdir(parents=True, exist_ok=True)
 
     if clear_work_dir:
         clean_work_dir(work_dir)
@@ -1506,7 +1600,7 @@ def summarize_document(markdown_document_path,
                             'summarizer': summarizer_config,
                             'summarizer_response_formatter': summarizer_response_formatter_config,
         },
-        api_keys = api_keys
+        api_keys = api_keys,
     )
 
     start_time = time.time()
@@ -1517,6 +1611,59 @@ def summarize_document(markdown_document_path,
                     )
     end_time = time.time()
     execution_time_summarization = end_time - start_time
+
+    # Extract the final result from the CMBAgent
+    final_context = cmbagent.final_context.data if hasattr(cmbagent.final_context, 'data') else cmbagent.final_context
+    chat_result = cmbagent.chat_result
+    
+    # Extract structured JSON from the chat result
+    document_summary = None
+    if hasattr(chat_result, 'chat_history'):
+        # Look for the summarizer_response_formatter response in the chat history
+        # This agent uses a Pydantic BaseModel with structured output
+        for message in chat_result.chat_history:
+            if isinstance(message, dict) and message.get('name') == 'summarizer_response_formatter':
+                # The response_format should contain the structured data
+                # Try to extract from tool_calls or parse the formatted content
+                if 'tool_calls' in message:
+                    # Try to get structured data from tool calls
+                    for tool_call in message.get('tool_calls', []):
+                        if hasattr(tool_call, 'function') and hasattr(tool_call.function, 'arguments'):
+                            try:
+                                import json
+                                document_summary = json.loads(tool_call.function.arguments)
+                                break
+                            except:
+                                continue
+                
+                if not document_summary:
+                    # Fallback: parse the formatted content back to structured data
+                    formatter_content = message.get('content', '')
+                    document_summary = _parse_formatted_content(formatter_content)
+                break
+    
+    # Save structured summary to JSON if we have it
+    if document_summary and work_dir:
+        try:
+            import json
+            import os
+            summary_file = os.path.join(work_dir, 'document_summary.json')
+            with open(summary_file, 'w', encoding='utf-8') as f:
+                json.dump(document_summary, f, indent=2, ensure_ascii=False)
+            print(f"Document summary saved to: {summary_file}")
+        except Exception as e:
+            print(f"Warning: Could not save document_summary.json: {e}")
+    
+    # Return structured output
+    result = {
+        'chat_history': chat_result.chat_history if hasattr(chat_result, 'chat_history') else [],
+        'final_context': final_context,
+        'execution_time': execution_time_summarization,
+        'work_dir': work_dir,
+        'document_summary': document_summary,
+    }
+    
+    return result
 
 
 

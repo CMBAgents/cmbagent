@@ -6,6 +6,7 @@ instructions: |
 
    - title: the exact title of the document
    - authors: a list of authors of the document, if more than 5, only list the first 5 and add et al.
+   - date: the date of the document
    - abstract: a 3 sentence summary of the abstract
    - keywords: a list of 5 keywords that are relevant to the document
    - key findings: a list of key findings of the document
