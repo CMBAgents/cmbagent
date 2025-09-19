@@ -2316,7 +2316,6 @@ def preprocess_task(text: str,
         str: The original text with appended "Contextual Information and References" section
     """
     import os
-    import tempfile
     from .arxiv_downloader import arxiv_filter
     from .ocr import process_folder
     
@@ -2330,8 +2329,10 @@ def preprocess_task(text: str,
         try:
             arxiv_results = arxiv_filter(text, work_dir=work_dir)
             print(f"✅ Downloaded {arxiv_results['downloads_successful']} papers")
-            if arxiv_results['downloads_successful'] == 0:
-                print("ℹ️ No arXiv papers found or downloaded, skipping processing steps")
+            print(f"📋 Total papers available: {arxiv_results['downloads_successful'] + arxiv_results['downloads_skipped']} (including previously downloaded)")
+            
+            if arxiv_results['downloads_successful'] + arxiv_results['downloads_skipped'] == 0:
+                print("ℹ️ No arXiv papers found or available, skipping processing steps")
                 return text
         except Exception as e:
             print(f"❌ Error downloading arXiv papers: {e}")
@@ -2376,81 +2377,80 @@ def preprocess_task(text: str,
     if not skip_summarization:
         print(f"📝 Step 3: Summarizing papers...")
         try:
-            # Create a temporary directory for summary outputs
-            with tempfile.TemporaryDirectory() as temp_summary_dir:
-                summary_results = summarize_documents(
-                    folder_path=docs_processed_folder,
-                    work_dir_base=temp_summary_dir,
-                    clear_work_dir=clear_work_dir,
-                    max_workers=max_workers,
-                    max_depth=max_depth
-                )
-                print(f"✅ Summarized {summary_results.get('processed_files', 0)} documents")
-                
-                if summary_results.get('processed_files', 0) == 0:
-                    print("ℹ️ No documents were summarized, returning original text")
-                    return text
-                
-                # Step 4: Collect all summaries and format the contextual information
-                print(f"📋 Step 4: Formatting contextual information...")
-                contextual_info = []
-                
-                for result in summary_results.get('results', []):
-                    if result.get('success', False) and 'document_summary' in result:
-                        summary = result['document_summary']
-                        arxiv_id = result.get('arxiv_id')
-                        
-                        # Format each summary
-                        title = summary.get('title', 'Unknown Title')
-                        authors = summary.get('authors', [])
-                        authors_str = ', '.join(authors) if authors else 'Unknown Authors'
-                        date = summary.get('date', 'Unknown Date')
-                        abstract = summary.get('abstract', 'No abstract available')
-                        keywords = summary.get('keywords', [])
-                        keywords_str = ', '.join(keywords) if keywords else 'No keywords'
-                        key_findings = summary.get('key_findings', [])
-                        
-                        # Add arXiv ID if available
-                        arxiv_info = f" (arXiv:{arxiv_id})" if arxiv_id else ""
-                        
-                        paper_info = f"""
+            # Create summaries directory in the main work directory
+            summaries_dir = os.path.join(work_dir, "summaries")
+            summary_results = summarize_documents(
+                folder_path=docs_processed_folder,
+                work_dir_base=summaries_dir,
+                clear_work_dir=clear_work_dir,
+                max_workers=max_workers,
+                max_depth=max_depth
+            )
+            print(f"✅ Summarized {summary_results.get('processed_files', 0)} documents")
+            
+            if summary_results.get('processed_files', 0) == 0:
+                print("ℹ️ No documents were summarized, returning original text")
+                return text
+            
+            # Step 4: Collect all summaries and format the contextual information
+            print(f"📋 Step 4: Formatting contextual information...")
+            contextual_info = []
+            
+            for result in summary_results.get('results', []):
+                if result.get('success', False) and 'document_summary' in result:
+                    summary = result['document_summary']
+                    arxiv_id = result.get('arxiv_id')
+                    
+                    # Format each summary
+                    title = summary.get('title', 'Unknown Title')
+                    authors = summary.get('authors', [])
+                    authors_str = ', '.join(authors) if authors else 'Unknown Authors'
+                    date = summary.get('date', 'Unknown Date')
+                    abstract = summary.get('abstract', 'No abstract available')
+                    keywords = summary.get('keywords', [])
+                    keywords_str = ', '.join(keywords) if keywords else 'No keywords'
+                    key_findings = summary.get('key_findings', [])
+                    
+                    # Add arXiv ID if available
+                    arxiv_info = f" (arXiv:{arxiv_id})" if arxiv_id else ""
+                    
+                    paper_info = f"""
 **{title}{arxiv_info}**
 - Authors: {authors_str}
 - Date: {date}
 - Keywords: {keywords_str}
 - Abstract: {abstract}"""
-                        
-                        if key_findings:
-                            paper_info += "\n- Key Findings:"
-                            for finding in key_findings:
-                                paper_info += f"\n  • {finding}"
-                        
-                        contextual_info.append(paper_info)
+                    
+                    if key_findings:
+                        paper_info += "\n- Key Findings:"
+                        for finding in key_findings:
+                            paper_info += f"\n  • {finding}"
+                    
+                    contextual_info.append(paper_info)
+            
+            # Step 5: Append the contextual information to the original text
+            if contextual_info:
+                footer = "\n\n## Contextual Information and References\n"
+                footer += "\nThe following papers have been automatically downloaded, processed, and summarized to provide context for this task:\n"
+                footer += "\n".join(contextual_info)
                 
-                # Step 5: Append the contextual information to the original text
-                if contextual_info:
-                    footer = "\n\n## Contextual Information and References\n"
-                    footer += "\nThe following papers have been automatically downloaded, processed, and summarized to provide context for this task:\n"
-                    footer += "\n".join(contextual_info)
-                    
-                    enhanced_text = text + footer
-                    
-                    # Save enhanced text to enhanced_input.md
-                    enhanced_input_path = os.path.join(work_dir, "enhanced_input.md")
-                    try:
-                        with open(enhanced_input_path, 'w', encoding='utf-8') as f:
-                            f.write(enhanced_text)
-                        print(f"💾 Enhanced input saved to: {enhanced_input_path}")
-                    except Exception as e:
-                        print(f"⚠️ Warning: Could not save enhanced input: {e}")
-                    
-                    print(f"✅ Task preprocessing completed successfully!")
-                    print(f"📄 Added contextual information from {len(contextual_info)} papers")
-                    return enhanced_text
-                else:
-                    print("ℹ️ No valid summaries found, returning original text")
-                    return text
-                    
+                enhanced_text = text + footer
+                
+                # Save enhanced text to enhanced_input.md
+                enhanced_input_path = os.path.join(work_dir, "enhanced_input.md")
+                try:
+                    with open(enhanced_input_path, 'w', encoding='utf-8') as f:
+                        f.write(enhanced_text)
+                    print(f"💾 Enhanced input saved to: {enhanced_input_path}")
+                except Exception as e:
+                    print(f"⚠️ Warning: Could not save enhanced input: {e}")
+                
+                print(f"✅ Task preprocessing completed successfully!")
+                print(f"📄 Added contextual information from {len(contextual_info)} papers")
+                return enhanced_text
+            else:
+                print("ℹ️ No valid summaries found, returning original text")
+                return text
         except Exception as e:
             print(f"❌ Error during summarization: {e}")
             return text
