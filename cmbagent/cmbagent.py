@@ -2346,6 +2346,9 @@ def preprocess_task(text: str,
     
     print(f"🔄 Starting task preprocessing...")
     print(f"📁 Work directory: {work_dir}")
+
+    if clear_work_dir:
+        clean_work_dir(work_dir)
     
     # Step 1: Extract arXiv URLs and download PDFs
     arxiv_results = None
