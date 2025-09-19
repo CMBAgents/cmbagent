@@ -1669,7 +1669,13 @@ def summarize_document(markdown_document_path,
     # }
     # pretty print the document_summary
     print(json.dumps(document_summary, indent=4))
+
+    # delete codebase and database folders as they are not needed
+    shutil.rmtree(os.path.join(work_dir, final_context['codebase_path']), ignore_errors=True)
+    shutil.rmtree(os.path.join(work_dir, final_context['database_path']), ignore_errors=True)
     
+    cmbagent.display_cost()
+
 
     return document_summary
 
@@ -1745,6 +1751,9 @@ def summarize_documents(folder_path,
     }
     
     start_time = time.time()
+
+    if clear_work_dir:
+        clean_work_dir(work_dir_base)
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all tasks
@@ -1848,6 +1857,9 @@ def _process_single_markdown_with_error_handling(markdown_path: str,
         arxiv_match = re.search(arxiv_id_pattern, filename)
         arxiv_id = arxiv_match.group(1) if arxiv_match else None
         
+        # time the summarize_document function
+        start_time = time.time()
+
         # Call the individual summarize_document function
         summary = summarize_document(
             markdown_document_path=markdown_path,
@@ -1856,7 +1868,20 @@ def _process_single_markdown_with_error_handling(markdown_path: str,
             summarizer_model=summarizer_model,
             summarizer_response_formatter_model=summarizer_response_formatter_model
         )
-        
+        end_time = time.time()
+        execution_time_summarization = end_time - start_time
+        print(f"Execution time summarization: {execution_time_summarization}")
+
+        # save the timing report
+        timing_report = {
+            "execution_time_summarization": execution_time_summarization,
+            "arxiv_id": arxiv_id
+        }
+        timing_path = os.path.join(work_dir, "time/timing_report_summarization.json")
+        with open(timing_path, 'w') as f:
+            json.dump(timing_report, f, indent=2)
+        print(f"Timing report saved to {timing_path}")
+
         return {
             "markdown_path": str(markdown_path),
             "index": index,
