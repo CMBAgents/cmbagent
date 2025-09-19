@@ -82,6 +82,7 @@ class ArxivDownloader:
             'downloads_skipped': 0,
             'downloaded_files': [],
             'failed_downloads': [],
+            'arxiv_ids': [],  # Track arXiv IDs
             'output_directory': self.output_dir
         }
 
@@ -113,6 +114,7 @@ class ArxivDownloader:
                 if os.path.exists(filepath):
                     print(f"File '{filename}' already exists. Skipping download.")
                     result['downloads_skipped'] += 1
+                    result['arxiv_ids'].append(article_id)  # Track ID even if skipped
                     continue
 
                 print(f"Downloading '{filename}' from '{pdf_url}'...")
@@ -126,6 +128,7 @@ class ArxivDownloader:
                 print(f"Successfully downloaded and saved to '{filepath}'.")
                 result['downloads_successful'] += 1
                 result['downloaded_files'].append(filepath)
+                result['arxiv_ids'].append(article_id)
 
             except requests.exceptions.HTTPError as e:
                 error_msg = f"HTTP Error: {str(e)}"
