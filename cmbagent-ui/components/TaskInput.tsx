@@ -734,18 +734,40 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                     />
                   </div>
                   <div>
-                    <Tooltip text="Maximum directory depth when searching for files during processing" position="bottom">
-                      <label className="block text-xs text-gray-400 mb-1">Max Depth</label>
+                    <Tooltip text="AI model used for analyzing and summarizing downloaded papers" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Summarizer Model</label>
                     </Tooltip>
-                    <input
-                      type="number"
-                      value={config.maxDepth || 10}
-                      onChange={(e) => setConfig({...config, maxDepth: parseInt(e.target.value)})}
-                      min="1"
-                      max="20"
+                    <select
+                      value={config.summarizerModel || 'gpt-4.1-2025-04-14'}
+                      onChange={(e) => setConfig({...config, summarizerModel: e.target.value})}
                       className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                       disabled={isRunning}
-                    />
+                    >
+                      <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                      <option value="gpt-5-2025-08-07">GPT-5</option>
+                      <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                      <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gpt-4o-mini">GPT-4o Mini</option>
+                      <option value="o3-mini-2025-01-31">o3-mini</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Tooltip text="Model used for formatting and structuring summary output" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Default Formatter Model</label>
+                    </Tooltip>
+                    <select
+                      value={config.defaultFormatterModel || 'o3-mini-2025-01-31'}
+                      onChange={(e) => setConfig({...config, defaultFormatterModel: e.target.value})}
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    >
+                      <option value="o3-mini-2025-01-31">o3-mini</option>
+                      <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
+                      <option value="gpt-4o-mini">GPT-4o Mini</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                      <option value="gpt-5-2025-08-07">GPT-5</option>
+                    </select>
                   </div>
                 </>
               ) : (
@@ -788,8 +810,8 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                 </>
               )}
 
-              {/* Global Model Options - Available for all modes except OCR and arXiv */}
-              {mode !== 'ocr' && mode !== 'arxiv' && (
+              {/* Global Model Options - Available for all modes except OCR, arXiv, and enhance-input */}
+              {mode !== 'ocr' && mode !== 'arxiv' && mode !== 'enhance-input' && (
                 <>
                   <div>
                     <Tooltip text="Default model used for general orchestration tasks and fallback scenarios" position="bottom">

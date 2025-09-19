@@ -2317,6 +2317,8 @@ def preprocess_task(text: str,
                    clear_work_dir: bool = True,
                    max_workers: int = 4,
                    max_depth: int = 10,
+                   summarizer_model: str = default_agents_llm_model['summarizer'],
+                   summarizer_response_formatter_model: str = default_agents_llm_model['summarizer_response_formatter'],
                    skip_arxiv_download: bool = False,
                    skip_ocr: bool = False,
                    skip_summarization: bool = False) -> str:
@@ -2412,7 +2414,9 @@ def preprocess_task(text: str,
                 work_dir_base=summaries_dir,
                 clear_work_dir=clear_work_dir,
                 max_workers=max_workers,
-                max_depth=max_depth
+                max_depth=max_depth,
+                summarizer_model=summarizer_model,
+                summarizer_response_formatter_model=summarizer_response_formatter_model
             )
             print(f"✅ Summarized {summary_results.get('processed_files', 0)} documents")
             
