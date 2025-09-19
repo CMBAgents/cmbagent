@@ -13,6 +13,8 @@ import time
 import pickle
 from collections import defaultdict
 from openai import OpenAI
+from typing import List, Dict, Any
+import glob
 from IPython.display import Image
 from autogen.agentchat.group import ContextVariables
 from autogen.agentchat.group.patterns import AutoPattern
@@ -1671,6 +1673,200 @@ def summarize_document(markdown_document_path,
 
     return document_summary
 
+
+def summarize_documents(folder_path, 
+                       work_dir_base = work_dir_default, 
+                       clear_work_dir = True,
+                       summarizer_model = default_agents_llm_model['summarizer'],
+                       summarizer_response_formatter_model = default_agents_llm_model['summarizer_response_formatter'],
+                       max_workers = 4,
+                       max_depth = 10):
+    """
+    Process multiple markdown documents in parallel, summarizing each one.
+    
+    Args:
+        folder_path (str): Path to folder containing markdown files
+        work_dir_base (str): Base working directory for output
+        clear_work_dir (bool): Whether to clear the working directory
+        summarizer_model: Model to use for summarizer agent
+        summarizer_response_formatter_model: Model to use for formatter agent
+        max_workers (int): Maximum number of parallel workers
+        max_depth (int): Maximum depth for recursive file search
+        
+    Returns:
+        Dict: Summary of processing results including individual document summaries
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import glob
+    import json
+    import time
+    import os
+    
+    api_keys = get_api_keys_from_env()
+    folder_path = Path(folder_path).resolve()
+    
+    if not folder_path.exists():
+        raise FileNotFoundError(f"Folder not found: {folder_path}")
+    if not folder_path.is_dir():
+        raise ValueError(f"Path is not a directory: {folder_path}")
+        
+    print(f"📁 Scanning folder: {folder_path}")
+    print(f"🔍 Max depth: {max_depth}")
+    print(f"👥 Max workers: {max_workers}")
+    
+    # Collect all markdown files
+    markdown_files = _collect_markdown_files(folder_path, max_depth)
+    
+    if not markdown_files:
+        print("⚠️ No markdown files found in the specified folder.")
+        return {
+            "processed_files": 0,
+            "failed_files": 0,
+            "total_files": 0,
+            "results": [],
+            "folder_path": str(folder_path),
+            "work_dir_base": str(work_dir_base)
+        }
+    
+    print(f"📄 Found {len(markdown_files)} markdown files")
+    
+    # Create base work directory
+    work_dir_base = Path(work_dir_base).expanduser().resolve() 
+    work_dir_base.mkdir(parents=True, exist_ok=True)
+    
+    # Initialize results
+    results = {
+        "processed_files": 0,
+        "failed_files": 0,
+        "total_files": len(markdown_files),
+        "results": [],
+        "folder_path": str(folder_path),
+        "work_dir_base": str(work_dir_base)
+    }
+    
+    start_time = time.time()
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all tasks
+        future_to_markdown = {
+            executor.submit(
+                _process_single_markdown_with_error_handling,
+                markdown_path,
+                i + 1,  # 1-indexed
+                work_dir_base,
+                clear_work_dir,
+                summarizer_model,
+                summarizer_response_formatter_model
+            ): (markdown_path, i + 1) for i, markdown_path in enumerate(markdown_files)
+        }
+        
+        # Process completed tasks
+        for future in as_completed(future_to_markdown):
+            markdown_path, index = future_to_markdown[future]
+            
+            try:
+                result = future.result()
+                if result.get("success", False):
+                    results["processed_files"] += 1
+                    print(f"✓ Processed [{index:02d}]: {Path(markdown_path).name}")
+                else:
+                    results["failed_files"] += 1
+                    print(f"✗ Failed [{index:02d}]: {Path(markdown_path).name} - {result.get('error', 'Unknown error')}")
+                
+                results["results"].append(result)
+            except Exception as e:
+                results["failed_files"] += 1
+                print(f"✗ Failed [{index:02d}]: {Path(markdown_path).name} - {str(e)}")
+                results["results"].append({
+                    "markdown_path": str(markdown_path),
+                    "index": index,
+                    "success": False,
+                    "error": str(e)
+                })
+    
+    end_time = time.time()
+    total_time = end_time - start_time
+    
+    print(f"\n📋 Processing complete:")
+    print(f"  Successfully processed: {results['processed_files']} files")
+    print(f"  Failed: {results['failed_files']} files") 
+    print(f"  Total time: {total_time:.2f} seconds")
+    print(f"  Output directory: {results['work_dir_base']}")
+    
+    # Save overall summary
+    summary_file = work_dir_base / "processing_summary.json"
+    try:
+        results["processing_time"] = total_time
+        results["timestamp"] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        
+        with open(summary_file, 'w', encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        print(f"📄 Overall summary saved to: {summary_file}")
+    except Exception as e:
+        print(f"⚠️ Warning: Could not save overall summary: {e}")
+    
+    return results
+
+
+def _collect_markdown_files(folder_path: Path, max_depth: int = 10) -> List[str]:
+    """Collect all markdown files from the folder and subfolders."""
+    markdown_files = []
+    
+    # Use glob to find all markdown files recursively
+    for ext in ['*.md', '*.markdown']:
+        pattern = str(folder_path / "**" / ext)
+        markdown_files.extend(glob.glob(pattern, recursive=True))
+    
+    # Filter by depth if needed
+    if max_depth < float('inf'):
+        filtered_files = []
+        for markdown_file in markdown_files:
+            relative_path = Path(markdown_file).relative_to(folder_path)
+            depth = len(relative_path.parts) - 1  # -1 because the file itself is not a directory
+            if depth <= max_depth:
+                filtered_files.append(markdown_file)
+        markdown_files = filtered_files
+    
+    return sorted(markdown_files)
+
+
+def _process_single_markdown_with_error_handling(markdown_path: str,
+                                               index: int,
+                                               work_dir_base: Path,
+                                               clear_work_dir: bool,
+                                               summarizer_model: str,
+                                               summarizer_response_formatter_model: str) -> Dict[str, Any]:
+    """Process a single markdown file with error handling."""
+    try:
+        # Create indexed work directory for this document
+        work_dir = work_dir_base / f"doc_{index:03d}_{Path(markdown_path).stem}"
+        
+        # Call the individual summarize_document function
+        summary = summarize_document(
+            markdown_document_path=markdown_path,
+            work_dir=work_dir,
+            clear_work_dir=clear_work_dir,
+            summarizer_model=summarizer_model,
+            summarizer_response_formatter_model=summarizer_response_formatter_model
+        )
+        
+        return {
+            "markdown_path": str(markdown_path),
+            "index": index,
+            "work_dir": str(work_dir),
+            "success": True,
+            "document_summary": summary,
+            "filename": Path(markdown_path).name
+        }
+        
+    except Exception as e:
+        return {
+            "markdown_path": str(markdown_path),
+            "index": index,
+            "success": False,
+            "error": str(e),
+            "filename": Path(markdown_path).name
+        }
 
 
 def control(
