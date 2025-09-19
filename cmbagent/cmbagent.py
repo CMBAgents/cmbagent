@@ -2459,7 +2459,6 @@ def preprocess_task(text: str,
             # Step 5: Append the contextual information to the original text
             if contextual_info:
                 footer = "\n\n## Contextual Information and References\n"
-                footer += "\nThe following papers have been automatically downloaded, processed, and summarized to provide context for this task:\n"
                 footer += "\n".join(contextual_info)
                 
                 enhanced_text = text + footer

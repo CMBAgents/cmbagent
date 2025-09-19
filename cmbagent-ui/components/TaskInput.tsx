@@ -33,7 +33,7 @@ interface TaskInputProps {
 export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = false, onOpenDirectory }: TaskInputProps) {
   const [task, setTask] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation' | 'ocr' | 'arxiv'>('one-shot')
+  const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation' | 'ocr' | 'arxiv' | 'enhance-input'>('one-shot')
   const [showOcrDropdown, setShowOcrDropdown] = useState(false)
   const [showCredentialsModal, setShowCredentialsModal] = useState(false)
   const [showOpenAIError, setShowOpenAIError] = useState(false)
@@ -70,7 +70,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     maxAttempts: 1,
     agent: 'engineer',
     workDir: '~/cmbagent_workdir',
-    mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation' | 'ocr' | 'arxiv',
+    mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation' | 'ocr' | 'arxiv' | 'enhance-input',
     // Global model options
     defaultModel: 'gpt-4.1-2025-04-14',
     defaultFormatterModel: 'o3-mini-2025-01-31',
@@ -89,6 +89,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     saveJson: true,
     saveText: false,
     maxWorkers: 4,
+    maxDepth: 10,
     ocrOutputDir: ''
   })
 
@@ -132,6 +133,12 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         'Fuzzy dark matter models at https://arxiv.org/pdf/1610.08297',
         'Recent JWST observations show Little Red Dots at https://arxiv.org/abs/2509.02664',
         'Black hole mass measurements https://arxiv.org/html/2508.21748'
+      ]
+    } else if (mode === 'enhance-input') {
+      return [
+        'We want to develop a comprehensive market impact model building on recent advances in square-root price impact. The work in https://arxiv.org/abs/2509.05065 shows how order imbalance and volatility interact in artificial markets.',
+        'Recent cosmic birefringence measurements from ACT are fascinating. The analysis in https://arxiv.org/pdf/2509.13654 provides new constraints on axion-like particles and cosmic magnetic fields.',
+        'what is the link between that paper on surface diffusion for neurodevelopment https://arxiv.org/pdf/2508.03706 and this one on conditional control in text-to-image diffusion https://arxiv.org/pdf/2302.05543'
       ]
     }
     return [
@@ -238,18 +245,19 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
             <Tooltip text={
               mode === 'arxiv' ? "Filter text for arXiv URLs and download papers" :
               mode === 'ocr' ? "Process PDFs with OCR - Extract text from PDF files or folders containing PDFs" :
+              mode === 'enhance-input' ? "Enhance input text with contextual information from referenced arXiv papers" :
               "Additional tools for document processing and content filtering"
             } wide position="bottom">
               <button
                 onClick={() => setShowOcrDropdown(!showOcrDropdown)}
                 disabled={isRunning}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
-                  mode === 'ocr' || mode === 'arxiv'
+                  mode === 'ocr' || mode === 'arxiv' || mode === 'enhance-input'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {mode === 'arxiv' ? '📚 arXiv Filter' : mode === 'ocr' ? '📄 PDF OCR' : '🔧 More Tools'}
+                {mode === 'arxiv' ? '📚 arXiv Filter' : mode === 'ocr' ? '📄 PDF OCR' : mode === 'enhance-input' ? '✨ Enhance Input' : '🔧 More Tools'}
                 <ChevronDown className="w-3 h-3" />
               </button>
             </Tooltip>
@@ -279,13 +287,28 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                     setShowOcrDropdown(false)
                   }}
                   disabled={isRunning}
-                  className={`w-full px-3 py-2 text-left text-sm transition-colors rounded-b-lg ${
+                  className={`w-full px-3 py-2 text-left text-sm transition-colors ${
                     mode === 'ocr'
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-300 hover:text-white hover:bg-gray-700'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   📄 PDF OCR
+                </button>
+                <button
+                  onClick={() => {
+                    setMode('enhance-input')
+                    setConfig(prev => ({ ...prev, mode: 'enhance-input' }))
+                    setShowOcrDropdown(false)
+                  }}
+                  disabled={isRunning}
+                  className={`w-full px-3 py-2 text-left text-sm transition-colors rounded-b-lg ${
+                    mode === 'enhance-input'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  ✨ Enhance Input
                 </button>
               </div>
             )}
@@ -325,6 +348,15 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
               value={task}
               onChange={(e) => setTask(e.target.value)}
               placeholder="Enter text containing arXiv URLs to extract and download papers..."
+              className="w-full h-28 px-3 py-2 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+              disabled={isRunning}
+            />
+          ) : mode === 'enhance-input' ? (
+            /* Multi-line textarea for enhance-input mode */
+            <textarea
+              value={task}
+              onChange={(e) => setTask(e.target.value)}
+              placeholder="Enter task description containing arXiv URLs to enhance with contextual information..."
               className="w-full h-28 px-3 py-2 bg-black/30 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
               disabled={isRunning}
             />
@@ -404,7 +436,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         {showAdvanced && (
           <div className="space-y-2 p-2 bg-black/20 rounded-lg border border-white/10">
             <h3 className="text-xs font-medium text-gray-300">
-              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Deep Research' : mode === 'idea-generation' ? 'Idea Generation' : mode === 'arxiv' ? 'arXiv Filter' : 'OCR'} Mode
+              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Deep Research' : mode === 'idea-generation' ? 'Idea Generation' : mode === 'arxiv' ? 'arXiv Filter' : mode === 'enhance-input' ? 'Enhance Input' : 'OCR'} Mode
             </h3>
             
             {/* Credential Status Message in Advanced Section */}
@@ -677,6 +709,43 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                     <div className="text-xs text-gray-400 p-2 bg-blue-900/20 border border-blue-500/20 rounded">
                       ℹ️ arXiv Filter will scan your text for arXiv URLs and download the corresponding papers to the docs folder in your work directory.
                     </div>
+                  </div>
+                </>
+              ) : mode === 'enhance-input' ? (
+                /* Enhance Input Configuration */
+                <>
+                  <div className="col-span-2">
+                    <div className="text-xs text-gray-400 p-2 bg-purple-900/20 border border-purple-500/20 rounded">
+                      ✨ Enhance Input will scan your text for arXiv URLs, download papers, process them with OCR, create summaries, and append contextual information to your original text.
+                    </div>
+                  </div>
+                  <div>
+                    <Tooltip text="Maximum number of parallel workers for processing PDFs and summaries" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Max Workers</label>
+                    </Tooltip>
+                    <input
+                      type="number"
+                      value={config.maxWorkers || 2}
+                      onChange={(e) => setConfig({...config, maxWorkers: parseInt(e.target.value)})}
+                      min="1"
+                      max="8"
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    />
+                  </div>
+                  <div>
+                    <Tooltip text="Maximum directory depth when searching for files during processing" position="bottom">
+                      <label className="block text-xs text-gray-400 mb-1">Max Depth</label>
+                    </Tooltip>
+                    <input
+                      type="number"
+                      value={config.maxDepth || 10}
+                      onChange={(e) => setConfig({...config, maxDepth: parseInt(e.target.value)})}
+                      min="1"
+                      max="20"
+                      className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isRunning}
+                    />
                   </div>
                 </>
               ) : (

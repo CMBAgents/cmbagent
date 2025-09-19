@@ -28,6 +28,16 @@ interface OCRCostData {
   last_updated: number
 }
 
+interface EnhanceInputCostData {
+  ocr_cost: OCRCostData | null
+  summarization_costs: CostData[]
+  total_cost: number
+  breakdown: {
+    ocr_cost_usd: number
+    summarization_cost_usd: number
+  }
+}
+
 interface ArxivMetadata {
   urls_found: string[]
   downloads_attempted: number
@@ -59,6 +69,7 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
   const [activeTab, setActiveTab] = useState('summary')
   const [costData, setCostData] = useState<CostData[]>([])
   const [ocrCostData, setOcrCostData] = useState<OCRCostData | null>(null)
+  const [enhanceInputCostData, setEnhanceInputCostData] = useState<EnhanceInputCostData | null>(null)
   const [arxivMetadata, setArxivMetadata] = useState<ArxivMetadata | null>(null)
   const [isLoadingCost, setIsLoadingCost] = useState(false)
   const [isLoadingArxiv, setIsLoadingArxiv] = useState(false)
@@ -71,6 +82,7 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
   // Check mode
   const isOCRMode = results?.mode === 'ocr'
   const isArxivMode = results?.mode === 'arxiv'
+  const isEnhanceInputMode = results?.mode === 'enhance-input'
 
   // Function to load OCR cost data
   const loadOCRCostData = async (retryAttempt = 0): Promise<void> => {
@@ -386,6 +398,146 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
     setIsLoadingArxiv(false)
   }
 
+  // Function to load enhance-input cost data (OCR + summarization costs)
+  const loadEnhanceInputCostData = async (retryAttempt = 0): Promise<void> => {
+    if (!results?.work_dir) {
+      console.log('No work directory available for enhance-input costs')
+      setCostLoadError('No work directory available')
+      return
+    }
+
+    const maxRetries = 5
+    const retryDelays = [2000, 3000, 5000, 8000, 12000]
+
+    setIsLoadingCost(true)
+    setCostLoadError(null)
+    setCostLoadAttempts(retryAttempt + 1)
+    
+    console.log(`Loading enhance-input cost data from: ${results.work_dir} (attempt ${retryAttempt + 1}/${maxRetries})`)
+
+    try {
+      let totalCost = 0
+      let ocrCostData: OCRCostData | null = null
+      let summarizationCosts: CostData[] = []
+      let ocrCostUsd = 0
+      let summarizationCostUsd = 0
+
+      // 1. Load OCR cost data
+      try {
+        const ocrCostPath = `${results.work_dir}/ocr_cost.json`
+        const ocrContentResponse = await fetch(`/api/files/content?path=${encodeURIComponent(ocrCostPath)}`)
+        
+        if (ocrContentResponse.ok) {
+          const ocrContentData = await ocrContentResponse.json()
+          if (ocrContentData.content) {
+            ocrCostData = JSON.parse(ocrContentData.content)
+            ocrCostUsd = ocrCostData?.total_cost_usd || 0
+            totalCost += ocrCostUsd
+            console.log('OCR cost data loaded:', ocrCostUsd)
+          }
+        } else {
+          console.log('OCR cost file not found, may not have OCR costs')
+        }
+      } catch (error) {
+        console.log('Failed to load OCR costs:', error)
+      }
+
+      // 2. Load summarization cost data from summaries subdirectories
+      try {
+        const summariesDir = `${results.work_dir}/summaries`
+        const summariesListResponse = await fetch(`/api/files/list?path=${encodeURIComponent(summariesDir)}`)
+        
+        if (summariesListResponse.ok) {
+          const summariesListData = await summariesListResponse.json()
+          const docDirs = summariesListData.items?.filter((item: any) => 
+            item.type === 'directory' && item.name.startsWith('doc_')
+          ) || []
+
+          for (const docDir of docDirs) {
+            const costDir = `${docDir.path}/cost`
+            const costListResponse = await fetch(`/api/files/list?path=${encodeURIComponent(costDir)}`)
+            
+            if (costListResponse.ok) {
+              const costListData = await costListResponse.json()
+              const costFiles = costListData.items?.filter((file: any) => 
+                file.name.startsWith('cost_report_') && file.name.endsWith('.json')
+              ) || []
+
+              for (const costFile of costFiles) {
+                const contentResponse = await fetch(`/api/files/content?path=${encodeURIComponent(costFile.path)}`)
+                if (contentResponse.ok) {
+                  const contentData = await contentResponse.json()
+                  if (contentData.content) {
+                    let cleanedContent = contentData.content.replace(/:\s*NaN/g, ': null')
+                    const parsedData = JSON.parse(cleanedContent)
+                    
+                    // Filter out Total rows and add to summarization costs
+                    const nonTotalData = parsedData.filter((item: any) => item.Agent !== 'Total')
+                    summarizationCosts.push(...nonTotalData)
+                  }
+                }
+              }
+            }
+          }
+
+          // Calculate summarization total cost
+          summarizationCostUsd = summarizationCosts.reduce((sum, item) => 
+            sum + (typeof item['Cost ($)'] === 'number' && !isNaN(item['Cost ($)']) ? item['Cost ($)'] : 0), 0)
+          totalCost += summarizationCostUsd
+          console.log('Summarization cost data loaded:', summarizationCostUsd)
+        } else {
+          console.log('Summaries directory not found, may not have summarization costs')
+        }
+      } catch (error) {
+        console.log('Failed to load summarization costs:', error)
+      }
+
+      if (ocrCostData || summarizationCosts.length > 0) {
+        const enhanceInputData: EnhanceInputCostData = {
+          ocr_cost: ocrCostData,
+          summarization_costs: summarizationCosts,
+          total_cost: totalCost,
+          breakdown: {
+            ocr_cost_usd: ocrCostUsd,
+            summarization_cost_usd: summarizationCostUsd
+          }
+        }
+        
+        setEnhanceInputCostData(enhanceInputData)
+        setLastCostUpdate(new Date())
+        setCostLoadError(null)
+        console.log('Enhance-input cost data loaded successfully:', enhanceInputData)
+      } else {
+        throw new Error('No cost data found - processing may still be in progress')
+      }
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Error loading enhance-input cost data:', errorMessage)
+      
+      // Retry if we haven't exceeded max attempts and it's a retryable error
+      if (retryAttempt < maxRetries - 1 && 
+          (errorMessage.includes('not found') || 
+           errorMessage.includes('still be') || 
+           errorMessage.includes('empty'))) {
+        
+        console.log(`Retrying enhance-input cost load in ${retryDelays[retryAttempt]}ms...`)
+        setTimeout(() => {
+          loadEnhanceInputCostData(retryAttempt + 1)
+        }, retryDelays[retryAttempt])
+        return
+      }
+      
+      // Final failure
+      setCostLoadError(errorMessage)
+      setIsLoadingCost(false)
+    }
+    
+    if (retryAttempt === 0 || enhanceInputCostData) {
+      setIsLoadingCost(false)
+    }
+  }
+
   // Load cost data when results become available (task completion)
   useEffect(() => {
     if (results?.work_dir) {
@@ -394,6 +546,7 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
       // Reset states for new task
       setCostData([])
       setOcrCostData(null)
+      setEnhanceInputCostData(null)
       setArxivMetadata(null)
       setCostLoadError(null)
       setArxivLoadError(null)
@@ -403,7 +556,9 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
       
       // Longer delay to ensure files are written (3 seconds)
       const timer = setTimeout(() => {
-        if (isOCRMode) {
+        if (isEnhanceInputMode) {
+          loadEnhanceInputCostData()
+        } else if (isOCRMode) {
           loadOCRCostData()
         } else if (isArxivMode) {
           loadArxivMetadata()
@@ -421,6 +576,10 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
     // arXiv mode has no cost
     if (isArxivMode) {
       return null
+    }
+    
+    if (isEnhanceInputMode) {
+      return enhanceInputCostData?.total_cost || null
     }
     
     if (isOCRMode) {
@@ -589,11 +748,11 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
       )}
 
       {/* Cost Breakdown Section - hidden for arXiv mode */}
-      {!isArxivMode && (costData.length > 0 || ocrCostData || isLoadingCost || costLoadError) && (
+      {!isArxivMode && (costData.length > 0 || ocrCostData || enhanceInputCostData || isLoadingCost || costLoadError) && (
         <div className="bg-black/20 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-medium text-gray-300">
-              {isOCRMode ? 'OCR Cost Breakdown' : 'Cost Breakdown'}
+              {isEnhanceInputMode ? 'Enhance Input Cost Breakdown' : isOCRMode ? 'OCR Cost Breakdown' : 'Cost Breakdown'}
             </h4>
             <div className="flex items-center space-x-2">
               {lastCostUpdate && !isLoadingCost && (
@@ -602,7 +761,7 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
                 </span>
               )}
               <button
-                onClick={() => isOCRMode ? loadOCRCostData() : loadCostData()}
+                onClick={() => isEnhanceInputMode ? loadEnhanceInputCostData() : isOCRMode ? loadOCRCostData() : loadCostData()}
                 disabled={isLoadingCost}
                 className="px-2 py-1 text-xs bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded border border-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -635,6 +794,85 @@ export default function ResultDisplay({ results }: ResultDisplayProps) {
               >
                 Retry Loading Cost Data
               </button>
+            </div>
+          ) : isEnhanceInputMode && enhanceInputCostData ? (
+            /* Enhance Input Success state - show combined OCR and summarization costs */
+            <div className="space-y-4">
+              {/* Cost Breakdown Summary */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-black/20 rounded-lg p-3">
+                  <h5 className="text-xs font-medium text-gray-400 mb-1">OCR Cost</h5>
+                  <p className="text-lg font-bold text-blue-400">${enhanceInputCostData.breakdown.ocr_cost_usd.toFixed(6)}</p>
+                </div>
+                <div className="bg-black/20 rounded-lg p-3">
+                  <h5 className="text-xs font-medium text-gray-400 mb-1">Summarization Cost</h5>
+                  <p className="text-lg font-bold text-green-400">${enhanceInputCostData.breakdown.summarization_cost_usd.toFixed(6)}</p>
+                </div>
+              </div>
+
+              {/* OCR Details if available */}
+              {enhanceInputCostData.ocr_cost && (
+                <div>
+                  <h5 className="text-sm font-medium text-gray-300 mb-2">OCR Processing Details</h5>
+                  <div className="grid grid-cols-3 gap-4 mb-3">
+                    <div className="bg-black/10 rounded-lg p-2">
+                      <p className="text-xs text-gray-400">Pages Processed</p>
+                      <p className="text-sm font-bold text-blue-400">{enhanceInputCostData.ocr_cost.total_pages_processed}</p>
+                    </div>
+                    <div className="bg-black/10 rounded-lg p-2">
+                      <p className="text-xs text-gray-400">Files Processed</p>
+                      <p className="text-sm font-bold text-green-400">{enhanceInputCostData.ocr_cost.entries.length}</p>
+                    </div>
+                    <div className="bg-black/10 rounded-lg p-2">
+                      <p className="text-xs text-gray-400">Cost per Page</p>
+                      <p className="text-sm font-bold text-orange-400">${enhanceInputCostData.ocr_cost.cost_per_page.toFixed(4)}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Summarization Details if available */}
+              {enhanceInputCostData.summarization_costs.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-medium text-gray-300 mb-2">Summarization Processing Details</h5>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="text-left pb-2 text-gray-400">Agent</th>
+                          <th className="text-right pb-2 text-gray-400">Cost ($)</th>
+                          <th className="text-right pb-2 text-gray-400">Prompt Tokens</th>
+                          <th className="text-right pb-2 text-gray-400">Completion Tokens</th>
+                          <th className="text-left pb-2 text-gray-400">Model</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {enhanceInputCostData.summarization_costs.map((row, index) => (
+                          <tr key={index} className="border-b border-white/5">
+                            <td className="py-1 text-gray-300">{row.Agent}</td>
+                            <td className="py-1 text-right text-yellow-400">${row['Cost ($)']?.toFixed(6) || '0.000000'}</td>
+                            <td className="py-1 text-right text-gray-300">{row['Prompt Tokens']?.toLocaleString() || '0'}</td>
+                            <td className="py-1 text-right text-gray-300">{row['Completion Tokens']?.toLocaleString() || '0'}</td>
+                            <td className="py-1 text-gray-300">{row.Model || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Total Summary */}
+              <div className="bg-white/5 rounded-lg p-3 border-t-2 border-yellow-400/30">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold text-white">Total Cost</span>
+                  <span className="text-lg font-bold text-yellow-400">${enhanceInputCostData.total_cost.toFixed(6)}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mt-2 text-xs text-gray-400">
+                  <div>OCR: ${enhanceInputCostData.breakdown.ocr_cost_usd.toFixed(6)}</div>
+                  <div>Summarization: ${enhanceInputCostData.breakdown.summarization_cost_usd.toFixed(6)}</div>
+                </div>
+              </div>
             </div>
           ) : isOCRMode && ocrCostData ? (
             /* OCR Success state - show OCR specific table */
