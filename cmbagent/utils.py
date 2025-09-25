@@ -217,6 +217,8 @@ def get_model_config(model, api_keys):
 
 api_keys_env = get_api_keys_from_env()
 
+# print('api_keys_env: ', api_keys_env)
+
 for agent in default_agents_llm_model:
     default_agent_llm_configs[agent] =  get_model_config(default_agents_llm_model[agent], api_keys_env)
 

@@ -82,6 +82,8 @@ def register_functions_to_agents(cmbagent_instance):
     classy_context = cmbagent_instance.get_agent_from_name('classy_context')
     plot_judge = cmbagent_instance.get_agent_from_name('plot_judge')
     plot_debugger = cmbagent_instance.get_agent_from_name('plot_debugger')
+
+    keyword_finder = cmbagent_instance.get_agent_from_name('keyword_finder')
     
     if not cmbagent_instance.skip_rag_agents:
         classy_sz = cmbagent_instance.get_agent_from_name('classy_sz_agent')

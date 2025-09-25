@@ -2251,7 +2251,9 @@ def human_in_the_loop(task,
 
     return results
 
-def get_keywords(input_text: str, n_keywords: int = 5, work_dir = work_dir_default, api_keys = None):
+def get_keywords(input_text: str, n_keywords: int = 5, 
+                 work_dir = work_dir_default, 
+                 api_keys = get_api_keys_from_env()):
     """
     Get AAS keywords from input text using astropilot.
 
