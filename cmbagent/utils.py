@@ -272,12 +272,14 @@ def aas_keyword_to_url(keyword):
     return dic[keyword]
 
 
-with open(path_to_basedir + '/aas_kwd_to_url.pkl', 'rb') as file:
+with open(path_to_basedir + '/keywords/aas_kwd_to_url.pkl', 'rb') as file:
     AAS_keywords_dict = pickle.load(file)
 
 # print(my_dict)
 # Assuming you have already loaded your dictionary into `my_dict`
 AAS_keywords_string = ', '.join(AAS_keywords_dict.keys())
+
+unesco_taxonomy_path = path_to_basedir + '/keywords/unesco_hierarchical.json'
 
 
 camb_context_url = "https://camb.readthedocs.io/en/latest/_static/camb_docs_combined.md"

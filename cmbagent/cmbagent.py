@@ -34,6 +34,9 @@ from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
 from .data_retriever import setup_cmbagent_data
 
+from .keywords_utils import UnescoKeywords
+from .utils import unesco_taxonomy_path
+
 
 def import_non_rag_agents():
     imported_non_rag_agents = {}
@@ -2253,9 +2256,10 @@ def human_in_the_loop(task,
 
 def get_keywords(input_text: str, n_keywords: int = 5, 
                  work_dir = work_dir_default, 
-                 api_keys = get_api_keys_from_env()):
+                 api_keys = get_api_keys_from_env(),
+                 kw_type = 'aas'):
     """
-    Get AAS keywords from input text using astropilot.
+    Get keywords from input text.
 
     Args:
         input_text (str): Text to extract keywords from
@@ -2263,7 +2267,132 @@ def get_keywords(input_text: str, n_keywords: int = 5,
         **kwargs: Additional keyword arguments
 
     Returns:
-        dict: Dictionary mapping AAS keywords to their URLs
+        dict: Dictionary of keywords
+    """
+    if kw_type == 'aas':
+        get_aas_keywords(input_text, n_keywords, work_dir, api_keys)
+    else:
+
+        aggregated_keywords = []
+
+        ukw = UnescoKeywords(unesco_taxonomy_path)
+        keywords_string = ', '.join(ukw.get_unesco_level1_names())
+        n_keywords_level1  = ukw.n_keywords_level1
+        domains = get_keywords_from_string(input_text, keywords_string, n_keywords_level1, work_dir, api_keys)
+
+        print('domains:')
+        print(domains)
+        domains.append('MATHEMATICS') if not 'MATHEMATICS' in domains else None
+        aggregated_keywords.extend(domains)
+
+        for domain in domains:
+            print('inside domain: ', domain)
+            if '&' in domain:
+                domain = domain.replace('&', '\\&')
+            keywords_string = ', '.join(ukw.get_unesco_level2_names(domain))
+            n_keywords_level2 = ukw.n_keywords_level2
+            sub_fields = get_keywords_from_string(input_text, keywords_string, n_keywords_level2, work_dir, api_keys)
+
+            print('sub_fields:')
+            print(sub_fields)
+            aggregated_keywords.extend(sub_fields)
+
+            for sub_field in sub_fields:
+                print('inside sub_field: ', sub_field)
+                keywords_string = ', '.join(ukw.get_unesco_level3_names(sub_field))
+                n_keywords_level3 = ukw.n_keywords_level3
+                specific_areas = get_keywords_from_string(input_text, keywords_string, n_keywords_level3, work_dir, api_keys)
+                print('specific_areas:')
+                print(specific_areas)
+                aggregated_keywords.extend(specific_areas)
+
+
+        aggregated_keywords = list(set(aggregated_keywords))
+        keywords_string = ', '.join(aggregated_keywords)
+        keywords = get_keywords_from_string(input_text, keywords_string, n_keywords, work_dir, api_keys)
+
+        print('keywords:')
+        print(keywords)
+        return keywords
+            
+
+        
+        
+        # return aas_keywords
+
+
+def get_keywords_from_string(input_text,keywords_string, n_keywords, work_dir, api_keys):
+    start_time = time.time()
+    cmbagent = CMBAgent(work_dir = work_dir, api_keys = api_keys)
+    end_time = time.time()
+    initialization_time = end_time - start_time
+
+    PROMPT = f"""
+    {input_text}
+    """
+    start_time = time.time()
+
+    
+    cmbagent.solve(task="Find the relevant keywords in the provided list",
+            max_rounds=2,
+            initial_agent='list_keywords_finder',
+            mode = "one_shot",
+            shared_context={
+            'text_input_for_AAS_keyword_finder': PROMPT,
+            'AAS_keywords_string': keywords_string,
+            'N_AAS_keywords': n_keywords,
+                            }
+            )
+    end_time = time.time()
+    execution_time = end_time - start_time
+    # aas_keywords = cmbagent.final_context['aas_keywords'] ## here you get the dict with urls
+
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+    # print('groupchat created for cost display')
+    # Now call display_cost without triggering the AttributeError
+    # print('displaying cost...')
+    cmbagent.display_cost()
+
+    # Save timing report as JSON
+    timing_report = {
+        'initialization_time': initialization_time,
+        'execution_time': execution_time,
+        'total_time': initialization_time + execution_time
+    }   
+
+    # Add timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Save to JSON file in workdir
+    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    with open(timing_path, 'w') as f:
+        json.dump(timing_report, f, indent=2)
+
+    # grab last user message with role "user"
+    user_msg = next(
+        (msg["content"] for msg in cmbagent.chat_result.chat_history if msg.get("role") == "user"),
+        ""
+    )
+
+    # extract lines starting with a dash
+    keywords = [line.lstrip("-").strip() for line in user_msg.splitlines() if line.startswith("-")]
+    return keywords
+
+def get_aas_keywords(input_text: str, n_keywords: int = 5, 
+                 work_dir = work_dir_default, 
+                 api_keys = get_api_keys_from_env()):
+    """
+    Get keywords from input text.
+
+    Args:
+        input_text (str): Text to extract keywords from
+        n_keywords (int, optional): Number of keywords to extract. Defaults to 5.
+        **kwargs: Additional keyword arguments
+
+    Returns:
+        dict: Dictionary of keywords
     """
     start_time = time.time()
     cmbagent = CMBAgent(work_dir = work_dir, api_keys = api_keys)
@@ -2312,6 +2441,7 @@ def get_keywords(input_text: str, n_keywords: int = 5,
         json.dump(timing_report, f, indent=2)
     
     return aas_keywords
+
 
 
 def preprocess_task(text: str, 
