@@ -25,6 +25,6 @@ offering a robust framework and clear design principles for engineering surfaces
 transport properties in applications like nanofluidics, membranes, and energy storage.
 """
 
-keywords = cmbagent.get_keywords(task, n_keywords=8, kw_type='unesco')
+keywords = cmbagent.get_keywords(task, n_keywords=2, kw_type='aaai')
 
 print(keywords)

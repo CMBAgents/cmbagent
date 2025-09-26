@@ -280,7 +280,7 @@ with open(path_to_basedir + '/keywords/aas_kwd_to_url.pkl', 'rb') as file:
 AAS_keywords_string = ', '.join(AAS_keywords_dict.keys())
 
 unesco_taxonomy_path = path_to_basedir + '/keywords/unesco_hierarchical.json'
-
+aaai_keywords_path = path_to_basedir + '/keywords/aaai.md'
 
 camb_context_url = "https://camb.readthedocs.io/en/latest/_static/camb_docs_combined.md"
 classy_context_url = "https://github.com/santiagocasas/clapp/tree/main/classy_docs.md"

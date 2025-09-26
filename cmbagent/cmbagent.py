@@ -35,8 +35,8 @@ from .functions import register_functions_to_agents
 from .data_retriever import setup_cmbagent_data
 
 from .keywords_utils import UnescoKeywords
-from .utils import unesco_taxonomy_path
-
+from .keywords_utils import AaaiKeywords
+from .utils import unesco_taxonomy_path, aaai_keywords_path
 
 def import_non_rag_agents():
     imported_non_rag_agents = {}
@@ -2271,7 +2271,7 @@ def get_keywords(input_text: str, n_keywords: int = 5,
     """
     if kw_type == 'aas':
         get_aas_keywords(input_text, n_keywords, work_dir, api_keys)
-    else:
+    elif kw_type == 'unesco':
 
         aggregated_keywords = []
 
@@ -2314,11 +2314,77 @@ def get_keywords(input_text: str, n_keywords: int = 5,
         print('keywords:')
         print(keywords)
         return keywords
-            
+    elif kw_type == 'aaai':
+        return get_keywords_from_aaai(input_text, n_keywords, work_dir, api_keys)
 
         
-        
         # return aas_keywords
+
+
+
+
+def get_keywords_from_aaai(input_text, n_keywords=6, work_dir=work_dir_default, api_keys=get_api_keys_from_env()):
+    start_time = time.time()
+    cmbagent = CMBAgent(work_dir = work_dir, api_keys = api_keys)
+    end_time = time.time()
+    initialization_time = end_time - start_time
+
+    PROMPT = f"""
+    {input_text}
+    """
+    start_time = time.time()
+
+    aaai_keywords = AaaiKeywords(aaai_keywords_path)
+
+    keywords_string = aaai_keywords.aaai_keywords_string
+
+    
+    cmbagent.solve(task="Find the relevant keywords in the provided list",
+            max_rounds=2,
+            initial_agent='aaai_keywords_finder',
+            mode = "one_shot",
+            shared_context={
+            'text_input_for_AAS_keyword_finder': PROMPT,
+            'AAS_keywords_string': keywords_string,
+            'N_AAS_keywords': n_keywords,
+                            }
+            )
+    end_time = time.time()
+    execution_time = end_time - start_time
+    # aas_keywords = cmbagent.final_context['aas_keywords'] ## here you get the dict with urls
+
+    if not hasattr(cmbagent, 'groupchat'):
+        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
+        cmbagent.groupchat = Dummy()
+    # print('groupchat created for cost display')
+    # Now call display_cost without triggering the AttributeError
+    # print('displaying cost...')
+    cmbagent.display_cost()
+
+    # Save timing report as JSON
+    timing_report = {
+        'initialization_time': initialization_time,
+        'execution_time': execution_time,
+        'total_time': initialization_time + execution_time
+    }   
+
+    # Add timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    # Save to JSON file in workdir
+    timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
+    with open(timing_path, 'w') as f:
+        json.dump(timing_report, f, indent=2)
+
+    # grab last user message with role "user"
+    user_msg = next(
+        (msg["content"] for msg in cmbagent.chat_result.chat_history if msg.get("role") == "user"),
+        ""
+    )
+
+    # extract lines starting with a dash
+    keywords = [line.lstrip("-").strip() for line in user_msg.splitlines() if line.startswith("-")]
+    return keywords
 
 
 def get_keywords_from_string(input_text,keywords_string, n_keywords, work_dir, api_keys):

@@ -28,3 +28,9 @@ class UnescoKeywords:
                 if sub['name'] == level2_name:
                     return [area['name'] for area in sub.get('specific_areas', {}).values()]
         return []
+
+
+class AaaiKeywords:
+
+    def __init__(self, aaai_keywords_path):
+        self.aaai_keywords_string = open(aaai_keywords_path).read()

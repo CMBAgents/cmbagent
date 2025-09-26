@@ -40,7 +40,7 @@ instructions: |
 
 
 description: |
-    AAS keyword finder agent, to find the keywords of the AAS paper.
+   keyword finder agent, to find the keywords for the provided text.
 
 
 
