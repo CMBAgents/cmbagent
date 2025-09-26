@@ -2257,7 +2257,7 @@ def human_in_the_loop(task,
 def get_keywords(input_text: str, n_keywords: int = 5, 
                  work_dir = work_dir_default, 
                  api_keys = get_api_keys_from_env(),
-                 kw_type = 'aas'):
+                 kw_type = 'unesco'):
     """
     Get keywords from input text.
 
@@ -2270,7 +2270,7 @@ def get_keywords(input_text: str, n_keywords: int = 5,
         dict: Dictionary of keywords
     """
     if kw_type == 'aas':
-        get_aas_keywords(input_text, n_keywords, work_dir, api_keys)
+        return get_aas_keywords(input_text, n_keywords, work_dir, api_keys)
     elif kw_type == 'unesco':
 
         aggregated_keywords = []
@@ -2311,7 +2311,7 @@ def get_keywords(input_text: str, n_keywords: int = 5,
         keywords_string = ', '.join(aggregated_keywords)
         keywords = get_keywords_from_string(input_text, keywords_string, n_keywords, work_dir, api_keys)
 
-        print('keywords:')
+        print('keywords in unesco:')
         print(keywords)
         return keywords
     elif kw_type == 'aaai':
