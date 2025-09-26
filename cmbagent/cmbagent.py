@@ -2505,6 +2505,8 @@ def get_aas_keywords(input_text: str, n_keywords: int = 5,
     timing_path = os.path.join(work_dir, f"timing_report_{timestamp}.json")
     with open(timing_path, 'w') as f:
         json.dump(timing_report, f, indent=2)
+
+    print('aas_keywords: ', aas_keywords)
     
     return aas_keywords
 
