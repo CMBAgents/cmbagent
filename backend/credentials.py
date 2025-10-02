@@ -39,7 +39,8 @@ async def test_openai_credentials(api_key: str) -> CredentialTest:
             "Content-Type": "application/json"
         }
         
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)  # Disable SSL verification for testing
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
                     return CredentialTest(
@@ -96,7 +97,8 @@ async def test_anthropic_credentials(api_key: str) -> CredentialTest:
             "messages": [{"role": "user", "content": "Hi"}]
         }
         
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)  # Disable SSL verification for testing
+        async with aiohttp.ClientSession(connector=connector) as session:
             async with session.post(url, headers=headers, json=data) as response:
                 if response.status == 200:
                     return CredentialTest(
