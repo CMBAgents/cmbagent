@@ -322,13 +322,16 @@ class MistralOCRProcessor:
             
             # Process PDF with OCR
             print("Processing PDF with OCR...")
+            include_image_base64 = True
+
+            print(f"Processing PDF with OCR... include_image_base64: {include_image_base64}")
             ocr_response = self.client.ocr.process(
             document={
                 "type": "document_url",
                 "document_url": f"data:application/pdf;base64,{base64_pdf}" 
             },
                 model="mistral-ocr-latest",
-                include_image_base64=False,
+                include_image_base64=include_image_base64,
                 bbox_annotation_format=response_format_from_pydantic_model(Image),
             )
             
@@ -389,7 +392,8 @@ class MistralOCRProcessor:
             "pages": [],
             "sections": [],
             "full_text": "",
-            "full_markdown": ""
+            "full_markdown": "",
+            "full_image_base64": ""
         }
         
         # Process each page
@@ -397,7 +401,7 @@ class MistralOCRProcessor:
         full_markdown = []
         current_section = None
         section_content = []
-        
+        #full_image_base64 = []
         for i, page in enumerate(ocr_response.pages):
             page_num = i + 1
             page_markdown = page.markdown
@@ -405,7 +409,7 @@ class MistralOCRProcessor:
             
             full_text.append(page_text)
             full_markdown.append(page_markdown)
-            
+            #full_image_base64.append(page.image_base64)
             # Store page content
             structured_content["pages"].append({
                 "page_num": page_num,
@@ -446,7 +450,7 @@ class MistralOCRProcessor:
         # Combine all content
         structured_content["full_text"] = "\n\n".join(full_text)
         structured_content["full_markdown"] = "\n\n".join(full_markdown)
-        
+        # structured_content["full_image_base64"] = "\n\n".join(full_image_base64)
         return structured_content
 
     def _save_to_json(self, data: Dict[str, Any], output_path: str) -> None:
