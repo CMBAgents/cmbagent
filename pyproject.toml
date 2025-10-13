@@ -17,6 +17,7 @@ requires-python = ">=3.12"  # Specify the Python version requirement here
 license = "Apache-2.0"
 
 dependencies = [
+    "pip",
     "anthropic",
     "mistralai",
     "ruamel.yaml",
