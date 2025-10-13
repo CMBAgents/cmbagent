@@ -17,6 +17,7 @@ requires-python = ">=3.12"  # Specify the Python version requirement here
 
 
 dependencies = [
+    "pip",
     "anthropic",
     "mistralai",
     "ruamel.yaml",
@@ -34,7 +35,6 @@ dependencies = [
     "python-multipart>=0.0.6",
     "pydantic>=2.7.4",
     "aiohttp>=3.9.0",
-    
 
     # astronomy/astrophysics
     "camb >= 1.6.0",
