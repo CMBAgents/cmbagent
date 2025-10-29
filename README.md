@@ -431,35 +431,35 @@ The deployed Space will provide the full CMBAgent experience with the modern Nex
 
 ```bash
 
-    @software{CMBAGENT_2025,
-                author = {Boris Bolliet and the CMBAGENT team},
-                title = {CMBAGENT: Open-Source Multi-Agent System for Science},
-                year = {2025},
-                url = {https://github.com/CMBAgents/cmbagent},
-                note = {Available at https://github.com/CMBAgents/cmbagent},
-                version = {latest}
-                }
+@software{CMBAGENT_2025,
+            author = {Boris Bolliet},
+            title = {CMBAGENT: Open-Source Multi-Agent System for Science},
+            year = {2025},
+            url = {https://github.com/CMBAgents/cmbagent},
+            note = {Available at https://github.com/CMBAgents/cmbagent},
+            version = {latest}
+            }
 
-    @misc{xu2025opensourceplanning,
-        title={Open Source Planning & Control System with Language Agents for Autonomous Scientific Discovery},
-        author={Licong Xu and Milind Sarkar and Anto I. Lonappan and Íñigo Zubeldia and Pablo Villanueva-Domingo and Santiago Casas and Christian Fidler and Chetana Amancharla and Ujjwal Tiwari and Adrian Bayer and Chadi Ait Ekiou and Miles Cranmer and Adrian Dimitrov and James Fergusson and Kahaan Gandhi and Sven Krippendorf and Andrew Laverick and Julien Lesgourgues and Antony Lewis and Thomas Meier and Blake Sherwin and Kristen Surrao and Francisco Villaescusa-Navarro and Chi Wang and Xueqing Xu and Boris Bolliet},
-        year={2025},
-        eprint={2507.07257},
-        archivePrefix={arXiv},
-        primaryClass={cs.AI},
-        url={https://arxiv.org/abs/2507.07257},
-    }
+@misc{xu2025opensourceplanning,
+    title={Open Source Planning & Control System with Language Agents for Autonomous Scientific Discovery},
+    author={Licong Xu and Milind Sarkar and Anto I. Lonappan and Íñigo Zubeldia and Pablo Villanueva-Domingo and Santiago Casas and Christian Fidler and Chetana Amancharla and Ujjwal Tiwari and Adrian Bayer and Chadi Ait Ekiou and Miles Cranmer and Adrian Dimitrov and James Fergusson and Kahaan Gandhi and Sven Krippendorf and Andrew Laverick and Julien Lesgourgues and Antony Lewis and Thomas Meier and Blake Sherwin and Kristen Surrao and Francisco Villaescusa-Navarro and Chi Wang and Xueqing Xu and Boris Bolliet},
+    year={2025},
+    eprint={2507.07257},
+    archivePrefix={arXiv},
+    primaryClass={cs.AI},
+    url={https://arxiv.org/abs/2507.07257},
+}
 
 
-   @misc{Laverick:2024fyh,
-      author = "Laverick, Andrew and Surrao, Kristen and Zubeldia, Inigo and Bolliet, Boris and Cranmer, Miles and Lewis, Antony and Sherwin, Blake and Lesgourgues, Julien",
-      title = "{Multi-Agent System for Cosmological Parameter Analysis}",
-      eprint = "2412.00431",
-      archivePrefix = "arXiv",
-      primaryClass = "astro-ph.IM",
-      month = "11",
-      year = "2024"
-   }
+@misc{Laverick:2024fyh,
+  author = "Laverick, Andrew and Surrao, Kristen and Zubeldia, Inigo and Bolliet, Boris and Cranmer, Miles and Lewis, Antony and Sherwin, Blake and Lesgourgues, Julien",
+  title = "{Multi-Agent System for Cosmological Parameter Analysis}",
+  eprint = "2412.00431",
+  archivePrefix = "arXiv",
+  primaryClass = "astro-ph.IM",
+  month = "11",
+  year = "2024"
+}
 ```
 
 ## Acknowledgments
