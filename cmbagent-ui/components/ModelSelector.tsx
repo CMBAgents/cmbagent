@@ -25,6 +25,7 @@ const MODEL_INFO = {
   'claude-3-haiku-20240307': { name: 'Claude 3 Haiku', provider: 'anthropic' as const },
   
   // Gemini Models
+  'gemini-3-pro-preview': { name: 'Gemini 3 Pro Preview', provider: 'gemini' as const },
   'gemini-2.5-pro': { name: 'Gemini 2.5 Pro', provider: 'gemini' as const },
   'gemini-1.5-pro': { name: 'Gemini 1.5 Pro', provider: 'gemini' as const },
   'gemini-1.5-flash': { name: 'Gemini 1.5 Flash', provider: 'gemini' as const },

@@ -477,6 +477,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
@@ -497,6 +498,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
@@ -517,6 +519,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
@@ -537,6 +540,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
@@ -560,6 +564,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
@@ -580,6 +585,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
@@ -600,6 +606,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
@@ -620,6 +627,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
@@ -748,6 +756,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="gpt-4o-mini">GPT-4o Mini</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
@@ -788,6 +797,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                       <option value="gpt-4.1-2025-04-14">GPT-4.1</option>
                       <option value="gpt-5-2025-08-07">GPT-5</option>
                       <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                      <option value="gemini-3-pro-preview">Gemini 3 Pro Preview</option>
                       <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
                       <option value="o3-mini-2025-01-31">o3-mini</option>
                     </select>
