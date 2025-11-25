@@ -103,6 +103,7 @@ export const useCredentials = () => {
     ];
 
     const geminiModels = [
+      'gemini-3-pro-preview',
       'gemini-2.5-pro',
       'gemini-1.5-pro',
       'gemini-1.5-flash'
