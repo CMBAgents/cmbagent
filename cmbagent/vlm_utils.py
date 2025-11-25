@@ -15,7 +15,7 @@ _last_executed_code = None
 
 # VLM model configuration
 # TODO: when refactoring, make a one_shot dictionary argument for all of this
-vlm_model: Literal["gpt-4o", "o3-2025-04-16", "gemini-2.5-flash", "gemini-2.5-pro"] = "gemini-2.5-pro"
+vlm_model: Literal["gpt-4o", "o3-2025-04-16", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3-pro-preview"] = "gemini-2.5-pro"
 vlm_criteria_mode: Literal["llm_generated", "cmb_power_spectra"] | None = "llm_generated"
 executed_code_context: Literal["exact", "cmb_power_spectra_template", "mean_reversion_trading_template"] = "exact"
 show_code_to_plot_judge: bool = False
@@ -258,7 +258,7 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
             fallback_response = _create_fallback_response(has_code_context)
             return fallback_response, injected_code
 
-    elif vlm_model in ["gemini-2.5-flash", "gemini-2.5-pro"]:
+    elif vlm_model in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3-pro-preview"]:
         if cmbagent_debug:
             print(f"VLM model: {vlm_model}")
         client = genai.Client(api_key=api_keys["GEMINI"])
@@ -335,6 +335,7 @@ def account_for_external_api_calls(agent, completion, call_type="VLM"):
             "o3-2025-04-16":    {"input": 2.00, "output":  8.00},
             "gemini-2.5-flash": {"input": 0.00, "output":  0.00},  # Free tier
             "gemini-2.5-pro":   {"input": 0.00, "output":  0.00},  # Free tier
+            "gemini-3-pro-preview": {"input": 0.00, "output":  0.00},  # Free tier
         }
         
         input_cost = (prompt_tokens / 1_000_000) * pricing[model]["input"]
