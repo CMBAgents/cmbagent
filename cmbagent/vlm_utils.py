@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 import autogen
 from typing import Literal
 from openai import OpenAI
@@ -157,6 +158,68 @@ class OpenAICompletion:
         self.model = model
 
 
+def call_gemini3_pro_preview(prompt: str) -> OpenAICompletion:
+    """
+    Call Gemini 3 Pro Preview using google-genai and wrap the result
+    in an OpenAI-style completion object so that the rest of the
+    cmba pipeline can treat it like a standard chat completion.
+    """
+    api_keys = get_api_keys_from_env()
+    gemini_key = api_keys.get("GEMINI")
+    if gemini_key:
+        client = genai.Client(api_key=gemini_key)
+    else:
+        # Fall back to default credentials (e.g. GOOGLE_API_KEY or service account)
+        client = genai.Client()
+
+    response = client.models.generate_content(
+        model="gemini-3-pro-preview",
+        contents=prompt,
+    )
+
+    text = response.text
+
+    usage = getattr(response, "usage_metadata", None)
+    if usage is not None:
+        prompt_tokens = usage.prompt_token_count
+        total_tokens = usage.total_token_count
+        completion_tokens = total_tokens - prompt_tokens
+    else:
+        prompt_tokens = 0
+        completion_tokens = 0
+        total_tokens = 0
+
+    # Pricing for Gemini 3 Pro Preview:
+    # Compute cost from token usage and per‑million‑token prices provided via
+    # environment variables GEMINI3_PRO_PREVIEW_INPUT_PRICE_PER_MTOK and
+    # GEMINI3_PRO_PREVIEW_OUTPUT_PRICE_PER_MTOK. If these are unset or invalid,
+    # cost defaults to 0.0.
+    try:
+        # Default to known pricing: $2.00 / 1M input tokens, $12.00 / 1M output tokens.
+        # Environment variables (if set) override these defaults:
+        #   GEMINI3_PRO_PREVIEW_INPUT_PRICE_PER_MTOK
+        #   GEMINI3_PRO_PREVIEW_OUTPUT_PRICE_PER_MTOK
+        input_price = float(os.getenv("GEMINI3_PRO_PREVIEW_INPUT_PRICE_PER_MTOK", "2.0") or "2.0")
+        output_price = float(os.getenv("GEMINI3_PRO_PREVIEW_OUTPUT_PRICE_PER_MTOK", "12.0") or "12.0")
+    except ValueError:
+        input_price = 0.0
+        output_price = 0.0
+
+    total_cost = (
+        (prompt_tokens / 1_000_000.0) * input_price
+        + (completion_tokens / 1_000_000.0) * output_price
+    )
+
+    return OpenAICompletion(
+        text_response=text,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=total_tokens,
+        total_cost=total_cost,
+        model="gemini-3-pro-preview",
+    )
+
+
 def generate_wrong_plot_injection(plot_type: str = "wrong_scalar_amplitude"):
     """
     Generate wrong code and corresponding plot for VLM testing.
@@ -261,7 +324,12 @@ def send_image_to_vlm(base_64_img: str, vlm_prompt: str, inject_wrong_plot: bool
     elif vlm_model in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3-pro-preview"]:
         if cmbagent_debug:
             print(f"VLM model: {vlm_model}")
-        client = genai.Client(api_key=api_keys["GEMINI"])
+        gemini_key = api_keys.get("GEMINI")
+        if gemini_key:
+            client = genai.Client(api_key=gemini_key)
+        else:
+            # Fall back to default credentials (e.g. GOOGLE_API_KEY or service account)
+            client = genai.Client()
         
         try:
             # Convert base64 image to bytes
@@ -317,8 +385,13 @@ def account_for_external_api_calls(agent, completion, call_type="VLM"):
             "Cost": [],
             "Prompt Tokens": [],
             "Completion Tokens": [],
-            "Total Tokens": []
+            "Total Tokens": [],
+            "Model": [],
         }
+    else:
+        # Ensure the Model key exists for compatibility with display_cost
+        if "Model" not in agent.cost_dict:
+            agent.cost_dict["Model"] = []
     
     # Extract token counts from completion object (works for both real and custom OpenAI completions)
     prompt_tokens = completion.usage.prompt_tokens if completion.usage else 0
@@ -335,7 +408,7 @@ def account_for_external_api_calls(agent, completion, call_type="VLM"):
             "o3-2025-04-16":    {"input": 2.00, "output":  8.00},
             "gemini-2.5-flash": {"input": 0.00, "output":  0.00},  # Free tier
             "gemini-2.5-pro":   {"input": 0.00, "output":  0.00},  # Free tier
-            "gemini-3-pro-preview": {"input": 0.00, "output":  0.00},  # Free tier
+            "gemini-3-pro-preview": {"input": 0.00, "output":  0.00},
         }
         
         input_cost = (prompt_tokens / 1_000_000) * pricing[model]["input"]
@@ -346,10 +419,6 @@ def account_for_external_api_calls(agent, completion, call_type="VLM"):
         total_cost = getattr(completion, 'total_cost', 0.0)
         model = getattr(completion, 'model', 'gpt-4o')
     
-    # Skip if no cost to track
-    if total_cost == 0:
-        return
-    
     # Add to agent's cost tracking
     agent_name = getattr(agent, 'name', 'plot_judge')
     agent.cost_dict["Agent"].append(agent_name)
@@ -357,6 +426,7 @@ def account_for_external_api_calls(agent, completion, call_type="VLM"):
     agent.cost_dict["Prompt Tokens"].append(prompt_tokens)
     agent.cost_dict["Completion Tokens"].append(completion_tokens)
     agent.cost_dict["Total Tokens"].append(total_tokens)
+    agent.cost_dict["Model"].append(model)
     
     print(f"{call_type} tokens added to {agent_name}: {prompt_tokens} prompt, {completion_tokens} completion, {total_tokens} total")
     print(f"{call_type} cost ({model}): ${total_cost:.8f}")

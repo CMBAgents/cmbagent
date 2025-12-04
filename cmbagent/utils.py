@@ -192,7 +192,17 @@ def get_model_config(model, api_keys):
         "api_type": None
     }
     
-    if 'o3' in model:
+    if model == "gemini-3-pro-preview":
+        # Special‑case Gemini 3 Pro Preview:
+        # We still tag this as a Google model so Autogen's LLMConfig
+        # validation passes, but CmbAgentSwarmAgent.generate_reply
+        # intercepts all calls for this model and routes them through
+        # the direct google‑genai client instead of Vertex.
+        config.update({
+            "api_key": api_keys["GEMINI"],
+            "api_type": "google",
+        })
+    elif 'o3' in model:
         config.update({
             "reasoning_effort": "medium",
             "api_key": api_keys["OPENAI"],
