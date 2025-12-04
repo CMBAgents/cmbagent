@@ -7,6 +7,7 @@ from autogen.agentchat import UserProxyAgent
 
 from cmbagent.utils import file_search_max_num_results
 from autogen.agentchat import ConversableAgent, UpdateSystemMessage
+from cmbagent.vlm_utils import account_for_external_api_calls, call_gemini3_pro_preview
 import autogen
 import copy
 
@@ -311,4 +312,105 @@ class CmbAgentSwarmAgent(ConversableAgent):
     Additional args:
         functions (List[Callable]): A list of functions to register with the agent.
     """
-    pass
+
+    def generate_reply(self, *args, **kwargs):
+        """
+        Override generate_reply to support Gemini 3 Pro Preview via the
+        google-genai client for the engineer agent, bypassing Autogen's
+        built-in Gemini/Vertex client which may not support this model.
+        """
+        llm_config = getattr(self, "llm_config", None)
+
+        # Support both dict‑style and Autogen LLMConfig objects
+        config_list = None
+        if llm_config is not None:
+            # Try attribute access first (LLMConfig.config_list)
+            config_list = getattr(llm_config, "config_list", None)
+            # Fallback to dict‑style access if needed
+            if config_list is None and isinstance(llm_config, dict):
+                config_list = llm_config.get("config_list", [])
+
+        if isinstance(config_list, list) and config_list:
+            cfg = config_list[0]
+            if isinstance(cfg, dict):
+                model = cfg.get("model")
+            else:
+                model = getattr(cfg, "model", None)
+
+            # Only intercept for calls that use Gemini 3 Pro Preview
+            # regardless of which conversational clone is speaking, and
+            # regardless of the configured api_type. All such calls are
+            # routed through the direct google‑genai client instead of
+            # Autogen's Vertex/Gemini integration.
+            if isinstance(model, str) and model.startswith("gemini-3-pro-preview"):
+                # Try to extract the message history passed into generate_reply
+                messages = kwargs.get("messages")
+                if messages is None and args:
+                    possible_messages = args[0]
+                    if isinstance(possible_messages, list):
+                        messages = possible_messages
+
+                # If still missing, fall back to this agent's chat history
+                # keyed by the sender, mirroring ConversableAgent behavior.
+                if messages is None:
+                    sender = kwargs.get("sender")
+                    try:
+                        if sender is not None and hasattr(self, "chat_messages"):
+                            messages = self.chat_messages.get(sender, [])
+                    except Exception:
+                        messages = None
+
+                prompt = ""
+                if isinstance(messages, list) and messages:
+                    parts = []
+                    for m in messages:
+                        if not isinstance(m, dict):
+                            continue
+                        role = m.get("role", "user")
+                        name = m.get("name")
+                        content = m.get("content", "")
+
+                        # Flatten content if it is a list of segments
+                        if isinstance(content, list):
+                            segment_texts = []
+                            for c in content:
+                                if isinstance(c, dict):
+                                    segment_texts.append(c.get("text", str(c)))
+                                else:
+                                    segment_texts.append(str(c))
+                            content_text = " ".join(segment_texts)
+                        else:
+                            content_text = str(content)
+
+                        if name:
+                            prefix = f"{role} ({name}):"
+                        else:
+                            prefix = f"{role}:"
+
+                        parts.append(f"{prefix} {content_text}")
+
+                    prompt = "\n".join(parts)
+
+                # Fallback: if we still don't have a prompt, defer to default behavior
+                if not prompt:
+                    return super().generate_reply(*args, **kwargs)
+
+                # Call Gemini 3 Pro Preview via google-genai
+                completion = call_gemini3_pro_preview(prompt)
+
+                # Track cost as an external LLM call, similar to VLM
+                try:
+                    account_for_external_api_calls(self, completion, call_type="LLM")
+                except Exception:
+                    pass
+
+                reply_text = completion.choices[0].message.content
+                reply = {
+                    "role": "assistant",
+                    "content": reply_text,
+                    "name": getattr(self, "name", None),
+                }
+                return reply
+
+        # All other models/agents use the standard Autogen behavior
+        return super().generate_reply(*args, **kwargs)

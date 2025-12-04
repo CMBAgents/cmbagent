@@ -437,6 +437,13 @@ class CMBAgent:
 
         # --- build DataFrame & totals ----------------------------------------------
         df = pd.DataFrame(cost_dict)
+
+        # If there is no cost data at all, skip reporting gracefully
+        if df.empty or df.columns.empty:
+            print("\nNo cost data to display (no tracked LLM usage).\n")
+            self.final_context['cost_dataframe'] = df
+            return df
+
         numeric_cols = df.select_dtypes(include="number").columns
         totals = df[numeric_cols].sum()
         df.loc["Total"] = pd.concat([pd.Series({"Agent": "Total"}), totals])
