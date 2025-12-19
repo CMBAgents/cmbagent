@@ -11,6 +11,9 @@
     <img src="https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white&style=flat-square" alt="Join us on Discord" width="140"/>
 </a>
 
+🎉 **News**: Cmbagent won a **first place award** at the **NeurIPS 2025 [Fair Universe Competition](https://fair-universe.lbl.gov/)**. 
+
+
 Multi-Agent System for Science, Powered by [AG2](https://github.com/ag2ai/ag2).
 
 Cmbagent is part of [Denario](https://astropilot-ai.github.io/DenarioPaperPage/), our end-to-end research system.
@@ -18,7 +21,6 @@ Cmbagent is part of [Denario](https://astropilot-ai.github.io/DenarioPaperPage/)
 Try cmbagent on [HuggingFace](https://huggingface.co/spaces/astropilot-ai/cmbagent)!
 
 We are currently deploying cmbagent on the cloud, it will be in production soon!
-
 
 Check our [demo videos](https://www.youtube.com/@cmbagent) on YouTube!
 
