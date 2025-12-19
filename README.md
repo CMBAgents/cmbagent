@@ -11,10 +11,10 @@
     <img src="https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white&style=flat-square" alt="Join us on Discord" width="140"/>
 </a>
 
+Multi-Agent System for Science, Powered by [AG2](https://github.com/ag2ai/ag2).
+
 🎉 **News**: Cmbagent won a **first place award** at the **NeurIPS 2025 [Fair Universe Competition](https://fair-universe.lbl.gov/)**. 
 
-
-Multi-Agent System for Science, Powered by [AG2](https://github.com/ag2ai/ag2).
 
 Cmbagent is part of [Denario](https://astropilot-ai.github.io/DenarioPaperPage/), our end-to-end research system.
 
