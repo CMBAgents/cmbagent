@@ -530,6 +530,96 @@ class CMBAgent:
               mode = "default", # can be "one_shot" or "default" (default is planning and control)
               step = None,
               max_rounds=10):
+        """
+        Orchestrate a multi-agent group chat to solve a given task.
+        
+        This method sets up the work environment, initializes agents, creates an AutoPattern
+        for agent coordination, and initiates a group chat where agents collaborate to solve
+        the specified task. The results are stored in instance variables rather than returned.
+        
+        Parameters
+        ----------
+        task : str
+            The main task description to be solved by the agent system. This will be set as
+            the 'main_task' and 'improved_main_task' in the shared context.
+            
+        initial_agent : str, optional
+            The name of the agent to start the conversation with. Defaults to 'task_improver'.
+            Must be a valid agent name that exists in the agent system.
+            
+        shared_context : dict, optional
+            Additional context variables to merge into the shared context. These will be
+            combined with the default shared context and any mode-specific context. If None,
+            only the default and mode-specific contexts are used.
+            
+        mode : str, optional
+            The execution mode for the solve operation. Valid options are:
+            - "default": Planning and control mode (default). Uses the full planning workflow.
+            - "one_shot": Single-step execution mode. Sets up a simplified context with a
+              single-step plan and minimal planning overhead.
+            - "chat": Chat mode, similar to "one_shot" with simplified context.
+            Defaults to "default".
+            
+        step : int or None, optional
+            Step number for context carryover workflow. This is recorded in self.step for
+            workflows that require tracking progress across multiple solve calls. If None,
+            no step tracking is performed.
+            
+        max_rounds : int, optional
+            Maximum number of conversation rounds allowed in the group chat. The chat will
+            terminate after this many rounds even if the task is not fully completed.
+            Defaults to 10.
+            
+        Returns
+        -------
+        None
+            This method does not return a value. Instead, it stores results in the following
+            instance variables:
+            - self.final_context : dict
+                A deep copy of the final context variables after the group chat completes.
+                Contains all shared context including task status, plans, and agent states.
+            - self.last_agent : Agent
+                The last agent that participated in the group chat.
+            - self.chat_result : ChatResult
+                The complete chat result object containing the full conversation history
+                and metadata.
+            - self.step : int or None
+                The step number that was passed to this method (for context carryover).
+                
+        Side Effects
+        ------------
+        - Creates and populates work directories (database, codebase, chats, time, cost)
+        - Adds codebase path to sys.path for module imports
+        - Resets all agents in the system
+        - Clears work directory if clear_work_dir_bool is True
+        - Modifies self.shared_context (via deep copy, original is preserved)
+        
+        Notes
+        -----
+        - In "one_shot" or "chat" mode, a simplified shared context is created with a
+          single-step plan and minimal planning structure.
+        - If initial_agent is 'perplexity' and mode is "one_shot" or "chat", a special
+          perplexity_query is added to the shared context.
+        - The method uses AutoPattern to coordinate agent interactions and handoffs.
+        - All agents are reset before starting the group chat to ensure clean state.
+        - The codebase directory is added to sys.path, allowing agents to import modules
+          from the generated codebase.
+          
+        Examples
+        --------
+        >>> agent = CMBAgent()
+        >>> agent.solve("Write a Python function to calculate fibonacci numbers")
+        >>> # Access results via instance variables
+        >>> print(agent.final_context['main_task'])
+        >>> print(agent.chat_result.chat_history)
+        
+        >>> # Use one-shot mode for simple tasks
+        >>> agent.solve("What is 2+2?", mode="one_shot", initial_agent="engineer")
+        
+        >>> # Use with context carryover
+        >>> agent.solve("Step 1: Research topic", step=1, max_rounds=5)
+        >>> agent.solve("Step 2: Write code", step=2, max_rounds=5)
+        """
         self.step = step ## record the step for the context carryover workflow 
         this_shared_context = copy.deepcopy(self.shared_context)
         
@@ -630,6 +720,67 @@ class CMBAgent:
 
 
     def get_agent_object_from_name(self,name):
+        """
+        Retrieve an agent wrapper object by its name.
+        
+        Searches through all registered agents in the system and returns the agent
+        wrapper object that matches the specified name. The returned object contains
+        both the agent instance and metadata about the agent.
+        
+        Parameters
+        ----------
+        name : str
+            The name of the agent to retrieve. Must match the 'name' value in the
+            agent's info dictionary. Common agent names include: 'engineer', 'researcher',
+            'planner', 'task_improver', 'perplexity', 'engineer_response_formatter',
+            'researcher_response_formatter', 'plot_judge', 'plot_debugger', etc.
+            
+        Returns
+        -------
+        AgentWrapper
+            The agent wrapper object containing:
+            - agent : Agent
+                The actual agent instance (accessible via .agent attribute)
+            - info : dict
+                Dictionary containing agent metadata including:
+                - 'name': The agent's name
+                - 'instructions': The agent's system instructions
+                - Other agent-specific configuration
+            - name : str
+                The agent's name (also accessible as attribute)
+                
+        Raises
+        ------
+        SystemExit
+            If no agent with the specified name is found. The method prints an
+            error message and calls sys.exit(), terminating the program.
+            
+        Notes
+        -----
+        - This method searches through self.agents, which is populated during
+          initialization via init_agents().
+        - The returned object is the wrapper, not the raw agent. To get the raw
+          agent instance, use get_agent_from_name() instead, or access the .agent
+          attribute of the returned object.
+        - Agent names are case-sensitive and must match exactly.
+        - This method will terminate the program if the agent is not found, so
+          ensure the agent name is valid before calling.
+          
+        See Also
+        --------
+        get_agent_from_name : Returns the raw agent instance instead of the wrapper.
+        
+        Examples
+        --------
+        >>> agent = CMBAgent()
+        >>> engineer_wrapper = agent.get_agent_object_from_name('engineer')
+        >>> print(engineer_wrapper.info['instructions'])
+        >>> engineer_instance = engineer_wrapper.agent
+        >>> 
+        >>> # Access agent metadata
+        >>> planner = agent.get_agent_object_from_name('planner')
+        >>> query = planner.info['instructions'].format(main_task="Solve this")
+        """
         for agent in self.agents:
             if agent.info['name'] == name:
                 return agent
