@@ -1,0 +1,29 @@
+name: tests
+
+on:
+  push:
+    branches: [clean]
+  # optional: also run when a PR targets clean
+  pull_request:
+    branches: [clean]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e .
+          pip install pytest
+
+      - name: Run tests
+        run: |
+          pytest -s
