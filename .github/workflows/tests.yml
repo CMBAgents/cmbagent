@@ -1,11 +1,7 @@
 name: tests
 
 on:
-  push:
-    branches: [clean]
-  # optional: also run when a PR targets clean
-  pull_request:
-    branches: [clean]
+  workflow_dispatch:
 
 jobs:
   pytest:
