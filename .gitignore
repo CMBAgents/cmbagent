@@ -90,3 +90,4 @@ test_*.py
 
 
 tests/testdocs/*
+tests/artifacts/
