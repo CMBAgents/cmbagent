@@ -33,6 +33,7 @@ from .utils.rag_utils import import_rag_agents, push_vector_stores
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
 from .utils.data_retriever import setup_cmbagent_data
+from .workflows.one_shot import one_shot
 
 from .utils.keywords_utils import UnescoKeywords
 from .utils.keywords_utils import AaaiKeywords
@@ -1296,7 +1297,7 @@ def planning_and_control_context_carryover(
     initial_step = 1 if restart_at_step <= 0 else restart_at_step
     for step in range(initial_step, number_of_steps_in_plan + 1):
         clear_work_dir = True if step == 1 and restart_at_step <= 0 else False ## not fully sure what is the best thing to do, but this is OK for now.
-        starter_agent = "control" if step == 1 else "control_starter"
+        starter_agent = "controller" if step == 1 else "control_starter"
         # print(f"in cmbagent.py: step: {step}/{number_of_steps_in_plan}")
         # print("\n\n")
         # print("current_context['previous_steps_execution_summary']: ", current_context['previous_steps_execution_summary'] )
@@ -2199,152 +2200,6 @@ def control(
 
     return results
 
-def one_shot(
-            task,
-            max_rounds = 50,
-            max_n_attempts = 3,
-            engineer_model = default_agents_llm_model['engineer'],
-            researcher_model = default_agents_llm_model['researcher'],
-            plot_judge_model = default_agents_llm_model['plot_judge'],
-            camb_context_model = default_agents_llm_model['camb_context'],
-            default_llm_model = default_llm_model_default,
-            default_formatter_model = default_formatter_model_default,
-            researcher_filename = shared_context_default['researcher_filename'],
-            agent = 'engineer',
-            work_dir = work_dir_default,
-            api_keys = None,
-            clear_work_dir = False,
-            evaluate_plots = False,
-            max_n_plot_evals = 1,
-            inject_wrong_plot: bool | str = False,
-            ):
-    start_time = time.time()
-    work_dir = os.path.expanduser(work_dir)
-    work_dir = Path(work_dir).expanduser().resolve()
-
-    if api_keys is None:
-        api_keys = get_api_keys_from_env()
-    
-    engineer_config = get_model_config(engineer_model, api_keys)
-    researcher_config = get_model_config(researcher_model, api_keys)
-    plot_judge_config = get_model_config(plot_judge_model, api_keys)
-    camb_context_config = get_model_config(camb_context_model, api_keys)
-
-    
-    cmbagent = CMBAgent(
-        mode = "one_shot",
-        work_dir = work_dir,
-        agent_llm_configs = {
-                            'engineer': engineer_config,
-                            'researcher': researcher_config,
-                            'plot_judge': plot_judge_config,
-                            'camb_context': camb_context_config,    
-        },
-        clear_work_dir = clear_work_dir,
-        api_keys = api_keys,
-
-        default_llm_model = default_llm_model,
-        default_formatter_model = default_formatter_model,
-        )
-        
-    end_time = time.time()
-    initialization_time = end_time - start_time
-
-    start_time = time.time()
-
-    shared_context = {'max_n_attempts': max_n_attempts, 'evaluate_plots': evaluate_plots, 'max_n_plot_evals': max_n_plot_evals, 'inject_wrong_plot': inject_wrong_plot}
-
-    if agent == 'camb_context':
-
-        # Fetch the file (30-second safety timeout)
-        resp = requests.get(camb_context_url, timeout=30) # use something different different... debug this lines
-        resp.raise_for_status()           # Raises an HTTPError for non-200 codes
-        camb_context = resp.text          # Whole document as one long string
-
-        shared_context["camb_context"] = camb_context
-
-
-    if agent == 'classy_context':
-
-        # Fetch the file (30-second safety timeout)
-        resp = requests.get(classy_context_url, timeout=30)
-        resp.raise_for_status()           # Raises an HTTPError for non-200 codes
-        classy_context = resp.text          # Whole document as one long string
-
-        shared_context["classy_context"] = classy_context
-
-
-    if researcher_filename is not None: 
-        shared_context["researcher_filename"] = researcher_filename
-
-    # print(f"shared_context: {shared_context}")
-    # import sys
-    # sys.exit()
-
-    cmbagent.solve(task,
-                    max_rounds=max_rounds,
-                    initial_agent=agent,
-                    mode = "one_shot",
-                    shared_context = shared_context
-                    )
-    
-    end_time = time.time()
-    execution_time = end_time - start_time
-    
-    # Create a dummy groupchat attribute if it doesn't exist
-    # print('creating groupchat for cost display...')
-    if not hasattr(cmbagent, 'groupchat'):
-        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
-        cmbagent.groupchat = Dummy()
-    # print('groupchat created for cost display')
-    # Now call display_cost without triggering the AttributeError
-    # print('displaying cost...')
-    cmbagent.display_cost()
-    # print('cost displayed')
-
-    results = {'chat_history': cmbagent.chat_result.chat_history,
-               'final_context': cmbagent.final_context,
-               'engineer':cmbagent.get_agent_object_from_name('engineer'),
-               'engineer_response_formatter':cmbagent.get_agent_object_from_name('engineer_response_formatter'),
-               'researcher':cmbagent.get_agent_object_from_name('researcher'),
-               'researcher_response_formatter':cmbagent.get_agent_object_from_name('researcher_response_formatter'),
-               'plot_judge':cmbagent.get_agent_object_from_name('plot_judge'),
-               'plot_debugger':cmbagent.get_agent_object_from_name('plot_debugger')}
-    
-    
-    results['initialization_time'] = initialization_time
-    results['execution_time'] = execution_time
-
-
-    # Save timing report as JSON
-    timing_report = {
-        'initialization_time': initialization_time,
-        'execution_time': execution_time,
-        'total_time': initialization_time + execution_time
-    }
-
-    # Add timestamp
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Save to JSON file in workdir
-    timing_path = os.path.join(work_dir, f"time/timing_report_{timestamp}.json")
-
-
-    with open(timing_path, 'w') as f:
-        json.dump(timing_report, f, indent=2)
-
-    print("\nTiming report saved to", timing_path)
-    print("\nTask took", f"{execution_time:.4f}", "seconds")
-
-    ## delete empty folders during control
-    database_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['database_path'])
-    codebase_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['codebase_path'])
-    time_full_path = os.path.join(results['final_context']['work_dir'],'time')
-    for folder in [database_full_path, codebase_full_path, time_full_path]:
-        if not os.listdir(folder):
-            os.rmdir(folder)
-
-    return results
 
 def human_in_the_loop(task,
          work_dir = work_dir_default,
