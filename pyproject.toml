@@ -34,15 +34,16 @@ dependencies = [
     "pydantic>=2.7.4",
     "aiohttp>=3.9.0",
     "matplotlib",
+    "pytest",
+    "jupyterlab",
+    "ipykernel>=6.29.0",
 ]
 
 [project.optional-dependencies]
 # Jupyter notebook dependencies
 jupyter = [
-    "jupyterlab",
     "jupyter-kernel-gateway",
     "jupyter-client>=8.6.0",
-    "ipykernel>=6.29.0",
 ]
 # Astronomy/astrophysics dependencies
 astro = [
