@@ -16,7 +16,7 @@ import datetime
 import json
 from pathlib import Path
 from .utils import AAS_keywords_dict
-from .vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, call_external_plot_debugger, vlm_model
+from .utils.vlm_utils import account_for_external_api_calls, send_image_to_vlm, create_vlm_prompt, call_external_plot_debugger, vlm_model
 
 cmbagent_debug = autogen.cmbagent_debug
 cmbagent_disable_display = autogen.cmbagent_disable_display
@@ -120,10 +120,10 @@ def register_functions_to_agents(cmbagent_instance):
         
         # Transfer executed code from global variable to shared context
         try:
-            import cmbagent.vlm_utils
-            if getattr(cmbagent.vlm_utils, "_last_executed_code", None):
-                context_variables["latest_executed_code"] = cmbagent.vlm_utils._last_executed_code
-                cmbagent.vlm_utils._last_executed_code = None  # Prevent reuse
+            import cmbagent.utils.vlm_utils
+            if getattr(cmbagent.utils.vlm_utils, "_last_executed_code", None):
+                context_variables["latest_executed_code"] = cmbagent.utils.vlm_utils._last_executed_code
+                cmbagent.utils.vlm_utils._last_executed_code = None  # Prevent reuse
             else:
                 context_variables["latest_executed_code"] = None
         except Exception:

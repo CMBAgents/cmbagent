@@ -2,7 +2,7 @@ import os
 from cmbagent.base_agent import BaseAgent
 from pydantic import BaseModel, Field
 from typing import Optional
-import cmbagent.vlm_utils
+import cmbagent.utils.vlm_utils
 class EngineerResponseFormatterAgent(BaseAgent):
     
     def __init__(self, llm_config=None, **kwargs):
@@ -58,7 +58,7 @@ class EngineerResponseFormatterAgent(BaseAgent):
 
             # Store executed code in global variable during nested chat
             if self.python_code:
-                cmbagent.vlm_utils._last_executed_code = self.python_code  # moved to ContextVariables in post_execution_transfer
+                cmbagent.utils.vlm_utils._last_executed_code = self.python_code  # moved to ContextVariables in post_execution_transfer
 
             response_parts = [f"**Code Explanation:**\n\n{self.code_explanation}"]
 

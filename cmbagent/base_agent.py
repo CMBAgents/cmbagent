@@ -1,6 +1,6 @@
-import os 
+import os
 import logging
-from cmbagent.yaml import yaml_load_file
+from cmbagent.utils.yaml import yaml_load_file
 from autogen.coding import LocalCommandLineCodeExecutor
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 from autogen.agentchat import UserProxyAgent

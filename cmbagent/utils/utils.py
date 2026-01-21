@@ -14,8 +14,8 @@ cmbagent_debug = autogen.cmbagent_debug
 
 
 
-# Get the path of the current file
-path_to_basedir = os.path.dirname(os.path.abspath(__file__))
+# Get the path of the current file (go up one level from utils/ to cmbagent/)
+path_to_basedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if cmbagent_debug:
     print('path_to_basedir: ', path_to_basedir)
 
@@ -272,15 +272,18 @@ def aas_keyword_to_url(keyword):
     return dic[keyword]
 
 
-with open(path_to_basedir + '/keywords/aas_kwd_to_url.pkl', 'rb') as file:
+# Keywords are in the utils/keywords directory
+keywords_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'keywords')
+
+with open(os.path.join(keywords_dir, 'aas_kwd_to_url.pkl'), 'rb') as file:
     AAS_keywords_dict = pickle.load(file)
 
 # print(my_dict)
 # Assuming you have already loaded your dictionary into `my_dict`
 AAS_keywords_string = ', '.join(AAS_keywords_dict.keys())
 
-unesco_taxonomy_path = path_to_basedir + '/keywords/unesco_hierarchical.json'
-aaai_keywords_path = path_to_basedir + '/keywords/aaai.md'
+unesco_taxonomy_path = os.path.join(keywords_dir, 'unesco_hierarchical.json')
+aaai_keywords_path = os.path.join(keywords_dir, 'aaai.md')
 
 camb_context_url = "https://camb.readthedocs.io/en/latest/_static/camb_docs_combined.md"
 classy_context_url = "https://github.com/santiagocasas/clapp/tree/main/classy_docs.md"

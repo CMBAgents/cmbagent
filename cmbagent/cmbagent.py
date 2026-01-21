@@ -29,13 +29,13 @@ from .utils import (path_to_assistants, path_to_apis,path_to_agents, update_yaml
                     default_top_p, default_temperature, default_max_round,default_llm_config_list, default_agent_llm_configs,
                     default_agents_llm_model, camb_context_url,classy_context_url, AAS_keywords_string, get_api_keys_from_env)
 
-from .rag_utils import import_rag_agents, push_vector_stores
+from .utils.rag_utils import import_rag_agents, push_vector_stores
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
-from .data_retriever import setup_cmbagent_data
+from .utils.data_retriever import setup_cmbagent_data
 
-from .keywords_utils import UnescoKeywords
-from .keywords_utils import AaaiKeywords
+from .utils.keywords_utils import UnescoKeywords
+from .utils.keywords_utils import AaaiKeywords
 from .utils import unesco_taxonomy_path, aaai_keywords_path
 
 def import_non_rag_agents():
@@ -2694,8 +2694,8 @@ def preprocess_task(text: str,
         str: The original text with appended "Contextual Information and References" section
     """
     import os
-    from .arxiv_downloader import arxiv_filter
-    from .ocr import process_folder
+    from .utils.arxiv_downloader import arxiv_filter
+    from .utils.ocr import process_folder
     
     print(f"🔄 Starting task preprocessing...")
     print(f"📁 Work directory: {work_dir}")

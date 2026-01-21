@@ -12,7 +12,7 @@ warnings.filterwarnings(
 
 
 from .cmbagent import CMBAgent
-from .rag_utils import make_rag_agents
+from .utils.rag_utils import make_rag_agents
 from .version import __version__
 import os
 from IPython.display import Image, display, Markdown
@@ -25,10 +25,10 @@ from .cmbagent import planning_and_control, one_shot, get_keywords, human_in_the
 from .cmbagent import planning_and_control_context_carryover as deep_research
 
 # OCR functionality
-from .ocr import process_single_pdf, process_folder
+from .utils.ocr import process_single_pdf, process_folder
 
 # arXiv downloader functionality
-from .arxiv_downloader import arxiv_filter 
+from .utils.arxiv_downloader import arxiv_filter 
 
 
 def print_cmbagent_logo():
