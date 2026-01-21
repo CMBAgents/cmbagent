@@ -96,3 +96,8 @@ exclude = ["output"]
 
 [project.scripts]
 cmbagent = "cmbagent.cli:main"
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["legacy", ".ipynb_checkpoints"]
