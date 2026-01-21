@@ -22,13 +22,9 @@ dependencies = [
     "mistralai",
     "ruamel.yaml",
     "cmbagent_autogen>=0.0.91post11",
-    # "google-cloud-aiplatform==1.91.0",
     "jsonref==1.1.0",
-    "cobaya",                   # to use yaml_load_file function    # TODO: maybe replace if only yaml_load_file is needed
     "pandas >=2.2",
-
-    "streamlit",
-    "ipython",                  # needed for streamlit
+    "ipython",
     
     # FastAPI backend dependencies
     "fastapi>=0.104.1",
@@ -37,6 +33,7 @@ dependencies = [
     "python-multipart>=0.0.6",
     "pydantic>=2.7.4",
     "aiohttp>=3.9.0",
+    "matplotlib",
 ]
 
 [project.optional-dependencies]
@@ -53,7 +50,9 @@ astro = [
     "astropy >=6.0",            # core astronomy library
     "healpy >=1.16",            # HEALPix maps (CMB, large-scale structure)
     "emcee >=3.1",
+    "cobaya",
 ]
+
 # Data science, statistics and visualization dependencies
 data = [
     "scipy >=1.12",
@@ -62,28 +61,11 @@ data = [
     "scikit-learn >=1.4",
     "statsmodels >=0.14",
     "linearmodels >=5.1",
-    # Plotting and visualization
     "matplotlib >=3.8",
     "seaborn >=0.13",
     "plotly >=5.21",
-    # Machine Learning & Deep Learning
     "xgboost >=2.0",
-    #"lightgbm >=4.3",
-    #"catboost >=1.2",
-    #"tensorflow",    # or comment out if not using DL
-    #"torch >=2.2",          # optional: PyTorch for DL
-    #"keras >=3.3",          # optional: Keras with TensorFlow backend
-    # Financial and economic data
     "yfinance >=0.2",
-    #"pandas-datareader >=0.10",
-    #"quandl >=3.7",
-    # Data formats and storage
-    #"openpyxl >=3.1",
-    #"pyarrow >=15.0",
-    # Performance and scaling
-    #"numba >=0.59",
-    #"dask >=2024.4",
-    #"joblib >=1.4",  # for parallel ML workloads
 ]
 
 nextjs = [
@@ -107,8 +89,6 @@ cmbagent = [
 Homepage = "https://github.com/CMBAgents/cmbagent"
 GitHub = "https://github.com/CMBAgents/cmbagent"
 
-#[tool.setuptools_scm]
-#write_to = "cmbagent/version.py"
 
 [tool.setuptools.packages.find]
 exclude = ["output"]
