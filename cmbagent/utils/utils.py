@@ -25,7 +25,7 @@ if cmbagent_debug:
     print('path_to_apis: ', path_to_apis)
 
 # Construct the path to the assistants directory
-path_to_assistants = os.path.join(path_to_basedir, "agents/rag_agents/")
+path_to_assistants = os.path.join(path_to_basedir, "agents/specialized/rag_agents/")
 if cmbagent_debug:
     print('path_to_assistants: ', path_to_assistants)
 path_to_agents = os.path.join(path_to_basedir, "agents/")

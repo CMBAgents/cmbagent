@@ -12,7 +12,7 @@ def import_rag_agents():
         if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
             module_name = filename[:-3]  # Remove the .py extension
             class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
-            module_path = f"cmbagent.agents.rag_agents.{module_name}"
+            module_path = f"cmbagent.agents.specialized.rag_agents.{module_name}"
             module = importlib.import_module(module_path)
             agent_class = getattr(module, class_name)
             imported_rag_agents[class_name] = {}

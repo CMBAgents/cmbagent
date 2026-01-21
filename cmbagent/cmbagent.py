@@ -19,7 +19,7 @@ from IPython.display import Image
 from autogen.agentchat.group import ContextVariables
 from autogen.agentchat.group.patterns import AutoPattern
 
-from .agents.planner_response_formatter.planner_response_formatter import save_final_plan
+from .agents.planning.planner_response_formatter.planner_response_formatter import save_final_plan
 from .utils import work_dir_default
 from .utils import default_llm_model as default_llm_model_default
 from .utils import default_formatter_model as default_formatter_model_default
@@ -40,24 +40,46 @@ from .utils import unesco_taxonomy_path, aaai_keywords_path
 
 def import_non_rag_agents():
     imported_non_rag_agents = {}
-    for subdir in os.listdir(path_to_agents):
-        # Skip rag_agents folder and non-directories
-        if subdir == "rag_agents":
+    for item in os.listdir(path_to_agents):
+        # Skip rag_agents folder and hidden items
+        if item == "rag_agents" or item.startswith(".") or item == "__pycache__":
             continue
-        subdir_path = os.path.join(path_to_agents, subdir)
-        if os.path.isdir(subdir_path):
-            for filename in os.listdir(subdir_path):
+        item_path = os.path.join(path_to_agents, item)
+        if not os.path.isdir(item_path):
+            continue
+
+        # Check if this is an agent folder (has .py and .yaml files) or a category folder
+        has_py_file = any(f.endswith(".py") and f != "__init__.py" for f in os.listdir(item_path))
+
+        if has_py_file:
+            # This is an agent folder directly under agents/ (old structure)
+            for filename in os.listdir(item_path):
                 if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
-                    module_name = filename[:-3]  # Remove the .py extension
+                    module_name = filename[:-3]
                     class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
-                    # Assuming the module path is agents.<subdir>.<module_name>
-                    module_path = f"cmbagent.agents.{subdir}.{module_name}"
+                    module_path = f"cmbagent.agents.{item}.{module_name}"
                     module = importlib.import_module(module_path)
                     agent_class = getattr(module, class_name)
                     imported_non_rag_agents[class_name] = {
                         'agent_class': agent_class,
                         'agent_name': module_name,
                     }
+        else:
+            # This is a category folder (new structure)
+            for agent_folder in os.listdir(item_path):
+                agent_folder_path = os.path.join(item_path, agent_folder)
+                if os.path.isdir(agent_folder_path) and not agent_folder.startswith(".") and agent_folder != "__pycache__":
+                    for filename in os.listdir(agent_folder_path):
+                        if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
+                            module_name = filename[:-3]
+                            class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
+                            module_path = f"cmbagent.agents.{item}.{agent_folder}.{module_name}"
+                            module = importlib.import_module(module_path)
+                            agent_class = getattr(module, class_name)
+                            imported_non_rag_agents[class_name] = {
+                                'agent_class': agent_class,
+                                'agent_name': module_name,
+                            }
     return imported_non_rag_agents
 
 from autogen import cmbagent_debug
@@ -848,14 +870,14 @@ class CMBAgent:
 
         # remove agents that are not set to be skipped
         if self.skip_memory:
-            # self.agent_classes.pop('memory')
-            self.agent_classes.pop('session_summarizer')
-        
+            # self.agent_classes.pop('memory', None)
+            self.agent_classes.pop('session_summarizer', None)
+
         if self.skip_executor:
-            self.agent_classes.pop('executor')
+            self.agent_classes.pop('executor', None)
 
         if self.skip_rag_software_formatter:
-            self.agent_classes.pop('rag_software_formatter')
+            self.agent_classes.pop('rag_software_formatter', None)
 
         if cmbagent_debug:
             print('self.agent_classes after skipping agents: ')
