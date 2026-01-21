@@ -1,7 +1,7 @@
 import os
 from cmbagent.base_agent import BaseAgent
 
-class ControlAgent(BaseAgent):
+class ControllerAgent(BaseAgent):
     
     def __init__(self, llm_config=None, **kwargs):
 

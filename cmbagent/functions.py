@@ -69,7 +69,7 @@ def register_functions_to_agents(cmbagent_instance):
     executor = cmbagent_instance.get_agent_from_name('executor')
     executor_response_formatter = cmbagent_instance.get_agent_from_name('executor_response_formatter')
     terminator = cmbagent_instance.get_agent_from_name('terminator')
-    control = cmbagent_instance.get_agent_from_name('control')
+    controller = cmbagent_instance.get_agent_from_name('controller')
     admin = cmbagent_instance.get_agent_from_name('admin')
     perplexity = cmbagent_instance.get_agent_from_name('perplexity')
     aas_keyword_finder = cmbagent_instance.get_agent_from_name('aas_keyword_finder')
@@ -112,7 +112,7 @@ def register_functions_to_agents(cmbagent_instance):
                                                                "classy_context",
                                                                "plot_judge",
                                                             #    "planck_agent", no need for paper agents
-                                                               "control"], 
+                                                               "controller"], 
                                 context_variables: ContextVariables,
                                 execution_status: Literal["success", "failure"],
                                 fix_suggestion: Optional[str] = None
@@ -185,17 +185,17 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                         context_variables["vlm_plot_structured_feedback"] = None
                         context_variables["latest_executed_code"] = None
                         
-                        # No new plots to evaluate, continue to control
-                        return ReplyResult(target=AgentTarget(control),
-                                        message="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
+                        # No new plots to evaluate, continue to controllerler
+                        return ReplyResult(target=AgentTarget(controller),
+                                        message="Execution status: " + execution_status + ". Transfer to controllerler.\n" + f"{workflow_status_str}\n",
                                         context_variables=context_variables)
                 else:
-                    # Plot evaluation disabled, so skip VLM and go straight to control
+                    # Plot evaluation disabled, so skip VLM and go straight to controller
                     context_variables["vlm_plot_structured_feedback"] = None
                     context_variables["latest_executed_code"] = None
                     
-                    return ReplyResult(target=AgentTarget(control),
-                                    message="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
+                    return ReplyResult(target=AgentTarget(controller),
+                                    message="Execution status: " + execution_status + ". Transfer to controllerler.\n" + f"{workflow_status_str}\n",
                                     context_variables=context_variables)
 
             if next_agent_suggestion == "engineer":
@@ -234,10 +234,10 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                 context_variables=context_variables)            
             
 
-            elif next_agent_suggestion == "control":
+            elif next_agent_suggestion == "controller":
                 context_variables["n_attempts"] += 1
-                return ReplyResult(target=AgentTarget(control),
-                                message="Execution status: " + execution_status + ". Transfer to control.\n" + f"{workflow_status_str}\n",
+                return ReplyResult(target=AgentTarget(controller),
+                                message="Execution status: " + execution_status + ". Transfer to controllerler.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
             
             elif next_agent_suggestion == "installer":
@@ -246,8 +246,8 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                 message="Execution status: " + execution_status + ". Transfer to installer.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
         else:
-                return ReplyResult(target=AgentTarget(control),
-                                message="Transfer to control.\n" + workflow_status_str,
+                return ReplyResult(target=AgentTarget(controller),
+                                message="Transfer to controllerler.\n" + workflow_status_str,
                                 context_variables=context_variables)
         
     # executor_response_formatter._add_single_function(post_execution_transfer)
@@ -268,7 +268,7 @@ For the next agent suggestion, follow these rules:
     - Suggest classy_context to fix Python errors related to the classy code, e.g., classy.CosmoSevereError.
     - Suggest the engineer agent if error related to generic Python code. Don't prioritize the engineer agent if the error is related to the camb or classy code, in this case suggest camb_context or classy_context instead.
     - Suggest the cobaya_agent if error related to internal cobaya code.
-    - Suggest the control agent only if execution was successful. 
+    - Suggest the controller agent only if execution was successful. 
 """,
     )
 
@@ -285,8 +285,8 @@ For the next agent suggestion, follow these rules:
             context_variables["vlm_plot_structured_feedback"] = None
             context_variables["latest_executed_code"] = None
             context_variables["n_plot_evals"] = 0
-            return ReplyResult(target=AgentTarget(control),
-                             message=f"Plot evaluation retry limit ({max_evals}) reached. Accepting current plot and continuing to control.",
+            return ReplyResult(target=AgentTarget(controller),
+                             message=f"Plot evaluation retry limit ({max_evals}) reached. Accepting current plot and continuing to controller.",
                              context_variables=context_variables)
         
         print(f"Plot evaluation {current_evals + 1}/{max_evals}")
@@ -392,7 +392,7 @@ For the next agent suggestion, follow these rules:
     
     def route_plot_judge_verdict(context_variables: ContextVariables) -> ReplyResult:
         """
-        Route based on plot_judge verdict stored in context: continue to control, retry to engineer.
+        Route based on plot_judge verdict stored in context: continue to controllerler, retry to engineer.
         Handles all debugging logic internally for retry cases.
         """
         # Get verdict and problems from shared context
@@ -414,20 +414,20 @@ For the next agent suggestion, follow these rules:
             context_variables["latest_executed_code"] = None
             context_variables["plot_problems"] = []
             context_variables["plot_fixes"] = []
-            return ReplyResult(target=AgentTarget(control),
-                             message="Plot approved. Continuing to control.",
+            return ReplyResult(target=AgentTarget(controller),
+                             message="Plot approved. Continuing to controller.",
                              context_variables=context_variables)
         else:  # verdict == "retry"
             # Check if we've reached the maximum number of plot evaluations (retries)
             if current_evals > max_evals:
-                print(f"Maximum plot evaluation retries ({max_evals}) reached. Accepting current plot and continuing to control.")
+                print(f"Maximum plot evaluation retries ({max_evals}) reached. Accepting current plot and continuing to controller.")
                 # Clear VLM feedback and executed code when accepting due to limit
                 context_variables["vlm_plot_structured_feedback"] = None
                 context_variables["latest_executed_code"] = None
                 context_variables["plot_problems"] = []
                 context_variables["plot_fixes"] = []
-                return ReplyResult(target=AgentTarget(control),
-                                 message=f"Plot evaluation retry limit ({max_evals}) reached. Accepting current plot and continuing to control.",
+                return ReplyResult(target=AgentTarget(controller),
+                                 message=f"Plot evaluation retry limit ({max_evals}) reached. Accepting current plot and continuing to controller.",
                                  context_variables=context_variables)
             
             # Call external debugger to generate fixes if we have problems
@@ -496,7 +496,7 @@ For the next agent suggestion, follow these rules:
         caller=plot_debugger,
         executor=plot_debugger,
         description=r"""
-        Route based on plot_judge verdict stored in context: continue to control, retry to engineer.
+        Route based on plot_judge verdict stored in context: continue to controllerler, retry to engineer.
         Handles external debugging calls internally for retry cases.
         """,
     )
@@ -564,7 +564,7 @@ For the next agent suggestion, follow these rules:
                             [f"- [{keyword}]({AAS_keywords_dict[keyword]})" for keyword in aas_keywords]
                         )
 
-        return ReplyResult(target=AgentTarget(control), ## print and finish
+        return ReplyResult(target=AgentTarget(controller), ## print and finish
                         message=f"""
 **AAS keywords**:\n
 {AAS_keyword_list}
@@ -614,7 +614,7 @@ For the next agent suggestion, follow these rules:
 
         if context_variables["feedback_left"]==0:
             context_variables["final_plan"] = context_variables["plans"][-1]
-            return ReplyResult(target=AgentTarget(terminator), ## transfer to control
+            return ReplyResult(target=AgentTarget(terminator), ## transfer to controllerler
                             message="Planning stage complete. Exiting.",
                             context_variables=context_variables)
         else:
@@ -947,7 +947,7 @@ Now, update the plan accordingly, planner!""",
 
             if agent_to_transfer_to is None:
                 return ReplyResult(
-                    target=AgentTarget(control),
+                    target=AgentTarget(controller),
                     message=f"""
 **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
 **Sub-task:** {context_variables["current_sub_task"]}\n 
@@ -1137,7 +1137,7 @@ Now, update the plan accordingly, planner!""",
 
                 else:
 
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('control')
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('controller')
                     ## reset the number of code execution attempts for the next step
                     ## (the markdown execution always works)
                     if cmbagent_instance.mode != "planning_and_control_context_carryover": ## this is to keep memory of the number of attempts, to save later if needed... currently not used
@@ -1163,7 +1163,7 @@ Now, update the plan accordingly, planner!""",
 
             if agent_to_transfer_to is None:
                 return ReplyResult(
-                    target=AgentTarget(control),
+                    target=AgentTarget(controller),
                     message=f"""
 **Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
 **Sub-task:** {context_variables["current_sub_task"]}\n 
@@ -1188,11 +1188,11 @@ Now, update the plan accordingly, planner!""",
         
 
 
-    # control._add_single_function(record_status)
+    # controller._add_single_function(record_status)
     register_function(
         record_status,
-        caller=control,
-        executor=control,
+        caller=controller,
+        executor=controller,
         description=r"""
         Updates the context and returns the current progress.
         Must be called **before calling the agent in charge of the next sub-task**.

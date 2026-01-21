@@ -34,7 +34,7 @@ def register_all_hand_offs(cmbagent_instance):
     executor_bash = cmbagent_instance.get_agent_object_from_name('executor_bash')
 
     terminator = cmbagent_instance.get_agent_object_from_name('terminator')
-    control = cmbagent_instance.get_agent_object_from_name('control')
+    controller = cmbagent_instance.get_agent_object_from_name('controller')
     perplexity = cmbagent_instance.get_agent_object_from_name('perplexity')
     admin = cmbagent_instance.get_agent_object_from_name('admin')
     aas_keyword_finder = cmbagent_instance.get_agent_object_from_name('aas_keyword_finder')
@@ -63,7 +63,7 @@ def register_all_hand_offs(cmbagent_instance):
     if mode == "one_shot":
         camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(engineer.agent))
     else:
-        camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+        camb_response_formatter.agent.handoffs.set_after_work(AgentTarget(controller.agent))
 
     classy_response_formatter = cmbagent_instance.get_agent_object_from_name('classy_response_formatter')
     classy_context.agent.handoffs.set_after_work(AgentTarget(classy_response_formatter.agent))
@@ -71,7 +71,7 @@ def register_all_hand_offs(cmbagent_instance):
     if mode == "one_shot":
         classy_response_formatter.agent.handoffs.set_after_work(AgentTarget(engineer.agent))
     else:
-        classy_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+        classy_response_formatter.agent.handoffs.set_after_work(AgentTarget(controller.agent))
 
 
     if not cmbagent_instance.skip_rag_agents:
@@ -90,17 +90,17 @@ def register_all_hand_offs(cmbagent_instance):
         classy_sz.agent.handoffs.set_after_work(AgentTarget(classy_sz_response_formatter.agent))
 
         # classy_sz response formatter handoffs
-        classy_sz_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+        classy_sz_response_formatter.agent.handoffs.set_after_work(AgentTarget(controller.agent))
         
         # cobaya handoffs
         cobaya.agent.handoffs.set_after_work(AgentTarget(cobaya_response_formatter.agent))
 
         # cobaya response formatter handoffs
-        cobaya_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+        cobaya_response_formatter.agent.handoffs.set_after_work(AgentTarget(controller.agent))
 
 
         # planck handoffs   
-        planck.agent.handoffs.set_after_work(AgentTarget(control.agent))
+        planck.agent.handoffs.set_after_work(AgentTarget(controller.agent))
 
     # Summarizer handoffs
     summarizer.agent.handoffs.set_after_work(AgentTarget(summarizer_response_formatter.agent))
@@ -142,7 +142,7 @@ def register_all_hand_offs(cmbagent_instance):
     executor_bash.agent.handoffs.set_after_work(AgentTarget(executor_response_formatter.agent))
 
     # AAS keyword finder handoffs
-    aas_keyword_finder.agent.handoffs.set_after_work(AgentTarget(control.agent))
+    aas_keyword_finder.agent.handoffs.set_after_work(AgentTarget(controller.agent))
 
     # Researcher handoffs
     researcher.agent.handoffs.set_after_work(AgentTarget(researcher_response_formatter.agent))
@@ -151,7 +151,7 @@ def register_all_hand_offs(cmbagent_instance):
     researcher_response_formatter.agent.handoffs.set_after_work(AgentTarget(researcher_executor.agent))
 
     # Researcher executor handoffs
-    researcher_executor.agent.handoffs.set_after_work(AgentTarget(control.agent))
+    researcher_executor.agent.handoffs.set_after_work(AgentTarget(controller.agent))
 
     
     ### Transform messages for one shot agents 
@@ -267,7 +267,7 @@ def register_all_hand_offs(cmbagent_instance):
 
 
     idea_maker.agent.handoffs.set_after_work(AgentTarget(idea_maker_nest.agent))
-    idea_maker_nest.agent.handoffs.set_after_work(AgentTarget(control.agent))
+    idea_maker_nest.agent.handoffs.set_after_work(AgentTarget(controller.agent))
 
 
 
@@ -276,13 +276,13 @@ def register_all_hand_offs(cmbagent_instance):
     # idea_maker.agent.handoffs.set_after_work(AgentTarget(idea_maker_response_formatter.agent))
 
     # # idea maker response formatter handoffs
-    # idea_maker_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+    # idea_maker_response_formatter.agent.handoffs.set_after_work(AgentTarget(controller.agent))
 
     # idea haters handoffs
     idea_hater.agent.handoffs.set_after_work(AgentTarget(idea_hater_response_formatter.agent))
 
     # idea haters response formatter handoffs
-    idea_hater_response_formatter.agent.handoffs.set_after_work(AgentTarget(control.agent))
+    idea_hater_response_formatter.agent.handoffs.set_after_work(AgentTarget(controller.agent))
     
     
 
@@ -295,7 +295,7 @@ def register_all_hand_offs(cmbagent_instance):
         agent_on = cmbagent_instance.get_agent_object_from_name(cmbagent_instance.chat_agent)
 
         # Control handoffs
-        control.agent.handoffs.set_after_work(AgentTarget(admin.agent))
+        controller.agent.handoffs.set_after_work(AgentTarget(admin.agent))
 
         # Admin handoffs
         admin.agent.handoffs.set_after_work(AgentTarget(agent_on.agent))
@@ -305,9 +305,9 @@ def register_all_hand_offs(cmbagent_instance):
   
 
         # Control handoffs
-        control.agent.handoffs.set_after_work(AgentTarget(terminator.agent))
+        controller.agent.handoffs.set_after_work(AgentTarget(terminator.agent))
 
-        control.agent.handoffs.add_llm_conditions([
+        controller.agent.handoffs.add_llm_conditions([
 
             OnCondition(
                 target=AgentTarget(engineer.agent),
