@@ -7,10 +7,10 @@ jobs:
   pytest:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout clean branch
+      - name: Checkout cmbagent_v2 branch
         uses: actions/checkout@v4
         with:
-          ref: clean
+          ref: cmbagent_v2
 
       - name: Set up Python
         uses: actions/setup-python@v5
