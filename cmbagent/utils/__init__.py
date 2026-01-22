@@ -35,6 +35,7 @@ from .utils import (
 )
 from .yaml import yaml_load_file
 from ruamel.yaml import YAML
+from .context_utils import fetch_context_from_url, add_contexts_from_urls, get_context_for_agent
 
 __all__ = [
     "cmbagent_debug",
@@ -70,4 +71,7 @@ __all__ = [
     "clean_llm_config",
     "yaml_load_file",
     "YAML",
+    "fetch_context_from_url",
+    "add_contexts_from_urls",
+    "get_context_for_agent",
 ]

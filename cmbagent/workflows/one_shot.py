@@ -8,7 +8,6 @@ import os
 import time
 import json
 import datetime
-import requests
 from pathlib import Path
 
 # Import from parent package
@@ -23,6 +22,7 @@ from ..utils import (
     classy_context_url,
 )
 from ..context import shared_context as shared_context_default
+from ..utils.context_utils import add_contexts_from_urls
 
 
 def one_shot(
@@ -154,19 +154,19 @@ def one_shot(
         'inject_wrong_plot': inject_wrong_plot
     }
 
-    if agent == 'camb_context':
-        # Fetch the file (30-second safety timeout)
-        resp = requests.get(camb_context_url, timeout=30)
-        resp.raise_for_status()  # Raises an HTTPError for non-200 codes
-        camb_context = resp.text  # Whole document as one long string
-        shared_context["camb_context"] = camb_context
+    # Fetch context documentation if needed for specific agents
+    context_urls_map = {
+        'camb_context': camb_context_url,
+        'classy_context': classy_context_url,
+    }
 
-    if agent == 'classy_context':
-        # Fetch the file (30-second safety timeout)
-        resp = requests.get(classy_context_url, timeout=30)
-        resp.raise_for_status()  # Raises an HTTPError for non-200 codes
-        classy_context = resp.text  # Whole document as one long string
-        shared_context["classy_context"] = classy_context
+    if agent in context_urls_map:
+        # Fetch context documentation with 30-second timeout
+        add_contexts_from_urls(
+            shared_context,
+            {agent: context_urls_map[agent]},
+            timeout=30
+        )
 
     if researcher_filename is not None:
         shared_context["researcher_filename"] = researcher_filename
