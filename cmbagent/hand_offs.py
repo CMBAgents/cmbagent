@@ -22,15 +22,15 @@ def register_all_hand_offs(cmbagent_instance):
 
     # Core agents (always needed)
     core_agent_names = [
-        'task_improver', 'task_recorder', 'planner', 'planner_response_formatter',
+        'planner', 'planner_response_formatter',
         'plan_recorder', 'plan_reviewer', 'reviewer_response_formatter', 'review_recorder',
         'idea_maker', 'idea_maker_response_formatter', 'idea_hater', 'idea_hater_response_formatter',
         'researcher', 'researcher_response_formatter', 'engineer', 'engineer_response_formatter',
         'executor', 'researcher_executor', 'executor_bash', 'terminator', 'controller',
         'admin', 'aas_keyword_finder', 'executor_response_formatter',
         'plan_setter', 'installer', 'engineer_nest', 'idea_maker_nest', 'idea_saver',
-        'plot_judge', 'plot_debugger', 'camb_context', 'classy_context',
-        'summarizer', 'summarizer_response_formatter', 'camb_response_formatter', 'classy_response_formatter'
+        'camb_context', 'classy_context',
+        'camb_response_formatter', 'classy_response_formatter'
     ]
 
     # Retrieve all core agents at once
@@ -45,10 +45,6 @@ def register_all_hand_offs(cmbagent_instance):
 
     # Define simple A -> B handoff chains
     simple_handoffs = [
-        # Task improvement flow
-        ('task_improver', 'task_recorder'),
-        ('task_recorder', 'planner'),
-
         # Planning flow
         ('plan_setter', 'planner'),
         ('planner', 'planner_response_formatter'),
@@ -75,8 +71,6 @@ def register_all_hand_offs(cmbagent_instance):
 
         # Other flows
         ('aas_keyword_finder', 'controller'),
-        ('summarizer', 'summarizer_response_formatter'),
-        ('summarizer_response_formatter', 'terminator'),
         ('engineer', 'engineer_nest'),
         ('engineer_nest', 'executor_response_formatter'),
 
@@ -112,8 +106,7 @@ def register_all_hand_offs(cmbagent_instance):
     limited_history_agents = [
         'executor_response_formatter', 'planner_response_formatter', 'plan_recorder',
         'reviewer_response_formatter', 'review_recorder', 'researcher_response_formatter',
-        'researcher_executor', 'idea_maker_response_formatter', 'idea_hater_response_formatter',
-        'summarizer_response_formatter'
+        'researcher_executor', 'idea_maker_response_formatter', 'idea_hater_response_formatter'
     ]
 
     for agent_name in limited_history_agents:

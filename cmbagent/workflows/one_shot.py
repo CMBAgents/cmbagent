@@ -31,7 +31,6 @@ def one_shot(
     max_n_attempts=3,
     engineer_model=default_agents_llm_model['engineer'],
     researcher_model=default_agents_llm_model['researcher'],
-    plot_judge_model=default_agents_llm_model['plot_judge'],
     camb_context_model=default_agents_llm_model['camb_context'],
     default_llm_model_arg=default_llm_model,
     default_formatter_model_arg=default_formatter_model,
@@ -61,8 +60,6 @@ def one_shot(
         Model to use for the engineer agent
     researcher_model : str, optional
         Model to use for the researcher agent
-    plot_judge_model : str, optional
-        Model to use for plot evaluation
     camb_context_model : str, optional
         Model to use for CAMB context agent
     default_llm_model_arg : str, optional
@@ -97,8 +94,6 @@ def one_shot(
         - engineer_response_formatter: Engineer formatter object
         - researcher: Researcher agent object
         - researcher_response_formatter: Researcher formatter object
-        - plot_judge: Plot judge agent object
-        - plot_debugger: Plot debugger agent object
         - initialization_time: Time spent initializing (seconds)
         - execution_time: Time spent executing (seconds)
 
@@ -124,7 +119,6 @@ def one_shot(
 
     engineer_config = get_model_config(engineer_model, api_keys)
     researcher_config = get_model_config(researcher_model, api_keys)
-    plot_judge_config = get_model_config(plot_judge_model, api_keys)
     camb_context_config = get_model_config(camb_context_model, api_keys)
 
     cmbagent = CMBAgent(
@@ -133,7 +127,6 @@ def one_shot(
         agent_llm_configs={
             'engineer': engineer_config,
             'researcher': researcher_config,
-            'plot_judge': plot_judge_config,
             'camb_context': camb_context_config,
         },
         clear_work_dir=clear_work_dir,
@@ -196,9 +189,7 @@ def one_shot(
         'engineer': cmbagent.get_agent_object_from_name('engineer'),
         'engineer_response_formatter': cmbagent.get_agent_object_from_name('engineer_response_formatter'),
         'researcher': cmbagent.get_agent_object_from_name('researcher'),
-        'researcher_response_formatter': cmbagent.get_agent_object_from_name('researcher_response_formatter'),
-        'plot_judge': cmbagent.get_agent_object_from_name('plot_judge'),
-        'plot_debugger': cmbagent.get_agent_object_from_name('plot_debugger')
+        'researcher_response_formatter': cmbagent.get_agent_object_from_name('researcher_response_formatter')
     }
 
     results['initialization_time'] = initialization_time

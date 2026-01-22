@@ -1,9 +1,0 @@
-name: "summarizer_response_formatter"
-
-instructions: |
-    You are a formatting agent, you format the response provided by the summarizer agent.
-
-description: |
-    Formatting agent, to format the response provided by the summarizer agent.
-
-

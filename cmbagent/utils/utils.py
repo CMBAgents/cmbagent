@@ -120,8 +120,6 @@ default_formatter_model = 'o3-mini-2025-01-31'
 default_agents_llm_model ={
     "engineer": "gpt-4.1-2025-04-14",
     "aas_keyword_finder": "o3-mini-2025-01-31",
-    "task_improver": "o3-mini-2025-01-31",
-    "task_recorder": "gpt-4o-2024-11-20",
     # "control": "gpt-4o-2024-11-20",
     # "control": "gemini-2.5-pro-preview-03-25",
     # "terminator": "gpt-5",
@@ -134,8 +132,6 @@ default_agents_llm_model ={
     # "idea_hater": "claude-3-7-sonnet-20250219",
     "idea_hater":  "o3-mini-2025-01-31",
     "idea_maker": "gpt-4.1-2025-04-14",
-    # "plot_judge": "gpt-4o-2024-08-06",
-    "plot_judge": "o3-mini-2025-01-31",
 
     "camb_context": "gpt-4.1-2025-04-14",
     # "camb_context": "gemini-2.5-flash-preview-04-17",
@@ -150,11 +146,6 @@ default_agents_llm_model ={
     # "researcher_response_formatter": default_formatter_model,
     # "executor_response_formatter": default_formatter_model,
     #"executor_response_formatter": "gemini-2.5-pro-preview-03-25",
-    'plot_debugger': 'gpt-4o-2024-11-20',
-    
-    # Summarizer agents
-    'summarizer': default_llm_model,
-    'summarizer_response_formatter': default_formatter_model,
 }
 
 default_agent_llm_configs = {}
