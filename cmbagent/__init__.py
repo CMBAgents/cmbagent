@@ -12,7 +12,6 @@ warnings.filterwarnings(
 
 
 from .cmbagent import CMBAgent
-from .utils.rag_utils import make_rag_agents
 from .version import __version__
 import os
 from IPython.display import Image, display, Markdown
@@ -20,9 +19,7 @@ from autogen.cmbagent_utils import LOGO, IMG_WIDTH, cmbagent_disable_display
 
 
 
-from .cmbagent import planning_and_control, one_shot, get_keywords, human_in_the_loop, control, planning_and_control_context_carryover, work_dir_default, summarize_document, summarize_documents, preprocess_task
-
-from .cmbagent import planning_and_control_context_carryover as deep_research
+from .cmbagent import planning_and_control, one_shot, get_keywords, human_in_the_loop, control, deep_research, work_dir_default, summarize_document, summarize_documents, preprocess_task
 
 # OCR functionality
 from .utils.ocr import process_single_pdf, process_folder

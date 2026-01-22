@@ -39,17 +39,6 @@ def register_all_hand_offs(cmbagent_instance):
         for name in core_agent_names
     }
 
-    # RAG agents (conditional)
-    if not cmbagent_instance.skip_rag_agents:
-        rag_agent_names = [
-            'classy_sz_agent', 'classy_sz_response_formatter', 'camb_agent',
-            'planck_agent', 'cobaya_agent', 'cobaya_response_formatter'
-        ]
-        agents.update({
-            name: cmbagent_instance.get_agent_object_from_name(name)
-            for name in rag_agent_names
-        })
-
     # ============================================================================
     # 2. SIMPLE HANDOFF CHAINS - Use data structure + loop
     # ============================================================================
@@ -112,24 +101,7 @@ def register_all_hand_offs(cmbagent_instance):
         agents[formatter].agent.handoffs.set_after_work(AgentTarget(agents[target].agent))
 
     # ============================================================================
-    # 4. RAG AGENT HANDOFFS - Only if not skipped
-    # ============================================================================
-
-    if not cmbagent_instance.skip_rag_agents:
-        rag_handoffs = [
-            ('camb_agent', 'camb_response_formatter'),
-            ('classy_sz_agent', 'classy_sz_response_formatter'),
-            ('classy_sz_response_formatter', 'controller'),
-            ('cobaya_agent', 'cobaya_response_formatter'),
-            ('cobaya_response_formatter', 'controller'),
-            ('planck_agent', 'controller'),
-        ]
-
-        for source, target in rag_handoffs:
-            agents[source].agent.handoffs.set_after_work(AgentTarget(agents[target].agent))
-
-    # ============================================================================
-    # 5. MESSAGE HISTORY LIMITING - Use list + loop
+    # 4. MESSAGE HISTORY LIMITING - Use list + loop
     # ============================================================================
 
     context_handling = TransformMessages(
@@ -204,7 +176,7 @@ def register_all_hand_offs(cmbagent_instance):
     agents['terminator'].agent.handoffs.set_after_work(TerminateTarget())
 
     # Controller behavior depends on mode
-    if mode == "chat":
+    if mode == "human_in_the_loop":
         agent_on = cmbagent_instance.get_agent_object_from_name(cmbagent_instance.chat_agent)
         agents['controller'].agent.handoffs.set_after_work(AgentTarget(agents['admin'].agent))
         agents['admin'].agent.handoffs.set_after_work(AgentTarget(agent_on.agent))

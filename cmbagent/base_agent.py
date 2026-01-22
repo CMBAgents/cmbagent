@@ -68,10 +68,9 @@ class BaseAgent:
 
     ## for oai rag agents
     def set_gpt_assistant_agent(self,
-                  instructions=None, 
+                  instructions=None,
                   description=None,
-                  vector_store_ids=None, 
-                  agent_temperature=None, 
+                  agent_temperature=None,
                   agent_top_p=None):
 
         if cmbagent_debug:
@@ -82,7 +81,6 @@ class BaseAgent:
             print('setting agent: ',self.name)
             print('instructions: ',instructions)
             print('description: ',description)
-            print('vector_store_ids: ',vector_store_ids)
             print('agent_temperature: ',agent_temperature)
             print('agent_top_p: ',agent_top_p)
             print('\n\n')
@@ -94,9 +92,6 @@ class BaseAgent:
         if description is not None:
             self.info["description"] = description
 
-        if vector_store_ids is not None:
-            self.info['assistant_config']['tool_resources']['file_search']['vector_store_ids'] = [vector_store_ids]
-        
         if agent_temperature is not None:
             if cmbagent_debug:
                 print('\n\n\n\nin base_agent.py set_agent')
@@ -155,16 +150,6 @@ class BaseAgent:
         
         if cmbagent_debug:
             print("GPTAssistant set.... moving on.\n")
-
-        if self.agent._assistant_error is not None:
-
-            # print(self.agent._assistant_error)
-            if "No vector store" in self.agent._assistant_error:
-                if cmbagent_debug:
-                    print(f"Vector store not found for {self.name}")
-                    print(f"re-instantiating with make_vector_stores=['{self.name.rstrip('_agent')}'],")
-                
-                return 1
 
 
     ## for engineer/.. all non rag agents

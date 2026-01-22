@@ -25,11 +25,10 @@ from .utils import default_llm_model as default_llm_model_default
 from .utils import default_formatter_model as default_formatter_model_default
 from .utils import clean_llm_config
 
-from .utils import (path_to_assistants, path_to_apis,path_to_agents, update_yaml_preserving_format, get_model_config,
+from .utils import (path_to_apis,path_to_agents, update_yaml_preserving_format, get_model_config,
                     default_top_p, default_temperature, default_max_round,default_llm_config_list, default_agent_llm_configs,
                     default_agents_llm_model, camb_context_url,classy_context_url, AAS_keywords_string, get_api_keys_from_env)
 
-from .utils.rag_utils import import_rag_agents, push_vector_stores
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
 from .utils.data_retriever import setup_cmbagent_data
@@ -39,11 +38,11 @@ from .utils.keywords_utils import UnescoKeywords
 from .utils.keywords_utils import AaaiKeywords
 from .utils import unesco_taxonomy_path, aaai_keywords_path
 
-def import_non_rag_agents():
-    imported_non_rag_agents = {}
+def import_agents():
+    imported_agents = {}
     for item in os.listdir(path_to_agents):
-        # Skip rag_agents folder and hidden items
-        if item == "rag_agents" or item.startswith(".") or item == "__pycache__":
+        # Skip hidden items and pycache
+        if item.startswith(".") or item == "__pycache__":
             continue
         item_path = os.path.join(path_to_agents, item)
         if not os.path.isdir(item_path):
@@ -61,7 +60,7 @@ def import_non_rag_agents():
                     module_path = f"cmbagent.agents.{item}.{module_name}"
                     module = importlib.import_module(module_path)
                     agent_class = getattr(module, class_name)
-                    imported_non_rag_agents[class_name] = {
+                    imported_agents[class_name] = {
                         'agent_class': agent_class,
                         'agent_name': module_name,
                     }
@@ -77,11 +76,11 @@ def import_non_rag_agents():
                             module_path = f"cmbagent.agents.{item}.{agent_folder}.{module_name}"
                             module = importlib.import_module(module_path)
                             agent_class = getattr(module, class_name)
-                            imported_non_rag_agents[class_name] = {
+                            imported_agents[class_name] = {
                                 'agent_class': agent_class,
                                 'agent_name': module_name,
                             }
-    return imported_non_rag_agents
+    return imported_agents
 
 from autogen import cmbagent_debug
 from autogen.agentchat import initiate_group_chat
@@ -103,8 +102,6 @@ class CMBAgent:
                  model='gpt4o',
                  llm_api_key=None,
                  llm_api_type=None,
-                 make_vector_stores=False, #set to True to update all vector_stores, or a list of agents to update only those vector_stores e.g., make_vector_stores= ['cobaya', 'camb'].
-                 agent_list = ['camb','classy_sz','cobaya','planck'],
                  verbose = False,
                  reset_assistant = False,
                  agent_instructions = {
@@ -116,25 +113,12 @@ class CMBAgent:
                  agent_descriptions = None,
                  agent_temperature = None,
                  agent_top_p = None,
-                #  vector_store_ids = None,
-                 chunking_strategy = {
-                    'camb_agent': 
-                    {
-                    "type": "static",
-                    "static": {
-                      "max_chunk_size_tokens": 800, # reduce size to ensure better context integrity
-                      "chunk_overlap_tokens": 200 # increase overlap to maintain context across chunks
-                    }
-                }
-                },
                  select_speaker_prompt = None,
                  select_speaker_message = None,
                  intro_message = None,
                  set_allowed_transitions = None,
                  skip_executor = False,
                  skip_memory = True,
-                 skip_rag_software_formatter = True,
-                 skip_rag_agents = True,
                  default_llm_model = default_llm_model_default,
                  default_formatter_model = default_formatter_model_default,
                  default_llm_config_list = default_llm_config_list,
@@ -143,10 +127,9 @@ class CMBAgent:
                  shared_context = shared_context_default,
                  work_dir = work_dir_default,
                  clear_work_dir = True,
-                 mode = "planning_and_control", # can be "one_shot" , "chat" or "planning_and_control" (default is planning and control), or "planning_and_control_context_carryover"
+                 mode = "planning_and_control", # can be "one_shot", "human_in_the_loop", or "planning_and_control" (default is planning and control), or "deep_research"
                  chat_agent = None,
                  api_keys = None,
-                #  make_new_rag_agents = False, ## can be a list of names for new rag agents to be created
                  **kwargs):
         """
         Initialize the CMBAgent.
@@ -157,17 +140,12 @@ class CMBAgent:
             timeout (int, optional): Timeout for LLM requests in seconds. Defaults to 1200.
             max_round (int, optional): Maximum number of conversation rounds. Defaults to 50. If too small, the conversation stops.
             llm_api_key (str, optional): API key for LLM. If None, uses the key from the config file.
-            make_vector_stores (bool or list of strings, optional): Whether to create vector stores. Defaults to False. For only subset, use, e.g., make_vector_stores= ['cobaya', 'camb'].
-            agent_list (list of strings, optional): List of agents to include in the conversation. Defaults to all agents.
-            chunking_strategy (dict, optional): Chunking strategy for vector stores. Defaults to None.
-            make_new_rag_agents (list of strings, optional): List of names for new rag agents to be created. Defaults to False.
-            
+
             **kwargs: Additional keyword arguments.
 
         Attributes:
             kwargs (dict): Additional keyword arguments.
             work_dir (str): Working directory for output.
-            path_to_assistants (str): Path to the assistants directory.
             llm_api_key (str): OpenAI API key.
             engineer (engineer_agent): Agent for engineering tasks.
             planner (planner_agent): Agent for planning tasks.
@@ -184,23 +162,9 @@ class CMBAgent:
 
         self.skip_executor = skip_executor
 
-        self.skip_rag_agents = skip_rag_agents
-
-        if make_vector_stores is not False:
-            self.skip_rag_agents = False
-
-        self.skip_rag_software_formatter = skip_rag_software_formatter
-
-        # self.make_new_rag_agents = make_new_rag_agents
         self.set_allowed_transitions = set_allowed_transitions
 
-        self.vector_store_ids = None
-
         self.logger = logging.getLogger(__name__)
-
-        # self.non_rag_agents = ['engineer', 'planner', 'executor', 'admin', 'summarizer', 'rag_software_formatter']
-
-        self.agent_list = agent_list
 
         self.skip_memory = skip_memory
 
@@ -208,9 +172,6 @@ class CMBAgent:
 
         self.mode = mode
         self.chat_agent = chat_agent
-
-        if not self.skip_memory and 'memory' not in agent_list:
-            self.agent_list.append('memory')
 
         self.verbose = verbose
 
@@ -231,7 +192,6 @@ class CMBAgent:
         # add the work_dir to the python path so we can import modules from it
         sys.path.append(self.work_dir)
 
-        self.path_to_assistants = path_to_assistants
 
         self.logger.info(f"Autogen version: {autogen.__version__}")
 
@@ -290,21 +250,6 @@ class CMBAgent:
         if cmbagent_debug:
             print("\n\n All agents instantiated!!!\n\n")
 
-        if cmbagent_debug:  
-            print("\n\n Checking assistants...\n\n")
-
-        if not self.skip_rag_agents:
-            setup_cmbagent_data()
-
-            self.check_assistants(reset_assistant=reset_assistant) # check if assistants exist
-
-            if cmbagent_debug:
-                print("\n\n Assistants checked!!!\n\n")
-
-            if cmbagent_debug:
-                print('\npushing vector stores...')
-            push_vector_stores(self, make_vector_stores, chunking_strategy, verbose = verbose) # push vector stores
-
         if cmbagent_debug:
             print('\nsetting planner instructions currently not doing anything...')
             print('\nmodify if you want to tune the instruction prompt...')
@@ -329,51 +274,8 @@ class CMBAgent:
 
             if description is not None:
                 agent_kwargs['description'] = description
-           
 
-            if agent.name not in self.non_rag_agent_names: ## loop over all rag agents 
-                if self.skip_rag_agents:
-                    continue
-                vector_ids = self.vector_store_ids[agent.name] if self.vector_store_ids and agent.name in self.vector_store_ids else None
-                temperature = agent_temperature[agent.name] if agent_temperature and agent.name in agent_temperature else None
-                top_p = agent_top_p[agent.name] if agent_top_p and agent.name in agent_top_p else None
-
-                if vector_ids is not None:
-                    agent_kwargs['vector_store_ids'] = vector_ids
-
-                if temperature is not None:
-                    agent_kwargs['agent_temperature'] = temperature
-                else:
-                    agent_kwargs['agent_temperature'] = default_temperature
-
-                if top_p is not None:
-                    agent_kwargs['agent_top_p'] = top_p
-                else:
-                    agent_kwargs['agent_top_p'] = default_top_p
-
-                # cmbagent debug --> removed this option, pass in make_vector_stores=True in kwargs
-                # #### the files list is appended twice to the instructions.... TBD!!!
-                setagent = agent.set_agent(**agent_kwargs)
-
-                if setagent == 1:
-
-                    if cmbagent_debug:
-                        print(f"setting make_vector_stores=['{agent.name.removesuffix('_agent')}'],")
-                    
-                    push_vector_stores(self, [agent.name.removesuffix('_agent')], chunking_strategy, verbose = verbose)
-
-                    agent_kwargs['vector_store_ids'] = self.vector_store_ids[agent.name] 
-
-                    
-                    agent.set_agent(**agent_kwargs) 
-
-                # else:
-                # see above for trick on how to make vector store if it is not found. 
-                # agent.set_agent(**agent_kwargs)
-
-            else: ## set all non-rag agents
-                
-                agent.set_agent(**agent_kwargs)
+            agent.set_agent(**agent_kwargs)
 
             ## debug print to help debug
             #print('in cmbagent.py self.agents instructions: ',instructions)
@@ -580,7 +482,7 @@ class CMBAgent:
             - "default": Planning and control mode (default). Uses the full planning workflow.
             - "one_shot": Single-step execution mode. Sets up a simplified context with a
               single-step plan and minimal planning overhead.
-            - "chat": Chat mode, similar to "one_shot" with simplified context.
+            - "human_in_the_loop": Human-in-the-loop mode, similar to "one_shot" with simplified context.
             Defaults to "default".
             
         step : int or None, optional
@@ -619,9 +521,9 @@ class CMBAgent:
         
         Notes
         -----
-        - In "one_shot" or "chat" mode, a simplified shared context is created with a
+        - In "one_shot" or "human_in_the_loop" mode, a simplified shared context is created with a
           single-step plan and minimal planning structure.
-        - If initial_agent is 'perplexity' and mode is "one_shot" or "chat", a special
+        - If initial_agent is 'perplexity' and mode is "one_shot" or "human_in_the_loop", a special
           perplexity_query is added to the shared context.
         - The method uses AutoPattern to coordinate agent interactions and handoffs.
         - All agents are reset before starting the group chat to ensure clean state.
@@ -646,7 +548,7 @@ class CMBAgent:
         self.step = step ## record the step for the context carryover workflow 
         this_shared_context = copy.deepcopy(self.shared_context)
         
-        if mode == "one_shot" or mode == "chat":
+        if mode == "one_shot" or mode == "human_in_the_loop":
             one_shot_shared_context = {'final_plan': "Step 1: solve the main task.",
                                         'current_status': "In progress",
                                         'current_plan_step_number': 1,
@@ -819,32 +721,17 @@ class CMBAgent:
 
     def init_agents(self,agent_llm_configs=None, default_formatter_model=default_formatter_model_default):
 
-        # this automatically loads all the agents from the assistants folder
-        imported_rag_agents = import_rag_agents()
-        imported_non_rag_agents = import_non_rag_agents()
-        # print('imported_rag_agents: ', imported_rag_agents)
-        # print("making new rag agents: ", self.make_new_rag_agents)
-        # make_rag_agents(self.make_new_rag_agents)
-        # imported_rag_agents = import_rag_agents()
-        # print('imported_rag_agents: ', imported_rag_agents)
+        # This automatically loads all the agents from the agents folder
+        imported_agents = import_agents()
 
         ## this will store classes for each agents
         self.agent_classes = {}
-        self.rag_agent_names = []
-        self.non_rag_agent_names = []
 
-        for k in imported_rag_agents.keys():
-            self.agent_classes[imported_rag_agents[k]['agent_name']] = imported_rag_agents[k]['agent_class']
-            self.rag_agent_names.append(imported_rag_agents[k]['agent_name'])
-
-        for k in imported_non_rag_agents.keys():
-            self.agent_classes[imported_non_rag_agents[k]['agent_name']] = imported_non_rag_agents[k]['agent_class']
-            self.non_rag_agent_names.append(imported_non_rag_agents[k]['agent_name'])
+        for k in imported_agents.keys():
+            self.agent_classes[imported_agents[k]['agent_name']] = imported_agents[k]['agent_class']
 
         if cmbagent_debug:
             print('self.agent_classes: ', self.agent_classes)
-            print('self.rag_agent_names: ', self.rag_agent_names)
-            print('self.non_rag_agent_names: ', self.non_rag_agent_names)
 
         if cmbagent_debug:
             print('self.agent_classes after update: ')
@@ -855,12 +742,6 @@ class CMBAgent:
 
         # all agents
         self.agents = []
-
-        if self.agent_list is None:
-            self.agent_list = list(self.agent_classes.keys())
-
-        # Drop entries from self.agent_classes that are not in self.agent_list
-        self.agent_classes = {k: v for k, v in self.agent_classes.items() if k in self.agent_list or k in self.non_rag_agent_names}
 
         if cmbagent_debug:
             print('self.agent_classes after list update: ')
@@ -876,9 +757,6 @@ class CMBAgent:
 
         if self.skip_executor:
             self.agent_classes.pop('executor', None)
-
-        if self.skip_rag_software_formatter:
-            self.agent_classes.pop('rag_software_formatter', None)
 
         if cmbagent_debug:
             print('self.agent_classes after skipping agents: ')
@@ -921,12 +799,7 @@ class CMBAgent:
 
             self.agents.append(agent_instance)
 
-        if self.skip_rag_agents:
-            self.agents = [agent for agent in self.agents if agent.name.replace('_agent', '') not in self.rag_agent_names]
-
-        # print('rag_agent_names: ', self.rag_agent_names)
         self.agent_names =  [agent.name for agent in self.agents]
-        # print('skip_rag_agents: ', self.skip_rag_agents)
         # print('self.agents: ', self.agent_names)
         # import sys 
         # sys.exit()
@@ -963,105 +836,6 @@ class CMBAgent:
                 print(f"{agent.name}: {agent.llm_config['config_list'][0]['model']}")
             print()
 
-    def create_assistant(self, client, agent):
-
-        if cmbagent_debug:
-            print(f"-->Creating assistant {agent.name}")
-            print(f"--> llm_config: {self.llm_config}")
-            print(f"--> agent.llm_config: {agent.llm_config}")
-
-        new_assistant = client.beta.assistants.create(
-            name=agent.name,
-            instructions=agent.info['instructions'],
-            tools=[{"type": "file_search"}],
-            tool_resources={"file_search": {"vector_store_ids":[]}},
-            model=agent.llm_config['config_list'][0]['model'],
-            # tool_choice={"type": "function", "function": {"name": "file_search"}}, ## not possible to set tool_choice as argument as of 8/03/2025
-            # response_format=agent.llm_config['config_list'][0]['response_format']
-        )
-
-        if cmbagent_debug:
-            print("New assistant created.")
-            print(f"--> New assistant id: {new_assistant.id}")
-            print(f"--> New assistant model: {new_assistant.model}")
-            # print(f"--> New assistant response format: {new_assistant.response_format}")
-            # print(f"--> New assistant tool choice: {new_assistant.tool_choice}")
-            print("\n")
-
-        return new_assistant
-
-
-    def check_assistants(self, reset_assistant=[]):
-
-        client = OpenAI(api_key = self.openai_api_key)
-        available_assistants = client.beta.assistants.list(
-            order="desc",
-            limit="100",
-        )
-
-
-        # Create a list of assistant names for easy comparison
-        assistant_names = [d.name for d in available_assistants.data]
-        assistant_ids = [d.id for d in available_assistants.data]
-        assistant_models = [d.model for d in available_assistants.data]
-
-        for agent in self.agents:
-
-            if cmbagent_debug:
-                print('in cmbagent.py check_assistants: agent: ', agent.name)
-                print('non_rag_agent_names: ', self.non_rag_agent_names)
-
-            if agent.name not in self.non_rag_agent_names:
-                if cmbagent_debug:
-                    print(f"Checking agent: {agent.name}")
-
-                # Check if agent name exists in the available assistants
-                if agent.name in assistant_names:
-                    if cmbagent_debug:
-                        print(f"in cmbagent.py check_assistants: Agent {agent.name} exists in available assistants with id: {assistant_ids[assistant_names.index(agent.name)]}")
-
-                    if cmbagent_debug:
-                        print('in cmbagent.py check_assistants: this assistant model from openai: ',assistant_models[assistant_names.index(agent.name)])
-                        print('in cmbagent.py check_assistants: this assistant model from llm_config: ', agent.llm_config['config_list'][0]['model'])
-                    if assistant_models[assistant_names.index(agent.name)] != agent.llm_config['config_list'][0]['model']:
-                        if cmbagent_debug:
-                            print("in cmbagent.py check_assistants: Assistant model from openai does not match the requested model. Updating the assistant model.")
-                        client.beta.assistants.update(
-                            assistant_id=assistant_ids[assistant_names.index(agent.name)],
-                            model=agent.llm_config['config_list'][0]['model']
-                        )
-
-                    if reset_assistant and agent.name.replace('_agent', '') in reset_assistant:
-                        
-                        print("This agent is in the reset_assistant list. Resetting the assistant.")
-                        print("Deleting the assistant...")
-                        client.beta.assistants.delete(assistant_ids[assistant_names.index(agent.name)])
-                        print("Assistant deleted. Creating a new one...")
-                        new_assistant = self.create_assistant(client, agent)
-                        agent.info['assistant_config']['assistant_id'] = new_assistant.id
-                        
-
-                    else:
-
-                        assistant_id = agent.info['assistant_config']['assistant_id']
-
-                        if assistant_id != assistant_ids[assistant_names.index(agent.name)]:
-                            if cmbagent_debug:
-                                print("--> Assistant ID between yaml and openai do not match.")
-                                print(f"--> Assistant ID from your yaml: {assistant_id}")
-                                print(f"--> Assistant ID in openai: {assistant_ids[assistant_names.index(agent.name)]}")
-                                print("--> We will use the assistant id from openai")
-                            
-
-                            agent.info['assistant_config']['assistant_id'] = assistant_ids[assistant_names.index(agent.name)]
-                            if cmbagent_debug:
-                                print(f"--> Updating yaml file with new assistant id: {assistant_ids[assistant_names.index(agent.name)]}")
-                            update_yaml_preserving_format(f"{path_to_assistants}/{agent.name.replace('_agent', '') }.yaml", agent.name, assistant_ids[assistant_names.index(agent.name)], field = 'assistant_id')
-                    
-                else:
-
-                    new_assistant = self.create_assistant(client, agent)
-                    agent.info['assistant_config']['assistant_id'] = new_assistant.id
 
 
 
@@ -1144,7 +918,7 @@ def clean_work_dir(work_dir):
                 shutil.rmtree(item_path)
 
 
-def planning_and_control_context_carryover(
+def deep_research(
                             task,
                             max_rounds_planning = 50,
                             max_rounds_control = 100,
@@ -1318,7 +1092,7 @@ def planning_and_control_context_carryover(
                                 'camb_context': camb_context_config,
                                 'plot_judge': plot_judge_config,
             },
-            mode = "planning_and_control_context_carryover",
+            mode = "deep_research",
             api_keys = api_keys
             )
         
@@ -2226,7 +2000,7 @@ def human_in_the_loop(task,
                             'engineer': engineer_config,
                             'researcher': researcher_config,
         },
-        mode = "chat",
+        mode = "human_in_the_loop",
         chat_agent = agent,
         api_keys = api_keys
         )
@@ -2240,7 +2014,7 @@ def human_in_the_loop(task,
                     max_rounds=max_rounds,
                     initial_agent=agent,
                     shared_context = {'max_n_attempts': max_n_attempts},
-                    mode = "chat")
+                    mode = "human_in_the_loop")
     
     end_time = time.time()
     execution_time = end_time - start_time
