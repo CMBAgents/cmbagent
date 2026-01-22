@@ -50,9 +50,6 @@ def run_next_gui():
         print("     -e OPENAI_API_KEY=\"your-key-here\" \\")
         print("     docker.io/borisbolliet/cmbagent-ui:latest")
         print("")
-        print("3. 💻 Try HuggingFace Spaces (online):")
-        print("   https://huggingface.co/spaces/astropilot-ai/cmbagent")
-        print("")
         sys.exit(1)
     
     # Check if run.py exists

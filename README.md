@@ -1,6 +1,6 @@
 # cmbagent
 
-[![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2507.07257-b31b1b.svg)](https://arxiv.org/abs/2507.07257) [![HuggingFace](https://img.shields.io/badge/HuggingFace-Space-blue)](https://huggingface.co/spaces/astropilot-ai/cmbagent)
+[![License](https://img.shields.io/badge/license-Apache%202-blue.svg)](LICENSE) [![arXiv](https://img.shields.io/badge/arXiv-2507.07257-b31b1b.svg)](https://arxiv.org/abs/2507.07257)
 [![PyPI version](https://img.shields.io/pypi/v/cmbagent.svg)](https://pypi.org/project/cmbagent/)
 
 <a href="https://www.youtube.com/@cmbagent" target="_blank">
@@ -17,8 +17,6 @@ Multi-Agent System for Science, Powered by [AG2](https://github.com/ag2ai/ag2).
 
 
 Cmbagent is part of [Denario](https://astropilot-ai.github.io/DenarioPaperPage/), our end-to-end research system.
-
-Try cmbagent on [HuggingFace](https://huggingface.co/spaces/astropilot-ai/cmbagent)!
 
 We are currently deploying cmbagent on the cloud, it will be in production soon!
 
@@ -287,102 +285,6 @@ Access the UI at:
 - Backend API: http://localhost:8000
 
 **Note:** API keys are **not** included in the Docker image for security reasons. Each user must provide their own credentials at container runtime.
-
-## Hugging Face Spaces Deployment
-
-Deploy CMBAgent with the Next.js UI to Hugging Face Spaces for public access. The UI will be available at https://huggingface.co/spaces/astropilot-ai/cmbagent.
-
-### Prerequisites
-
-1. **Hugging Face Account**: Sign up at https://huggingface.co
-2. **Create a Space**:
-   - Go to https://huggingface.co/new-space
-   - Choose "Docker" as the SDK
-   - Set visibility (public/private)
-
-### Deployment Steps
-
-1. **Clone your Hugging Face Space repository:**
-
-```bash
-git clone https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
-cd YOUR_SPACE_NAME
-```
-
-2. **Copy CMBAgent files to the Space:**
-
-```bash
-# Copy the entire CMBAgent repository
-cp -r /path/to/cmbagent/* .
-
-# Or clone directly into the space directory
-git clone https://github.com/CMBAgents/cmbagent.git .
-```
-
-3. **Ensure the Dockerfile is configured for Hugging Face:**
-   The main `Dockerfile` is already configured for Hugging Face Spaces with:
-
-- Port 7860 (Hugging Face standard)
-- Multi-stage build (Node.js frontend + Python backend)
-- Combined service startup script
-
-4. **Create a README.md for your Space** (optional):
-
-```bash
----
-title: CMBAgent
-emoji: 🌌
-colorFrom: blue
-colorTo: purple
-sdk: docker
-pinned: false
----
-
-# CMBAgent - Multi-Agent System for Science
-
-CMBAgent is a multi-agent system for autonomous scientific discovery, powered by AG2 (formerly AutoGen).
-
-Access the web interface below to:
-- Execute one-shot scientific tasks
-- Use planning & control for complex multi-step problems
-- Generate and evaluate scientific ideas
-
-For more information, visit: https://github.com/CMBAgents/cmbagent
-```
-
-5. **Configure environment variables** (if needed):
-
-   - Go to your Space settings on Hugging Face
-   - Add environment variables under "Repository secrets"
-   - **Note**: For public demos, users typically provide their own API keys via the UI
-
-6. **Push to Hugging Face:**
-
-```bash
-git add .
-git commit -m "Deploy CMBAgent Next.js UI to Hugging Face Spaces"
-git push origin main
-```
-
-7. **Monitor deployment:**
-   - Hugging Face will automatically build and deploy your Space
-   - Check the "Logs" tab for build progress
-   - The Space will be available at `https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME`
-
-### Important Notes
-
-- **API Keys**: The deployment doesn't include API keys. Users must provide their own OpenAI API key (required) and optionally Anthropic/Google keys through the web interface.
-- **Port Configuration**: The Dockerfile exposes port 7860, which is the standard for Hugging Face Spaces.
-- **Resource Limits**: Hugging Face Spaces have CPU/memory limits. For intensive tasks, consider upgrading to a paid tier.
-- **Auto-sleep**: Free Spaces go to sleep after inactivity. They wake up automatically when accessed.
-
-### Troubleshooting
-
-- **Build failures**: Check the Dockerfile paths and ensure all required files are included
-- **Runtime issues**: Monitor the Space logs for Python/Node.js errors
-- **Port issues**: Ensure the application listens on port 7860 (handled automatically by the Dockerfile)
-
-The deployed Space will provide the full CMBAgent experience with the modern Next.js interface, accessible to anyone with the link.
 
 ## References
 
