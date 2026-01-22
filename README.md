@@ -62,13 +62,13 @@ source cmbagent_env/bin/activate
 pip install cmbagent
 ```
 
-Go ahead and launch the Streamlit GUI:
+Go ahead and launch the Next.js web UI:
 
 ```bash
 cmbagent run
 ```
 
-See below for other options including the Next.js web UI, terminal usage, notebooks etc.
+See below for other options including terminal usage, notebooks etc.
 
 To install additional astrophysics,computation and data science python packages, you can install cmbagent with
 
@@ -252,11 +252,6 @@ docker buildx build --platform linux/amd64,linux/arm64 \
   -f Dockerfile.nextjs \
   -t docker.io/yourusername/cmbagent-ui:latest \
   --no-cache --push .
-
-# Build and push original Streamlit image (AMD64 only)
-docker buildx build --platform linux/amd64 \
-  -t docker.io/yourusername/cmbagent:latest \
-  --no-cache --push .
 ```
 
 Replace `yourusername` with your Docker Hub username. The `--platform` flag ensures compatibility across different architectures (Intel/AMD and ARM).
@@ -292,47 +287,6 @@ Access the UI at:
 - Backend API: http://localhost:8000
 
 **Note:** API keys are **not** included in the Docker image for security reasons. Each user must provide their own credentials at container runtime.
-
-### Streamlit GUI with Docker
-
-You can also run the original cmbagent Streamlit GUI in a [docker container](https://www.docker.com/). You may need `sudo` permission to run docker, [or follow the instructions of this link](https://docs.docker.com/engine/install/linux-postinstall/).
-
-**Building and running locally:**
-
-```bash
-# Build the image
-docker build -t cmbagent .
-
-# Run the Streamlit GUI
-docker run -p 8501:8501 \
-  -e OPENAI_API_KEY="sk-..." \
-  -e ANTHROPIC_API_KEY="sk-..." \
-  -v /path/to/service-account-key.json:/app/service-account-key.json \
-  -e GOOGLE_APPLICATION_CREDENTIALS="/app/service-account-key.json" \
-  --rm cmbagent
-```
-
-**Using published image:**
-
-```bash
-# Pull and run from Docker Hub
-docker pull docker.io/yourusername/cmbagent:latest
-
-docker run -p 8501:8501 \
-  -e OPENAI_API_KEY="your-openai-key-here" \
-  -e ANTHROPIC_API_KEY="your-anthropic-key-here" \
-  -v /path/to/service-account-key.json:/app/service-account-key.json \
-  -e GOOGLE_APPLICATION_CREDENTIALS="/app/service-account-key.json" \
-  --rm docker.io/yourusername/cmbagent:latest
-```
-
-Access the Streamlit GUI at http://localhost:8501
-
-**Interactive container access:**
-
-```bash
-docker run --rm -it cmbagent bash
-```
 
 ## Hugging Face Spaces Deployment
 
