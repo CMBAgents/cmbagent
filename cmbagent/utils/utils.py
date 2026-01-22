@@ -127,7 +127,6 @@ default_agents_llm_model ={
     # "terminator": "gpt-5",
     # "terminator": "gemini-2.5-pro-preview-03-25",
     "researcher": "gpt-4.1-2025-04-14",
-    "perplexity": "o3-mini-2025-01-31",
     "planner": "gpt-4.1-2025-04-14",
     # "plan_reviewer": "claude-3-7-sonnet-20250219",
     "plan_reviewer": "o3-mini-2025-01-31",
@@ -138,13 +137,6 @@ default_agents_llm_model ={
     # "plot_judge": "gpt-4o-2024-08-06",
     "plot_judge": "o3-mini-2025-01-31",
 
-    # rag agents
-    "classy_sz": "gpt-4o-2024-11-20",
-    "camb": "gpt-4o-2024-11-20",
-    "classy": "gpt-4o-2024-11-20",
-    "cobaya": "gpt-4o-2024-11-20",
-    "planck": "gpt-4o-2024-11-20",
-
     "camb_context": "gpt-4.1-2025-04-14",
     # "camb_context": "gemini-2.5-flash-preview-04-17",
     # "camb_context": "gemini-2.5-pro-preview-03-25",
@@ -152,12 +144,6 @@ default_agents_llm_model ={
     # "camb_context": "gemini-2.5-flash-preview-05-20",
 
     # "classy_context": "gpt-4o-2024-11-20",
-    
-    # structured output agents
-    # "classy_sz_response_formatter": "gpt-4o-2024-11-20",
-    # "camb_response_formatter": "gpt-4.1-2025-04-14",
-    # "classy_response_formatter": "gpt-4.1-2025-04-14",
-    # "cobaya_response_formatter": "gpt-4o-2024-11-20",
     # # "engineer_response_formatter": "gpt-4.1-2025-04-14",
     # "engineer_response_formatter": default_formatter_model,
     # # "engineer_response_formatter": "gemini-2.5-pro-preview-03-25",

@@ -27,7 +27,7 @@ def register_all_hand_offs(cmbagent_instance):
         'idea_maker', 'idea_maker_response_formatter', 'idea_hater', 'idea_hater_response_formatter',
         'researcher', 'researcher_response_formatter', 'engineer', 'engineer_response_formatter',
         'executor', 'researcher_executor', 'executor_bash', 'terminator', 'controller',
-        'perplexity', 'admin', 'aas_keyword_finder', 'executor_response_formatter',
+        'admin', 'aas_keyword_finder', 'executor_response_formatter',
         'plan_setter', 'installer', 'engineer_nest', 'idea_maker_nest', 'idea_saver',
         'plot_judge', 'plot_debugger', 'camb_context', 'classy_context',
         'summarizer', 'summarizer_response_formatter', 'camb_response_formatter', 'classy_response_formatter'

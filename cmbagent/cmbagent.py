@@ -523,8 +523,6 @@ class CMBAgent:
         -----
         - In "one_shot" or "human_in_the_loop" mode, a simplified shared context is created with a
           single-step plan and minimal planning structure.
-        - If initial_agent is 'perplexity' and mode is "one_shot" or "human_in_the_loop", a special
-          perplexity_query is added to the shared context.
         - The method uses AutoPattern to coordinate agent interactions and handoffs.
         - All agents are reset before starting the group chat to ensure clean state.
         - The codebase directory is added to sys.path, allowing agents to import modules
@@ -560,14 +558,9 @@ class CMBAgent:
                                         'maximum_number_of_steps_in_plan': 1,
                                         'researcher_append_instructions': '',
                                         'engineer_append_instructions': '',
-                                        'perplexity_append_instructions': '',
                                         'idea_maker_append_instructions': '',
                                         'idea_hater_append_instructions': '',
                                         }
-            
-            if initial_agent == 'perplexity':
-                one_shot_shared_context['perplexity_query'] = self.get_agent_object_from_name('perplexity').info['instructions'].format(main_task=task)
-                # print('one_shot_shared_context: ', one_shot_shared_context)
 
             this_shared_context.update(one_shot_shared_context)
             this_shared_context.update(shared_context or {})
@@ -657,7 +650,7 @@ class CMBAgent:
         name : str
             The name of the agent to retrieve. Must match the 'name' value in the
             agent's info dictionary. Common agent names include: 'engineer', 'researcher',
-            'planner', 'task_improver', 'perplexity', 'engineer_response_formatter',
+            'planner', 'task_improver', 'engineer_response_formatter',
             'researcher_response_formatter', 'plot_judge', 'plot_debugger', etc.
             
         Returns

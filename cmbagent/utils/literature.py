@@ -2,87 +2,24 @@ import re
 import requests
 from typing import List, Tuple
 
-# def process_tex_file_with_references(fname_tex, fname_bib, perplexity, nparagraphs=None):
-#     """
-#     Processes a LaTeX file by inserting `\\citep{}` references and generating a corresponding .bib file.
 
-#     This pipeline:
-#     - Loads a .tex file as a string.
-#     - Extracts paragraph-like lines using `_extract_paragraphs_from_tex_content()`.
-#     - Applies a `perplexity()` function to each paragraph to generate updated text and arXiv citations.
-#     - Uses `_replace_references_with_cite()` to insert `\\citep{}` commands and update the BibTeX content.
-#     - Replaces the corresponding lines in the original LaTeX string.
-#     - Saves the modified .tex file (overwrites original).
-#     - Writes a BibTeX file named `bibliography.bib`.
-
-#     Args:
-#         fname_tex (str): Path to the input .tex file. Example: 'main.tex'
-
-#     Notes:
-#         The BibTeX file name is hardcoded to 'bibliography.bib' to match the citation style expected in the LaTeX source.
-
-#     TODO:
-#         Replace perplexity placeholder.
-#     """
-
-#     with open(fname_tex, "r", encoding="utf-8") as f:
-#         str_tex = f.read()
-    
-#     str_bib = ''                             # initialize str that will beocme the .bib file
-
-#     para_dict = _extract_paragraphs_from_tex_content(str_tex)
-
-#     count = 0
-#     for kpara, para in para_dict.items():
-#         if count == 0:
-#             count += 1
-#             continue  # skip the first paragraph
-
-#         # Try calling perplexity up to two times.
-#         for attempt in range(2):
-#             para, citations = para, []#perplexity(para)
-#             print(f"kpara: {kpara}")
-#             print(f"Para: {para}")
-#             print(f"Citations: {citations}")
-#             if para is not None:
-#                 break  # exit the loop if the call was successful
-#         else:
-#             # If after two attempts it still fails, skip this paragraph.
-#             count += 1
-#             continue
-#         para, str_bib = _replace_references_with_cite(para, citations, str_bib)
-
-#         lines = str_tex.splitlines(keepends=True)
-#         lines[kpara] = para
-#         str_tex = ''.join(lines)
-
-#         count += 1
-#         if nparagraphs is not None and count >= nparagraphs:
-#             break
-        
-#     # (over)write files
-#     with open(fname_tex, 'w', encoding='utf-8') as f:
-#         f.write(str_tex)
-#     with open(fname_bib, 'w', encoding='utf-8') as f:
-#         f.write(str_bib)
-
-def process_tex_file_with_references(fname_tex, fname_bib, perplexity, nparagraphs=None):
+def process_tex_file_with_references(fname_tex, fname_bib, citation_processor, nparagraphs=None):
     """
     Processes a LaTeX file by inserting `\\citep{}` references and generating a corresponding .bib file.
-    
+
     This pipeline:
       - Loads a .tex file as a list of lines.
       - Extracts paragraph-like lines using `_extract_paragraphs_from_tex_content()`, which returns a dict
         mapping 0-indexed line numbers to the corresponding line text.
-      - For each identified paragraph, applies a perplexity function to generate updated text and citations.
+      - For each identified paragraph, applies a citation processor function to generate updated text and citations.
       - Uses `_replace_references_with_cite()` to insert `\\citep{}` commands and update the BibTeX content.
       - Updates the corresponding line (using its original line index) in the list of lines.
       - Writes the modified .tex file and an updated bibliography file.
-    
+
     Args:
         fname_tex (str): Path to the input .tex file.
         fname_bib (str): Path to the output .bib file.
-        perplexity (callable): A function that processes a paragraph.
+        citation_processor (callable): A function that processes a paragraph and returns (updated_text, citations).
         nparagraphs (int, optional): Maximum number of paragraphs to process.
     """
     # Read file as a list of lines
@@ -109,11 +46,10 @@ def process_tex_file_with_references(fname_tex, fname_bib, perplexity, nparagrap
         print(f"kpara: {kpara}")
         print(f"Processing paragraph: {para}")
         
-        # Try to process the paragraph using the perplexity function (placeholder shown here)
+        # Try to process the paragraph using the citation processor function
         for attempt in range(2):
-            # Replace the following line with your actual perplexity call if needed.
-            # new_para, citations = para, []  # e.g., new_para, citations = perplexity(para)
-            new_para, citations = perplexity(para)
+            # citation_processor should return (updated_text, citations)
+            new_para, citations = citation_processor(para)
             if new_para is not None:
                 break  # exit the retry loop if successful
         else:

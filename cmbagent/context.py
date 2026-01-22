@@ -27,10 +27,6 @@ shared_context = {
 
     "transfer_to_engineer": False,
     "transfer_to_researcher": False,
-    "transfer_to_camb_agent": False,
-    "transfer_to_classy_agent": False,
-    "transfer_to_cobaya_agent": False,
-    "transfer_to_perplexity": False,
     "transfer_to_camb_context": False,
     "transfer_to_classy_context": False,
 
@@ -47,11 +43,6 @@ shared_context = {
     "AAS_keywords_string": None,#AAS_keywords_string,
     "text_input_for_AAS_keyword_finder": None,
     "N_AAS_keywords": 5,
-
-    "perplexity_query": None,
-    "perplexity_response": None,
-    "perplexity_citations": None,
-
 
     "n_attempts": 0, ## the number of failed attempts
     "max_n_attempts": 3,

@@ -30,15 +30,12 @@ class ExecutorResponseFormatterAgent(BaseAgent):
         execution_status: Literal["success", "failure"] = Field(
             ..., description="Status of the execution."
         )
-        next_agent_suggestion: Literal["engineer", "classy_sz_agent", "control", "installer","camb_agent","cobaya_agent"] = Field(
+        next_agent_suggestion: Literal["engineer", "control", "installer"] = Field(
             None, ## default value
             description=r"""
             Suggestion for the next agent to call:
             Suggest the engineer agent if error related to generic Python code.
             Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError).
-            Suggest the classy_sz_agent if error is an internal classy_sz error.
-            Suggest the camb_agent if error related to internal camb code.
-            Suggest the cobaya_agent if error related to internal cobaya code.
             Suggest the control agent if execution was successful.
             """
         )

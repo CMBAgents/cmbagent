@@ -71,7 +71,6 @@ def register_functions_to_agents(cmbagent_instance):
     terminator = cmbagent_instance.get_agent_from_name('terminator')
     controller = cmbagent_instance.get_agent_from_name('controller')
     admin = cmbagent_instance.get_agent_from_name('admin')
-    perplexity = cmbagent_instance.get_agent_from_name('perplexity')
     aas_keyword_finder = cmbagent_instance.get_agent_from_name('aas_keyword_finder')
     plan_setter = cmbagent_instance.get_agent_from_name('plan_setter')
     idea_maker = cmbagent_instance.get_agent_from_name('idea_maker')
@@ -82,19 +81,6 @@ def register_functions_to_agents(cmbagent_instance):
     classy_context = cmbagent_instance.get_agent_from_name('classy_context')
     plot_judge = cmbagent_instance.get_agent_from_name('plot_judge')
     plot_debugger = cmbagent_instance.get_agent_from_name('plot_debugger')
-
-    # print("Perplexity API key: ", os.getenv("PERPLEXITY_API_KEY"))
-    # perplexity_search_tool = PerplexitySearchTool(
-    #                     model="sonar-reasoning-pro",
-    #                     api_key=os.getenv("PERPLEXITY_API_KEY"),
-    #                     max_tokens=100000,
-    #                     search_domain_filter=["arxiv.org"]
-    #                 )
-    
-    # perplexity_search_tool.register_for_llm(perplexity)
-    # perplexity_search_tool.register_for_execution(perplexity)
-
-    # perplexity._add_single_function(perplexity_search_tool)
 
     def post_execution_transfer(next_agent_suggestion: Literal["engineer",
                                                                "installer",
@@ -721,7 +707,7 @@ Now, update the plan accordingly, planner!""",
         current_sub_task: str,
         current_instructions: str,
         agent_for_sub_task: Literal["engineer", 
-                                    "researcher", #"perplexity",
+                                    "researcher",
                                     "idea_maker",
                                     "idea_hater",
                                     "camb_context",
@@ -830,7 +816,6 @@ Now, update the plan accordingly, planner!""",
             context_variables["transfer_to_researcher"] = False
             context_variables["transfer_to_camb_context"] = False
             context_variables["transfer_to_classy_context"] = False
-            context_variables["transfer_to_perplexity"] = False
             context_variables["transfer_to_idea_maker"] = False
             context_variables["transfer_to_idea_hater"] = False
 
@@ -840,8 +825,6 @@ Now, update the plan accordingly, planner!""",
                     context_variables["transfer_to_engineer"] = True
                 elif context_variables["agent_for_sub_task"] == "researcher":
                     context_variables["transfer_to_researcher"] = True
-                elif context_variables["agent_for_sub_task"] == "perplexity":
-                    context_variables["transfer_to_perplexity"] = True
                 elif context_variables["agent_for_sub_task"] == "idea_maker":
                     context_variables["transfer_to_idea_maker"] = True
                 elif context_variables["agent_for_sub_task"] == "idea_hater":
@@ -855,8 +838,6 @@ Now, update the plan accordingly, planner!""",
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
                 elif context_variables["transfer_to_researcher"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
-                elif context_variables["transfer_to_perplexity"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('perplexity')
                 elif context_variables["transfer_to_idea_maker"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
                 elif context_variables["transfer_to_idea_hater"]:
@@ -1018,7 +999,6 @@ Now, update the plan accordingly, planner!""",
 
             context_variables["transfer_to_engineer"] = False
             context_variables["transfer_to_researcher"] = False
-            context_variables["transfer_to_perplexity"] = False
             context_variables["transfer_to_idea_maker"] = False
             context_variables["transfer_to_idea_hater"] = False
             context_variables["transfer_to_camb_context"] = False
@@ -1029,8 +1009,6 @@ Now, update the plan accordingly, planner!""",
                     context_variables["transfer_to_engineer"] = True
                 elif context_variables["agent_for_sub_task"] == "researcher":
                     context_variables["transfer_to_researcher"] = True
-                elif context_variables["agent_for_sub_task"] == "perplexity":
-                    context_variables["transfer_to_perplexity"] = True
                 elif context_variables["agent_for_sub_task"] == "idea_maker":
                     context_variables["transfer_to_idea_maker"] = True
                 elif context_variables["agent_for_sub_task"] == "idea_hater":
@@ -1044,8 +1022,6 @@ Now, update the plan accordingly, planner!""",
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
                 elif context_variables["transfer_to_researcher"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
-                elif context_variables["transfer_to_perplexity"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('perplexity')
                 elif context_variables["transfer_to_idea_maker"]:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
                 elif context_variables["transfer_to_idea_hater"]:
@@ -1149,7 +1125,7 @@ Now, update the plan accordingly, planner!""",
         # current_plan_step_number: int,
         # current_sub_task: str,
         # current_instructions: str,
-        # agent_for_sub_task: Literal["engineer", "researcher", #"perplexity",
+        # agent_for_sub_task: Literal["engineer", "researcher",
         #                             "idea_maker", "idea_hater", "aas_keyword_finder"],
         context_variables: ContextVariables
     ) -> ReplyResult:
@@ -1195,7 +1171,6 @@ Now, update the plan accordingly, planner!""",
 
         context_variables["transfer_to_engineer"] = False
         context_variables["transfer_to_researcher"] = False
-        context_variables["transfer_to_perplexity"] = False
         context_variables["transfer_to_idea_maker"] = False
         context_variables["transfer_to_idea_hater"] = False
         context_variables["transfer_to_camb_context"] = False
@@ -1207,8 +1182,6 @@ Now, update the plan accordingly, planner!""",
                 context_variables["transfer_to_engineer"] = True
             elif context_variables["agent_for_sub_task"] == "researcher":
                 context_variables["transfer_to_researcher"] = True
-            elif context_variables["agent_for_sub_task"] == "perplexity":
-                context_variables["transfer_to_perplexity"] = True
             elif context_variables["agent_for_sub_task"] == "idea_maker":
                 context_variables["transfer_to_idea_maker"] = True
             elif context_variables["agent_for_sub_task"] == "idea_hater":
@@ -1222,8 +1195,6 @@ Now, update the plan accordingly, planner!""",
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
             elif context_variables["transfer_to_researcher"]:
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
-            elif context_variables["transfer_to_perplexity"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('perplexity')
             elif context_variables["transfer_to_idea_maker"]:
                 agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
             elif context_variables["transfer_to_idea_hater"]:
