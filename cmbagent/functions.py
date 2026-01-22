@@ -123,7 +123,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                 context_variables["latest_executed_code"] = None
 
                 return ReplyResult(target=AgentTarget(controller),
-                                message="Execution status: " + execution_status + ". Transfer to controllerler.\n" + f"{workflow_status_str}\n",
+                                message="Execution status: " + execution_status + ". Transfer to controller.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
 
             if next_agent_suggestion == "engineer":
@@ -153,7 +153,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
             elif next_agent_suggestion == "controller":
                 context_variables["n_attempts"] += 1
                 return ReplyResult(target=AgentTarget(controller),
-                                message="Execution status: " + execution_status + ". Transfer to controllerler.\n" + f"{workflow_status_str}\n",
+                                message="Execution status: " + execution_status + ". Transfer to controller.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
             
             elif next_agent_suggestion == "installer":
@@ -163,7 +163,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                 context_variables=context_variables)
         else:
                 return ReplyResult(target=AgentTarget(controller),
-                                message="Transfer to controllerler.\n" + workflow_status_str,
+                                message="Transfer to controller.\n" + workflow_status_str,
                                 context_variables=context_variables)
         
     # executor_response_formatter._add_single_function(post_execution_transfer)
@@ -279,7 +279,7 @@ For the next agent suggestion, follow these rules:
 
         if context_variables["feedback_left"]==0:
             context_variables["final_plan"] = context_variables["plans"][-1]
-            return ReplyResult(target=AgentTarget(terminator), ## transfer to controllerler
+            return ReplyResult(target=AgentTarget(terminator), ## transfer to controller
                             message="Planning stage complete. Exiting.",
                             context_variables=context_variables)
         else:
