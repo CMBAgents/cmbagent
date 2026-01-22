@@ -264,7 +264,7 @@ def planning_and_control(
     cmbagent.solve(
         task,
         max_rounds=max_rounds_control,
-        initial_agent="control",
+        initial_agent="controller",
         shared_context=planning_output
     )
     end_time = time.time()

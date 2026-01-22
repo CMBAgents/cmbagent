@@ -14,12 +14,15 @@ from .deep_research import deep_research
 from .human_in_the_loop import human_in_the_loop
 from .planning_and_control import planning_and_control
 from .keywords import get_keywords, get_keywords_from_aaai, get_keywords_from_string, get_aas_keywords
+from .control import control, load_plan
 
 __all__ = [
     'one_shot',
     'deep_research',
     'human_in_the_loop',
     'planning_and_control',
+    'control',
+    'load_plan',
     'get_keywords',
     'get_keywords_from_aaai',
     'get_keywords_from_string',

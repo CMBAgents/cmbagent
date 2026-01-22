@@ -37,6 +37,7 @@ from .workflows.deep_research import deep_research
 from .workflows.human_in_the_loop import human_in_the_loop
 from .workflows.planning_and_control import planning_and_control
 from .workflows.keywords import get_keywords, get_keywords_from_aaai, get_keywords_from_string, get_aas_keywords
+from .workflows.control import control, load_plan
 
 from .utils.keywords_utils import UnescoKeywords
 from .utils.keywords_utils import AaaiKeywords
@@ -904,127 +905,6 @@ class CMBAgent:
         return
 
 
-
-
-def load_plan(plan_path):
-    """Load a plan from a JSON file into a dictionary"""
-    plan_path = os.path.expanduser(plan_path)  # Expands '~' 
-    with open(plan_path, 'r') as f:
-        plan_dict = json.load(f)
-    
-    return plan_dict
-
-
-
-def control(
-            task,
-            plan = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'plans', 'idea_plan.json'),
-            max_rounds = 100,
-            max_plan_steps = 3,
-            n_plan_reviews = 1,
-            plan_instructions = '',
-            engineer_instructions = '',
-            researcher_instructions = '',
-            hardware_constraints = '',
-            max_n_attempts = 3,
-            planner_model = default_agents_llm_model['planner'],
-            plan_reviewer_model = default_agents_llm_model['plan_reviewer'],
-            engineer_model = default_agents_llm_model['engineer'],
-            researcher_model = default_agents_llm_model['researcher'],
-            idea_maker_model = default_agents_llm_model['idea_maker'],
-            idea_hater_model = default_agents_llm_model['idea_hater'],
-            work_dir = work_dir_default,
-            clear_work_dir = True,
-            api_keys = None,
-            ):
-    
-    # check work_dir exists
-    if not os.path.exists(work_dir):
-        os.makedirs(work_dir)
-
-    planning_input = load_plan(plan)["sub_tasks"]
-
-    context = {'final_plan': planning_input,
-               "number_of_steps_in_plan": len(planning_input),
-               "agent_for_sub_task": planning_input[0]['sub_task_agent'],
-               "current_sub_task": planning_input[0]['sub_task'],
-               "current_instructions": ''}
-    for bullet in planning_input[0]['bullet_points']:
-        context["current_instructions"] += f"\t\t- {bullet}\n"
-
-    if api_keys is None:
-        api_keys = get_api_keys_from_env()
-
-    ## control
-    engineer_config = get_model_config(engineer_model, api_keys)
-    researcher_config = get_model_config(researcher_model, api_keys)
-    idea_maker_config = get_model_config(idea_maker_model, api_keys)
-    idea_hater_config = get_model_config(idea_hater_model, api_keys)        
-    control_dir = Path(work_dir).expanduser().resolve() / "control"
-    control_dir.mkdir(parents=True, exist_ok=True)
-
-    start_time = time.time()
-    cmbagent = CMBAgent(
-        work_dir = control_dir,
-        agent_llm_configs = {
-                            'engineer': engineer_config,
-                            'researcher': researcher_config,
-                            'idea_maker': idea_maker_config,
-                            'idea_hater': idea_hater_config,
-        },
-        clear_work_dir = clear_work_dir,
-        api_keys = api_keys
-        )
-    
-    end_time = time.time()
-    initialization_time_control = end_time - start_time
-    
-    start_time = time.time()    
-    cmbagent.solve(task,
-                    max_rounds=max_rounds,
-                    initial_agent="control",
-                    shared_context = context
-                    )
-    end_time = time.time()
-    execution_time_control = end_time - start_time
-    
-    results = {'chat_history': cmbagent.chat_result.chat_history,
-               'final_context': cmbagent.final_context}
-    
-    results['initialization_time_control'] = initialization_time_control
-    results['execution_time_control'] = execution_time_control
-
-    # Save timing report as JSON
-    timing_report = {
-        'initialization_time_control': initialization_time_control,
-        'execution_time_control': execution_time_control,
-        'total_time': initialization_time_control + execution_time_control
-    }
-
-    # Add timestamp
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    # Save to JSON file in workdir
-    timing_path = os.path.join(results['final_context']['work_dir'], f"time/timing_report_control_{timestamp}.json")
-    with open(timing_path, 'w') as f:
-        json.dump(timing_report, f, indent=2)
-
-    # Create a dummy groupchat attribute if it doesn't exist
-    if not hasattr(cmbagent, 'groupchat'):
-        Dummy = type('Dummy', (object,), {'new_conversable_agents': []})
-        cmbagent.groupchat = Dummy()
-
-    # Now call display_cost without triggering the AttributeError
-    cmbagent.display_cost()
-    ## delete empty folders during control
-    database_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['database_path'])
-    codebase_full_path = os.path.join(results['final_context']['work_dir'], results['final_context']['codebase_path'])
-    time_full_path = os.path.join(results['final_context']['work_dir'],'time')
-    for folder in [database_full_path, codebase_full_path, time_full_path]:
-        if not os.listdir(folder):
-            os.rmdir(folder)
-
-    return results
 
 
 
