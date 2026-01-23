@@ -542,7 +542,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                     </select>
                   </div>
                 </>
-              ) : /* Planning & Control Agent Models - Top Priority */
+              ) : /* Planning & Controller Models - Top Priority */
               mode === 'planning-control' ? (
                 <>
                   <div>

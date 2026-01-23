@@ -39,7 +39,10 @@ from .utils.arxiv_downloader import arxiv_filter
 
 def print_cmbagent_logo():
     base_dir = os.path.dirname(__file__)
-    png_path = os.path.join(base_dir, "logo.png")
+    # logo.png is in the images directory at the project root
+    # base_dir is cmbagent/cmbagent/, so go up one level to get to cmbagent/
+    project_root = os.path.dirname(base_dir)
+    png_path = os.path.join(project_root, "images", "logo.png")
     # print(png_path)
     # print(base_dir)
     if not cmbagent_disable_display:

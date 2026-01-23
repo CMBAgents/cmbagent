@@ -36,7 +36,7 @@ class ExecutorResponseFormatterAgent(BaseAgent):
             Suggestion for the next agent to call:
             Suggest the engineer agent if error related to generic Python code.
             Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError).
-            Suggest the control agent if execution was successful.
+            Suggest the controller if execution was successful.
             """
         )
         current_step_in_plan: int = Field(

@@ -2,7 +2,7 @@ from pathlib import Path
 import cmbagent
 
 
-def test_deep_research(tmp_path):
+def test_deep_research():
 
     task = r"""
     Compute the sum of the first 1000 natural numbers and then compute the factorial of 10.
@@ -26,3 +26,6 @@ Use engineer for whole analysis. Plan must have 2 steps.
     )
 
     assert results is not None
+
+
+test_deep_research()

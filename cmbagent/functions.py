@@ -167,7 +167,7 @@ For the next agent suggestion, follow these rules:
     - Suggest the camb_context agent if CAMB documentation should be consulted, e.g., if the Python error is related to the camb code.
     - Suggest camb_context to fix Python errors related to the camb code.
     - Suggest the engineer agent if error related to generic Python code. Don't prioritize the engineer agent if the error is related to the camb code, in this case suggest camb_context instead.
-    - Suggest the controller agent only if execution was successful. 
+    - Suggest the controller only if execution was successful. 
 """,
     )
 

@@ -8,12 +8,10 @@ global-exclude *.egg-info/
 global-exclude .DS_Store
 recursive-exclude cmbagent/docs * 
 include cmbagent/apis/*.json
-include cmbagent/assistants/*yaml
 include cmbagent/planner/*yaml
 include cmbagent/engineer/*yaml
 include cmbagent/executor/*yaml
 include cmbagent/admin/*yaml
-include cmbagent/gui/gui.py
 
 prune tests
 prune docs

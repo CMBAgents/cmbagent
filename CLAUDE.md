@@ -67,7 +67,7 @@ python run.py      # Start backend server (port 8000)
 - Each agent has a Python implementation and YAML configuration
 - Agents are specialized for different tasks: engineering, research, planning, execution, RAG queries
 - Response formatters handle output formatting for specific use cases
-- Control agents manage workflow orchestration
+- Controller manages workflow orchestration
 
 ### Multi-Modal Capabilities
 - Plot generation capabilities

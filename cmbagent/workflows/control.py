@@ -1,7 +1,7 @@
 """Control workflow for CMBAgent.
 
 This workflow executes a pre-existing plan from a JSON file. It loads
-a structured plan and executes it directly using the control agent,
+a structured plan and executes it directly using the controller,
 without the planning phase.
 
 This is useful when you have a pre-defined plan and want to execute it
@@ -72,7 +72,7 @@ def control(
     """Execute a task using a pre-existing plan from a JSON file.
 
     This workflow loads a structured plan from a JSON file and executes it
-    directly using the control agent. It skips the planning phase and goes
+    directly using the controller. It skips the planning phase and goes
     straight to execution, making it useful for executing pre-defined plans
     or reusing previously created plans.
 
