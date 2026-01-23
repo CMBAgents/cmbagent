@@ -14,7 +14,8 @@ def test_deep_research():
         n_plan_reviews=1,
         max_n_attempts=2,
         max_plan_steps=2,
-        engineer_model="gemini-3-flash-preview",
+        # engineer_model="gemini-3-flash-preview",
+        engineer_model="gemini-2.5-flash",
         researcher_model="gpt-4.1-2025-04-14",
         plan_reviewer_model="claude-sonnet-4-20250514",
         plan_instructions=r"""

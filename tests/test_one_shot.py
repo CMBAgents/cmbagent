@@ -14,7 +14,7 @@ def test_one_shot():
       max_rounds=20,
       agent="engineer",
       # engineer_model="gpt-4.1",
-      # engineer_model="gemini-3-flash-preview",  # Now fixed with shared state
+      engineer_model="gemini-2.5-flash",  # Now fixed with shared state
       # work_dir=str(tmp_path / "one_shot"), 
       work_dir="/Users/boris/Desktop/one_shot",
    )

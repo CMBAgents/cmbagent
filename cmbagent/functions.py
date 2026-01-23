@@ -390,12 +390,179 @@ Now, update the plan accordingly, planner!""",
     )
 
 
+    def _get_status_icon(status: str) -> str:
+        """Get emoji icon for status."""
+        status_icons = {
+            "completed": "✅",
+            "failed": "❌",
+            "in progress": "⏳"
+        }
+        return status_icons.get(status, "")
+
+    def _update_context_variables(
+        context_variables: ContextVariables,
+        current_status: str,
+        current_plan_step_number: int,
+        current_sub_task: str,
+        current_instructions: str,
+        agent_for_sub_task: str
+    ) -> None:
+        """Update context variables with current step information."""
+        context_variables["current_plan_step_number"] = current_plan_step_number
+        context_variables["current_sub_task"] = current_sub_task
+        context_variables["agent_for_sub_task"] = agent_for_sub_task
+        context_variables["current_instructions"] = current_instructions
+        context_variables["current_status"] = current_status
+
+    def _load_codebase_info(context_variables: ContextVariables) -> str:
+        """Load and format docstrings from codebase."""
+        codes = os.path.join(cmbagent_instance.work_dir, context_variables['codebase_path'])
+        docstrings = load_docstrings(codes)
+
+        output_str = ""
+        for module, info in docstrings.items():
+            output_str += "-----------\n"
+            output_str += f"Filename: {module}.py\n"
+            output_str += f"File path: {info['file_path']}\n\n"
+
+            # Show parse errors (if any)
+            if "error" in info:
+                output_str += f"⚠️  Parse error: {info['error']}\n\n"
+
+            output_str += "Available functions:\n"
+
+            if info["functions"]:
+                for func, doc in info["functions"].items():
+                    output_str += f"function name: {func}\n"
+                    output_str += "````\n"
+                    output_str += f"{doc or '(no docstring)'}\n"
+                    output_str += "````\n\n"
+            else:
+                output_str += "(none)\n\n"
+
+        return output_str
+
+    def _display_new_images(context_variables: ContextVariables) -> None:
+        """Load and display new plot images from data directory."""
+        data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
+        image_files = load_plots(data_directory)
+
+        displayed_images = context_variables.get("displayed_images", [])
+        new_images = [img for img in image_files if img not in displayed_images]
+
+        for img_file in new_images:
+            if not cmbagent_disable_display:
+                ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
+            else:
+                print(f"\n- Saved {img_file}")
+
+        context_variables["displayed_images"] = displayed_images + new_images
+
+    def _initialize_transfer_flags(context_variables: ContextVariables) -> None:
+        """Initialize all agent transfer flags to False."""
+        agent_transfer_map = {
+            "engineer": "transfer_to_engineer",
+            "researcher": "transfer_to_researcher",
+            "idea_maker": "transfer_to_idea_maker",
+            "idea_hater": "transfer_to_idea_hater",
+            "camb_context": "transfer_to_camb_context",
+        }
+
+        for flag_name in agent_transfer_map.values():
+            context_variables[flag_name] = False
+        context_variables["transfer_to_classy_context"] = False
+
+    def _determine_next_agent_human_in_loop(context_variables: ContextVariables):
+        """Determine next agent for human-in-the-loop mode."""
+        agent_transfer_map = {
+            "engineer": "transfer_to_engineer",
+            "researcher": "transfer_to_researcher",
+            "idea_maker": "transfer_to_idea_maker",
+            "idea_hater": "transfer_to_idea_hater",
+            "camb_context": "transfer_to_camb_context",
+        }
+
+        agent_to_transfer_to = None
+
+        if "in progress" in context_variables["current_status"]:
+            agent_name = context_variables["agent_for_sub_task"]
+            if agent_name in agent_transfer_map:
+                transfer_flag = agent_transfer_map[agent_name]
+                context_variables[transfer_flag] = True
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name(agent_name)
+
+        if "completed" in context_variables["current_status"]:
+            agent_to_transfer_to = cmbagent_instance.get_agent_from_name('admin')
+            context_variables["n_attempts"] = 0
+
+        if "failed" in context_variables["current_status"]:
+            if context_variables["agent_for_sub_task"] == "engineer":
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
+            elif context_variables["agent_for_sub_task"] == "researcher":
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher_response_formatter')
+
+        return agent_to_transfer_to
+
+    def _determine_next_agent_default(context_variables: ContextVariables):
+        """Determine next agent for default mode."""
+        agent_transfer_map = {
+            "engineer": "transfer_to_engineer",
+            "researcher": "transfer_to_researcher",
+            "idea_maker": "transfer_to_idea_maker",
+            "idea_hater": "transfer_to_idea_hater",
+            "camb_context": "transfer_to_camb_context",
+        }
+
+        agent_to_transfer_to = None
+
+        if "in progress" in context_variables["current_status"]:
+            agent_name = context_variables["agent_for_sub_task"]
+            if agent_name in agent_transfer_map:
+                transfer_flag = agent_transfer_map[agent_name]
+                context_variables[transfer_flag] = True
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name(agent_name)
+
+            if cmbagent_instance.mode == "deep_research" and context_variables["current_plan_step_number"] != cmbagent_instance.step:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
+
+        if "completed" in context_variables["current_status"]:
+            if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
+            else:
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('controller')
+                if cmbagent_instance.mode != "deep_research":
+                    context_variables["n_attempts"] = 0
+
+        if "failed" in context_variables["current_status"]:
+            if context_variables["agent_for_sub_task"] == "engineer":
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
+            elif context_variables["agent_for_sub_task"] == "researcher":
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher_response_formatter')
+
+        return agent_to_transfer_to
+
+    def _format_status_message(context_variables: ContextVariables, icon: str) -> str:
+        """Format the status message."""
+        return f"""
+**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.
+
+**Sub-task:** {context_variables["current_sub_task"]}
+
+**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`
+
+**Instructions:**
+
+{context_variables["current_instructions"]}
+
+**Status:** {context_variables["current_status"]} {icon}
+        """
+
     def record_status(
         current_status: Literal["in progress", "failed", "completed"],
         current_plan_step_number: int,
         current_sub_task: str,
         current_instructions: str,
-        agent_for_sub_task: Literal["engineer", 
+        agent_for_sub_task: Literal["engineer",
                                     "researcher",
                                     "idea_maker",
                                     "idea_hater",
@@ -415,339 +582,52 @@ Now, update the plan accordingly, planner!""",
             current_plan_step_number (int): The current step number in the plan.
             current_sub_task (str): Description of the current sub-task.
             current_instructions (str): Instructions for the sub-task.
-            agent_for_sub_task (str): The agent responsible for the sub-task in the current step. Stays the same for the whole step.
+            agent_for_sub_task (str): The agent responsible for the sub-task in the current step.
             context_variables (dict): Execution context dictionary.
 
         Returns:
             ReplyResult: Contains a formatted status message and updated context.
         """
+        # Get status icon
+        icon = _get_status_icon(current_status)
 
-        # print(f"in functions.py: record_status: context_variables:")
-        # print(f"max_n_attempts: {context_variables['max_n_attempts']}")
+        # Update context variables
+        _update_context_variables(
+            context_variables, current_status, current_plan_step_number,
+            current_sub_task, current_instructions, agent_for_sub_task
+        )
 
+        # Load codebase information
+        context_variables["current_codebase"] = _load_codebase_info(context_variables)
 
+        # Display new images
+        _display_new_images(context_variables)
+
+        # Initialize transfer flags
+        _initialize_transfer_flags(context_variables)
+
+        # Determine next agent based on mode
         if cmbagent_instance.mode == "human_in_the_loop":
-
-            # Map statuses to icons
-            status_icons = {
-                "completed": "✅",
-                "failed": "❌",
-                "in progress": "⏳"  # or any other icon you prefer
-            }
-            
-            icon = status_icons.get(current_status, "")
-            
-            context_variables["current_plan_step_number"] = current_plan_step_number
-            context_variables["current_sub_task"] = current_sub_task
-            context_variables["agent_for_sub_task"] = agent_for_sub_task
-            context_variables["current_instructions"] = current_instructions
-            context_variables["current_status"] = current_status
-
-            codes = os.path.join(cmbagent_instance.work_dir, context_variables['codebase_path'])
-            # print("loading docstrings...")
-            docstrings = load_docstrings(codes)
-            # print("docstrings loaded!")
-            # print("="*70)
-            # print("\n\n")
-            output_str = ""
-            for module, info in docstrings.items():
-                output_str += "-----------\n"
-                output_str += f"Filename: {module}.py\n"
-                output_str += f"File path: {info['file_path']}\n\n"
-
-                # Show parse errors (if any) ✨
-                if "error" in info:
-                    output_str += f"⚠️  Parse error: {info['error']}\n\n"
-
-                output_str += "Available functions:\n"
-
-                if info["functions"]:                          # non-empty dict
-                    for func, doc in info["functions"].items():
-                        output_str += f"function name: {func}\n"
-                        output_str += "````\n"
-                        output_str += f"{doc or '(no docstring)'}\n"
-                        output_str += "````\n\n"
-                else:
-                    output_str += "(none)\n\n"
-
-            # Store the full output string in your context variable.
-            context_variables["current_codebase"] = output_str
-
-            # print("current_codebase: ", context_variables["current_codebase"])
-            # print("="*70)
-            # print("\n\n")
-
-            # Load image plots from the "data" directory.
-            data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
-            image_files = load_plots(data_directory)
-    
-            # Retrieve the list of images that have been displayed so far.
-            displayed_images = context_variables.get("displayed_images", [])
-
-            # Identify new images that haven't been displayed before.
-            new_images = [img for img in image_files if img not in displayed_images]
-
-            # Display only the new images.
-            for img_file in new_images:
-                if not cmbagent_disable_display:
-                    ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
-                else:
-                    print(f"\n- Saved {img_file}")
-
-            # Update the context to include the newly displayed images.
-            context_variables["displayed_images"] = displayed_images + new_images
-
-            
-
-
-
-            # Map agent names to their transfer flag names
-            agent_transfer_map = {
-                "engineer": "transfer_to_engineer",
-                "researcher": "transfer_to_researcher",
-                "idea_maker": "transfer_to_idea_maker",
-                "idea_hater": "transfer_to_idea_hater",
-                "camb_context": "transfer_to_camb_context",
-            }
-            
-            # Initialize all transfer flags to False
-            for flag_name in agent_transfer_map.values():
-                context_variables[flag_name] = False
-            context_variables["transfer_to_classy_context"] = False
-
-            agent_to_transfer_to = None
-            if "in progress" in context_variables["current_status"]:
-                agent_name = context_variables["agent_for_sub_task"]
-                if agent_name in agent_transfer_map:
-                    transfer_flag = agent_transfer_map[agent_name]
-                    context_variables[transfer_flag] = True
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name(agent_name)
-
-
-            if "completed" in context_variables["current_status"]:
-
-                if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('admin')
-                else:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('admin')
-
-                context_variables["n_attempts"] = 0
-            if "failed" in context_variables["current_status"]:
-                if context_variables["agent_for_sub_task"] == "engineer":
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
-                elif context_variables["agent_for_sub_task"] == "researcher":
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher_response_formatter')
-
-
-            if cmbagent_debug:
-                if agent_to_transfer_to is None:
-                    print("agent_to_transfer_to is None")
-                else:   
-                    print("agent_to_transfer_to: ", agent_to_transfer_to.name)
-                
-
-            if agent_to_transfer_to is None:
-                return ReplyResult(
-                    target=AgentTarget(controller),
-                    message=f"""
-**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-**Sub-task:** {context_variables["current_sub_task"]}\n 
-**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-**Instructions:**\n 
-{context_variables["current_instructions"]}\n 
-**Status:** {context_variables["current_status"]} {icon}
-            """,
-                    context_variables=context_variables)
-            else:
-                return ReplyResult(
-                    target=AgentTarget(agent_to_transfer_to),
-                    message=f"""
-**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-**Sub-task:** {context_variables["current_sub_task"]}\n 
-**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-**Instructions:**\n 
-{context_variables["current_instructions"]}\n 
-**Status:** {context_variables["current_status"]} {icon}
-        """,
-                context_variables=context_variables)
-
-
+            agent_to_transfer_to = _determine_next_agent_human_in_loop(context_variables)
         else:
+            agent_to_transfer_to = _determine_next_agent_default(context_variables)
 
-            # Map statuses to icons
-            status_icons = {
-                "completed": "✅",
-                "failed": "❌",
-                "in progress": "⏳"  # or any other icon you prefer
-            }
-            
-            icon = status_icons.get(current_status, "")
-            
-            context_variables["current_plan_step_number"] = current_plan_step_number
-            context_variables["current_sub_task"] = current_sub_task
-            context_variables["agent_for_sub_task"] = agent_for_sub_task
-            context_variables["current_instructions"] = current_instructions
-            context_variables["current_status"] = current_status
-
-            codes = os.path.join(cmbagent_instance.work_dir, context_variables['codebase_path'])
-            # print(f"loading docstrings from {codes}...")
-            docstrings = load_docstrings(codes)
-            # print("docstrings loaded!")
-            # print("="*70)
-            # print("\n\n")
-            # output_str = ""
-            # for module, info in docstrings.items():
-            #     output_str += "-----------\n"
-            #     output_str += f"Filename: {module}.py\n"
-            #     output_str += f"File path: {info['file_path']}\n\n"
-            #     output_str += f"Available functions:\n"
-            #     for func, doc in info['functions'].items():
-            #         output_str += f"function name: {func}\n"
-            #         output_str += "````\n"
-            #         output_str += f"{doc}\n"
-            #         output_str += "````\n\n"
-            output_str = ""
-            for module, info in docstrings.items():
-                output_str += "-----------\n"
-                output_str += f"Filename: {module}.py\n"
-                output_str += f"File path: {info['file_path']}\n\n"
-
-                # Show parse errors (if any) ✨
-                if "error" in info:
-                    output_str += f"⚠️  Parse error: {info['error']}\n\n"
-
-                output_str += "Available functions:\n"
-
-                if info["functions"]:                          # non-empty dict
-                    for func, doc in info["functions"].items():
-                        output_str += f"function name: {func}\n"
-                        output_str += "````\n"
-                        output_str += f"{doc or '(no docstring)'}\n"
-                        output_str += "````\n\n"
-                else:
-                    output_str += "(none)\n\n"
-
-
-
-            # Store the full output string in your context variable.
-            context_variables["current_codebase"] = output_str
-
-            # print("current_codebase: ", context_variables["current_codebase"])
-            # print("="*70)
-            # import sys
-            # sys.exit()
-
-            # Load image plots from the "data" directory.
-            data_directory = os.path.join(cmbagent_instance.work_dir, context_variables['database_path'])
-            image_files = load_plots(data_directory)
-    
-            # Retrieve the list of images that have been displayed so far.
-            displayed_images = context_variables.get("displayed_images", [])
-
-            # Identify new images that haven't been displayed before.
-            new_images = [img for img in image_files if img not in displayed_images]
-
-            # Display only the new images.
-            for img_file in new_images:
-                if not cmbagent_disable_display:
-                    ip_display(IPImage(filename=img_file, width=2 * IMG_WIDTH))
-                else:
-                    print(f"\n- Saved {img_file}")
-
-            # Update the context to include the newly displayed images.
-            context_variables["displayed_images"] = displayed_images + new_images
-
-            
-            # if cmbagent_debug:
-            # print("\n\n in functions.py record_status: context_variables: ", context_variables)
-            # import pprint
-            # print('--'*70)
-            # pprint.pprint(context_variables["current_status"])
-            # pprint.pprint(context_variables["agent_for_sub_task"])
-            # print('--'*70)
-
-
-            # Map agent names to their transfer flag names
-            agent_transfer_map = {
-                "engineer": "transfer_to_engineer",
-                "researcher": "transfer_to_researcher",
-                "idea_maker": "transfer_to_idea_maker",
-                "idea_hater": "transfer_to_idea_hater",
-                "camb_context": "transfer_to_camb_context",
-            }
-            
-            # Initialize all transfer flags to False
-            for flag_name in agent_transfer_map.values():
-                context_variables[flag_name] = False
-            
-            agent_to_transfer_to = None
-            if "in progress" in context_variables["current_status"]:
-                agent_name = context_variables["agent_for_sub_task"]
-                if agent_name in agent_transfer_map:
-                    transfer_flag = agent_transfer_map[agent_name]
-                    context_variables[transfer_flag] = True
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name(agent_name)
-
-                if cmbagent_instance.mode == "deep_research" and context_variables["current_plan_step_number"] != cmbagent_instance.step:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
-
-
-            if "completed" in context_variables["current_status"]:
-                
-
-                if context_variables["current_plan_step_number"] == context_variables["number_of_steps_in_plan"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
-
-                else:
-
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('controller')
-                    ## reset the number of code execution attempts for the next step
-                    ## (the markdown execution always works)
-                    if cmbagent_instance.mode != "deep_research": ## this is to keep memory of the number of attempts, to save later if needed... currently not used
-                        context_variables["n_attempts"] = 0
-
-                # if context_variables["agent_for_sub_task"] == "engineer":
-                #     print("\n successfully ran the code after ", context_variables["n_attempts"], " attempts!")
-                
-
-            if "failed" in context_variables["current_status"]:
-                if context_variables["agent_for_sub_task"] == "engineer":
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
-                elif context_variables["agent_for_sub_task"] == "researcher":
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher_response_formatter')
-
-
-            if cmbagent_debug:
-                if agent_to_transfer_to is None:
-                    print("agent_to_transfer_to is None")
-                else:   
-                    print("agent_to_transfer_to: ", agent_to_transfer_to.name)
-                
-
+        # Debug logging
+        if cmbagent_debug:
             if agent_to_transfer_to is None:
-                return ReplyResult(
-                    target=AgentTarget(controller),
-                    message=f"""
-**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-**Sub-task:** {context_variables["current_sub_task"]}\n 
-**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-**Instructions:**\n 
-{context_variables["current_instructions"]}\n 
-**Status:** {context_variables["current_status"]} {icon}
-            """,
-                    context_variables=context_variables)
+                print("agent_to_transfer_to is None")
             else:
-                return ReplyResult(
-                    target=AgentTarget(agent_to_transfer_to),
-                    message=f"""
-**Step number:** {context_variables["current_plan_step_number"]} out of {context_variables["number_of_steps_in_plan"]}.\n 
-**Sub-task:** {context_variables["current_sub_task"]}\n 
-**Agent in charge of sub-task:** `{context_variables["agent_for_sub_task"]}`\n 
-**Instructions:**\n 
-{context_variables["current_instructions"]}\n 
-**Status:** {context_variables["current_status"]} {icon}
-        """,
-                context_variables=context_variables)
+                print("agent_to_transfer_to: ", agent_to_transfer_to.name)
+
+        # Format and return result
+        message = _format_status_message(context_variables, icon)
+
+        if agent_to_transfer_to is None:
+            target = AgentTarget(controller)
+        else:
+            target = AgentTarget(agent_to_transfer_to)
+
+        return ReplyResult(target=target, message=message, context_variables=context_variables)
         
 
 
