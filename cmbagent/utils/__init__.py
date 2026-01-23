@@ -29,7 +29,6 @@ from .utils import (
     unesco_taxonomy_path,
     aaai_keywords_path,
     camb_context_url,
-    classy_context_url,
     clean_llm_config,
 )
 from .yaml import yaml_load_file
@@ -65,7 +64,6 @@ __all__ = [
     "unesco_taxonomy_path",
     "aaai_keywords_path",
     "camb_context_url",
-    "classy_context_url",
     "clean_llm_config",
     "yaml_load_file",
     "YAML",

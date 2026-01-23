@@ -120,32 +120,13 @@ default_formatter_model = 'o3-mini-2025-01-31'
 default_agents_llm_model ={
     "engineer": "gpt-4.1-2025-04-14",
     "aas_keyword_finder": "o3-mini-2025-01-31",
-    # "control": "gpt-4o-2024-11-20",
-    # "control": "gemini-2.5-pro-preview-03-25",
-    # "terminator": "gpt-5",
-    # "terminator": "gemini-2.5-pro-preview-03-25",
     "researcher": "gpt-4.1-2025-04-14",
     "planner": "gpt-4.1-2025-04-14",
-    # "plan_reviewer": "claude-3-7-sonnet-20250219",
     "plan_reviewer": "o3-mini-2025-01-31",
-    # "plan_setter": "gpt-4o-2024-11-20",
-    # "idea_hater": "claude-3-7-sonnet-20250219",
     "idea_hater":  "o3-mini-2025-01-31",
     "idea_maker": "gpt-4.1-2025-04-14",
-
     "camb_context": "gpt-4.1-2025-04-14",
-    # "camb_context": "gemini-2.5-flash-preview-04-17",
-    # "camb_context": "gemini-2.5-pro-preview-03-25",
-    # "camb_context": "gemini-2.5-flash",
-    # "camb_context": "gemini-2.5-flash-preview-05-20",
 
-    # "classy_context": "gpt-4o-2024-11-20",
-    # # "engineer_response_formatter": "gpt-4.1-2025-04-14",
-    # "engineer_response_formatter": default_formatter_model,
-    # # "engineer_response_formatter": "gemini-2.5-pro-preview-03-25",
-    # "researcher_response_formatter": default_formatter_model,
-    # "executor_response_formatter": default_formatter_model,
-    #"executor_response_formatter": "gemini-2.5-pro-preview-03-25",
 }
 
 default_agent_llm_configs = {}
@@ -260,7 +241,6 @@ unesco_taxonomy_path = os.path.join(keywords_dir, 'unesco_hierarchical.json')
 aaai_keywords_path = os.path.join(keywords_dir, 'aaai.md')
 
 camb_context_url = "https://camb.readthedocs.io/en/latest/_static/camb_docs_combined.md"
-classy_context_url = "https://github.com/santiagocasas/clapp/tree/main/classy_docs.md"
 
 
 

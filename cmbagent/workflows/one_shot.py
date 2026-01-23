@@ -19,7 +19,6 @@ from ..utils import (
     get_api_keys_from_env,
     get_model_config,
     camb_context_url,
-    classy_context_url,
 )
 from ..context import shared_context as shared_context_default
 from ..utils.context_utils import add_contexts_from_urls
@@ -138,7 +137,6 @@ def one_shot(
     # Fetch context documentation if needed for specific agents
     context_urls_map = {
         'camb_context': camb_context_url,
-        'classy_context': classy_context_url,
     }
 
     if agent in context_urls_map:

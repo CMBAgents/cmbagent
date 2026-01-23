@@ -27,7 +27,7 @@ from .utils import clean_llm_config
 
 from .utils import (path_to_apis,path_to_agents, update_yaml_preserving_format, get_model_config,
                     default_top_p, default_temperature, default_max_round,default_llm_config_list, default_agent_llm_configs,
-                    default_agents_llm_model, camb_context_url,classy_context_url, AAS_keywords_string, get_api_keys_from_env)
+                    default_agents_llm_model, camb_context_url, AAS_keywords_string, get_api_keys_from_env)
 
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents

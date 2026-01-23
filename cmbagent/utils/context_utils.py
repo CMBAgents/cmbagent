@@ -76,7 +76,6 @@ def add_contexts_from_urls(
     >>> shared_context = {}
     >>> contexts = {
     ...     'camb_context': 'https://example.com/camb.md',
-    ...     'classy_context': 'https://example.com/classy.md'
     ... }
     >>> add_contexts_from_urls(shared_context, contexts)
     >>> 'camb_context' in shared_context
