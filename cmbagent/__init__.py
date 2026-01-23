@@ -6,8 +6,16 @@ import warnings
 warnings.filterwarnings(
     "ignore",                               # action
     message=r"Update function string contains no variables\.",  # regex
-    category=UserWarning,                   # same category that’s raised
+    category=UserWarning,                   # same category that's raised
     module=r"autogen\.agentchat\.conversable_agent"  # where it comes from
+)
+
+# Suppress Vertex AI deprecation warning - preview module internally still uses deprecated code
+warnings.filterwarnings(
+    "ignore",
+    message=r"This feature is deprecated as of June 24, 2025.*",
+    category=UserWarning,
+    module=r"vertexai\.generative_models\._generative_models"
 )
 
 
