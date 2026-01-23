@@ -27,13 +27,13 @@ class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor
 
 class BaseAgent:
 
-    def __init__(self, 
+    def __init__(self,
                  llm_config=None,
                  agent_id=None,
                  work_dir=None,
                  agent_type=None,
                  **kwargs):
-        
+
         self.kwargs = kwargs
 
         if cmbagent_debug:
@@ -65,6 +65,31 @@ class BaseAgent:
             print('\n---------------------------------- setting name: ', self.info["name"])
             print('work_dir: ', self.work_dir)
             print('\n----------------------------------')
+
+    @classmethod
+    def from_yaml(cls, agent_id: str, llm_config=None, **kwargs):
+        """Create a BaseAgent instance directly from YAML config (no .py file needed).
+
+        This method allows agents to be defined purely in YAML without requiring
+        a separate Python class file with boilerplate code.
+
+        Args:
+            agent_id: Path to the agent's YAML file (without .yaml extension)
+            llm_config: LLM configuration dictionary
+            **kwargs: Additional keyword arguments passed to __init__
+
+        Returns:
+            BaseAgent: Configured agent instance ready to use
+        """
+        return cls(llm_config=llm_config, agent_id=agent_id, **kwargs)
+
+    def set_agent(self, **kwargs):
+        """Default set_agent method that calls set_assistant_agent.
+
+        This is the standard implementation used by most simple agents.
+        Agents with custom logic can override this in their subclass.
+        """
+        self.set_assistant_agent(**kwargs)
 
     ## for oai rag agents
     def set_gpt_assistant_agent(self,

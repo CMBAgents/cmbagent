@@ -43,6 +43,16 @@ from .utils.keywords_utils import AaaiKeywords
 from .utils import unesco_taxonomy_path, aaai_keywords_path
 
 def import_agents():
+    """Import all agents from the agents directory.
+
+    Agents can be defined in two ways:
+    1. With a .py file (for custom logic) - traditional import
+    2. YAML-only (no .py file) - uses BaseAgent directly
+
+    This allows simple agents to be defined purely in YAML without boilerplate code.
+    """
+    from cmbagent.base_agent import BaseAgent
+
     imported_agents = {}
     for item in os.listdir(path_to_agents):
         # Skip hidden items and pycache
@@ -68,22 +78,69 @@ def import_agents():
                         'agent_class': agent_class,
                         'agent_name': module_name,
                     }
+        elif any(f.endswith(".yaml") for f in os.listdir(item_path)):
+            # Old structure with YAML-only (no .py file)
+            yaml_file = os.path.join(item_path, f"{item}.yaml")
+            if os.path.exists(yaml_file):
+                class_name = ''.join([part.capitalize() for part in item.split('_')]) + 'Agent'
+                agent_id = os.path.splitext(yaml_file)[0]
+
+                # Create a closure to capture agent_id by value
+                def make_init(captured_agent_id):
+                    def __init__(self, llm_config=None, **kw):
+                        BaseAgent.__init__(self, llm_config=llm_config, agent_id=captured_agent_id, **kw)
+                    return __init__
+
+                # Create a wrapper class that uses BaseAgent
+                agent_class = type(
+                    class_name,
+                    (BaseAgent,),
+                    {'__init__': make_init(agent_id)}
+                )
+                imported_agents[class_name] = {
+                    'agent_class': agent_class,
+                    'agent_name': item,
+                }
         else:
             # This is a category folder (new structure)
             for agent_folder in os.listdir(item_path):
                 agent_folder_path = os.path.join(item_path, agent_folder)
                 if os.path.isdir(agent_folder_path) and not agent_folder.startswith(".") and agent_folder != "__pycache__":
-                    for filename in os.listdir(agent_folder_path):
-                        if filename.endswith(".py") and filename != "__init__.py" and filename[0] != ".":
-                            module_name = filename[:-3]
-                            class_name = ''.join([part.capitalize() for part in module_name.split('_')]) + 'Agent'
-                            module_path = f"cmbagent.agents.{item}.{agent_folder}.{module_name}"
-                            module = importlib.import_module(module_path)
-                            agent_class = getattr(module, class_name)
-                            imported_agents[class_name] = {
-                                'agent_class': agent_class,
-                                'agent_name': module_name,
-                            }
+                    # Check for YAML file (required)
+                    yaml_file = os.path.join(agent_folder_path, f"{agent_folder}.yaml")
+                    if not os.path.exists(yaml_file):
+                        continue
+
+                    # Check for .py file (optional)
+                    py_file = os.path.join(agent_folder_path, f"{agent_folder}.py")
+                    class_name = ''.join([part.capitalize() for part in agent_folder.split('_')]) + 'Agent'
+
+                    if os.path.exists(py_file):
+                        # Custom agent with .py file - use traditional import
+                        module_path = f"cmbagent.agents.{item}.{agent_folder}.{agent_folder}"
+                        module = importlib.import_module(module_path)
+                        agent_class = getattr(module, class_name)
+                    else:
+                        # YAML-only agent - use BaseAgent
+                        agent_id = os.path.splitext(yaml_file)[0]
+
+                        # Create a closure to capture agent_id by value
+                        def make_init(captured_agent_id):
+                            def __init__(self, llm_config=None, **kw):
+                                BaseAgent.__init__(self, llm_config=llm_config, agent_id=captured_agent_id, **kw)
+                            return __init__
+
+                        # Create a wrapper class that uses BaseAgent
+                        agent_class = type(
+                            class_name,
+                            (BaseAgent,),
+                            {'__init__': make_init(agent_id)}
+                        )
+
+                    imported_agents[class_name] = {
+                        'agent_class': agent_class,
+                        'agent_name': agent_folder,
+                    }
     return imported_agents
 
 from autogen import cmbagent_debug
