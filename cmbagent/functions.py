@@ -75,12 +75,10 @@ def register_functions_to_agents(cmbagent_instance):
     idea_saver = cmbagent_instance.get_agent_from_name('idea_saver')
     control_starter = cmbagent_instance.get_agent_from_name('control_starter')
     camb_context = cmbagent_instance.get_agent_from_name('camb_context')
-    classy_context = cmbagent_instance.get_agent_from_name('classy_context')
 
     def post_execution_transfer(next_agent_suggestion: Literal["engineer",
                                                                "installer",
                                                                "camb_context",
-                                                               "classy_context",
                                                                "controller"], 
                                 context_variables: ContextVariables,
                                 execution_status: Literal["success", "failure"],
@@ -138,13 +136,6 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                 + f"Fix suggestion: {fix_suggestion}\n",
                                 context_variables=context_variables)
             
-            elif next_agent_suggestion == "classy_context":
-                context_variables["n_attempts"] += 1
-                return ReplyResult(target=AgentTarget(classy_context),
-                                message="Execution status: " + execution_status + ". Transfer to classy_context.\n" + f"{workflow_status_str}\n"
-                                + f"Fix suggestion: {fix_suggestion}\n",
-                                context_variables=context_variables)            
-            
 
             elif next_agent_suggestion == "controller":
                 context_variables["n_attempts"] += 1
@@ -168,16 +159,14 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
         post_execution_transfer,
         caller=executor_response_formatter,
         executor=executor_response_formatter,
-        description=r"""
+        description=r"""    
 Transfer to the next agent based on the execution status.
 For the next agent suggestion, follow these rules:
 
     - Suggest the installer agent if error related to missing Python modules (i.e., ModuleNotFoundError).
     - Suggest the camb_context agent if CAMB documentation should be consulted, e.g., if the Python error is related to the camb code.
-    - Suggest the classy_context agent if classy documentation should be consulted, e.g., if the Python error is related to the classy code, e.g., classy.CosmoSevereError.
     - Suggest camb_context to fix Python errors related to the camb code.
-    - Suggest classy_context to fix Python errors related to the classy code, e.g., classy.CosmoSevereError.
-    - Suggest the engineer agent if error related to generic Python code. Don't prioritize the engineer agent if the error is related to the camb or classy code, in this case suggest camb_context or classy_context instead.
+    - Suggest the engineer agent if error related to generic Python code. Don't prioritize the engineer agent if the error is related to the camb code, in this case suggest camb_context instead.
     - Suggest the controller agent only if execution was successful. 
 """,
     )
@@ -512,40 +501,27 @@ Now, update the plan accordingly, planner!""",
 
 
 
-            context_variables["transfer_to_engineer"] = False
-            context_variables["transfer_to_researcher"] = False
-            context_variables["transfer_to_camb_context"] = False
+            # Map agent names to their transfer flag names
+            agent_transfer_map = {
+                "engineer": "transfer_to_engineer",
+                "researcher": "transfer_to_researcher",
+                "idea_maker": "transfer_to_idea_maker",
+                "idea_hater": "transfer_to_idea_hater",
+                "camb_context": "transfer_to_camb_context",
+            }
+            
+            # Initialize all transfer flags to False
+            for flag_name in agent_transfer_map.values():
+                context_variables[flag_name] = False
             context_variables["transfer_to_classy_context"] = False
-            context_variables["transfer_to_idea_maker"] = False
-            context_variables["transfer_to_idea_hater"] = False
 
             agent_to_transfer_to = None
             if "in progress" in context_variables["current_status"]:
-                if context_variables["agent_for_sub_task"] == "engineer":
-                    context_variables["transfer_to_engineer"] = True
-                elif context_variables["agent_for_sub_task"] == "researcher":
-                    context_variables["transfer_to_researcher"] = True
-                elif context_variables["agent_for_sub_task"] == "idea_maker":
-                    context_variables["transfer_to_idea_maker"] = True
-                elif context_variables["agent_for_sub_task"] == "idea_hater":
-                    context_variables["transfer_to_idea_hater"] = True
-                elif context_variables["agent_for_sub_task"] == "camb_context":
-                    context_variables["transfer_to_camb_context"] = True
-                elif context_variables["agent_for_sub_task"] == "classy_context":
-                    context_variables["transfer_to_classy_context"] = True
-            
-                if context_variables["transfer_to_engineer"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
-                elif context_variables["transfer_to_researcher"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
-                elif context_variables["transfer_to_idea_maker"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
-                elif context_variables["transfer_to_idea_hater"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
-                elif context_variables["transfer_to_camb_context"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_context')
-                elif context_variables["transfer_to_classy_context"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_context')
+                agent_name = context_variables["agent_for_sub_task"]
+                if agent_name in agent_transfer_map:
+                    transfer_flag = agent_transfer_map[agent_name]
+                    context_variables[transfer_flag] = True
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name(agent_name)
 
 
             if "completed" in context_variables["current_status"]:
@@ -555,12 +531,6 @@ Now, update the plan accordingly, planner!""",
                 else:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('admin')
 
-
-                # if context_variables["agent_for_sub_task"] == "engineer":
-                #     print("\n successfully ran the code after ", context_variables["n_attempts"], " attempts!")
-                
-                ## reset the number of code execution attempts
-                ## (the markdown execution always works)
                 context_variables["n_attempts"] = 0
             if "failed" in context_variables["current_status"]:
                 if context_variables["agent_for_sub_task"] == "engineer":
@@ -697,39 +667,26 @@ Now, update the plan accordingly, planner!""",
             # print('--'*70)
 
 
-            context_variables["transfer_to_engineer"] = False
-            context_variables["transfer_to_researcher"] = False
-            context_variables["transfer_to_idea_maker"] = False
-            context_variables["transfer_to_idea_hater"] = False
-            context_variables["transfer_to_camb_context"] = False
-            context_variables["transfer_to_classy_context"] = False
+            # Map agent names to their transfer flag names
+            agent_transfer_map = {
+                "engineer": "transfer_to_engineer",
+                "researcher": "transfer_to_researcher",
+                "idea_maker": "transfer_to_idea_maker",
+                "idea_hater": "transfer_to_idea_hater",
+                "camb_context": "transfer_to_camb_context",
+            }
+            
+            # Initialize all transfer flags to False
+            for flag_name in agent_transfer_map.values():
+                context_variables[flag_name] = False
+            
             agent_to_transfer_to = None
             if "in progress" in context_variables["current_status"]:
-                if context_variables["agent_for_sub_task"] == "engineer":
-                    context_variables["transfer_to_engineer"] = True
-                elif context_variables["agent_for_sub_task"] == "researcher":
-                    context_variables["transfer_to_researcher"] = True
-                elif context_variables["agent_for_sub_task"] == "idea_maker":
-                    context_variables["transfer_to_idea_maker"] = True
-                elif context_variables["agent_for_sub_task"] == "idea_hater":
-                    context_variables["transfer_to_idea_hater"] = True
-                elif context_variables["agent_for_sub_task"] == "camb_context":
-                    context_variables["transfer_to_camb_context"] = True
-                elif context_variables["agent_for_sub_task"] == "classy_context":
-                    context_variables["transfer_to_classy_context"] = True
-            
-                if context_variables["transfer_to_engineer"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
-                elif context_variables["transfer_to_researcher"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
-                elif context_variables["transfer_to_idea_maker"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
-                elif context_variables["transfer_to_idea_hater"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
-                elif context_variables["transfer_to_camb_context"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_context')
-                elif context_variables["transfer_to_classy_context"]:
-                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_context')
+                agent_name = context_variables["agent_for_sub_task"]
+                if agent_name in agent_transfer_map:
+                    transfer_flag = agent_transfer_map[agent_name]
+                    context_variables[transfer_flag] = True
+                    agent_to_transfer_to = cmbagent_instance.get_agent_from_name(agent_name)
 
                 if cmbagent_instance.mode == "deep_research" and context_variables["current_plan_step_number"] != cmbagent_instance.step:
                     agent_to_transfer_to = cmbagent_instance.get_agent_from_name('terminator')
@@ -869,40 +826,27 @@ Now, update the plan accordingly, planner!""",
         # import sys
         # sys.exit()
 
-        context_variables["transfer_to_engineer"] = False
-        context_variables["transfer_to_researcher"] = False
-        context_variables["transfer_to_idea_maker"] = False
-        context_variables["transfer_to_idea_hater"] = False
-        context_variables["transfer_to_camb_context"] = False
-        context_variables["transfer_to_classy_context"] = False
+        # Map agent names to their transfer flag names
+        agent_transfer_map = {
+            "engineer": "transfer_to_engineer",
+            "researcher": "transfer_to_researcher",
+            "idea_maker": "transfer_to_idea_maker",
+            "idea_hater": "transfer_to_idea_hater",
+            "camb_context": "transfer_to_camb_context",
+            "classy_context": "transfer_to_classy_context",
+        }
+        
+        # Initialize all transfer flags to False
+        for flag_name in agent_transfer_map.values():
+            context_variables[flag_name] = False
 
         agent_to_transfer_to = None
         if "in progress" in context_variables["current_status"]:
-            if context_variables["agent_for_sub_task"] == "engineer":
-                context_variables["transfer_to_engineer"] = True
-            elif context_variables["agent_for_sub_task"] == "researcher":
-                context_variables["transfer_to_researcher"] = True
-            elif context_variables["agent_for_sub_task"] == "idea_maker":
-                context_variables["transfer_to_idea_maker"] = True
-            elif context_variables["agent_for_sub_task"] == "idea_hater":
-                context_variables["transfer_to_idea_hater"] = True
-            elif context_variables["agent_for_sub_task"] == "camb_context":
-                context_variables["transfer_to_camb_context"] = True
-            elif context_variables["agent_for_sub_task"] == "classy_context":
-                context_variables["transfer_to_classy_context"] = True
-        
-            if context_variables["transfer_to_engineer"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('engineer')
-            elif context_variables["transfer_to_researcher"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('researcher')
-            elif context_variables["transfer_to_idea_maker"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_maker')
-            elif context_variables["transfer_to_idea_hater"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('idea_hater')
-            elif context_variables["transfer_to_camb_context"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('camb_context')
-            elif context_variables["transfer_to_classy_context"]:
-                agent_to_transfer_to = cmbagent_instance.get_agent_from_name('classy_context')
+            agent_name = context_variables["agent_for_sub_task"]
+            if agent_name in agent_transfer_map:
+                transfer_flag = agent_transfer_map[agent_name]
+                context_variables[transfer_flag] = True
+                agent_to_transfer_to = cmbagent_instance.get_agent_from_name(agent_name)
 
 
 

@@ -28,7 +28,6 @@ shared_context = {
     "transfer_to_engineer": False,
     "transfer_to_researcher": False,
     "transfer_to_camb_context": False,
-    "transfer_to_classy_context": False,
 
     
     "planner_append_instructions": None,
@@ -49,7 +48,6 @@ shared_context = {
 
 
     "camb_context": None,
-    "classy_context": None,
 
 
     "researcher_filename": "provide a suitable filename given the nature of the notes. Prefer markdown extension unless otherwise instructed.",

@@ -40,15 +40,7 @@ data
 *.spec
 
 output/*
-cmbagent/data/classy_sz/*.yaml
-cmbagent/data/classy_sz/*.txt 
 
-
-cmbagent/data/classy/*.yaml
-cmbagent/data/classy/*.txt 
-
-cmbagent/data/camb/*.yaml
-cmbagent/data/camb/*.txt 
 
 evals/
 logs/
