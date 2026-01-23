@@ -76,7 +76,6 @@ python run.py      # Start backend server (port 8000)
 ### Scientific Focus
 - Pre-configured for cosmological analysis tools (CAMB, CLASS, Cobaya, etc.)
 - Literature search and keyword extraction (`literature.py`, `aas_keyword_finder`)
-- Data retrieval and processing (`data_retriever.py`)
 
 ### Work Directory Structure
 Tasks create organized output directories:

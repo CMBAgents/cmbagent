@@ -30,7 +30,7 @@ def register_all_hand_offs(cmbagent_instance):
         'admin', 'aas_keyword_finder', 'executor_response_formatter',
         'plan_setter', 'installer', 'engineer_nest', 'idea_maker_nest', 'idea_saver',
         'camb_context', 'classy_context',
-        'camb_response_formatter', 'classy_response_formatter'
+        'camb_response_formatter'
     ]
 
     # Retrieve all core agents at once
@@ -76,7 +76,6 @@ def register_all_hand_offs(cmbagent_instance):
 
         # Context agents
         ('camb_context', 'camb_response_formatter'),
-        ('classy_context', 'classy_response_formatter'),
     ]
 
     # Apply simple handoffs
@@ -88,7 +87,7 @@ def register_all_hand_offs(cmbagent_instance):
     # ============================================================================
 
     # Response formatters that route differently based on mode
-    mode_dependent_formatters = ['camb_response_formatter', 'classy_response_formatter']
+    mode_dependent_formatters = ['camb_response_formatter']
     target = 'engineer' if mode == "one_shot" else 'controller'
 
     for formatter in mode_dependent_formatters:

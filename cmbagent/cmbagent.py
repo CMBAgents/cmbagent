@@ -31,7 +31,6 @@ from .utils import (path_to_apis,path_to_agents, update_yaml_preserving_format, 
 
 from .hand_offs import register_all_hand_offs
 from .functions import register_functions_to_agents
-from .utils.data_retriever import setup_cmbagent_data
 from .workflows.one_shot import one_shot
 from .workflows.deep_research import deep_research
 from .workflows.human_in_the_loop import human_in_the_loop
