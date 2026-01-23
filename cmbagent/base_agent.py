@@ -165,7 +165,7 @@ class BaseAgent:
         self.agent = GPTAssistantAgent(
             name=self.name,
             instructions= self.info["instructions"], # UpdateSystemMessage is in autogen/gpt_assistant_agent.py
-            description=self.info["description"],
+            description=self.info.get("description", f"Agent {self.name}"),
             assistant_config=self.info["assistant_config"],
             llm_config=self.llm_config,
             overwrite_tools=True,
@@ -222,7 +222,7 @@ class BaseAgent:
                 name=self.name,
                 # system_message=self.info["instructions"],
                 update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
-                description=self.info["description"],
+                description=self.info.get("description", f"Agent {self.name}"),
                 llm_config=self.llm_config,
             cmbagent_debug=cmbagent_debug,
             functions=functions,
@@ -274,7 +274,7 @@ class BaseAgent:
         self.agent = CmbAgentSwarmAgent(
             name= self.name,
             system_message= self.info["instructions"],
-            description=self.info["description"],
+            description=self.info.get("description", f"Agent {self.name}"),
             llm_config=self.llm_config,
             human_input_mode=self.info["human_input_mode"],
         max_consecutive_auto_reply=self.info["max_consecutive_auto_reply"],
