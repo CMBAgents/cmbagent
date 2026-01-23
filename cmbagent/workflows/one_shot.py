@@ -39,9 +39,6 @@ def one_shot(
     work_dir=work_dir_default,
     api_keys=None,
     clear_work_dir=False,
-    evaluate_plots=False,
-    max_n_plot_evals=1,
-    inject_wrong_plot: bool | str = False,
 ):
     """Execute a single task using CMBAgent without iterative planning.
 
@@ -77,12 +74,6 @@ def one_shot(
         API keys for LLM providers. If None, loads from environment
     clear_work_dir : bool, optional
         Whether to clear the working directory before execution, by default False
-    evaluate_plots : bool, optional
-        Whether to evaluate generated plots with VLM, by default False
-    max_n_plot_evals : int, optional
-        Maximum number of plot evaluation iterations, by default 1
-    inject_wrong_plot : bool or str, optional
-        For testing: inject an intentionally wrong plot, by default False
 
     Returns
     -------
@@ -142,9 +133,6 @@ def one_shot(
 
     shared_context = {
         'max_n_attempts': max_n_attempts,
-        'evaluate_plots': evaluate_plots,
-        'max_n_plot_evals': max_n_plot_evals,
-        'inject_wrong_plot': inject_wrong_plot
     }
 
     # Fetch context documentation if needed for specific agents

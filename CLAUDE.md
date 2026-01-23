@@ -70,8 +70,7 @@ python run.py      # Start backend server (port 8000)
 - Control agents manage workflow orchestration
 
 ### Multi-Modal Capabilities
-- Vision-language model integration (`vlm_utils.py`, `vlm_injections.py`)
-- Plot generation and analysis capabilities
+- Plot generation capabilities
 - File browser with inline image viewing
 
 ### Scientific Focus

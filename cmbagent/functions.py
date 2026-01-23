@@ -118,10 +118,6 @@ xxxxxxxxxxxxxxxxxxxxxxxxxx
                                 context_variables=context_variables)
             
             if execution_status == "success":
-                # Clear VLM feedback and executed code on success
-                context_variables["vlm_plot_structured_feedback"] = None
-                context_variables["latest_executed_code"] = None
-
                 return ReplyResult(target=AgentTarget(controller),
                                 message="Execution status: " + execution_status + ". Transfer to controller.\n" + f"{workflow_status_str}\n",
                                 context_variables=context_variables)
