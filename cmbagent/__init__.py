@@ -6,13 +6,20 @@ import warnings
 warnings.filterwarnings(
     "ignore",                               # action
     message=r"Update function string contains no variables\.",  # regex
-    category=UserWarning,                   # same category that’s raised
+    category=UserWarning,                   # same category that's raised
     module=r"autogen\.agentchat\.conversable_agent"  # where it comes from
+)
+
+# Suppress Vertex AI deprecation warning - preview module internally still uses deprecated code
+warnings.filterwarnings(
+    "ignore",
+    message=r"This feature is deprecated as of June 24, 2025.*",
+    category=UserWarning,
+    module=r"vertexai\.generative_models\._generative_models"
 )
 
 
 from .cmbagent import CMBAgent
-from .rag_utils import make_rag_agents
 from .version import __version__
 import os
 from IPython.display import Image, display, Markdown
@@ -20,20 +27,22 @@ from autogen.cmbagent_utils import LOGO, IMG_WIDTH, cmbagent_disable_display
 
 
 
-from .cmbagent import planning_and_control, one_shot, get_keywords, human_in_the_loop, control, planning_and_control_context_carryover, work_dir_default, summarize_document, summarize_documents, preprocess_task
-
-from .cmbagent import planning_and_control_context_carryover as deep_research
+from .cmbagent import planning_and_control, one_shot, human_in_the_loop, control, load_plan, deep_research, work_dir_default
+from .cmbagent import get_keywords, get_keywords_from_aaai, get_keywords_from_string, get_aas_keywords
 
 # OCR functionality
-from .ocr import process_single_pdf, process_folder
+from .utils.ocr import process_single_pdf, process_folder
 
 # arXiv downloader functionality
-from .arxiv_downloader import arxiv_filter 
+from .utils.arxiv_downloader import arxiv_filter 
 
 
 def print_cmbagent_logo():
     base_dir = os.path.dirname(__file__)
-    png_path = os.path.join(base_dir, "logo.png")
+    # logo.png is in the images directory at the project root
+    # base_dir is cmbagent/cmbagent/, so go up one level to get to cmbagent/
+    project_root = os.path.dirname(base_dir)
+    png_path = os.path.join(project_root, "images", "logo.png")
     # print(png_path)
     # print(base_dir)
     if not cmbagent_disable_display:

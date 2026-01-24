@@ -1,4 +1,4 @@
-# Multi-stage build for CMBAgent with Next.js UI on Hugging Face Spaces
+# Multi-stage build for CMBAgent with Next.js UI
 FROM node:18-slim AS frontend-builder
 
 # Set working directory for frontend
@@ -16,15 +16,13 @@ COPY cmbagent-ui/ ./
 # Build the Next.js application
 RUN npm run build
 
-# Production stage - Python base for Hugging Face Spaces
+# Production stage - Python base
 FROM python:3.12-slim
 
-# Set environment variables for Hugging Face Spaces
+# Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_ENV=production
 ENV PYTHONUNBUFFERED=1
-ENV GRADIO_SERVER_NAME=0.0.0.0
-ENV GRADIO_SERVER_PORT=7860
 
 # Install system dependencies including Node.js
 RUN apt-get update && \
@@ -60,24 +58,24 @@ COPY --from=frontend-builder /app/cmbagent-ui/package*.json ./cmbagent-ui/
 COPY --from=frontend-builder /app/cmbagent-ui/next.config.js ./cmbagent-ui/
 COPY --from=frontend-builder /app/cmbagent-ui/node_modules ./cmbagent-ui/node_modules
 
-# Create startup script for Hugging Face Spaces
+# Create startup script
 RUN echo '#!/bin/bash\n\
 cd /app/backend && python run.py &\n\
 BACKEND_PID=$!\n\
-cd /app/cmbagent-ui && ./node_modules/.bin/next start -p 7860 &\n\
+cd /app/cmbagent-ui && ./node_modules/.bin/next start -p 3000 &\n\
 FRONTEND_PID=$!\n\
-echo "🚀 CMBAgent UI available at http://localhost:7860"\n\
+echo "🚀 CMBAgent UI available at http://localhost:3000"\n\
 echo "📡 Backend API available at http://localhost:8000"\n\
 echo "📖 API docs: http://localhost:8000/docs"\n\
 wait $BACKEND_PID $FRONTEND_PID\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
-# Expose port 7860 (Hugging Face Spaces standard)
-EXPOSE 7860
+# Expose ports
+EXPOSE 3000 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:7860 || exit 1
+  CMD curl -f http://localhost:3000 || exit 1
 
 # Command to run services
 CMD ["/app/start.sh"]

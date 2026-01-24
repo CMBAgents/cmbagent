@@ -27,12 +27,7 @@ shared_context = {
 
     "transfer_to_engineer": False,
     "transfer_to_researcher": False,
-    "transfer_to_camb_agent": False,
-    "transfer_to_classy_agent": False,
-    "transfer_to_cobaya_agent": False,
-    "transfer_to_perplexity": False,
     "transfer_to_camb_context": False,
-    "transfer_to_classy_context": False,
 
     
     "planner_append_instructions": None,
@@ -48,30 +43,12 @@ shared_context = {
     "text_input_for_AAS_keyword_finder": None,
     "N_AAS_keywords": 5,
 
-    "perplexity_query": None,
-    "perplexity_response": None,
-    "perplexity_citations": None,
-
-
     "n_attempts": 0, ## the number of failed attempts
     "max_n_attempts": 3,
 
 
     "camb_context": None,
-    "classy_context": None,
 
 
     "researcher_filename": "provide a suitable filename given the nature of the notes. Prefer markdown extension unless otherwise instructed.",
-
-    "evaluate_plots": False,
-    "latest_plot_path": None,
-    "latest_executed_code": None,
-    "n_plot_evals": 0,
-    "max_n_plot_evals": 1,
-    
-    "vlm_plot_analysis": None,
-    "vlm_verdict": None,
-    "plot_problems": [],
-    "plot_fixes": [],
-    "vlm_plot_structured_feedback": None,
 }

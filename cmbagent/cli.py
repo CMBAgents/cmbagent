@@ -1,60 +1,7 @@
-import os
 import subprocess
 import sys
 from importlib.util import find_spec
 from pathlib import Path
-
-def run_streamlit_gui(deploy: bool):
-    """Run the Streamlit GUI"""
-    # Get the installed file path to cmbagent.cli
-    gui_spec = find_spec("cmbagent.cli")
-    if gui_spec is None or gui_spec.origin is None:
-        print("❌ Could not locate cmbagent.cli")
-        sys.exit(1)
-
-    gui_path = gui_spec.origin.replace("cli.py", "gui/")
-
-    # Ensure ~/.streamlit/config.toml exists and set theme to dark
-    config_dir = os.path.expanduser("~/.streamlit")
-    config_path = os.path.join(config_dir, "config.toml")
-    os.makedirs(config_dir, exist_ok=True)
-
-    theme_config = '[theme]\nbase = "dark"\n'
-
-    # Write or update config.toml
-    if os.path.exists(config_path):
-        with open(config_path, "r") as f:
-            lines = f.readlines()
-
-        # Update existing theme section or append it
-        with open(config_path, "w") as f:
-            in_theme_block = False
-            theme_written = False
-            for line in lines:
-                if line.strip().startswith("[theme]"):
-                    in_theme_block = True
-                    f.write(line)
-                    f.write('base = "dark"\n')
-                    theme_written = True
-                    continue
-                if in_theme_block and line.strip().startswith("["):
-                    in_theme_block = False  # end of theme block
-                if not in_theme_block:
-                    f.write(line)
-
-            if not theme_written:
-                f.write("\n" + theme_config)
-    else:
-        with open(config_path, "w") as f:
-            f.write(theme_config)
-
-    # Run the Streamlit GUI
-    print("🚀 Starting CMBAgent Streamlit GUI...")
-    print("📡 Interface will be available at: http://localhost:8501")
-    command = ["streamlit", "run", gui_path + "gui.py"]
-    if deploy:
-        command.extend(["--","--deploy"])
-    sys.exit(subprocess.call(command))
 
 def run_next_gui():
     """Run the Next.js GUI with FastAPI backend"""
@@ -102,12 +49,6 @@ def run_next_gui():
         print("   docker run -p 3000:3000 -p 8000:8000 \\")
         print("     -e OPENAI_API_KEY=\"your-key-here\" \\")
         print("     docker.io/borisbolliet/cmbagent-ui:latest")
-        print("")
-        print("3. 🌐 Use Streamlit interface instead:")
-        print("   cmbagent run --streamlit")
-        print("")
-        print("4. 💻 Try HuggingFace Spaces (online):")
-        print("   https://huggingface.co/spaces/astropilot-ai/cmbagent")
         print("")
         sys.exit(1)
     
@@ -231,39 +172,16 @@ def main():
         description="CMBAgent - Multi-Agent System for Scientific Discovery"
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    
-    # Run command with interface options
-    run_parser = subparsers.add_parser(
-        "run", 
-        help="Launch the CMBAgent user interface"
-    )
-    interface_group = run_parser.add_mutually_exclusive_group()
-    interface_group.add_argument(
-        "--streamlit",
-        action="store_true",
-        help="Launch the Streamlit interface (default)"
-    )
-    interface_group.add_argument(
-        "--next",
-        action="store_true", 
-        help="Launch the Next.js interface with FastAPI backend"
-    )
-    
-    # Deploy command (for Streamlit only - HuggingFace Spaces)
+
+    # Run command - launches Next.js interface
     subparsers.add_parser(
-        "deploy", 
-        help="Launch Streamlit GUI with deployment settings for Hugging Face Spaces"
+        "run",
+        help="Launch the CMBAgent Next.js interface with FastAPI backend"
     )
-    
+
     args = parser.parse_args()
 
     if args.command == "run":
-        if args.next:
-            run_next_gui()
-        else:
-            # Default to Streamlit if no interface specified or --streamlit explicitly used
-            run_streamlit_gui(False)
-    elif args.command == "deploy":
-        run_streamlit_gui(True)
+        run_next_gui()
     else:
         parser.print_help()

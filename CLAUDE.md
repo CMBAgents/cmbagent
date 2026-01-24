@@ -67,17 +67,15 @@ python run.py      # Start backend server (port 8000)
 - Each agent has a Python implementation and YAML configuration
 - Agents are specialized for different tasks: engineering, research, planning, execution, RAG queries
 - Response formatters handle output formatting for specific use cases
-- Control agents manage workflow orchestration
+- Controller manages workflow orchestration
 
 ### Multi-Modal Capabilities
-- Vision-language model integration (`vlm_utils.py`, `vlm_injections.py`)
-- Plot generation and analysis capabilities
+- Plot generation capabilities
 - File browser with inline image viewing
 
 ### Scientific Focus
 - Pre-configured for cosmological analysis tools (CAMB, CLASS, Cobaya, etc.)
 - Literature search and keyword extraction (`literature.py`, `aas_keyword_finder`)
-- Data retrieval and processing (`data_retriever.py`)
 
 ### Work Directory Structure
 Tasks create organized output directories:
