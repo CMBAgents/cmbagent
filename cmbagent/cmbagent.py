@@ -164,7 +164,7 @@ class CMBAgent:
                         "executor":
                         """
                         You execute python code provided to you by the engineer or save content provided by the researcher.
-                        """,      
+                        """,
                     },
                  agent_descriptions = None,
                  agent_temperature = None,
@@ -186,6 +186,11 @@ class CMBAgent:
                  mode = "planning_and_control", # can be "one_shot", "human_in_the_loop", or "planning_and_control" (default is planning and control), or "deep_research"
                  chat_agent = None,
                  api_keys = None,
+                 use_massgen = False,
+                 massgen_config = None,
+                 massgen_verbose = False,
+                 massgen_enable_logging = True,
+                 massgen_use_for_retries = False,
                  **kwargs):
         """
         Initialize the CMBAgent.
@@ -299,6 +304,13 @@ class CMBAgent:
 
         self.api_keys = api_keys
 
+        # MassGen configuration
+        self.use_massgen = use_massgen
+        self.massgen_config = massgen_config
+        self.massgen_verbose = massgen_verbose
+        self.massgen_enable_logging = massgen_enable_logging
+        self.massgen_use_for_retries = massgen_use_for_retries
+
         self.init_agents(agent_llm_configs=self.agent_llm_configs, default_formatter_model=default_formatter_model) # initialize agents
 
         if cmbagent_debug:
@@ -328,6 +340,14 @@ class CMBAgent:
 
             if description is not None:
                 agent_kwargs['description'] = description
+
+            # Add MassGen parameters for engineer agent
+            if agent.name == 'engineer' and self.use_massgen:
+                agent_kwargs['use_massgen'] = True
+                agent_kwargs['massgen_config'] = self.massgen_config
+                agent_kwargs['massgen_verbose'] = self.massgen_verbose
+                agent_kwargs['massgen_enable_logging'] = self.massgen_enable_logging
+                agent_kwargs['massgen_use_for_retries'] = self.massgen_use_for_retries
 
             agent.set_agent(**agent_kwargs)
 
@@ -412,6 +432,13 @@ class CMBAgent:
 
         # --- build DataFrame & totals ----------------------------------------------
         df = pd.DataFrame(cost_dict)
+
+        # Handle empty DataFrame (e.g., when using MassGen which doesn't track costs via AG2)
+        if df.empty:
+            print("\n[Cost] No cost data available (may be using external backends like MassGen)")
+            print("[Cost] Note: MassGen costs are tracked separately in MassGen logs")
+            return
+
         numeric_cols = df.select_dtypes(include="number").columns
         totals = df[numeric_cols].sum()
         df.loc["Total"] = pd.concat([pd.Series({"Agent": "Total"}), totals])

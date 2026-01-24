@@ -70,6 +70,9 @@ class BaseAgent:
         - Code execution agent: has 'executor' in name and has 'timeout' field
         - Admin/user proxy agent: has 'code_execution_config' == False
         - Standard assistant: default case
+
+        MassGen support:
+        - Pass use_massgen=True to enable MassGen for engineer agent
         """
 
         # Check for code execution agent (executor, executor_bash, researcher_executor)
@@ -87,13 +90,18 @@ class BaseAgent:
 
     ## for engineer/.. all non rag agents
     def set_assistant_agent(self,
-                            instructions=None, 
-                            description=None):
-        
+                            instructions=None,
+                            description=None,
+                            use_massgen=False,
+                            massgen_config=None,
+                            massgen_verbose=False,
+                            massgen_enable_logging=True,
+                            massgen_use_for_retries=False):
+
         if cmbagent_debug:
             print('\n\n\n\nin base_agent.py set_assistant_agent')
             print('name: ',self.name)
-            # import sys; sys.exit()  
+            # import sys; sys.exit()
 
         if instructions is not None:
 
@@ -103,7 +111,7 @@ class BaseAgent:
 
             self.info["description"] = description
 
-        logger = logging.getLogger(self.name) 
+        logger = logging.getLogger(self.name)
         logger.info("Loaded assistant info:")
         for key, value in self.info.items():
             logger.info(f"{key}: {value}")
@@ -124,6 +132,37 @@ class BaseAgent:
                         human_input_mode="NEVER",
                         llm_config=self.llm_config,
                     )
+
+        # Check if MassGen should be used for engineer agent
+        elif self.name == 'engineer' and use_massgen:
+            try:
+                from cmbagent.agents.coding.engineer.massgen_engineer import create_massgen_engineer_agent
+            except ImportError as e:
+                print(f"[CMBAgent] ERROR: Failed to import MassGen engineer: {e}")
+                print(f"[CMBAgent] Falling back to standard engineer agent")
+                # Fall back to standard agent
+                self.agent = CmbAgentSwarmAgent(
+                    name=self.name,
+                    update_agent_state_before_reply=[UpdateSystemMessage(self.info["instructions"]),],
+                    description=self.info.get("description", f"Agent {self.name}"),
+                    llm_config=self.llm_config,
+                    cmbagent_debug=cmbagent_debug,
+                    functions=functions,
+                )
+            else:
+                print(f"[CMBAgent] Creating MassGen engineer agent (hybrid mode)")
+                self.agent = create_massgen_engineer_agent(
+                    name=self.name,
+                    llm_config=self.llm_config,
+                    instructions=self.info["instructions"],
+                    description=self.info.get("description", f"Agent {self.name}"),
+                    massgen_config=massgen_config,
+                    verbose=massgen_verbose,
+                    enable_logging=massgen_enable_logging,
+                    use_massgen_for_retries=massgen_use_for_retries,
+                    cmbagent_debug=cmbagent_debug,
+                    functions=functions,
+                )
 
         else:
             self.agent = CmbAgentSwarmAgent(

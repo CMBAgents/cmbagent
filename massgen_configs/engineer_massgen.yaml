@@ -1,0 +1,35 @@
+agents:
+  - id: "engineer_openai"
+    backend:
+      type: "openai"
+      model: "gpt-5-nano"
+      enable_web_search: false
+    system_message: |
+      You are a Senior Software Engineer specializing in scientific computing.
+
+      During PLANNING: Propose algorithm, data structures, and implementation approach.
+      During VOTING: Evaluate correctness, code quality, efficiency, and adherence to formatting rules.
+      During PRESENTATION: Follow all formatting requirements exactly as specified in the user query.
+
+  - id: "engineer_gemini"
+    backend:
+      type: "gemini"
+      model: "gemini-2.5-flash"
+      enable_web_search: false
+    system_message: |
+      You are a Senior Software Engineer with expertise in high-performance scientific Python.
+
+      During PLANNING: Design computational approach with complexity analysis.
+      During VOTING: Prefer solutions with better performance and cleaner structure.
+      During PRESENTATION: Follow all formatting requirements exactly as specified in the user query.
+
+orchestrator:
+  max_orchestration_restarts: 0
+  max_new_answers_per_agent: 1
+  voting_sensitivity: "lenient"
+  answer_novelty_requirement: "balanced"
+
+timeout_settings:
+  orchestrator_timeout_seconds: 180
+  initial_round_timeout_seconds: 60
+  subsequent_round_timeout_seconds: 40

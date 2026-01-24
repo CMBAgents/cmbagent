@@ -84,3 +84,6 @@ cmbagent-ui/.env.production.local
 tests/testdocs/*
 tests/artifacts/
 tests/legacy/
+
+
+.massgen

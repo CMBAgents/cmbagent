@@ -38,6 +38,11 @@ def one_shot(
     work_dir=work_dir_default,
     api_keys=None,
     clear_work_dir=False,
+    use_massgen=False,
+    massgen_config=None,
+    massgen_verbose=False,
+    massgen_enable_logging=True,
+    massgen_use_for_retries=False,
 ):
     """Execute a single task using CMBAgent without iterative planning.
 
@@ -73,6 +78,17 @@ def one_shot(
         API keys for LLM providers. If None, loads from environment
     clear_work_dir : bool, optional
         Whether to clear the working directory before execution, by default False
+    use_massgen : bool, optional
+        Use MassGen multi-agent system for engineer code generation, by default False
+    massgen_config : str, optional
+        Path to MassGen YAML configuration. If None, uses default config.
+    massgen_verbose : bool, optional
+        Enable verbose output for MassGen, by default False
+    massgen_enable_logging : bool, optional
+        Enable detailed logging for MassGen, by default True
+    massgen_use_for_retries : bool, optional
+        Use MassGen for retry attempts (debugging). If False (default), uses single LLM
+        for faster debugging after initial code generation.
 
     Returns
     -------
@@ -123,6 +139,11 @@ def one_shot(
         api_keys=api_keys,
         default_llm_model=default_llm_model_arg,
         default_formatter_model=default_formatter_model_arg,
+        use_massgen=use_massgen,
+        massgen_config=massgen_config,
+        massgen_verbose=massgen_verbose,
+        massgen_enable_logging=massgen_enable_logging,
+        massgen_use_for_retries=massgen_use_for_retries,
     )
 
     end_time = time.time()
