@@ -3,7 +3,7 @@ import cmbagent
 
 
 
-def test_one_shot():
+def test_one_shot_engineer():
 
    task = r"""
    Compute the sum of the first 1000 natural numbers.
@@ -16,11 +16,12 @@ def test_one_shot():
       # engineer_model="gpt-4.1",
       engineer_model="gemini-2.5-flash",  # Now fixed with shared state
       # work_dir=str(tmp_path / "one_shot"), 
-      work_dir="/Users/boris/Desktop/one_shot",
+      work_dir="/Users/boris/Desktop/one_shot_engineer",
+      clear_work_dir=True,
    )
    
    assert results is not None
 
 
 
-test_one_shot()
+test_one_shot_engineer()
