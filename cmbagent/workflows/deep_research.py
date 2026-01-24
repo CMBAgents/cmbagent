@@ -347,6 +347,8 @@ def deep_research(
                     cmbagent.final_context['previous_steps_execution_summary'] = "\n\n".join(step_summaries)
                     break
 
+        print("previous_steps_execution_summary: ", cmbagent.final_context['previous_steps_execution_summary'])
+
         current_context = copy.deepcopy(cmbagent.final_context)
 
         results['initialization_time_control'] = initialization_time_control

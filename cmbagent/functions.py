@@ -597,6 +597,8 @@ Now, update the plan accordingly, planner!""",
             current_sub_task, current_instructions, agent_for_sub_task
         )
 
+        print("previous_steps_execution_summary: ", context_variables["previous_steps_execution_summary"])
+
         # Load codebase information
         context_variables["current_codebase"] = _load_codebase_info(context_variables)
 

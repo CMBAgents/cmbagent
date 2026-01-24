@@ -1,21 +1,16 @@
 import os
 import logging
 import importlib
-import requests
-import autogen 
+import autogen
 import json
 import sys
 import pandas as pd
 import copy
 import datetime
 from pathlib import Path
-import time
-import pickle
 from collections import defaultdict
 from openai import OpenAI
 from typing import List, Dict, Any
-import glob
-from IPython.display import Image
 from autogen.agentchat.group import ContextVariables
 from autogen.agentchat.group.patterns import AutoPattern
 
@@ -283,8 +278,6 @@ class CMBAgent:
         if autogen.cmbagent_debug:
             print('\n\n\n\nin cmbagent.py self.llm_config: ',self.llm_config)
 
-        # self.llm_config =  {"model": "gpt-4o-mini", "cache_seed": None}
-
         self.logger.info("LLM Configuration:")
 
         for key, value in self.llm_config.items():
@@ -337,10 +330,6 @@ class CMBAgent:
                 agent_kwargs['description'] = description
 
             agent.set_agent(**agent_kwargs)
-
-            ## debug print to help debug
-            #print('in cmbagent.py self.agents instructions: ',instructions)
-            #print('in cmbagent.py self.agents description: ',description)
 
         if self.verbose or cmbagent_debug:
             print("Planner instructions:")
@@ -633,12 +622,7 @@ class CMBAgent:
         else:
             if shared_context is not None:
                 this_shared_context.update(shared_context)
-        
-        try:
-            self.clear_cache() ## obsolete
-            # import pdb; pdb.set_trace()
-        except:
-            pass
+
         if self.clear_work_dir_bool:
             self.clear_work_dir()
 
@@ -805,10 +789,6 @@ class CMBAgent:
                 print()
 
         # remove agents that are not set to be skipped
-        if self.skip_memory:
-            # self.agent_classes.pop('memory', None)
-            pass
-
         if self.skip_executor:
             self.agent_classes.pop('executor', None)
 
@@ -849,14 +829,9 @@ class CMBAgent:
             if cmbagent_debug:
                 print('agent_type: ', agent_instance.agent_type)
 
-            # setattr(self, agent_name, agent_instance)
-
             self.agents.append(agent_instance)
 
         self.agent_names =  [agent.name for agent in self.agents]
-        # print('self.agents: ', self.agent_names)
-        # import sys 
-        # sys.exit()
 
         if cmbagent_debug:
             for agent in self.agents:
@@ -867,17 +842,8 @@ class CMBAgent:
         for agent in self.agents:
 
             if "formatter" in agent.name:
-
-                # print("="*10)
-                # print('\n\nagent.name BEFORE: ', agent.name)
-                # print('agent.llm_config: ', agent.llm_config)
-                # print('\n\n')
-
                 agent.llm_config['config_list'][0].update(get_model_config(default_formatter_model, self.api_keys))
-                
-                # print('\n\nagent.name AFTER: ', agent.name)
-                # print('agent.llm_config: ', agent.llm_config)
-                # print('\n\n')
+
             # make sure the llm config doesnt have inconsistent parameters
             clean_llm_config(agent.llm_config)
 
@@ -890,74 +856,8 @@ class CMBAgent:
                 print(f"{agent.name}: {agent.llm_config['config_list'][0]['model']}")
             print()
 
-
-
-
-    def show_plot(self,plot_name):
-
-        return Image(filename=self.work_dir + '/' + plot_name)
-
-
-    def clear_cache(self):
-        # print('clearing cache...')
-        cache_dir = autogen.oai.client.LEGACY_CACHE_DIR ## "./cache" 
-        # print("cache_dir: ", cache_dir)
-        # if os.path.exists(cache_dir):
-        #     # print("found cache_dir: ", cache_dir)
-        #     shutil.rmtree(cache_dir)
-            # print("cache_dir removed")
-        # else:
-            # print("no cache_dir found...")
-        return None
-        #  autogen.Completion.clear_cache(self.cache_seed) ## obsolete AttributeError: module 'autogen' has no attribute 'Completion'
-
-
-
-    def filter_and_combine_agent_names(self, input_list):
-        # Filter the input list to include only entries in self.agent_names
-        filtered_list = [item for item in input_list if item in self.agent_names]
-
-        # Convert the filtered list of strings into one string
-        combined_string = ', '.join(filtered_list)
-
-        return combined_string
-
-
     def set_planner_instructions(self):
-        ### this is a template. Currently not used.
-
-        # available agents and their roles:
-        # available_agents = "\n\n#### Available agents and their roles\n\n"
-        
-        # for agent in self.agents:
-
-        #     if agent.name in ['planner', 'engineer', 'executor', 'admin']:
-        #         continue
-
-
-        #     if 'description' in agent.info:
-
-        #         role = agent.info['description']
-
-        #     else:
-
-        #         role = agent.info['instructions']
-
-        #     available_agents += f"- *{agent.name}* : {role}\n"
-
-
-        # # collect allowed transitions
-        # all_allowed_transitions = "\n\n#### Allowed transitions\n\n"
-
-        # for agent in self.agents:
-
-        #     all_allowed_transitions += f"\t- {agent.name} -> {self.filter_and_combine_agent_names(agent.info['allowed_transitions'])}\n"
-
-
-
-        # commenting for now
-        # self.planner.info['instructions'] += available_agents + '\n\n' #+ all_allowed_transitions
-
+        """Set planner instructions. This is a template, currently not used."""
         return
 
 
