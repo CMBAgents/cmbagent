@@ -33,7 +33,7 @@ interface TaskInputProps {
 export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = false, onOpenDirectory }: TaskInputProps) {
   const [task, setTask] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [mode, setMode] = useState<'one-shot' | 'planning-control' | 'idea-generation' | 'ocr' | 'arxiv' | 'enhance-input'>('one-shot')
+  const [mode, setMode] = useState<'one-shot' | 'deep_research' | 'idea-generation' | 'ocr' | 'arxiv' | 'enhance-input'>('one-shot')
   const [showOcrDropdown, setShowOcrDropdown] = useState(false)
   const [showCredentialsModal, setShowCredentialsModal] = useState(false)
   const [showOpenAIError, setShowOpenAIError] = useState(false)
@@ -70,7 +70,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     maxAttempts: 1,
     agent: 'engineer',
     workDir: '~/cmbagent_workdir',
-    mode: 'one-shot' as 'one-shot' | 'planning-control' | 'idea-generation' | 'ocr' | 'arxiv' | 'enhance-input',
+    mode: 'one-shot' as 'one-shot' | 'deep_research' | 'idea-generation' | 'ocr' | 'arxiv' | 'enhance-input',
     // Global model options
     defaultModel: 'gpt-4.1-2025-04-14',
     defaultFormatterModel: 'o3-mini-2025-01-31',
@@ -84,6 +84,8 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
     // Idea Generation specific options
     ideaMakerModel: 'gpt-4.1-2025-04-14',
     ideaHaterModel: 'o3-mini-2025-01-31',
+    // Enhance Input specific options
+    summarizerModel: 'gpt-4.1-2025-04-14',
     // OCR specific options
     saveMarkdown: true,
     saveJson: true,
@@ -107,7 +109,7 @@ export default function TaskInput({ onSubmit, onStop, isRunning, isConnecting = 
 
 The goal of this task is to generate a research project idea based on the data of interest. 
 Don't suggest to perform any calculations or analyses here. The only goal of this task is to obtain the best possible project idea.`
-    } else if (mode === 'planning-control') {
+    } else if (mode === 'deep_research') {
       return 'Use engineer for the the whole analaysis.'
     }
     return ''
@@ -184,17 +186,17 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
           <Tooltip text="Task is broken into steps by a planner, then executed step-by-step" position="bottom">
             <button
               onClick={() => {
-                setMode('planning-control')
-                setConfig(prev => ({ 
-                  ...prev, 
-                  mode: 'planning-control',
+                setMode('deep_research')
+                setConfig(prev => ({
+                  ...prev,
+                  mode: 'deep_research',
                   maxPlanSteps: 2,
-                  planInstructions: getDefaultPlanInstructions('planning-control')
+                  planInstructions: getDefaultPlanInstructions('deep_research')
                 }))
               }}
               disabled={isRunning}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                mode === 'planning-control'
+                mode === 'deep_research'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-black/30 text-gray-300 hover:text-white hover:bg-black/50'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -436,7 +438,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
         {showAdvanced && (
           <div className="space-y-2 p-2 bg-black/20 rounded-lg border border-white/10">
             <h3 className="text-xs font-medium text-gray-300">
-              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'planning-control' ? 'Deep Research' : mode === 'idea-generation' ? 'Idea Generation' : mode === 'arxiv' ? 'arXiv Filter' : mode === 'enhance-input' ? 'Enhance Input' : 'OCR'} Mode
+              Advanced Configuration - {mode === 'one-shot' ? 'One Shot' : mode === 'deep_research' ? 'Deep Research' : mode === 'idea-generation' ? 'Idea Generation' : mode === 'arxiv' ? 'arXiv Filter' : mode === 'enhance-input' ? 'Enhance Input' : 'OCR'} Mode
             </h3>
             
             {/* Credential Status Message in Advanced Section */}
@@ -542,8 +544,8 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                     </select>
                   </div>
                 </>
-              ) : /* Planning & Controller Models - Top Priority */
-              mode === 'planning-control' ? (
+              ) : /* Deep Research Models - Top Priority */
+              mode === 'deep_research' ? (
                 <>
                   <div>
                     <Tooltip text="Agent that breaks down tasks into manageable steps and creates execution plans" position="bottom">
@@ -852,7 +854,7 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                   <div>
                     <Tooltip text="Maximum number of conversation rounds between agents before stopping" position="bottom">
                       <label className="block text-xs text-gray-400 mb-1">
-                        {mode === 'planning-control' ? 'Max Control Rounds' : 'Max Rounds'}
+                        {mode === 'deep_research' ? 'Max Control Rounds' : 'Max Rounds'}
                       </label>
                     </Tooltip>
                     <input
@@ -883,8 +885,8 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                 </>
               )}
 
-              {/* Additional Planning & Control and Idea Generation Options */}
-              {(mode === 'planning-control' || mode === 'idea-generation') && (
+              {/* Additional Deep Research and Idea Generation Options */}
+              {(mode === 'deep_research' || mode === 'idea-generation') && (
                 <>
 
                   <div>
@@ -924,10 +926,10 @@ Don't suggest to perform any calculations or analyses here. The only goal of thi
                     <textarea
                       value={config.planInstructions || getDefaultPlanInstructions(mode)}
                       onChange={(e) => setConfig({...config, planInstructions: e.target.value})}
-                      placeholder={mode === 'idea-generation' ? 
-                        "Default instructions loaded for idea generation workflow" : 
-                        mode === 'planning-control' ?
-                        "Default instruction loaded for planning & control workflow" :
+                      placeholder={mode === 'idea-generation' ?
+                        "Default instructions loaded for idea generation workflow" :
+                        mode === 'deep_research' ?
+                        "Default instruction loaded for deep research workflow" :
                         "Enter plan instructions here"
                       }
                       className="w-full px-2 py-1 bg-black/30 border border-white/20 rounded text-white text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"

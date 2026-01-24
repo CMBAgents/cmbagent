@@ -774,7 +774,7 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             "data": f"📋 Task: {task}"
         })
         
-        if mode == "planning-control":
+        if mode == "deep_research":
             await websocket.send_json({
                 "type": "output",
                 "data": f"⚙️ Configuration: Planner={planner_model}, Engineer={engineer_model}, Researcher={researcher_model}, Plan Reviewer={plan_reviewer_model}"
@@ -834,7 +834,7 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                 builtins.print = custom_print
                 
                 # Execute CMBAgent based on mode
-                if mode == "planning-control":
+                if mode == "deep_research":
                     results = cmbagent.planning_and_control_context_carryover(
                         task=task,
                         max_rounds_control=max_rounds,
@@ -849,8 +849,8 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         work_dir=task_work_dir,
                         api_keys=api_keys,
                         clear_work_dir=False,
-                        default_formatter_model=default_formatter_model,
-                        default_llm_model=default_llm_model
+                        default_formatter_model_arg=default_formatter_model,
+                        default_llm_model_arg=default_llm_model
 
                     )
                 elif mode == "idea-generation":
@@ -869,8 +869,8 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         work_dir=task_work_dir,
                         api_keys=api_keys,
                         clear_work_dir=False,
-                        default_formatter_model=default_formatter_model,
-                        default_llm_model=default_llm_model
+                        default_formatter_model_arg=default_formatter_model,
+                        default_llm_model_arg=default_llm_model
                     )
                 elif mode == "ocr":
                     # OCR mode - process PDFs with Mistral OCR
@@ -939,8 +939,8 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         work_dir=task_work_dir,
                         api_keys=api_keys,
                         clear_work_dir=False,
-                        default_formatter_model=default_formatter_model,
-                        default_llm_model=default_llm_model
+                        default_formatter_model_arg=default_formatter_model,
+                        default_llm_model_arg=default_llm_model
                     )
                 
                 return results
