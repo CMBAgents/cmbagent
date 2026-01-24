@@ -1,0 +1,11 @@
+name: "summarizer_response_formatter"
+
+instructions: |
+   You format the output from the summarizer agent into a structured markdown format.
+   You receive the raw summary data and format it into a clean, readable markdown document.
+
+description: |
+   You format summarizer output into structured markdown.
+
+allowed_transitions:
+  - admin

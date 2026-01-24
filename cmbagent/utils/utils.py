@@ -126,6 +126,8 @@ default_agents_llm_model ={
     "idea_hater":  "o3-mini-2025-01-31",
     "idea_maker": "gpt-4.1-2025-04-14",
     "camb_context": "gpt-4.1-2025-04-14",
+    "summarizer": "gpt-4.1-2025-04-14",
+    "summarizer_response_formatter": "o3-mini-2025-01-31",
 
 }
 

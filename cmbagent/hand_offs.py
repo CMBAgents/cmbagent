@@ -26,6 +26,7 @@ def register_all_hand_offs(cmbagent_instance):
         'plan_recorder', 'plan_reviewer', 'reviewer_response_formatter', 'review_recorder',
         'idea_maker', 'idea_maker_response_formatter', 'idea_hater', 'idea_hater_response_formatter',
         'researcher', 'researcher_response_formatter', 'engineer', 'engineer_response_formatter',
+        'summarizer', 'summarizer_response_formatter',
         'executor', 'researcher_executor', 'executor_bash', 'terminator', 'controller',
         'admin', 'aas_keyword_finder', 'executor_response_formatter',
         'plan_setter', 'installer', 'engineer_nest', 'idea_maker_nest', 'idea_saver',
@@ -64,6 +65,10 @@ def register_all_hand_offs(cmbagent_instance):
         ('researcher', 'researcher_response_formatter'),
         ('researcher_response_formatter', 'researcher_executor'),
         ('researcher_executor', 'controller'),
+
+        # Summarizer flow
+        ('summarizer', 'summarizer_response_formatter'),
+        ('summarizer_response_formatter', 'terminator'),
 
         # Idea flow
         ('idea_hater', 'idea_hater_response_formatter'),
@@ -106,7 +111,8 @@ def register_all_hand_offs(cmbagent_instance):
     limited_history_agents = [
         'executor_response_formatter', 'planner_response_formatter', 'plan_recorder',
         'reviewer_response_formatter', 'review_recorder', 'researcher_response_formatter',
-        'researcher_executor', 'idea_maker_response_formatter', 'idea_hater_response_formatter'
+        'researcher_executor', 'idea_maker_response_formatter', 'idea_hater_response_formatter',
+        'summarizer_response_formatter'
     ]
 
     for agent_name in limited_history_agents:

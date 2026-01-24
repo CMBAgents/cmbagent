@@ -34,7 +34,10 @@ from .cmbagent import get_keywords, get_keywords_from_aaai, get_keywords_from_st
 from .utils.ocr import process_single_pdf, process_folder
 
 # arXiv downloader functionality
-from .utils.arxiv_downloader import arxiv_filter 
+from .utils.arxiv_downloader import arxiv_filter
+
+# Summarization functionality
+from .utils.summarization import preprocess_task, summarize_document, summarize_documents 
 
 
 def print_cmbagent_logo():
