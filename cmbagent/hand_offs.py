@@ -54,7 +54,9 @@ def register_all_hand_offs(cmbagent_instance):
         ('reviewer_response_formatter', 'review_recorder'),
         ('review_recorder', 'planner'),
 
-        # Execution flow
+        # Coding and Execution flow
+        ('engineer', 'engineer_nest'),
+        ('engineer_nest', 'executor_response_formatter'),
         ('installer', 'executor_bash'),
         ('executor_bash', 'executor_response_formatter'),
 
@@ -71,8 +73,7 @@ def register_all_hand_offs(cmbagent_instance):
 
         # Other flows
         ('aas_keyword_finder', 'controller'),
-        ('engineer', 'engineer_nest'),
-        ('engineer_nest', 'executor_response_formatter'),
+
 
         # Context agents
         ('camb_context', 'camb_response_formatter'),
