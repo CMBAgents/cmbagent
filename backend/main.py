@@ -646,8 +646,66 @@ async def enhance_input_endpoint(request: EnhanceInputRequest):
     except Exception as e:
         print(f"Error in enhance_input_endpoint: {str(e)}")
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"Error processing enhance-input request: {str(e)}"
+        )
+
+# Add request/response models for one-shot REST endpoint
+class OneShotRequest(BaseModel):
+    task: str
+    max_rounds: Optional[int] = 10
+    max_attempts: Optional[int] = 3
+    engineer_model: Optional[str] = "gpt-4o"
+    work_dir: Optional[str] = None
+
+class OneShotResponse(BaseModel):
+    status: str
+    message: str
+    work_dir: str
+    result: Optional[Dict[str, Any]] = None
+
+@app.post("/api/one-shot", response_model=OneShotResponse)
+async def one_shot_sync(request: OneShotRequest):
+    """Execute a one-shot task synchronously (for MCP/external integrations)"""
+    try:
+        # Get work directory or create one
+        if request.work_dir:
+            work_dir = request.work_dir
+            if work_dir.startswith("~"):
+                work_dir = os.path.expanduser(work_dir)
+        else:
+            # Create unique work directory
+            task_id = str(uuid.uuid4())[:8]
+            work_dir = os.path.expanduser(f"~/Desktop/cmbdir/one_shot_{task_id}")
+
+        os.makedirs(work_dir, exist_ok=True)
+
+        # Get API keys
+        api_keys = get_api_keys_from_env()
+
+        # Execute one_shot
+        results = cmbagent.one_shot(
+            task=request.task,
+            max_rounds=request.max_rounds,
+            max_n_attempts=request.max_attempts,
+            engineer_model=request.engineer_model,
+            agent="engineer",
+            work_dir=work_dir,
+            api_keys=api_keys,
+            clear_work_dir=False
+        )
+
+        return OneShotResponse(
+            status="success",
+            message="Task completed successfully",
+            work_dir=work_dir,
+            result=results if results else None
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error executing one-shot task: {str(e)}"
         )
 
 @app.websocket("/ws/{task_id}")
