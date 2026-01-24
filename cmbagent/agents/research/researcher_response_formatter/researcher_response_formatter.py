@@ -26,6 +26,11 @@ class ResearcherResponseFormatterAgent(BaseAgent):
 
         def format(self) -> str:
             full_path = self.filename
+
+            # Ensure .md extension
+            if not full_path.endswith('.md'):
+                full_path = f"{full_path}.md"
+
             comment_line = f"<!-- filename: {full_path} -->"
 
             # Step 1: Remove any leading or trailing markdown code fences
@@ -33,7 +38,7 @@ class ResearcherResponseFormatterAgent(BaseAgent):
             cleaned_block = re.sub(r"\s*```\s*$", "", cleaned_block, flags=re.IGNORECASE)
 
             lines = cleaned_block.splitlines()
-            
+
             # Step 2: Replace or prepend the comment line
             if lines and lines[0].strip().startswith("<!-- filename:"):
                 lines[0] = comment_line
@@ -42,9 +47,8 @@ class ResearcherResponseFormatterAgent(BaseAgent):
 
             updated_markdown_block = "\n".join(lines)
 
-            # Step 3: Wrap clean block in a single markdown code fence
+            # Step 3: Wrap in markdown code fence - the AG2 executor will extract the filename and save it
             return (
-    f"**Markdown:**\n\n"
     f"```markdown\n"
     f"{updated_markdown_block}\n"
     f"```"

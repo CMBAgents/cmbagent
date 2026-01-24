@@ -2,10 +2,7 @@ import os
 import logging
 from cmbagent.utils.yaml import yaml_load_file
 from autogen.coding import LocalCommandLineCodeExecutor
-from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 from autogen.agentchat import UserProxyAgent
-
-from cmbagent.utils import file_search_max_num_results
 from autogen.agentchat import ConversableAgent, UpdateSystemMessage
 import autogen
 import copy
@@ -14,14 +11,14 @@ import copy
 
 cmbagent_debug = autogen.cmbagent_utils.cmbagent_debug
 
-class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor 
+class CmbAgentUserProxyAgent(UserProxyAgent): ### this is for admin and executor
     """A custom proxy agent for the user with redefined default descriptions."""
 
     # Override the default descriptions
     DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {
-        "ALWAYS": "An attentive HUMAN user who can answer questions about the task and provide feedback.", # default for admin 
+        "ALWAYS": "An attentive HUMAN user who can answer questions about the task and provide feedback.", # default for admin
         "TERMINATE": "A user that can run Python code and report back the execution results.",
-        "NEVER": "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks).", # default for executor 
+        "NEVER": "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks).", # default for executor
     }
 
 
@@ -66,116 +63,27 @@ class BaseAgent:
             print('work_dir: ', self.work_dir)
             print('\n----------------------------------')
 
-    @classmethod
-    def from_yaml(cls, agent_id: str, llm_config=None, **kwargs):
-        """Create a BaseAgent instance directly from YAML config (no .py file needed).
-
-        This method allows agents to be defined purely in YAML without requiring
-        a separate Python class file with boilerplate code.
-
-        Args:
-            agent_id: Path to the agent's YAML file (without .yaml extension)
-            llm_config: LLM configuration dictionary
-            **kwargs: Additional keyword arguments passed to __init__
-
-        Returns:
-            BaseAgent: Configured agent instance ready to use
-        """
-        return cls(llm_config=llm_config, agent_id=agent_id, **kwargs)
-
     def set_agent(self, **kwargs):
-        """Default set_agent method that calls set_assistant_agent.
+        """Auto-detect agent type from YAML config and call appropriate set method.
 
-        This is the standard implementation used by most simple agents.
-        Agents with custom logic can override this in their subclass.
+        Detection logic:
+        - Code execution agent: has 'executor' in name and has 'timeout' field
+        - Admin/user proxy agent: has 'code_execution_config' == False
+        - Standard assistant: default case
         """
-        self.set_assistant_agent(**kwargs)
 
-    ## for oai rag agents
-    def set_gpt_assistant_agent(self,
-                  instructions=None,
-                  description=None,
-                  agent_temperature=None,
-                  agent_top_p=None):
+        # Check for code execution agent (executor, executor_bash, researcher_executor)
+        # Only agents with 'executor' in their name are pure code executors
+        if 'executor' in self.name and 'timeout' in self.info:
+            self.set_code_agent(**kwargs)
 
-        if cmbagent_debug:
-            print('\n\n\n\nin base_agent.py set_agent')
-            print('name: ',self.name)
-            # import sys; sys.exit()  
+        # Check for admin/user proxy agent
+        elif 'code_execution_config' in self.info and self.info['code_execution_config'] is False:
+            self.set_admin_agent(**kwargs)
 
-            print('setting agent: ',self.name)
-            print('instructions: ',instructions)
-            print('description: ',description)
-            print('agent_temperature: ',agent_temperature)
-            print('agent_top_p: ',agent_top_p)
-            print('\n\n')
-        # print(self.info['assistant_config']['tool_resources']['file_search'])
-        # print()    
-        if instructions is not None:
-            self.info["instructions"] = instructions
-
-        if description is not None:
-            self.info["description"] = description
-
-        if agent_temperature is not None:
-            if cmbagent_debug:
-                print('\n\n\n\nin base_agent.py set_agent')
-                print('setting agent temperature: ', agent_temperature)
-            self.info['assistant_config']['temperature'] = agent_temperature
-
-        if agent_top_p is not None:
-
-            self.info['assistant_config']['top_p'] = agent_top_p
-
-        # dir_path = os.path.dirname(os.path.realpath(__file__))
-        dir_path = os.getenv('CMBAGENT_DATA')
-        data_path = os.path.join(dir_path, 'data', self.name.replace('_agent', ''))
-        # List files in the data_path excluding unwanted files
-        files = [f for f in os.listdir(data_path) if not (f.startswith('.') or f.endswith('.ipynb') or f.endswith('.yaml') or f.endswith('.txt') or os.path.isdir(os.path.join(data_path, f)))]
-
-        # cmbagent debug
-        if cmbagent_debug:
-            print('\n\n\n\nin base_agent.py set_agent')
-            print('files: ',files)
-            # import sys; sys.exit()
-            print("\n adding files to instructions: ", files)
-
-        self.info["instructions"] += f'\n You have access to the following files: {files}.\n'
-
-
-        logger = logging.getLogger(self.name) 
-        logger.info("Loaded assistant info:")
-
-        for key, value in self.info.items():
-
-            logger.info(f"{key}: {value}")
-
-        #### case of missing vector store not implemented for swarm...
-        #### TODO: implement this.
-
-        self.info['assistant_config']['tools'][0]['file_search'] ={'max_num_results': file_search_max_num_results} 
-        # self.llm_config['check_every_ms'] = 500 # does not do anything
-        if cmbagent_debug:
-            print('\n\n\n\nin base_agent.py set_agent')
-            print('working with llm_config: ',self.llm_config)
-            # import sys; sys.exit()
-
-        # self.info['assistant_config']['check_every_ms'] = 500 # does not do anything
-
-        self.agent = GPTAssistantAgent(
-            name=self.name,
-            instructions= self.info["instructions"], # UpdateSystemMessage is in autogen/gpt_assistant_agent.py
-            description=self.info.get("description", f"Agent {self.name}"),
-            assistant_config=self.info["assistant_config"],
-            llm_config=self.llm_config,
-            overwrite_tools=True,
-            overwrite_instructions=True,
-            cmbagent_debug=cmbagent_debug,
-            )
-        
-        if cmbagent_debug:
-            print("GPTAssistant set.... moving on.\n")
-
+        # Default: standard assistant agent
+        else:
+            self.set_assistant_agent(**kwargs)
 
     ## for engineer/.. all non rag agents
     def set_assistant_agent(self,
@@ -271,11 +179,11 @@ class BaseAgent:
             }
 
 
-        self.agent = CmbAgentSwarmAgent(
+        self.agent = CmbAgentUserProxyAgent(
             name= self.name,
             system_message= self.info["instructions"],
             description=self.info.get("description", f"Agent {self.name}"),
-            llm_config=self.llm_config,
+            llm_config=False,  # Code execution agents don't need LLM
             human_input_mode=self.info["human_input_mode"],
         max_consecutive_auto_reply=self.info["max_consecutive_auto_reply"],
         is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
@@ -286,7 +194,6 @@ class BaseAgent:
                                                     ),
             "last_n_messages": 2,
         },
-        cmbagent_debug=cmbagent_debug,
         )
 
         if cmbagent_debug:

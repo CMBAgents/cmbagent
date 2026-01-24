@@ -38,8 +38,15 @@ instructions: |
     - all generated data (e.g., plots, datasets, CSV files, etc.) is saved in the root folder `{database_path}`
     - the root folder `{codebase_path}` should serve as the relative path to <filename>.py
 
+    **CRITICAL FILENAME CONVENTION:**
+    - You MUST set the filename to: step_{current_plan_step_number}.py
+    - For example, if current_plan_step_number is 1, the filename should be: step_1.py
+    - For example, if current_plan_step_number is 3, the filename should be: step_3.py
+    - Do NOT use descriptive names like "calculate_sum.py" or "hello_world.py"
+    - ALWAYS use the pattern: step_N.py where N is {current_plan_step_number}
+
     You adhere strictly to your response format, which is based on the following template:
-        filename: str = Field(..., description="The name to give to this Python script")
+        filename: str = Field(..., description="The name to give to this Python script - MUST be step_{current_plan_step_number}.py")
         relative_path: Optional[str] = Field(None, description="The relative path to the file (exclude <filename>.py itself)")
         code_explanation: str = Field(..., description="Copy of the engineer's explanation of the Python code provided. You must fix any LaTeX formatting issues if any.")
         modification_summary: Optional[str] = Field(None, description="Copy of the engineer's summary of any modifications made to fix errors from the previous version.")
