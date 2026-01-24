@@ -695,14 +695,33 @@ async def one_shot_sync(request: OneShotRequest):
             clear_work_dir=False
         )
 
+        # Convert results to JSON-serializable format
+        # one_shot returns a ChatResult or similar object that may not be directly serializable
+        result_data = None
+        if results:
+            try:
+                # Try to convert to dict if it's an object
+                if hasattr(results, '__dict__'):
+                    result_data = {"type": str(type(results).__name__), "completed": True}
+                elif isinstance(results, dict):
+                    result_data = results
+                else:
+                    result_data = {"completed": True, "value": str(results)}
+            except Exception as e:
+                print(f"Warning: Could not serialize results: {e}")
+                result_data = {"completed": True, "note": "Results not serializable"}
+
         return OneShotResponse(
             status="success",
-            message="Task completed successfully",
+            message=f"Task completed successfully. Output in {work_dir}",
             work_dir=work_dir,
-            result=results if results else None
+            result=result_data
         )
 
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error in one_shot_sync: {error_details}")
         raise HTTPException(
             status_code=500,
             detail=f"Error executing one-shot task: {str(e)}"
