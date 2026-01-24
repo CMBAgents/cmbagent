@@ -664,64 +664,82 @@ class OneShotResponse(BaseModel):
     work_dir: str
     result: Optional[Dict[str, Any]] = None
 
-@app.post("/api/one-shot", response_model=OneShotResponse)
+@app.post("/api/one-shot")
 async def one_shot_sync(request: OneShotRequest):
     """Execute a one-shot task synchronously (for MCP/external integrations)"""
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+
+    def execute_task():
+        """Execute the task in a separate thread"""
+        try:
+            # Get work directory or create one
+            if request.work_dir:
+                work_dir = request.work_dir
+                if work_dir.startswith("~"):
+                    work_dir = os.path.expanduser(work_dir)
+            else:
+                # Create unique work directory
+                task_id = str(uuid.uuid4())[:8]
+                work_dir = os.path.expanduser(f"~/Desktop/cmbdir/one_shot_{task_id}")
+
+            os.makedirs(work_dir, exist_ok=True)
+
+            # Get API keys
+            api_keys = get_api_keys_from_env()
+
+            # Execute one_shot (blocking call)
+            results = cmbagent.one_shot(
+                task=request.task,
+                max_rounds=request.max_rounds,
+                max_n_attempts=request.max_attempts,
+                engineer_model=request.engineer_model,
+                agent="engineer",
+                work_dir=work_dir,
+                api_keys=api_keys,
+                clear_work_dir=False
+            )
+
+            # Return simple success response with work_dir
+            return {
+                "status": "success",
+                "message": f"Task completed successfully. Output in {work_dir}",
+                "work_dir": work_dir,
+                "result": {"completed": True}
+            }
+
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"❌ Error in execute_task: {error_details}")
+            return {
+                "status": "error",
+                "message": f"Error executing task: {str(e)}",
+                "work_dir": "",
+                "result": None
+            }
+
     try:
-        # Get work directory or create one
-        if request.work_dir:
-            work_dir = request.work_dir
-            if work_dir.startswith("~"):
-                work_dir = os.path.expanduser(work_dir)
-        else:
-            # Create unique work directory
-            task_id = str(uuid.uuid4())[:8]
-            work_dir = os.path.expanduser(f"~/Desktop/cmbdir/one_shot_{task_id}")
+        # Run the blocking task in a thread pool
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            response_data = await loop.run_in_executor(executor, execute_task)
 
-        os.makedirs(work_dir, exist_ok=True)
+        # Return the response directly as a dict (FastAPI will serialize it)
+        if response_data["status"] == "error":
+            raise HTTPException(
+                status_code=500,
+                detail=response_data["message"]
+            )
 
-        # Get API keys
-        api_keys = get_api_keys_from_env()
+        return response_data
 
-        # Execute one_shot
-        results = cmbagent.one_shot(
-            task=request.task,
-            max_rounds=request.max_rounds,
-            max_n_attempts=request.max_attempts,
-            engineer_model=request.engineer_model,
-            agent="engineer",
-            work_dir=work_dir,
-            api_keys=api_keys,
-            clear_work_dir=False
-        )
-
-        # Convert results to JSON-serializable format
-        # one_shot returns a ChatResult or similar object that may not be directly serializable
-        result_data = None
-        if results:
-            try:
-                # Try to convert to dict if it's an object
-                if hasattr(results, '__dict__'):
-                    result_data = {"type": str(type(results).__name__), "completed": True}
-                elif isinstance(results, dict):
-                    result_data = results
-                else:
-                    result_data = {"completed": True, "value": str(results)}
-            except Exception as e:
-                print(f"Warning: Could not serialize results: {e}")
-                result_data = {"completed": True, "note": "Results not serializable"}
-
-        return OneShotResponse(
-            status="success",
-            message=f"Task completed successfully. Output in {work_dir}",
-            work_dir=work_dir,
-            result=result_data
-        )
-
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        print(f"Error in one_shot_sync: {error_details}")
+        print(f"❌ Error in one_shot_sync wrapper: {error_details}")
         raise HTTPException(
             status_code=500,
             detail=f"Error executing one-shot task: {str(e)}"
