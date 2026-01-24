@@ -1,7 +1,18 @@
 """One-shot execution tool for CMBAgent"""
 import httpx
 from typing import Dict, Any
-from ..config import BACKEND_URL, BACKEND_TIMEOUT
+
+# Use absolute import to support both -m and direct script execution
+try:
+    from cmbagent_mcp.config import BACKEND_URL, BACKEND_TIMEOUT
+except ImportError:
+    import sys
+    from pathlib import Path
+    # Add parent directory to path if running as script
+    parent_dir = Path(__file__).parent.parent.parent
+    if str(parent_dir) not in sys.path:
+        sys.path.insert(0, str(parent_dir))
+    from cmbagent_mcp.config import BACKEND_URL, BACKEND_TIMEOUT
 
 
 async def run_one_shot(
