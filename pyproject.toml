@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 version = "0.0.1post64"
 name = "cmbagent"
 maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
-description = "multi-agent system for autonomous discovery, made by cosmologists, powered by ag2"
+description = "Autonomous research backend for scientific discovery across domains, powered by ag2"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.12"  # Specify the Python version requirement here
 license = "Apache-2.0"
@@ -45,11 +45,28 @@ jupyter = [
     "jupyter-kernel-gateway",
     "jupyter-client>=8.6.0",
 ]
+
+# Material sciences dependencies
+materials = [
+    "pymatgen >=2024.1",        # materials analysis and computational materials science
+    "ase >=3.22",               # atomic simulation environment
+    "phonopy >=2.20",           # phonon calculations
+    "matminer >=0.9",           # materials data mining and feature extraction
+]
+
+# Biochemistry and molecular sciences dependencies
+biochem = [
+    "biopython >=1.83",         # bioinformatics and computational biology
+    "rdkit >=2023.9",           # cheminformatics and molecular modeling
+    "mdanalysis >=2.6",         # molecular dynamics analysis
+    "prody >=2.4",              # protein dynamics and sequence analysis
+]
+
 # Astronomy/astrophysics dependencies
 astro = [
     "camb >= 1.6.0",
     "astropy >=6.0",            # core astronomy library
-    "healpy >=1.16",            # HEALPix maps (CMB, large-scale structure)
+    "healpy >=1.16",            # HEALPix maps
     "emcee >=3.1",
     "cobaya",
 ]

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CMBAgent is a multi-agent system for autonomous scientific discovery, powered by AG2 (formerly AutoGen). It's designed for cosmological research with planning and control strategy, featuring specialized agents for different scientific tasks.
+CMBAgent is an autonomous research backend powered by AG2 (formerly AutoGen). It's a multi-agent system designed for scientific discovery across scientific domains. The system follows a planning and control strategy with specialized agents for different research workflows.
 
 The system uses a two-phase approach:
 - **Planning**: A planner and plan reviewer design task execution strategies
@@ -15,8 +15,8 @@ The system uses a two-phase approach:
 ### Core Python Package (`cmbagent/`)
 - **Entry point**: `cmbagent.cli:main` provides CLI interface via `cmbagent` command
 - **Main API**: `cmbagent.one_shot()` - primary function for task execution
-- **Agent system**: 50+ specialized agents in `agents/` directory, each with `.py` and `.yaml` configuration
-- **RAG agents**: Specialized retrieval-augmented generation agents for scientific tools (CAMB, CLASS, Cobaya, etc.)
+- **Agent system**: Specialized agents in `agents/` directory, each with `.py` and `.yaml` configuration
+- **Agent types**: Planning, control, coding (engineer, executor), research (researcher, summarizer), hypothesis generation, keyword extraction, and domain-specific templates
 - **Context management**: Sophisticated context handling via `context.py` and `hand_offs.py`
 
 ### Next.js Web UI (`cmbagent-ui/`)
@@ -65,17 +65,20 @@ python run.py      # Start backend server (port 8000)
 
 ### Agent System
 - Each agent has a Python implementation and YAML configuration
-- Agents are specialized for different tasks: engineering, research, planning, execution, RAG queries
+- Agents are specialized for different workflows: engineering, research, planning, execution, hypothesis generation, keyword extraction
 - Response formatters handle output formatting for specific use cases
 - Controller manages workflow orchestration
+- Domain-specific agents in `specialized/` serve as templates for users to add their own
 
 ### Multi-Modal Capabilities
 - Plot generation capabilities
 - File browser with inline image viewing
 
-### Scientific Focus
-- Pre-configured for cosmological analysis tools (CAMB, CLASS, Cobaya, etc.)
+### Research Capabilities
+- Domain-agnostic architecture supporting any scientific field
 - Literature search and keyword extraction (`literature.py`, `aas_keyword_finder`)
+- Example domain packages provided: materials science, biochemistry, astronomy, data science
+- Users can easily add their own domain-specific dependencies in `pyproject.toml`
 
 ### Work Directory Structure
 Tasks create organized output directories:

@@ -11,12 +11,12 @@
     <img src="https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white&style=flat-square" alt="Join us on Discord" width="140"/>
 </a>
 
-Multi-Agent System for Science, Powered by [AG2](https://github.com/ag2ai/ag2).
+Autonomous Research Backend, Powered by [AG2](https://github.com/ag2ai/ag2).
 
-🎉 **News**: Cmbagent won a **first place award** at the **NeurIPS 2025 [Fair Universe Competition](https://fair-universe.lbl.gov/)**. 
+🎉 **News**: Cmbagent won a **first place award** at the **NeurIPS 2025 [Fair Universe Competition](https://fair-universe.lbl.gov/)**.
 
 
-Cmbagent is part of [Denario](https://astropilot-ai.github.io/DenarioPaperPage/), our end-to-end research system.
+Cmbagent is the autonomous research backend for [Denario](https://astropilot-ai.github.io/DenarioPaperPage/), our end-to-end research system.
 
 We are currently deploying cmbagent on the cloud, it will be in production soon!
 
@@ -68,10 +68,26 @@ cmbagent run
 
 See below for other options including terminal usage, notebooks etc.
 
-To install additional astrophysics,computation and data science python packages, you can install cmbagent with
+To install additional data science and visualization packages, you can install cmbagent with
 
 ```bash
-pip install cmbagent[astro,data]
+pip install cmbagent[data]
+```
+
+We provide example domain-specific package sets (you can add your own in `pyproject.toml`):
+
+```bash
+# Material sciences (pymatgen, ASE, phonopy, matminer)
+pip install cmbagent[materials]
+
+# Biochemistry and molecular sciences (BioPython, RDKit, MDAnalysis, ProDy)
+pip install cmbagent[biochem]
+
+# Astronomy and astrophysics (CAMB, AstroPy, HEALPix, Cobaya)
+pip install cmbagent[astro]
+
+# Or combine multiple domains
+pip install cmbagent[materials,biochem,data]
 ```
 
 ## Installation for developers
@@ -86,10 +102,17 @@ pip install -e .
 
 You can then open the folder in your VSCode/Cursor/Emacs/... and work on the source code.
 
-To install the optional astrophysics and/or data science packages, install with
+To install optional domain-specific packages (examples provided, add your own in `pyproject.toml`):
 
 ```bash
-pip install -e .[astro,data]
+# Single domain
+pip install -e .[materials]
+pip install -e .[biochem]
+pip install -e .[astro]
+pip install -e .[data]
+
+# Or combine multiple domains
+pip install -e .[materials,biochem,data]
 ```
 
 ## Run
