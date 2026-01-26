@@ -14,8 +14,8 @@ from pathlib import Path
 from ..utils import (
     work_dir_default,
     default_agents_llm_model,
-    default_llm_model,
-    default_formatter_model,
+    default_llm_model as default_llm_model_default,
+    default_formatter_model as default_formatter_model_default,
     get_api_keys_from_env,
     get_model_config,
     camb_context_url,
@@ -31,8 +31,8 @@ def one_shot(
     engineer_model=default_agents_llm_model['engineer'],
     researcher_model=default_agents_llm_model['researcher'],
     camb_context_model=default_agents_llm_model['camb_context'],
-    default_llm_model_arg=default_llm_model,
-    default_formatter_model_arg=default_formatter_model,
+    default_llm_model=default_llm_model_default,
+    default_formatter_model=default_formatter_model_default,
     researcher_filename=shared_context_default['researcher_filename'],
     agent='engineer',
     work_dir=work_dir_default,
@@ -63,9 +63,9 @@ def one_shot(
         Model to use for the researcher agent
     camb_context_model : str, optional
         Model to use for CAMB context agent
-    default_llm_model_arg : str, optional
+    default_llm_model : str, optional
         Default LLM model for agents
-    default_formatter_model_arg : str, optional
+    default_formatter_model : str, optional
         Default model for response formatters
     researcher_filename : str, optional
         Filename for researcher output
@@ -137,8 +137,8 @@ def one_shot(
         },
         clear_work_dir=clear_work_dir,
         api_keys=api_keys,
-        default_llm_model=default_llm_model_arg,
-        default_formatter_model=default_formatter_model_arg,
+        default_llm_model=default_llm_model,
+        default_formatter_model=default_formatter_model,
         use_massgen=use_massgen,
         massgen_config=massgen_config,
         massgen_verbose=massgen_verbose,
