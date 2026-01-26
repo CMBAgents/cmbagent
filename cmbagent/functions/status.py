@@ -299,7 +299,6 @@ def create_record_status_starter(cmbagent_instance):
             "idea_maker": "transfer_to_idea_maker",
             "idea_hater": "transfer_to_idea_hater",
             "camb_context": "transfer_to_camb_context",
-            "classy_context": "transfer_to_classy_context",
         }
 
         # Initialize all transfer flags to False

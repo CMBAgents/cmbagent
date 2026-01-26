@@ -70,7 +70,7 @@ def one_shot(
     researcher_filename : str, optional
         Filename for researcher output
     agent : str, optional
-        Initial agent to use ('engineer', 'researcher', 'camb_context', 'classy_context'),
+        Initial agent to use ('engineer', 'researcher', 'camb_context'),
         by default 'engineer'
     work_dir : str or Path, optional
         Working directory for outputs

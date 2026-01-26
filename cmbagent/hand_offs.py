@@ -30,7 +30,7 @@ def register_all_hand_offs(cmbagent_instance):
         'executor', 'researcher_executor', 'executor_bash', 'terminator', 'controller',
         'admin', 'aas_keyword_finder', 'executor_response_formatter',
         'plan_setter', 'installer', 'engineer_nest', 'idea_maker_nest', 'idea_saver',
-        'camb_context', 'classy_context',
+        'camb_context',
         'camb_response_formatter'
     ]
 

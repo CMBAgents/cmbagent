@@ -8,7 +8,7 @@ from pathlib import Path
 
 class Subtasks(BaseModel):
     sub_task: str = Field(..., description="The sub-task to be performed")
-    sub_task_agent: Literal["engineer", "researcher", "idea_maker", "idea_hater", "classy_context", "camb_context"] =  Field(..., description="The name of the agent in charge of the sub-task")
+    sub_task_agent: Literal["engineer", "researcher", "idea_maker", "idea_hater", "camb_context"] =  Field(..., description="The name of the agent in charge of the sub-task")
     bullet_points: List[str] = Field(
         ..., description="A list of bullet points explaining what the sub-task should do"
     )
