@@ -73,12 +73,17 @@ class BaseAgent:
 
         MassGen support:
         - Pass use_massgen=True to enable MassGen for engineer agent
+
+        Remote execution support:
+        - Pass custom_executor to use a custom CodeExecutor (e.g., RemoteWebSocketCodeExecutor)
         """
+        # Extract custom_executor from kwargs (only used by code execution agents)
+        custom_executor = kwargs.pop('custom_executor', None)
 
         # Check for code execution agent (executor, executor_bash, researcher_executor)
         # Only agents with 'executor' in their name are pure code executors
         if 'executor' in self.name and 'timeout' in self.info:
-            self.set_code_agent(**kwargs)
+            self.set_code_agent(custom_executor=custom_executor, **kwargs)
 
         # Check for admin/user proxy agent
         elif 'code_execution_config' in self.info and self.info['code_execution_config'] is False:
@@ -96,7 +101,8 @@ class BaseAgent:
                             massgen_config=None,
                             massgen_verbose=False,
                             massgen_enable_logging=True,
-                            massgen_use_for_retries=False):
+                            massgen_use_for_retries=False,
+                            **kwargs):  # Accept extra kwargs (e.g. custom_executor) to ignore
 
         if cmbagent_debug:
             print('\n\n\n\nin base_agent.py set_assistant_agent')
@@ -180,12 +186,20 @@ class BaseAgent:
         if cmbagent_debug:
             print("AssistantAgent set.... moving on.\n")
 
-    def set_code_agent(self,instructions=None):
+    def set_code_agent(self, instructions=None, custom_executor=None):
+        """
+        Set up a code execution agent.
+
+        Args:
+            instructions: Optional custom instructions for the agent
+            custom_executor: Optional custom CodeExecutor (e.g., RemoteWebSocketCodeExecutor).
+                           If not provided, uses LocalCommandLineCodeExecutor.
+        """
 
         if instructions is not None:
             self.info["instructions"] = instructions
 
-        logger = logging.getLogger(self.name) 
+        logger = logging.getLogger(self.name)
         logger.info("Loaded assistant info:")
         for key, value in self.info.items():
             logger.info(f"{key}: {value}")
@@ -217,6 +231,17 @@ class BaseAgent:
                 "css": False,
             }
 
+        # Use custom executor if provided, otherwise use LocalCommandLineCodeExecutor
+        if custom_executor is not None:
+            executor = custom_executor
+            if cmbagent_debug:
+                print(f'Using custom executor: {type(executor).__name__}')
+        else:
+            executor = LocalCommandLineCodeExecutor(
+                work_dir=self.work_dir,
+                timeout=self.info["timeout"],
+                execution_policies=execution_policies
+            )
 
         self.agent = CmbAgentUserProxyAgent(
             name= self.name,
@@ -227,10 +252,7 @@ class BaseAgent:
         max_consecutive_auto_reply=self.info["max_consecutive_auto_reply"],
         is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
         code_execution_config={
-            "executor": LocalCommandLineCodeExecutor(work_dir=self.work_dir,
-                                                    timeout=self.info["timeout"],
-                                                    execution_policies = execution_policies
-                                                    ),
+            "executor": executor,
             "last_n_messages": 2,
         },
         )
@@ -241,9 +263,9 @@ class BaseAgent:
 
 
 
-    def set_admin_agent(self,instructions=None):
+    def set_admin_agent(self, instructions=None, **kwargs):  # Accept extra kwargs to ignore
 
-        logger = logging.getLogger(self.name) 
+        logger = logging.getLogger(self.name)
         logger.info("Loaded assistant info:")
 
         for key, value in self.info.items():

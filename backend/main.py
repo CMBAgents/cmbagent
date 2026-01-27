@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import time
+import logging
 from contextlib import redirect_stdout, redirect_stderr
 from io import StringIO
 from pathlib import Path
@@ -10,7 +11,7 @@ from typing import Dict, Any, Optional, List
 import uuid
 import mimetypes
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -19,13 +20,18 @@ import uvicorn
 # Add the parent directory to the path to import cmbagent
 sys.path.append(str(Path(__file__).parent.parent))
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 try:
     import cmbagent
     from cmbagent.utils import get_api_keys_from_env
+    from cmbagent.execution import RemoteWebSocketCodeExecutor, RemoteExecutorManager
     from credentials import (
-        test_all_credentials, 
-        test_openai_credentials, 
-        test_anthropic_credentials, 
+        test_all_credentials,
+        test_openai_credentials,
+        test_anthropic_credentials,
         test_vertex_credentials,
         store_credentials_in_env,
         CredentialStorage,
@@ -35,6 +41,34 @@ except ImportError as e:
     print(f"Error importing cmbagent: {e}")
     print("Make sure cmbagent is installed and accessible")
     sys.exit(1)
+
+# Global executor manager for routing results to correct executor
+executor_manager = RemoteExecutorManager()
+
+# Import auth and execution tracking modules
+try:
+    from auth import verify_ws_token, User, is_local_dev
+    from execution_tracker import execution_tracker, task_tracker
+    from models import ExecutionStatus, TaskStatus
+    REMOTE_EXECUTION_ENABLED = True
+    logger.info("Remote execution modules loaded successfully")
+except ImportError as e:
+    logger.warning(f"Remote execution modules not available: {e}")
+    logger.warning("Running in local-only mode")
+    REMOTE_EXECUTION_ENABLED = False
+
+    # Mock user for local-only mode
+    class User:
+        uid: str = "local-user"
+        email: str = "local@localhost"
+        name: str = "Local User"
+        is_local_dev: bool = True
+
+    async def verify_ws_token(token):
+        return User()
+
+    def is_local_dev():
+        return True
 
 app = FastAPI(title="CMBAgent API", version="1.0.0")
 
@@ -653,7 +687,7 @@ async def enhance_input_endpoint(request: EnhanceInputRequest):
 # Add request/response models for one-shot REST endpoint
 class OneShotRequest(BaseModel):
     task: str
-    max_rounds: Optional[int] = 10
+    max_rounds: Optional[int] = 50
     max_attempts: Optional[int] = 3
     engineer_model: Optional[str] = "gpt-4o"
     work_dir: Optional[str] = None
@@ -746,36 +780,188 @@ async def one_shot_sync(request: OneShotRequest):
         )
 
 @app.websocket("/ws/{task_id}")
-async def websocket_endpoint(websocket: WebSocket, task_id: str):
+async def websocket_endpoint(websocket: WebSocket, task_id: str, token: Optional[str] = Query(None)):
+    """
+    WebSocket endpoint for task execution.
+
+    Supports two modes:
+    1. Local execution (default): Code runs on backend server
+    2. Remote execution: Code is sent to frontend for execution
+
+    Message types handled:
+    - task_submit: Start a new task
+    - execution_ack: Frontend acknowledged execution request
+    - execution_result: Frontend completed code execution
+    - execution_error: Frontend execution failed
+    - files_created: Frontend reports new files
+    """
+    # Verify authentication (optional in local dev mode)
+    user = await verify_ws_token(token)
+    if not user and not is_local_dev():
+        await websocket.close(code=4001, reason="Authentication required")
+        return
+
+    # Use mock user for local dev
+    if not user:
+        user = User()
+
     await websocket.accept()
     active_connections[task_id] = websocket
-    
+    logger.info(f"WebSocket connected: task={task_id}, user={user.uid}")
+
+    # Track active task execution
+    task_execution_future = None
+    current_task = None
+    current_config = None
+    remote_executor = None  # Will be created when task is submitted
+
     try:
-        # Wait for task data
-        data = await websocket.receive_json()
-        task = data.get("task", "")
-        config = data.get("config", {})
-        
-        if not task:
-            await websocket.send_json({
-                "type": "error",
-                "message": "No task provided"
-            })
-            return
-        
-        # Send initial status
-        await websocket.send_json({
-            "type": "status",
-            "message": "Starting CMBAgent execution..."
-        })
-        
-        # Execute the task
-        await execute_cmbagent_task(websocket, task_id, task, config)
-        
+        # Check for pending executions on reconnect (remote execution mode)
+        if REMOTE_EXECUTION_ENABLED:
+            pending = await execution_tracker.get_pending_for_task(task_id)
+            for execution in pending:
+                logger.info(f"Re-sending pending execution {execution.execution_id}")
+                await websocket.send_json({
+                    "type": "execute_code",
+                    "execution_id": execution.execution_id,
+                    "task_id": task_id,
+                    "work_dir": execution.work_dir,
+                    "code_blocks": execution.code_blocks,
+                    "timeout": execution.timeout,
+                })
+
+        # Main message loop
+        while True:
+            data = await websocket.receive_json()
+            msg_type = data.get("type", "task_submit")  # Default for backward compatibility
+
+            if msg_type == "task_submit" or "task" in data:
+                # New task submission (backward compatible)
+                task = data.get("task", "")
+                config = data.get("config", {})
+
+                if not task:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "No task provided"
+                    })
+                    continue
+
+                current_task = task
+                current_config = config
+
+                # Send initial status
+                await websocket.send_json({
+                    "type": "status",
+                    "message": "Starting CMBAgent execution..."
+                })
+
+                # Check if remote execution is requested
+                use_remote_execution = config.get("remoteExecution", True)  # Default to remote
+
+                if use_remote_execution:
+                    # Create send callback for the remote executor
+                    async def send_to_frontend(message: dict):
+                        if websocket.client_state.name == "CONNECTED":
+                            await websocket.send_json(message)
+
+                    # Get work directory from config
+                    work_dir = config.get("workDir", "~/Desktop/cmbdir")
+                    if work_dir.startswith("~"):
+                        work_dir = os.path.expanduser(work_dir)
+                    task_work_dir = os.path.join(work_dir, task_id)
+
+                    # Create remote executor
+                    remote_executor = RemoteWebSocketCodeExecutor(
+                        send_callback=send_to_frontend,
+                        work_dir=task_work_dir,
+                        timeout=config.get("timeout", 86400),  # 24 hours default
+                        task_id=task_id,
+                    )
+
+                    # Set the event loop for async operations
+                    remote_executor.set_event_loop(asyncio.get_event_loop())
+
+                    # Register the executor
+                    executor_manager.register(task_id, remote_executor)
+                    logger.info(f"Created remote executor for task {task_id}")
+                else:
+                    remote_executor = None
+                    logger.info(f"Using local execution for task {task_id}")
+
+                # Execute the task (runs in background)
+                task_execution_future = asyncio.create_task(
+                    execute_cmbagent_task(websocket, task_id, task, config, user, remote_executor)
+                )
+
+            elif msg_type == "execution_ack":
+                # Frontend acknowledged execution request
+                execution_id = data.get("execution_id")
+                if execution_id and REMOTE_EXECUTION_ENABLED:
+                    await execution_tracker.mark_acked(execution_id)
+                    logger.debug(f"Execution {execution_id} acknowledged")
+
+            elif msg_type == "execution_result":
+                # Frontend completed code execution
+                execution_id = data.get("execution_id")
+                result = data.get("result", {})
+
+                if execution_id:
+                    # Route result to the waiting executor
+                    routed = executor_manager.route_result(task_id, execution_id, result)
+                    if routed:
+                        logger.info(f"Execution {execution_id} completed: exit_code={result.get('exit_code')}")
+                    else:
+                        logger.warning(f"Could not route result for execution {execution_id}")
+
+                    # Also track in Firestore if enabled
+                    if REMOTE_EXECUTION_ENABLED:
+                        await execution_tracker.mark_completed(execution_id, result)
+
+            elif msg_type == "execution_error":
+                # Frontend execution failed
+                execution_id = data.get("execution_id")
+                error = data.get("error", "Unknown error")
+
+                if execution_id:
+                    # Route error to the waiting executor
+                    routed = executor_manager.route_error(task_id, execution_id, error)
+                    if routed:
+                        logger.warning(f"Execution {execution_id} failed: {error}")
+                    else:
+                        logger.warning(f"Could not route error for execution {execution_id}")
+
+                    # Also track in Firestore if enabled
+                    if REMOTE_EXECUTION_ENABLED:
+                        await execution_tracker.mark_failed(execution_id, error)
+
+            elif msg_type == "files_created":
+                # Frontend reports new files created during execution
+                execution_id = data.get("execution_id")
+                files = data.get("files", [])
+
+                if files and REMOTE_EXECUTION_ENABLED:
+                    await task_tracker.register_files(task_id, files, source="execution")
+                    logger.debug(f"Registered {len(files)} files for task {task_id}")
+
+            elif msg_type == "install_complete":
+                # Frontend completed package installation
+                packages = data.get("packages", [])
+                success = data.get("success", False)
+                failed = data.get("failed", [])
+
+                if success:
+                    logger.info(f"Packages installed: {packages}")
+                else:
+                    logger.warning(f"Some packages failed to install: {failed}")
+
+            else:
+                logger.warning(f"Unknown message type: {msg_type}")
+
     except WebSocketDisconnect:
-        print(f"WebSocket disconnected for task {task_id}")
+        logger.info(f"WebSocket disconnected: task={task_id}, user={user.uid}")
     except Exception as e:
-        print(f"Error in WebSocket endpoint: {e}")
+        logger.error(f"Error in WebSocket endpoint: {e}")
         try:
             await websocket.send_json({
                 "type": "error",
@@ -784,11 +970,27 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
         except:
             pass
     finally:
+        # Cancel any running task execution
+        if task_execution_future and not task_execution_future.done():
+            task_execution_future.cancel()
+
+        # Unregister the remote executor
+        executor_manager.unregister(task_id)
+
         if task_id in active_connections:
             del active_connections[task_id]
 
-async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, config: Dict[str, Any]):
-    """Execute CMBAgent task with real-time output streaming"""
+async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, config: Dict[str, Any], user: Optional[Any] = None, custom_executor: Optional[Any] = None):
+    """Execute CMBAgent task with real-time output streaming.
+
+    Args:
+        websocket: WebSocket connection
+        task_id: Unique task identifier
+        task: Task description
+        config: Task configuration
+        user: Authenticated user (optional, for tracking)
+        custom_executor: Remote code executor (optional, for frontend execution)
+    """
 
     # Get work directory from config or use default
     work_dir = config.get("workDir", "~/Desktop/cmbdir")
@@ -816,7 +1018,7 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
         # Map frontend config to CMBAgent parameters
         mode = config.get("mode", "one-shot")
         engineer_model = config.get("model", "gpt-4o")
-        max_rounds = config.get("maxRounds", 25)
+        max_rounds = config.get("maxRounds", 50)
         max_attempts = config.get("maxAttempts", 6)
         agent = config.get("agent", "engineer")
         default_formatter_model = config.get("defaultFormatterModel", "o3-mini-2025-01-31")
@@ -1034,7 +1236,8 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         api_keys=api_keys,
                         clear_work_dir=False,
                         default_formatter_model=default_formatter_model,
-                        default_llm_model=default_llm_model
+                        default_llm_model=default_llm_model,
+                        custom_executor=custom_executor
                     )
                 
                 return results

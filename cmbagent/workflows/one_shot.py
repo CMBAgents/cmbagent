@@ -43,6 +43,7 @@ def one_shot(
     massgen_verbose=False,
     massgen_enable_logging=True,
     massgen_use_for_retries=False,
+    custom_executor=None,
 ):
     """Execute a single task using CMBAgent without iterative planning.
 
@@ -89,6 +90,10 @@ def one_shot(
     massgen_use_for_retries : bool, optional
         Use MassGen for retry attempts (debugging). If False (default), uses single LLM
         for faster debugging after initial code generation.
+    custom_executor : CodeExecutor, optional
+        Custom code executor for remote execution. If provided, code will be executed
+        using this executor instead of LocalCommandLineCodeExecutor. Use this for
+        remote code execution where code runs on the frontend/client machine.
 
     Returns
     -------
@@ -144,6 +149,7 @@ def one_shot(
         massgen_verbose=massgen_verbose,
         massgen_enable_logging=massgen_enable_logging,
         massgen_use_for_retries=massgen_use_for_retries,
+        custom_executor=custom_executor,
     )
 
     end_time = time.time()

@@ -191,6 +191,7 @@ class CMBAgent:
                  massgen_verbose = False,
                  massgen_enable_logging = True,
                  massgen_use_for_retries = False,
+                 custom_executor = None,
                  **kwargs):
         """
         Initialize the CMBAgent.
@@ -311,6 +312,9 @@ class CMBAgent:
         self.massgen_enable_logging = massgen_enable_logging
         self.massgen_use_for_retries = massgen_use_for_retries
 
+        # Custom executor for remote code execution
+        self.custom_executor = custom_executor
+
         self.init_agents(agent_llm_configs=self.agent_llm_configs, default_formatter_model=default_formatter_model) # initialize agents
 
         if cmbagent_debug:
@@ -348,6 +352,10 @@ class CMBAgent:
                 agent_kwargs['massgen_verbose'] = self.massgen_verbose
                 agent_kwargs['massgen_enable_logging'] = self.massgen_enable_logging
                 agent_kwargs['massgen_use_for_retries'] = self.massgen_use_for_retries
+
+            # Pass custom executor for remote code execution
+            if self.custom_executor is not None:
+                agent_kwargs['custom_executor'] = self.custom_executor
 
             agent.set_agent(**agent_kwargs)
 
