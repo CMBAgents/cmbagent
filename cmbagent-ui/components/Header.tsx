@@ -1,4 +1,7 @@
+'use client'
+
 import { Github } from 'lucide-react'
+import { UserMenu } from './UserMenu'
 
 export default function Header() {
   return (
@@ -11,9 +14,8 @@ export default function Header() {
               <p className="text-sm text-gray-300">Autonomous Research Backend </p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
 
+          <div className="flex items-center space-x-4">
             <a
               href="https://github.com/CMBAgents/cmbagent"
               target="_blank"
@@ -22,6 +24,8 @@ export default function Header() {
             >
               <Github className="w-5 h-5" />
             </a>
+
+            <UserMenu />
           </div>
         </div>
       </div>

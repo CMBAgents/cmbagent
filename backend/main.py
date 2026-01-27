@@ -47,7 +47,7 @@ executor_manager = RemoteExecutorManager()
 
 # Import auth and execution tracking modules
 try:
-    from auth import verify_ws_token, User, is_local_dev
+    from auth import verify_ws_token, User, LocalDevUser, is_local_dev
     from execution_tracker import execution_tracker, task_tracker
     from models import ExecutionStatus, TaskStatus
     REMOTE_EXECUTION_ENABLED = True
@@ -803,7 +803,7 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str, token: Optional
 
     # Use mock user for local dev
     if not user:
-        user = User()
+        user = LocalDevUser.create() if REMOTE_EXECUTION_ENABLED else User()
 
     await websocket.accept()
     active_connections[task_id] = websocket
