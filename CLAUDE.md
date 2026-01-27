@@ -10,6 +10,12 @@ The system uses a two-phase approach:
 - **Planning**: A planner and plan reviewer design task execution strategies
 - **Control**: Step-by-step execution where sub-tasks are handed to specialized agents
 
+## Repository Structure
+
+**Note:** The frontend UI has been moved to a separate repository:
+- **Backend (this repo)**: https://github.com/CMBAgents/cmbagent
+- **Frontend UI**: https://github.com/CMBAgents/cmbagent-ui
+
 ## Architecture: Remote Code Execution
 
 CMBAgent uses a **remote execution architecture** where:
@@ -24,9 +30,8 @@ This separation means:
 
 ### Key Files for Remote Execution
 - `cmbagent/execution/remote_executor.py` - `RemoteWebSocketCodeExecutor` sends code to frontend
-- `cmbagent-ui/lib/codeExecutor.ts` - `FrontendCodeExecutor` runs code in local venv
-- `cmbagent-ui/app/api/execute/route.ts` - API endpoint that triggers code execution
 - `backend/main.py` - WebSocket handler routes execution results back to executor
+- Frontend code execution is in the [cmbagent-ui](https://github.com/CMBAgents/cmbagent-ui) repository
 
 ## Key Components
 
@@ -38,16 +43,11 @@ This separation means:
 - **Context management**: Sophisticated context handling via `context.py` and `hand_offs.py`
 - **Remote execution**: `execution/remote_executor.py` - delegates code execution to frontend
 
-### Next.js Web UI (`cmbagent-ui/`)
-- Modern React/TypeScript interface with real-time WebSocket communication
-- **Code execution**: `lib/codeExecutor.ts` runs Python/bash code in isolated venv
-- Components: TaskInput, ConsoleOutput, ResultDisplay, FileBrowser
-- Custom hook: `useWebSocket.ts` for real-time updates
-
 ### FastAPI Backend (`backend/`)
 - WebSocket server connecting UI to CMBAgent Python API
 - Real-time streaming of execution logs and outputs
 - Routes code execution requests to frontend and results back to agents
+- Authentication support via Firebase (optional)
 
 ## Common Development Commands
 
@@ -74,22 +74,16 @@ python tests/test_engineer.py
 # Note: Tests are primarily individual Python scripts, not centralized test runner
 ```
 
-### Next.js UI
-```bash
-cd cmbagent-ui
-npm install
-npm run dev        # Development server
-npm run build      # Production build
-npm run start      # Production server
-npm run lint       # ESLint
-```
-
 ### FastAPI Backend
 ```bash
 cd backend
-# Backend uses the cmbagent package - no separate requirements.txt needed
 pip install -e ..  # Install cmbagent from parent directory
-python run.py      # Start backend server (port 8000)
+
+# Local development
+python run.py  # Start backend server (port 8000)
+
+# Production deployment
+CMBAGENT_LOCAL_DEV=true uvicorn main:app --host 0.0.0.0 --port 8010 --workers 4
 ```
 
 ## Architecture Details
@@ -133,6 +127,7 @@ project_dir/
 - API keys required: `OPENAI_API_KEY`, optionally `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`
 - Model configurations in `cmbagent/apis/` (JSON files for different providers)
 - Agent configurations in individual `.yaml` files alongside Python implementations
+- Set `CMBAGENT_LOCAL_DEV=true` for local development without Firebase
 
 ## Key APIs
 - `cmbagent.one_shot(task, agent='engineer', model='gpt-4o', work_dir=...)` - Main execution API

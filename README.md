@@ -162,65 +162,42 @@ For Windows, use [WSL](https://learn.microsoft.com/en-us/windows/wsl/install) an
 
 By default, cmbagent uses models from oai/anthropic/google. If you want to pick different LLMs, just adapt `agent_llm_configs` as above, or the `default_agent_llm_configs` in [utils.py](https://github.com/CMBAgents/cmbagent/blob/main/cmbagent/utils.py).
 
-## CMBAgent UI - Local Development
+## CMBAgent UI
 
-To launch the Next.js web interface locally:
+The web interface is maintained in a separate repository: **[cmbagent-ui](https://github.com/CMBAgents/cmbagent-ui)**
 
-**Prerequisites:**
+### Quick Start
 
-- Node.js (v18+)
-- Python 3.12+
-- API keys set as environment variables (OpenAI required, others optional)
-
-**Quick Start (One Command):**
-
-First activate your virtual environment, then launch both backend and frontend:
-
-```bash
-cd cmbagent
-source your_venv/bin/activate  # Activate your virtual environment first
-./start-cmbagent.sh
-```
-
-This script will:
-
-- **Start the FastAPI backend server** (port 8000)
-- **Start the Next.js frontend** (with auto-browser opening)
-- **Handle cleanup** when you press Ctrl+C
-
-**Manual Setup (Two Terminals):**
-
-If you prefer to run servers separately, first activate your virtual environment:
-
-```bash
-cd cmbagent
-source your_venv/bin/activate  # Activate your virtual environment
-pip install -e .               # Install CMBAgent dependencies
-```
-
-Then in separate terminals:
-
-1. **Backend (FastAPI server) - Terminal 1:**
-
+1. **Start the backend** (this repo):
 ```bash
 cd cmbagent/backend
+source your_venv/bin/activate
 python run.py
 ```
 
-2. **Frontend (Next.js) - Terminal 2:**
-
+2. **Start the frontend** (separate repo):
 ```bash
+git clone https://github.com/CMBAgents/cmbagent-ui.git
 cd cmbagent-ui
 npm install
 npm run dev
 ```
 
-3. **Access the UI:**
-   The browser will open automatically, or go to http://localhost:3000
+3. **Access the UI** at http://localhost:3000
 
-The UI supports three execution modes: One Shot, Planning & Control, and Idea Generation.
+The UI supports multiple execution modes: One Shot, Planning & Control, Idea Generation, OCR, and more.
+
+### Architecture
+
+CMBAgent uses a **remote execution architecture**:
+- **Backend**: Lightweight orchestration - runs AI agents, generates code, manages conversations
+- **Frontend**: Executes generated code locally in an isolated Python virtual environment
+
+This means scientific computation happens on your local machine with full access to your data, while the backend can be deployed on minimal infrastructure.
 
 ## Docker
+
+> **Note:** Docker configuration is being updated following the separation of the UI into its own repository. See [cmbagent-ui](https://github.com/CMBAgents/cmbagent-ui) for the latest frontend Docker setup.
 
 ### CMBAgent UI (Next.js) with Docker
 
