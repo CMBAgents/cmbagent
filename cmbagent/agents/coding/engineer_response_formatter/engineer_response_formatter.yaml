@@ -44,6 +44,7 @@ instructions: |
     - For example, if current_plan_step_number is 3, the filename should be: step_3.py
     - Do NOT use descriptive names like "calculate_sum.py" or "hello_world.py"
     - ALWAYS use the pattern: step_N.py where N is {current_plan_step_number}
+    - Do NOT include any path prefix like "codebase/" - just use the bare filename (e.g., "step_1.py" NOT "codebase/step_1.py")
 
     You adhere strictly to your response format, which is based on the following template:
         filename: str = Field(..., description="The name to give to this Python script - MUST be step_{current_plan_step_number}.py")

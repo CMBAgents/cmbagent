@@ -39,14 +39,11 @@ class EngineerResponseFormatterAgent(BaseAgent):
 
         def format(self) -> str:
             final_filename = self.filename if self.filename.endswith(".py") else self.filename + ".py"
+            # Always use just the basename - strip any path components
+            # The executor already saves files to the codebase folder
+            final_filename = os.path.basename(final_filename)
 
-            if self.relative_path:
-                cleaned_path = self.relative_path.rstrip("/\\")
-                full_path = os.path.join(cleaned_path, os.path.basename(final_filename))
-            else:
-                full_path = final_filename
-
-            comment_line = f"# filename: {full_path}"
+            comment_line = f"# filename: {final_filename}"
             code_lines = self.python_code.splitlines()
 
             if code_lines and code_lines[0].strip().startswith("# filename:"):

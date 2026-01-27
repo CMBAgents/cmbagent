@@ -114,6 +114,43 @@ export class FrontendCodeExecutor {
   }
 
   /**
+   * Extract filename from code content (matches AG2's _get_file_name_from_content).
+   * Looks for patterns like:
+   *   # filename:step_1.py       (Python/shell comment)
+   *   // filename:step_1.py      (C++ style comment)
+   *   C-style and HTML comments are also supported
+   */
+  private extractFilenameFromCode(code: string): string | null {
+    const firstLine = code.split('\n')[0].trim();
+
+    // Patterns matching AG2's filename extraction
+    const patterns = [
+      /^<!--\s*(filename:)?(.+?)\s*-->$/,      // HTML comment
+      /^\/\*\s*(filename:)?(.+?)\s*\*\/$/,     // C-style comment
+      /^\/\/\s*(filename:)?(.+?)$/,            // C++ style comment
+      /^#\s*(filename:)?(.+?)$/,               // Python/shell comment
+    ];
+
+    for (const pattern of patterns) {
+      const match = firstLine.match(pattern);
+      if (match) {
+        let filename = match[2].trim();
+        // Only process if it looks like a valid filename
+        if (filename && !filename.includes(' ') && filename.includes('.')) {
+          // Strip 'codebase/' prefix if present - files are already saved to codebase folder
+          if (filename.startsWith('codebase/')) {
+            filename = filename.substring('codebase/'.length);
+          }
+          // Get just the basename (strip any remaining path components)
+          const parts = filename.split('/');
+          return parts[parts.length - 1];
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Execute code blocks and return the result.
    */
   async executeCodeBlocks(
@@ -132,11 +169,17 @@ export class FrontendCodeExecutor {
       const { code, language } = block;
       const lang = language.toLowerCase();
 
-      // Generate unique filename based on content hash
-      const hash = crypto.createHash('md5').update(code).digest('hex').slice(0, 8);
-      const timestamp = Date.now();
-      const ext = this.getExtension(lang);
-      const filename = `code_${timestamp}_${hash}.${ext}`;
+      // Try to extract filename from code content (e.g., "# filename:step_1.py")
+      let filename = this.extractFilenameFromCode(code);
+
+      // Fall back to hash-based filename if not found in code
+      if (!filename) {
+        const hash = crypto.createHash('md5').update(code).digest('hex').slice(0, 8);
+        const timestamp = Date.now();
+        const ext = this.getExtension(lang);
+        filename = `code_${timestamp}_${hash}.${ext}`;
+      }
+
       codeFile = path.join(this.workDir, 'codebase', filename);
 
       // Write code to file
