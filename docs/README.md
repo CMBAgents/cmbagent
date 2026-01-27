@@ -2,7 +2,9 @@
 
 To install cmbagent, follow these steps:
 
-Install from PyPI:
+### Core Installation (Recommended)
+
+The base installation is lightweight - it includes only orchestration dependencies (AG2, FastAPI, LLM clients). Scientific packages are **not required** because code execution happens on the frontend via remote executor.
 
 ```bash
 pip install cmbagent
@@ -21,10 +23,20 @@ Creating a virtual environment is recommended:
 python -m venv /path/to/your/envs/cmbagent_env
 source /path/to/your/envs/cmbagent_env/bin/activate
 ```
-You can then pip install cmbagent in this fresh environment.
 
-To install domain-specific packages (examples provided, you can add your own):
+### Optional Dependencies
 
+**Development tools:**
+```bash
+pip install cmbagent[dev]  # pytest, ipython, jupyter
+```
+
+**Local execution** (if not using the web UI with frontend execution):
+```bash
+pip install cmbagent[local]  # numpy, scipy, matplotlib, scikit-learn
+```
+
+**Domain-specific packages** (for local execution or specialized agents):
 ```bash
 # Material sciences
 pip install cmbagent[materials]
@@ -38,9 +50,16 @@ pip install cmbagent[astro]
 # Data science
 pip install cmbagent[data]
 
+# Everything
+pip install cmbagent[all]
+
 # Or combine multiple
 pip install cmbagent[materials,biochem,data]
 ```
+
+### Architecture Note
+
+When using the **web UI** (`cmbagent-ui`), code executes on your local machine in an isolated virtual environment managed by the frontend. The backend server only handles orchestration - no heavy scientific packages needed there. Packages like numpy, matplotlib, etc. are installed on-demand by the installer agent into the frontend's venv.
 
 
 ## Structure

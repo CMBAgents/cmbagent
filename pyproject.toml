@@ -13,77 +13,106 @@ name = "cmbagent"
 maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
 description = "Autonomous research backend for scientific discovery across domains, powered by ag2"
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.12"  # Specify the Python version requirement here
+requires-python = ">=3.12"
 license = "Apache-2.0"
 
+# Core dependencies - orchestration and backend server
+# Note: Scientific packages (numpy, scipy, etc.) are NOT required here
+# because code execution happens on the frontend via remote executor
 dependencies = [
-    "pip",
+    # LLM clients
     "anthropic",
     "mistralai",
-    "ruamel.yaml",
+
+    # AG2 framework for multi-agent orchestration
     "cmbagent_autogen>=0.0.91post11",
+
+    # Utilities
+    "ruamel.yaml",
     "jsonref==1.1.0",
-    "pandas >=2.2",
-    "ipython",
-    
-    # FastAPI backend dependencies
+    "pandas>=2.2",
+
+    # FastAPI backend server
     "fastapi>=0.104.1",
     "uvicorn[standard]>=0.24.0",
     "websockets>=12.0",
     "python-multipart>=0.0.6",
     "pydantic>=2.7.4",
     "aiohttp>=3.9.0",
-    "matplotlib",
+]
+
+[project.optional-dependencies]
+# Development and testing
+dev = [
     "pytest",
+    "ipython",
     "jupyterlab",
     "ipykernel>=6.29.0",
 ]
 
-[project.optional-dependencies]
 # Jupyter notebook dependencies
 jupyter = [
     "jupyter-kernel-gateway",
     "jupyter-client>=8.6.0",
 ]
 
+# Local execution - install these if running code on the backend (not via frontend)
+# The frontend installs packages on-demand via the installer agent
+local = [
+    "numpy>=1.24",
+    "scipy>=1.12",
+    "matplotlib>=3.8",
+    "scikit-learn>=1.4",
+]
+
 # Material sciences dependencies
 materials = [
-    "pymatgen >=2024.1",        # materials analysis and computational materials science
-    "ase >=3.22",               # atomic simulation environment
-    "phonopy >=2.20",           # phonon calculations
-    "matminer >=0.9",           # materials data mining and feature extraction
+    "pymatgen>=2024.1",
+    "ase>=3.22",
+    "phonopy>=2.20",
+    "matminer>=0.9",
 ]
 
 # Biochemistry and molecular sciences dependencies
 biochem = [
-    "biopython >=1.83",         # bioinformatics and computational biology
-    "rdkit >=2023.9",           # cheminformatics and molecular modeling
-    "mdanalysis >=2.6",         # molecular dynamics analysis
-    "prody >=2.4",              # protein dynamics and sequence analysis
+    "biopython>=1.83",
+    "rdkit>=2023.9",
+    "mdanalysis>=2.6",
+    "prody>=2.4",
 ]
 
 # Astronomy/astrophysics dependencies
 astro = [
-    "camb >= 1.6.0",
-    "astropy >=6.0",            # core astronomy library
-    "healpy >=1.16",            # HEALPix maps
-    "emcee >=3.1",
+    "camb>=1.6.0",
+    "astropy>=6.0",
+    "healpy>=1.16",
+    "emcee>=3.1",
     "cobaya",
 ]
 
 # Data science, statistics and visualization dependencies
 data = [
-    "scipy >=1.12",
-    "xarray >=2024.3",
-    "h5py >=3.10",
-    "scikit-learn >=1.4",
-    "statsmodels >=0.14",
-    "linearmodels >=5.1",
-    "matplotlib >=3.8",
-    "seaborn >=0.13",
-    "plotly >=5.21",
-    "xgboost >=2.0",
-    "yfinance >=0.2",
+    "scipy>=1.12",
+    "xarray>=2024.3",
+    "h5py>=3.10",
+    "scikit-learn>=1.4",
+    "statsmodels>=0.14",
+    "linearmodels>=5.1",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "plotly>=5.21",
+    "xgboost>=2.0",
+    "yfinance>=0.2",
+]
+
+# All scientific packages (for local execution with full capabilities)
+all = [
+    "cmbagent[local]",
+    "cmbagent[materials]",
+    "cmbagent[biochem]",
+    "cmbagent[astro]",
+    "cmbagent[data]",
+    "cmbagent[dev]",
 ]
 
 nextjs = [

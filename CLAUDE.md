@@ -10,6 +10,24 @@ The system uses a two-phase approach:
 - **Planning**: A planner and plan reviewer design task execution strategies
 - **Control**: Step-by-step execution where sub-tasks are handed to specialized agents
 
+## Architecture: Remote Code Execution
+
+CMBAgent uses a **remote execution architecture** where:
+
+- **Backend (server)**: Lightweight orchestration only - runs AG2 agents, manages conversations, routes messages. No heavy scientific dependencies required.
+- **Frontend (user's machine)**: Executes all generated code in an isolated virtual environment. Packages are installed on-demand by the installer agent.
+
+This separation means:
+- The backend can be deployed on minimal infrastructure
+- Scientific computation happens on the user's local machine with full access to their data
+- The frontend's venv installs packages as needed (numpy, scipy, matplotlib, etc.)
+
+### Key Files for Remote Execution
+- `cmbagent/execution/remote_executor.py` - `RemoteWebSocketCodeExecutor` sends code to frontend
+- `cmbagent-ui/lib/codeExecutor.ts` - `FrontendCodeExecutor` runs code in local venv
+- `cmbagent-ui/app/api/execute/route.ts` - API endpoint that triggers code execution
+- `backend/main.py` - WebSocket handler routes execution results back to executor
+
 ## Key Components
 
 ### Core Python Package (`cmbagent/`)
@@ -18,22 +36,34 @@ The system uses a two-phase approach:
 - **Agent system**: Specialized agents in `agents/` directory, each with `.py` and `.yaml` configuration
 - **Agent types**: Planning, control, coding (engineer, executor), research (researcher, summarizer), hypothesis generation, keyword extraction, and domain-specific templates
 - **Context management**: Sophisticated context handling via `context.py` and `hand_offs.py`
+- **Remote execution**: `execution/remote_executor.py` - delegates code execution to frontend
 
 ### Next.js Web UI (`cmbagent-ui/`)
 - Modern React/TypeScript interface with real-time WebSocket communication
+- **Code execution**: `lib/codeExecutor.ts` runs Python/bash code in isolated venv
 - Components: TaskInput, ConsoleOutput, ResultDisplay, FileBrowser
 - Custom hook: `useWebSocket.ts` for real-time updates
 
 ### FastAPI Backend (`backend/`)
 - WebSocket server connecting UI to CMBAgent Python API
 - Real-time streaming of execution logs and outputs
+- Routes code execution requests to frontend and results back to agents
 
 ## Common Development Commands
 
 ### Python Package
 ```bash
-# Install for development
+# Install core only (lightweight, for backend server)
 pip install -e .
+
+# Install with development tools
+pip install -e ".[dev]"
+
+# Install with local execution support (if not using frontend execution)
+pip install -e ".[local]"
+
+# Install everything (all scientific packages)
+pip install -e ".[all]"
 
 # Run CLI
 cmbagent run
@@ -57,7 +87,8 @@ npm run lint       # ESLint
 ### FastAPI Backend
 ```bash
 cd backend
-pip install -r requirements.txt
+# Backend uses the cmbagent package - no separate requirements.txt needed
+pip install -e ..  # Install cmbagent from parent directory
 python run.py      # Start backend server (port 8000)
 ```
 

@@ -68,23 +68,27 @@ cmbagent run
 
 See below for other options including terminal usage, notebooks etc.
 
-To install additional data science and visualization packages, you can install cmbagent with
+### Lightweight Architecture
+
+The base `pip install cmbagent` is **lightweight** - it includes only orchestration dependencies (AG2, FastAPI, LLM clients). Heavy scientific packages (numpy, scipy, matplotlib, etc.) are **not required** on the server because code execution happens on the **frontend** (your local machine) via remote executor. Packages are installed on-demand by the installer agent into an isolated virtual environment.
+
+### Optional Dependencies
 
 ```bash
-pip install cmbagent[data]
-```
+# Development tools (pytest, ipython, jupyter)
+pip install cmbagent[dev]
 
-We provide example domain-specific package sets (you can add your own in `pyproject.toml`):
+# Local execution (if not using the web UI)
+pip install cmbagent[local]
 
-```bash
-# Material sciences (pymatgen, ASE, phonopy, matminer)
-pip install cmbagent[materials]
+# Domain-specific packages (for specialized agents or local execution)
+pip install cmbagent[materials]  # pymatgen, ASE, phonopy, matminer
+pip install cmbagent[biochem]    # BioPython, RDKit, MDAnalysis, ProDy
+pip install cmbagent[astro]      # CAMB, AstroPy, HEALPix, Cobaya
+pip install cmbagent[data]       # scipy, scikit-learn, seaborn, plotly
 
-# Biochemistry and molecular sciences (BioPython, RDKit, MDAnalysis, ProDy)
-pip install cmbagent[biochem]
-
-# Astronomy and astrophysics (CAMB, AstroPy, HEALPix, Cobaya)
-pip install cmbagent[astro]
+# Everything
+pip install cmbagent[all]
 
 # Or combine multiple domains
 pip install cmbagent[materials,biochem,data]

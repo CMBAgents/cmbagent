@@ -18,15 +18,46 @@ A modern Next.js web interface for CMBAgent - an Autonomous Research Backend  pl
 
 ## Architecture
 
+CMBAgent uses a **remote execution architecture** where code runs on your local machine (frontend), not on the backend server. This provides:
+
+- **Security**: Your code and data stay on your machine
+- **Performance**: Full access to your local compute resources
+- **Flexibility**: Packages installed on-demand in an isolated venv
+
 ```
-┌─────────────────┐    WebSocket    ┌─────────────────┐    Python API    ┌─────────────────┐
-│   Next.js UI   │ ←──────────────→ │  FastAPI Server │ ←───────────────→ │    CMBAgent     │
-│                 │                 │                 │                   │                 │
-│ - Task Input    │                 │ - WebSocket     │                   │ - one_shot()    │
-│ - Live Console  │                 │ - Stream Output │                   │ - Engineer      │
-│ - Results View  │                 │ - Task Queue    │                   │ - GPT-4o        │
-└─────────────────┘                 └─────────────────┘                   └─────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              YOUR MACHINE (Frontend)                                     │
+│  ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐           │
+│  │   Next.js UI    │         │  Code Executor  │         │   Python venv   │           │
+│  │                 │────────→│                 │────────→│                 │           │
+│  │ - Task Input    │         │ - Run Python    │         │ - numpy, scipy  │           │
+│  │ - Live Console  │         │ - Run Bash      │         │ - matplotlib    │           │
+│  │ - Results View  │         │ - Manage venv   │         │ - on-demand     │           │
+│  └────────┬────────┘         └─────────────────┘         └─────────────────┘           │
+│           │ WebSocket                                                                   │
+└───────────┼─────────────────────────────────────────────────────────────────────────────┘
+            │
+            ▼
+┌───────────────────────────────────────────────────────────────────────────────────────┐
+│                              SERVER (Backend) - Lightweight                            │
+│  ┌─────────────────┐         ┌─────────────────┐                                      │
+│  │  FastAPI Server │         │    CMBAgent     │   No heavy dependencies!             │
+│  │                 │────────→│                 │   Just orchestration:                │
+│  │ - WebSocket     │         │ - AG2 agents    │   - ag2/autogen                      │
+│  │ - Route msgs    │         │ - Orchestrate   │   - fastapi, uvicorn                 │
+│  │ - Stream output │         │ - Plan tasks    │   - anthropic, mistralai             │
+│  └─────────────────┘         └─────────────────┘                                      │
+└───────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Code Execution Flow
+
+1. **User submits task** → Backend receives via WebSocket
+2. **CMBAgent generates code** → Engineer agent writes Python/bash
+3. **Code sent to frontend** → `execute_code` message via WebSocket
+4. **Frontend executes locally** → `FrontendCodeExecutor` runs in venv
+5. **Results sent back** → `execution_result` message to backend
+6. **Agent continues** → Uses output to decide next steps
 
 ## Quick Start
 
