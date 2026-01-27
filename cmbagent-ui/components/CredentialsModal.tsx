@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { X, Eye, EyeOff, Upload, Key, TestTube2, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 
+const getBackendUrl = () => process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
 interface CredentialsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -71,7 +73,7 @@ export const CredentialsModal: React.FC<CredentialsModalProps> = ({
     setTestResults(null);
     
     try {
-      const response = await fetch('http://localhost:8000/api/credentials/test', {
+      const response = await fetch(`${getBackendUrl()}/api/credentials/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +98,7 @@ export const CredentialsModal: React.FC<CredentialsModalProps> = ({
     setSaving(true);
     
     try {
-      const response = await fetch('http://localhost:8000/api/credentials/store', {
+      const response = await fetch(`${getBackendUrl()}/api/credentials/store`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
