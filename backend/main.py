@@ -980,6 +980,70 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str, token: Optional
         if task_id in active_connections:
             del active_connections[task_id]
 
+async def sync_backend_files_to_frontend(websocket: WebSocket, work_dir: str):
+    """
+    Sync files from backend work directory to frontend.
+
+    Sends files from chats/, cost/, time/ directories to the frontend
+    so users have all task outputs locally.
+    """
+    import base64
+
+    dirs_to_sync = ['chats', 'cost', 'time']
+    files_synced = 0
+
+    for subdir in dirs_to_sync:
+        dir_path = os.path.join(work_dir, subdir)
+        if not os.path.exists(dir_path):
+            continue
+
+        for root, _, files in os.walk(dir_path):
+            for filename in files:
+                file_path = os.path.join(root, filename)
+                relative_path = os.path.relpath(file_path, work_dir)
+
+                try:
+                    # Read file content
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+
+                    # Send to frontend
+                    await websocket.send_json({
+                        "type": "write_file",
+                        "path": relative_path,
+                        "content": content,
+                        "work_dir": work_dir,
+                    })
+                    files_synced += 1
+
+                except UnicodeDecodeError:
+                    # Binary file - encode as base64
+                    try:
+                        with open(file_path, 'rb') as f:
+                            content = base64.b64encode(f.read()).decode('ascii')
+
+                        await websocket.send_json({
+                            "type": "write_file",
+                            "path": relative_path,
+                            "content": content,
+                            "work_dir": work_dir,
+                            "encoding": "base64",
+                        })
+                        files_synced += 1
+                    except Exception as e:
+                        logger.warning(f"Failed to sync binary file {relative_path}: {e}")
+
+                except Exception as e:
+                    logger.warning(f"Failed to sync file {relative_path}: {e}")
+
+    if files_synced > 0:
+        logger.info(f"Synced {files_synced} files from backend to frontend")
+        await websocket.send_json({
+            "type": "output",
+            "data": f"📁 Synced {files_synced} metadata files to local directory"
+        })
+
+
 async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, config: Dict[str, Any], user: Optional[Any] = None, custom_executor: Optional[Any] = None):
     """Execute CMBAgent task with real-time output streaming.
 
@@ -1271,7 +1335,10 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             "type": "output",
             "data": f"✅ Task completed in {execution_time:.2f} seconds"
         })
-        
+
+        # Sync backend files (chats, cost, time) to frontend
+        await sync_backend_files_to_frontend(websocket, task_work_dir)
+
         # Send final results
         await websocket.send_json({
             "type": "result",
@@ -1284,7 +1351,7 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                 "mode": mode  # Include mode so UI knows how to display results
             }
         })
-        
+
         await websocket.send_json({
             "type": "complete",
             "message": "Task execution completed successfully"
