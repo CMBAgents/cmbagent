@@ -873,7 +873,10 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str, token: Optional
                     work_dir = config.get("workDir", CMBAGENT_WORK_DIR)
                     if work_dir.startswith("~"):
                         work_dir = os.path.expanduser(work_dir)
-                    task_work_dir = os.path.join(work_dir, task_id)
+
+                    # Include user_id in the path: {work_dir}/{user_id}/{task_id}
+                    user_id = getattr(user, 'uid', None) or "anonymous"
+                    task_work_dir = os.path.join(work_dir, user_id, task_id)
 
                     # Create remote executor
                     remote_executor = RemoteWebSocketCodeExecutor(
