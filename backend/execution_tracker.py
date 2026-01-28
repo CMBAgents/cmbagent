@@ -494,6 +494,51 @@ class TaskTracker:
         task = await self.get_task(task_id)
         return task.file_registry if task else {}
 
+    async def update_task_cost(self, task_id: str, total_cost: float) -> bool:
+        """
+        Update the total cost for a task.
+
+        Args:
+            task_id: Task ID
+            total_cost: Total cost in USD
+
+        Returns:
+            True if updated, False if task not found
+        """
+        updates = {"total_cost_usd": total_cost}
+
+        if self.local:
+            if task_id in local_storage.tasks:
+                await local_storage.update_task(task_id, updates)
+                logger.info(f"Updated cost for task {task_id}: ${total_cost:.6f}")
+                return True
+            return False
+        else:
+            doc_ref = self.db.collection("tasks").document(task_id)
+            doc = await doc_ref.get()
+            if doc.exists:
+                await doc_ref.update(updates)
+                logger.info(f"Updated cost for task {task_id}: ${total_cost:.6f}")
+                return True
+            return False
+
+    async def increment_execution_count(self, task_id: str) -> bool:
+        """Increment the execution count for a task."""
+        if self.local:
+            if task_id in local_storage.tasks:
+                current = local_storage.tasks[task_id].get("execution_count", 0)
+                await local_storage.update_task(task_id, {"execution_count": current + 1})
+                return True
+            return False
+        else:
+            from google.cloud.firestore import Increment
+            doc_ref = self.db.collection("tasks").document(task_id)
+            doc = await doc_ref.get()
+            if doc.exists:
+                await doc_ref.update({"execution_count": Increment(1)})
+                return True
+            return False
+
 
 # Global tracker instances
 execution_tracker = ExecutionTracker()

@@ -987,68 +987,179 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str, token: Optional
         if task_id in active_connections:
             del active_connections[task_id]
 
-async def sync_backend_files_to_frontend(websocket: WebSocket, work_dir: str):
+
+async def _calculate_total_cost(work_dir: str, mode: str = None) -> float:
+    """
+    Calculate total cost from cost report files.
+
+    For planning modes, aggregates costs from planning/ and control/ subdirectories.
+
+    Args:
+        work_dir: Backend work directory path
+        mode: Task execution mode
+
+    Returns:
+        Total cost in USD
+    """
+    import json
+    import glob
+
+    total_cost = 0.0
+    planning_modes = ['idea-generation', 'deep_research', 'planning_and_control']
+
+    # Determine where to look for cost reports
+    cost_dirs = []
+    if mode in planning_modes:
+        # Look in planning/cost and control/cost
+        cost_dirs.append(os.path.join(work_dir, 'planning', 'cost'))
+        cost_dirs.append(os.path.join(work_dir, 'control', 'cost'))
+    else:
+        # Standard one-shot mode: cost/ at top level
+        cost_dirs.append(os.path.join(work_dir, 'cost'))
+
+    for cost_dir in cost_dirs:
+        if not os.path.exists(cost_dir):
+            continue
+
+        # Find all cost report JSON files
+        pattern = os.path.join(cost_dir, 'cost_report_*.json')
+        for cost_file in glob.glob(pattern):
+            try:
+                with open(cost_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    # Handle NaN values in JSON
+                    content = content.replace(': NaN', ': null')
+                    cost_data = json.loads(content)
+
+                # Sum up costs (skip 'Total' rows to avoid double counting)
+                for entry in cost_data:
+                    if entry.get('Agent') != 'Total':
+                        cost_value = entry.get('Cost ($)', 0)
+                        if cost_value and isinstance(cost_value, (int, float)):
+                            total_cost += cost_value
+
+            except Exception as e:
+                logger.warning(f"Failed to parse cost file {cost_file}: {e}")
+
+    return total_cost
+
+
+async def sync_backend_files_to_frontend(
+    websocket: WebSocket,
+    work_dir: str,
+    mode: str = None
+) -> tuple[int, list[dict]]:
     """
     Sync files from backend work directory to frontend.
 
     Sends files from chats/, cost/, time/ directories to the frontend
     so users have all task outputs locally.
+
+    For planning modes (idea-generation, deep_research, planning_and_control),
+    also syncs from planning/ and control/ subdirectories.
+
+    Args:
+        websocket: WebSocket connection
+        work_dir: Backend work directory path
+        mode: Task execution mode (affects which directories are synced)
+
+    Returns:
+        Tuple of (files_synced_count, file_registry_entries)
     """
     import base64
 
     dirs_to_sync = ['chats', 'cost', 'time']
     files_synced = 0
+    file_registry_entries = []  # Track for Firestore registration
 
-    for subdir in dirs_to_sync:
-        dir_path = os.path.join(work_dir, subdir)
-        if not os.path.exists(dir_path):
-            continue
+    # Determine search roots based on mode
+    # For planning modes, also search in planning/ and control/ subdirectories
+    search_roots = [work_dir]
+    planning_modes = ['idea-generation', 'deep_research', 'planning_and_control']
 
-        for root, _, files in os.walk(dir_path):
-            for filename in files:
-                file_path = os.path.join(root, filename)
-                relative_path = os.path.relpath(file_path, work_dir)
+    if mode in planning_modes:
+        for subdir in ['planning', 'control']:
+            subdir_path = os.path.join(work_dir, subdir)
+            if os.path.exists(subdir_path):
+                search_roots.append(subdir_path)
+                logger.info(f"Adding {subdir}/ to sync search roots for mode={mode}")
 
-                try:
-                    # Read file content
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
+    # Helper function to sync a single file
+    async def sync_file(file_path: str, relative_path: str) -> bool:
+        nonlocal files_synced
+        try:
+            file_size = os.path.getsize(file_path)
 
-                    # Send to frontend
-                    await websocket.send_json({
-                        "type": "write_file",
-                        "path": relative_path,
-                        "content": content,
-                        "work_dir": work_dir,
-                    })
-                    files_synced += 1
+            # Try reading as text first
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
 
-                except UnicodeDecodeError:
-                    # Binary file - encode as base64
-                    try:
-                        with open(file_path, 'rb') as f:
-                            content = base64.b64encode(f.read()).decode('ascii')
+                await websocket.send_json({
+                    "type": "write_file",
+                    "path": relative_path,
+                    "content": content,
+                    "work_dir": work_dir,
+                })
+            except UnicodeDecodeError:
+                # Binary file - encode as base64
+                with open(file_path, 'rb') as f:
+                    content = base64.b64encode(f.read()).decode('ascii')
 
-                        await websocket.send_json({
-                            "type": "write_file",
-                            "path": relative_path,
-                            "content": content,
-                            "work_dir": work_dir,
-                            "encoding": "base64",
-                        })
-                        files_synced += 1
-                    except Exception as e:
-                        logger.warning(f"Failed to sync binary file {relative_path}: {e}")
+                await websocket.send_json({
+                    "type": "write_file",
+                    "path": relative_path,
+                    "content": content,
+                    "work_dir": work_dir,
+                    "encoding": "base64",
+                })
 
-                except Exception as e:
-                    logger.warning(f"Failed to sync file {relative_path}: {e}")
+            files_synced += 1
+            file_registry_entries.append({
+                "path": relative_path,
+                "size": file_size,
+                "source": "backend",
+            })
+            return True
+
+        except Exception as e:
+            logger.warning(f"Failed to sync file {relative_path}: {e}")
+            return False
+
+    # Sync standard directories (chats/, cost/, time/) from all search roots
+    for search_root in search_roots:
+        for subdir in dirs_to_sync:
+            dir_path = os.path.join(search_root, subdir)
+            if not os.path.exists(dir_path):
+                continue
+
+            for root, _, files in os.walk(dir_path):
+                for filename in files:
+                    file_path = os.path.join(root, filename)
+                    # Keep path relative to original work_dir for correct frontend structure
+                    relative_path = os.path.relpath(file_path, work_dir)
+                    await sync_file(file_path, relative_path)
+
+    # Sync special files for planning modes
+    if mode in planning_modes:
+        special_files = [
+            'planning/final_plan.json',
+            'planning/final_plan.md',
+        ]
+        for rel_path in special_files:
+            file_path = os.path.join(work_dir, rel_path)
+            if os.path.exists(file_path):
+                logger.info(f"Syncing special file: {rel_path}")
+                await sync_file(file_path, rel_path)
 
     if files_synced > 0:
-        logger.info(f"Synced {files_synced} files from backend to frontend")
+        logger.info(f"Synced {files_synced} files from backend to frontend (mode={mode})")
         await websocket.send_json({
             "type": "output",
-            "data": f"📁 Synced {files_synced} metadata files to local directory"
+            "data": f"📁 Synced {files_synced} files to local directory"
         })
+
+    return files_synced, file_registry_entries
 
 
 async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, config: Dict[str, Any], user: Optional[Any] = None, custom_executor: Optional[Any] = None):
@@ -1382,7 +1493,26 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             logger.warning(f"Failed to update task status in Firestore: {e}")
 
         # Sync backend files (chats, cost, time) to frontend
-        await sync_backend_files_to_frontend(websocket, task_work_dir)
+        files_synced, file_entries = await sync_backend_files_to_frontend(
+            websocket, task_work_dir, mode=mode
+        )
+
+        # Register synced files in Firestore
+        if file_entries:
+            try:
+                await task_tracker.register_files(task_id, file_entries, source="backend")
+                logger.info(f"Registered {len(file_entries)} files in Firestore for task {task_id}")
+            except Exception as e:
+                logger.warning(f"Failed to register files in Firestore: {e}")
+
+        # Calculate and store total cost from cost reports
+        try:
+            total_cost = await _calculate_total_cost(task_work_dir, mode)
+            if total_cost > 0:
+                await task_tracker.update_task_cost(task_id, total_cost)
+                logger.info(f"Updated total cost for task {task_id}: ${total_cost:.6f}")
+        except Exception as e:
+            logger.warning(f"Failed to calculate/store total cost: {e}")
 
         # Send final results
         await websocket.send_json({
