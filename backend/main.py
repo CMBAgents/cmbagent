@@ -1056,14 +1056,28 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
         custom_executor: Remote code executor (optional, for frontend execution)
     """
 
-    # Get work directory from config or use default
-    work_dir = config.get("workDir", "~/Desktop/cmbdir")
-    if work_dir.startswith("~"):
-        work_dir = os.path.expanduser(work_dir)
+    # Base work directory for all user data
+    # Can be configured via environment variable
+    base_work_dir = os.environ.get(
+        "CMBAGENT_WORK_DIR",
+        "/rds/rds-ai-scientist/users-data"
+    )
 
-    # Create a subdirectory for this specific task
+    # Get user ID for organizing data by user
+    # Falls back to "anonymous" for unauthenticated users
+    user_id = getattr(user, 'uid', None) if user else None
+    if not user_id:
+        user_id = "anonymous"
+
+    # Work directory structure: {base}/{user_id}/{task_id}
+    # e.g., /rds/rds-ai-scientist/users-data/M6cZbIaFogbCZYccD29h2MlArex1/task_123
+    work_dir = os.path.join(base_work_dir, user_id)
     task_work_dir = os.path.join(work_dir, task_id)
+
+    # Create directories
     os.makedirs(task_work_dir, exist_ok=True)
+
+    logger.info(f"Task {task_id} for user {user_id} - work dir: {task_work_dir}")
     
     # Set up environment variables to disable display and enable debug if needed
     os.environ["CMBAGENT_DEBUG"] = "false"
