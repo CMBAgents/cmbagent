@@ -21,11 +21,11 @@ services:
     volumes:
       # Mount credentials (Firebase service account JSON)
       - ./credentials:/app/credentials:ro
-      # Mount work directory for task outputs
-      - ./workdir:/app/workdir
+      # Mount RAID storage for task outputs (28TB)
+      - /rds/rds-ai-scientist/users-data:/app/workdir
     environment:
-      # Number of uvicorn workers (adjust based on expected load)
-      - UVICORN_WORKERS=4
+      # Number of uvicorn workers (Threadripper PRO 9995WX can handle many more)
+      - UVICORN_WORKERS=32
       # Work directory inside container
       - CMBAGENT_WORK_DIR=/app/workdir
       # Local dev mode
@@ -51,13 +51,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    # Resource limits (adjust based on your server)
+    # Resource limits (Threadripper PRO 9995WX / 28TB RAID)
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 32G
         reservations:
-          memory: 1G
+          memory: 8G
 
 # Optional: Add a reverse proxy for HTTPS
 #  nginx:
