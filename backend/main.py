@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, List
 import uuid
 import mimetypes
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -183,6 +183,59 @@ async def root():
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "timestamp": time.time()}
+
+
+@app.post("/api/files/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    task_id: str = Form(...),
+    user_id: str = Form(default="anonymous")
+):
+    """
+    Upload a file (e.g., PDF) for processing.
+    Files are stored in: {CMBAGENT_WORK_DIR}/{user_id}/{task_id}/uploads/
+    Returns the server-side path for use in OCR or other processing.
+    """
+    try:
+        # Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+
+        # Create upload directory
+        upload_dir = os.path.join(CMBAGENT_WORK_DIR, user_id, task_id, "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Sanitize filename (keep only safe characters)
+        safe_filename = "".join(c for c in file.filename if c.isalnum() or c in "._-")
+        if not safe_filename:
+            safe_filename = f"uploaded_file_{int(time.time())}"
+
+        # Save file
+        file_path = os.path.join(upload_dir, safe_filename)
+
+        # Read and write file content
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+
+        file_size = len(content)
+        logger.info(f"File uploaded: {file_path} ({file_size} bytes)")
+
+        return {
+            "status": "success",
+            "filename": safe_filename,
+            "original_filename": file.filename,
+            "server_path": file_path,
+            "size": file_size,
+            "upload_dir": upload_dir
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"File upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
 
 @app.post("/api/task/submit", response_model=TaskResponse)
 async def submit_task(request: TaskRequest):
