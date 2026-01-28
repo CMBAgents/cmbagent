@@ -28,6 +28,8 @@ services:
       - UVICORN_WORKERS=4
       # Work directory inside container
       - CMBAGENT_WORK_DIR=/app/workdir
+      # Local dev mode
+      - CMBAGENT_LOCAL_DEV=${CMBAGENT_LOCAL_DEV:-false}
       # Firebase credentials path (inside container)
       - FIREBASE_CREDENTIALS=/app/credentials/firebase-credentials.json
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/firebase-credentials.json
@@ -35,6 +37,12 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_GEMINI_API_KEY=${GOOGLE_GEMINI_API_KEY}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - OPEN_ROUTER_KEY=${OPEN_ROUTER_KEY}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+      - FUTURE_HOUSE_API_KEY=${FUTURE_HOUSE_API_KEY:-}
       # Optional: Vertex AI project
       - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
     healthcheck:

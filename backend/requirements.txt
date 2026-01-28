@@ -1,6 +1,9 @@
 # Backend-specific dependencies
 # Note: cmbagent package is installed separately from the parent directory
 
+# Required by cmbagent package
+ipython
+
 # FastAPI and server
 fastapi>=0.104.1
 uvicorn[standard]>=0.24.0
