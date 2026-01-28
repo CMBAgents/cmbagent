@@ -1,0 +1,63 @@
+# CMBAgent Backend Docker Compose
+#
+# Usage:
+#   docker compose up -d        # Start in background
+#   docker compose logs -f      # View logs
+#   docker compose down         # Stop
+#
+# Required setup:
+#   1. Create credentials/ directory with firebase-credentials.json
+#   2. Set API keys in .env file (see .env.example)
+
+services:
+  cmbagent-backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: cmbagent-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount credentials (Firebase service account JSON)
+      - ./credentials:/app/credentials:ro
+      # Mount work directory for task outputs
+      - ./workdir:/app/workdir
+    environment:
+      # Number of uvicorn workers (adjust based on expected load)
+      - UVICORN_WORKERS=4
+      # Work directory inside container
+      - CMBAGENT_WORK_DIR=/app/workdir
+      # Firebase credentials path (inside container)
+      - FIREBASE_CREDENTIALS=/app/credentials/firebase-credentials.json
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/firebase-credentials.json
+      # API keys (loaded from .env file)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Optional: Vertex AI project
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Resource limits (adjust based on your server)
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 1G
+
+# Optional: Add a reverse proxy for HTTPS
+#  nginx:
+#    image: nginx:alpine
+#    ports:
+#      - "443:443"
+#    volumes:
+#      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+#      - ./certs:/etc/nginx/certs:ro
+#    depends_on:
+#      - cmbagent-backend

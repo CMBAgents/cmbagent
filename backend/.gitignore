@@ -1,0 +1,18 @@
+# Credentials (sensitive)
+credentials/*.json
+!credentials/.gitkeep
+
+# Environment files
+.env
+.env.local
+
+# Work directory (task outputs)
+workdir/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log

@@ -1,0 +1,19 @@
+# Backend-specific dependencies
+# Note: cmbagent package is installed separately from the parent directory
+
+# FastAPI and server
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+websockets>=12.0
+python-multipart>=0.0.6
+pydantic>=2.7.4
+aiohttp>=3.9.0
+
+# Firebase Authentication (optional - for production auth)
+firebase-admin>=6.2.0
+
+# Google Cloud Firestore (optional - for execution tracking)
+google-cloud-firestore>=2.14.0
+
+# Vertex AI (optional - for Google AI models)
+google-cloud-aiplatform>=1.38.0
