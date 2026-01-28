@@ -81,6 +81,7 @@ def deep_research(
     restart_at_step=-1,
     clear_work_dir=False,
     researcher_filename=shared_context_default['researcher_filename'],
+    custom_executor=None,
 ):
     """Execute a complex research task with planning and multi-step execution.
 
@@ -138,6 +139,9 @@ def deep_research(
         Whether to clear work directory before starting, by default False
     researcher_filename : str, optional
         Filename for researcher output
+    custom_executor : CodeExecutor, optional
+        Custom code executor for remote execution (e.g., RemoteWebSocketCodeExecutor).
+        If provided, code will be executed on the frontend/user's machine instead of locally.
 
     Returns
     -------
@@ -293,7 +297,8 @@ def deep_research(
                 'camb_context': camb_context_config,
             },
             mode="deep_research",
-            api_keys=api_keys
+            api_keys=api_keys,
+            custom_executor=custom_executor,
         )
 
         end_time = time.time()

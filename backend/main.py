@@ -1359,7 +1359,8 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
                         api_keys=api_keys,
                         clear_work_dir=False,
                         default_formatter_model=default_formatter_model,
-                        default_llm_model=default_llm_model
+                        default_llm_model=default_llm_model,
+                        custom_executor=custom_executor,
                     )
                 elif mode == "idea-generation":
                     # Idea Generation mode - uses deep_research with idea agents
