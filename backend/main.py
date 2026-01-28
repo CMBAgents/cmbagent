@@ -45,6 +45,10 @@ except ImportError as e:
 # Global executor manager for routing results to correct executor
 executor_manager = RemoteExecutorManager()
 
+# Base work directory - configurable via environment variable
+# All user data is stored under: {CMBAGENT_WORK_DIR}/{user_id}/{task_id}
+CMBAGENT_WORK_DIR = os.environ.get("CMBAGENT_WORK_DIR", "/tmp/cmbagent_workdir")
+
 # Import auth and execution tracking modules
 try:
     from auth import verify_ws_token, User, LocalDevUser, is_local_dev
@@ -97,7 +101,7 @@ class TaskRequest(BaseModel):
         "maxRounds": 25,
         "maxAttempts": 6,
         "agent": "engineer",
-        "workDir": "~/Desktop/cmbdir"
+        "workDir": CMBAGENT_WORK_DIR
     }
 
 class TaskResponse(BaseModel):
@@ -200,7 +204,7 @@ async def list_directory(path: str = ""):
             path = os.path.expanduser(path)
 
         if not path:
-            path = os.path.expanduser("~/Desktop/cmbdir")
+            path = CMBAGENT_WORK_DIR
 
         path = os.path.abspath(path)
 
@@ -713,9 +717,9 @@ async def one_shot_sync(request: OneShotRequest):
                 if work_dir.startswith("~"):
                     work_dir = os.path.expanduser(work_dir)
             else:
-                # Create unique work directory
+                # Create unique work directory under CMBAGENT_WORK_DIR
                 task_id = str(uuid.uuid4())[:8]
-                work_dir = os.path.expanduser(f"~/Desktop/cmbdir/one_shot_{task_id}")
+                work_dir = os.path.join(CMBAGENT_WORK_DIR, "anonymous", f"one_shot_{task_id}")
 
             os.makedirs(work_dir, exist_ok=True)
 
@@ -865,8 +869,8 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str, token: Optional
                         if websocket.client_state.name == "CONNECTED":
                             await websocket.send_json(message)
 
-                    # Get work directory from config
-                    work_dir = config.get("workDir", "~/Desktop/cmbdir")
+                    # Get work directory from config or use default
+                    work_dir = config.get("workDir", CMBAGENT_WORK_DIR)
                     if work_dir.startswith("~"):
                         work_dir = os.path.expanduser(work_dir)
                     task_work_dir = os.path.join(work_dir, task_id)
@@ -1056,12 +1060,8 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
         custom_executor: Remote code executor (optional, for frontend execution)
     """
 
-    # Base work directory for all user data
-    # Can be configured via environment variable
-    base_work_dir = os.environ.get(
-        "CMBAGENT_WORK_DIR",
-        "/rds/rds-ai-scientist/users-data"
-    )
+    # Use the global CMBAGENT_WORK_DIR constant
+    base_work_dir = CMBAGENT_WORK_DIR
 
     # Get user ID for organizing data by user
     # Falls back to "anonymous" for unauthenticated users
@@ -1078,7 +1078,20 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
     os.makedirs(task_work_dir, exist_ok=True)
 
     logger.info(f"Task {task_id} for user {user_id} - work dir: {task_work_dir}")
-    
+
+    # Create task record in Firestore
+    try:
+        await task_tracker.create_task(
+            task_id=task_id,
+            user_id=user_id,
+            prompt=task,
+            config=config,
+            mode=config.get("mode", "one-shot"),
+        )
+        logger.info(f"Task {task_id} created in Firestore")
+    except Exception as e:
+        logger.warning(f"Failed to create task in Firestore: {e}")
+
     # Set up environment variables to disable display and enable debug if needed
     os.environ["CMBAGENT_DEBUG"] = "false"
     os.environ["CMBAGENT_DISABLE_DISPLAY"] = "true"
@@ -1089,7 +1102,14 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             "type": "status",
             "message": "Initializing CMBAgent..."
         })
-        
+
+        # Update task status to running in Firestore
+        try:
+            from models import TaskStatus
+            await task_tracker.update_task_status(task_id, TaskStatus.RUNNING)
+        except Exception as e:
+            logger.warning(f"Failed to update task status to running: {e}")
+
         # Get API keys from environment
         api_keys = get_api_keys_from_env()
         
@@ -1350,6 +1370,14 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
             "data": f"✅ Task completed in {execution_time:.2f} seconds"
         })
 
+        # Update task status in Firestore
+        try:
+            from models import TaskStatus
+            await task_tracker.update_task_status(task_id, TaskStatus.COMPLETED)
+            logger.info(f"Task {task_id} marked as completed in Firestore")
+        except Exception as e:
+            logger.warning(f"Failed to update task status in Firestore: {e}")
+
         # Sync backend files (chats, cost, time) to frontend
         await sync_backend_files_to_frontend(websocket, task_work_dir)
 
@@ -1374,7 +1402,15 @@ async def execute_cmbagent_task(websocket: WebSocket, task_id: str, task: str, c
     except Exception as e:
         error_msg = f"Error executing CMBAgent task: {str(e)}"
         print(error_msg)
-        
+
+        # Update task status to failed in Firestore
+        try:
+            from models import TaskStatus
+            await task_tracker.update_task_status(task_id, TaskStatus.FAILED, error=str(e))
+            logger.warning(f"Task {task_id} marked as failed in Firestore")
+        except Exception as fe:
+            logger.warning(f"Failed to update task status in Firestore: {fe}")
+
         await websocket.send_json({
             "type": "error",
             "message": error_msg
