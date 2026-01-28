@@ -1068,7 +1068,7 @@ async def sync_backend_files_to_frontend(
     """
     import base64
 
-    dirs_to_sync = ['chats', 'cost', 'time']
+    dirs_to_sync = ['chats', 'cost', 'time', 'context', 'codebase', 'data']
     files_synced = 0
     file_registry_entries = []  # Track for Firestore registration
 
