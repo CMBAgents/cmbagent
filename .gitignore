@@ -1,99 +1,13 @@
-# mac
-.DS_Store
-.cache
-
-.venv/
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-.ipynb_checkpoints*
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-evals/logs
-logs
-data
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-output/*
-cmbagent/data/classy_sz/*.yaml
-cmbagent/data/classy_sz/*.txt 
-
-
-cmbagent/data/classy/*.yaml
-cmbagent/data/classy/*.txt 
-
-cmbagent/data/camb/*.yaml
-cmbagent/data/camb/*.txt 
-
-evals/
-logs/
-
 .env
-*bor11031990*
+.venv/
+__pycache__/
+*.egg-info/
+.ipynb_checkpoints/
+build/
+dist/
+work_dir/
+runs/
+.DS_Store
 
-
-docs/_*
-output/cmb_tt_power_spectrum.png
-docs/notebooks/bbolliet_local
-docs/cmbagent_*_arxiv
-docs/cmbagent_*zip
-docs/videos/*
-output_bkp
-docs/notebooks/output
-docs/notebooks/cmbagent_output
-
-project_data
-docs/notebooks/*
-docs/notebooks/cmbagent_beta2_demo_1shot.ipynb
-docs/notebooks/astropilot_data/.DS_Store
-docs/notebooks/astropilot_data/plots/.DS_Store
-gui_expt.py
-tests/Project*
-project_dir
-
-# Frontend / Node.js
-cmbagent-ui/node_modules/
-cmbagent-ui/.next/
-cmbagent-ui/out/
-cmbagent-ui/.env.local
-cmbagent-ui/.env.development.local
-cmbagent-ui/.env.test.local
-cmbagent-ui/.env.production.local
-
-# Test files
-test_*.py
-tests/testdocs/*
-tests/artifacts/
-tests/legacy/
-
-.massgen
-
-# PyCharm
-.idea/
+.claude/
+evals/engineer_stress/mit_out/

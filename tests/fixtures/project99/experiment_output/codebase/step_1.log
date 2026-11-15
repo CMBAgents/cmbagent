@@ -1,0 +1,186 @@
+# returncode=0 timed_out=False elapsed=65.7076s
+--- stdout ---
+Loading dataset from data/qm9.csv...
+Initial shape: (133885, 21)
+Shape after deduplication: (133802, 21)
+Extracting atom counts from SMILES...
+Performing stoichiometric residualization...
+[LightGBM] [Info] Auto-choosing col-wise multi-threading, the overhead of testing was 0.038602 seconds.
+You can set `force_col_wise=true` to remove the overhead.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 1.449924
+[LightGBM] [Info] Auto-choosing col-wise multi-threading, the overhead of testing was 0.029786 seconds.
+You can set `force_col_wise=true` to remove the overhead.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.000000
+  A_trans    | R2: 0.3142 | Ortho R2: 0.0046
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000410 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 1.406104
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000405 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score -0.000000
+  B          | R2: 0.5281 | Ortho R2: 0.0727
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000407 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 1.124978
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000380 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.000000
+  C          | R2: 0.5865 | Ortho R2: 0.0766
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000411 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 2.706011
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000410 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.000000
+  mu         | R2: 0.2761 | Ortho R2: 0.0002
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000377 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 75.192867
+[LightGBM] [Info] Auto-choosing col-wise multi-threading, the overhead of testing was 0.029796 seconds.
+You can set `force_col_wise=true` to remove the overhead.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.000000
+  alpha      | R2: 0.8787 | Ortho R2: 0.0008
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000408 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score -0.239977
+[LightGBM] [Info] Auto-choosing col-wise multi-threading, the overhead of testing was 0.025778 seconds.
+You can set `force_col_wise=true` to remove the overhead.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score -0.000000
+  homo       | R2: 0.1988 | Ortho R2: 0.0007
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000408 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.011162
+[LightGBM] [Info] Auto-choosing col-wise multi-threading, the overhead of testing was 0.030821 seconds.
+You can set `force_col_wise=true` to remove the overhead.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score -0.000000
+  lumo       | R2: 0.4835 | Ortho R2: 0.0004
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000408 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 1189.569504
+[LightGBM] [Info] Auto-choosing col-wise multi-threading, the overhead of testing was 0.027852 seconds.
+You can set `force_col_wise=true` to remove the overhead.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.000000
+  r2         | R2: 0.3637 | Ortho R2: 0.0002
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000405 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.148549
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000409 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.000000
+  zpve       | R2: 0.9973 | Ortho R2: 0.0018
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000403 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score -411.538064
+[LightGBM] [Info] Auto-choosing col-wise multi-threading, the overhead of testing was 0.029800 seconds.
+You can set `force_col_wise=true` to remove the overhead.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.000000
+  u0         | R2: 0.9993 | Ortho R2: 0.1844
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000409 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 31.603305
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000407 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.000000
+  cv         | R2: 0.7310 | Ortho R2: 0.0005
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000404 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score -1750.972760
+[LightGBM] [Info] Auto-choosing row-wise multi-threading, the overhead of testing was 0.000407 seconds.
+You can set `force_row_wise=true` to remove the overhead.
+And if memory is not enough, you can set `force_col_wise=true`.
+[LightGBM] [Info] Total Bins 49
+[LightGBM] [Info] Number of data points in the train set: 133802, number of used features: 5
+[LightGBM] [Info] Start training from score 0.000000
+  u0_atom    | R2: 0.9898 | Ortho R2: 0.0031
+Standardizing residuals...
+
+Stoichiometric Baseline Summary:
+property  R2_from_counts  Orthogonality_Check_R2
+ A_trans        0.314218                0.004576
+       B        0.528116                0.072749
+       C        0.586485                0.076648
+      mu        0.276123                0.000237
+   alpha        0.878682                0.000789
+    homo        0.198800                0.000699
+    lumo        0.483485                0.000429
+      r2        0.363671                0.000245
+    zpve        0.997350                0.001760
+      u0        0.999266                0.184366
+      cv        0.731033                0.000536
+ u0_atom        0.989773                0.003062
+
+Residual Statistics (Standardized):
+      res_A_trans         res_B         res_C        res_mu     res_alpha      res_homo      res_lumo        res_r2      res_zpve        res_u0        res_cv   res_u0_atom
+mean     0.000000 -1.699329e-18  1.359464e-17 -2.294095e-17 -2.039195e-17 -6.797318e-18  2.209128e-17  2.548994e-17 -3.398659e-18  3.398659e-18 -6.797318e-18 -2.039195e-17
+std      1.000004  1.000004e+00  1.000004e+00  1.000004e+00  1.000004e+00  1.000004e+00  1.000004e+00  1.000004e+00  1.000004e+00  1.000004e+00  1.000004e+00  1.000004e+00
+min    -15.019650 -1.221930e+02 -1.227499e+02 -3.642310e+00 -8.502498e+00 -5.717294e+00 -4.121339e+00 -3.954172e+00 -5.734177e+00 -1.626832e+02 -3.859322e+00 -6.861653e+00
+max     23.649252  2.584794e+02  2.444216e+02  2.020464e+01  4.068395e+01  6.781992e+00  3.428704e+00  8.922936e+00  4.896506e+00  6.928792e+01  5.348779e+00  5.378469e+00
+
+Saved size-corrected residuals to data/residuals.csv
+Columns: ['smiles', 'is_linear', 'res_A_trans', 'res_B', 'res_C', 'res_mu', 'res_alpha', 'res_homo', 'res_lumo', 'res_r2', 'res_zpve', 'res_u0', 'res_cv', 'res_u0_atom']
+Execution successful: Output file generated.
+
+--- stderr ---
+
