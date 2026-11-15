@@ -497,7 +497,7 @@ tag with `cmbagent-lg-cost <trace_id | work_dir>`; the executor makes no LLM cal
 appears. Setup, the base-URL/host distinction and the self-hosted project layout are in
 [README.md § Langfuse](../README.md#langfuse-self-hosted-optional) — not repeated here.
 
-## Running examples and evals
+## Running examples
 
 `examples/` holds one runnable script per entry point: `run_planner_review.py` (planning only),
 `run_self_debug*.py` (single engineer steps — plain, forced-retry, plotting, CSV, provided input,
@@ -508,7 +508,6 @@ the OCR demos (`ocr_*.py`, `mistral_captions.py`), two self-contained LangGraph 
 [work_dir]` — they import `_common` as a sibling, so `-m` does not work. The work_dir comes from
 `argv[1]`, then `$WORK_DIR`, then a timestamped default, and is cleared unless `KEEP_WORK_DIR=1`.
 
-`evals/` holds the stress harnesses: `evals/engineer_stress/` (anti-fabrication, VLM review,
-context compaction, claim auditing, robustness and held-out case sets, driven by `runner.py` /
-`run_batch.py`) and `evals/adaptive_planning/` (planner and reviewer case sets, `run_eval.py` /
-`run_eval_decoupled.py`).
+The stress harnesses (anti-fabrication, VLM review, context compaction, claim auditing,
+robustness and held-out case sets, and the planner and reviewer case sets) are not part of this
+public branch.

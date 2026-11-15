@@ -198,7 +198,7 @@ When cmbagent_lg drives an autonomous scientific analysis, the dangerous failure
 
 **Figure grounding, both directions.** The **researcher** can `read_file` and `view_image` rather than describe a plot it cannot see (see *Grounding* above); the engineer's **`image_reviewer`** catches a figure that is blank, mis-scaled, or scientifically wrong — including the class nothing else catches, a plot annotation that contradicts the data (a peak marker on the wrong feature). Its default model is a **non-lite** vision model on purpose (the lite ones are phrasing-unstable on exactly that class), it judges the *figure* rather than compliance with a plotting bullet, and an unresolved defect at budget exhaustion **fails the step** instead of shipping `fulfilled=True`.
 
-The stress harnesses that produced these results live in [`evals/engineer_stress/`](evals/engineer_stress).
+The stress harnesses that produced these results are not part of this public branch.
 
 ## Run the examples
 
