@@ -1,234 +1,316 @@
-# cmbagent_lg
+# CMBAgent
 
-> `cmbagent_lg`, the LangGraph implementation of CMBAgent, is the main branch of [CMBAgents/cmbagent](https://github.com/CMBAgents/cmbagent) since 16 November 2026; the branch `lg` holds the same code. The earlier implementation, the `cmbagent` package on PyPI, is on the branch [`ag2`](https://github.com/CMBAgents/cmbagent/tree/ag2). Install `cmbagent_lg` with `pip install "cmbagent_lg @ git+https://github.com/CMBAgents/cmbagent"`.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![arXiv](https://img.shields.io/badge/arXiv-2507.07257-b31b1b.svg)](https://arxiv.org/abs/2507.07257)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 
-LangGraph re-implementation of [cmbagent](https://github.com/CMBAgents/cmbagent) deep research.
+CMBAgent is an agentic research harness. Given a research task and its data, it plans the analysis, has language-model agents write and run the Python code for each step, checks the results, and writes a report. It is built on [LangGraph](https://github.com/langchain-ai/langgraph), and the Python package is `cmbagent_lg`. The name comes from the project's origins in cosmic microwave background analysis; the harness works in any field whose analyses can be written in Python.
 
-cmbagent's deep-research workflow, rebuilt in LangGraph as a set of small, composable graphs. A `deep_research` orchestrator generates a plan and runs each step through an engineer self-debug loop or a researcher, with optional multimodal plot review — and checkpoints after every step so a run is resumable.
+CMBAgent is the analysis engine of [Denario](https://github.com/AstroPilot-AI/Denario), and it won first place at the NeurIPS 2025 [FAIR Universe Competition](https://fair-universe.lbl.gov/). Demo videos are on [YouTube](https://www.youtube.com/@cmbagent), and questions are welcome on [Discord](https://discord.gg/UG47Yb6gHG).
 
-| Module | What it does | Status |
-| --- | --- | --- |
-| `planning` | Research task → a structured **plan** (ordered `Step`s, each assigned an agent), via a `planner` ↔ `plan_reviewer` propose-critique loop. | ✅ |
-| `self_debug` | One engineer `Step` → **working, executed code**, with bounded retries, an optional **image-reviewer** revise-the-plot loop, and an opt-in escalation hatch. | ✅ |
-| `researcher` | One researcher `Step` → a **written markdown report** (`reports/step_N.md`), graded by a verdict. | ✅ |
-| `deep_research` | Generate a plan, then run each step through `self_debug` / `researcher`, threading cross-step context and **checkpointing** after every step. | ✅ |
+> [!NOTE]
+> Since 16 November 2026, `main` holds `cmbagent_lg`, the LangGraph implementation; the branch `lg` holds the same code. The earlier implementation, built on [AG2](https://github.com/ag2ai/ag2) and published on PyPI as [`cmbagent`](https://pypi.org/project/cmbagent/), is on the branch [`ag2`](https://github.com/CMBAgents/cmbagent/tree/ag2).
 
-## Key capabilities
+## Overview
 
-- **Per-role, multi-provider models.** Each role (planner, plan_reviewer, engineer, researcher, evaluator, formatter, vlm) takes its own model via `PlanContext`; the **provider is inferred from the name** — `gemini-*` → Google, `gpt-*`/`o[1-4]*` → OpenAI, `claude-*` → Anthropic. Mix providers in one run (matching API key must be set).
-- **Multimodal grounding (on by default, `vlm_enabled`).** The researcher is shown the generated plots, and an **`image_reviewer`** node runs a bounded revise-the-plot loop (`max_vlm_review_attempts`) — a vision model flags concrete figure defects and sends fixes back to the engineer.
-- **Grounded researcher (on by default, `researcher_mode="react"`).** The researcher writes the report with READ-ONLY workspace tools — `list_workspace`, `read_file`, `view_image` — so a Results section about numbers that were saved to a file rather than printed is written from the file, not invented. `"plain"` restores the previous single-call researcher.
-- **Crash-recoverable restart.** `deep_research` writes `logs/deep_research_run.json` after every completed step. Re-invoke with `step_index=N` (+ the prior summaries/outcomes) to resume from step N without re-running earlier steps. `restart_at_step` reads this checkpoint.
-- **Escalation hatch (opt-in, `enable_escalation`).** A failure the strict loop can't fix (missing package / renamed API) is handed once to a free-form Claude Agent SDK agent that can web-search the fix.
-- **Robustness & anti-fabrication (on by default).** A layer of safeguards, each added and measured against a real failure it was seen to cause — never fabricate an absent input, never let a wrong-but-ran result or an unreviewable figure pass as success, bound the context a long plan carries, and recover a printed-only finding into the final report. See [Robustness & anti-fabrication](#robustness--anti-fabrication) below.
-- **Langfuse tracing** of every LLM call, tagged by node, with a `cmbagent-lg-cost` CLI.
-
-## Layout
-
-```
-cmbagent_lg/
-├── cmbagent_lg/
-│   ├── context.py          # PlanContext — run-scoped knobs (models, vlm, timeouts, …)
-│   ├── llms.py             # chat_model(model, role): provider-by-name factory (+ proposer/critic/formatter)
-│   ├── persistence.py      # work_dir lifecycle; save_final_plan / load_final_plan / save_deep_research_summary
-│   ├── prompt_utils.py     # schema-field briefs, content flattening
-│   ├── tracing.py          # langfuse callback handler factory
-│   ├── timing.py           # @timed_node wall-clock decorator
-│   ├── cli.py              # `cmbagent-lg-cost` — per-agent cost/latency from langfuse
-│   ├── planning/           # planner ↔ plan_reviewer graph (Plan, Step, Review)
-│   ├── self_debug/         # engineer → executor → execution_evaluator → image_reviewer → step_evaluator
-│   │   ├── schemas.py      #   EngineerResponse, ExecutionVerdict, StepVerdict, ImageReview
-│   │   ├── escalation.py   #   opt-in Claude Agent SDK escape hatch
-│   │   └── templates/      #   engineer.yaml, evaluator.yaml, step_evaluator.yaml, escalation.yaml
-│   ├── researcher/         # researcher → step_evaluator (writes reports/step_N.md)
-│   ├── deep_research/      # orchestrator: run_step → after_step, checkpointing each step
-│   └── vlm/                # multimodal grounding (self-contained)
-│       ├── images.py       #   collect_images / with_images (provider-agnostic image blocks)
-│       └── reviewer.py     #   image_reviewer node + bounded revise-the-plot router
-├── examples/
-│   ├── run_planner_review.py
-│   ├── run_self_debug.py / _retry.py / _lorenz.py / _csv_plot.py
-│   ├── run_deep_research.py          # full plan → multi-step execution
-│   └── trace_cost_summary.py
-├── pyproject.toml
-└── .env.example
+```mermaid
+flowchart TD
+    task(["Research task, data files and settings"]) --> planning["planning<br/>a planner and a plan reviewer agree on a plan"]
+    planning -->|"plan: numbered steps, each assigned to an agent"| run_step
+    subgraph deep_research ["deep_research: runs the plan one step at a time"]
+        run_step["run_step"] -->|engineer step| self_debug["self_debug<br/>write, check and run a script"]
+        run_step -->|researcher step| researcher["researcher<br/>write a report from the workspace"]
+        self_debug --> review["adaptive_review<br/>keep or rewrite the remaining steps"]
+        researcher --> review
+        review -->|next step| run_step
+    end
+    review -->|plan finished| out(["work_dir: scripts, data, figures and reports"])
 ```
 
-## Install
+A run has two phases. The `planning` graph turns the task into a plan: a list of steps, each assigned to the **engineer**, who writes and runs code, or to the **researcher**, who writes text. The `deep_research` graph then runs the steps in order. An engineer step goes through `self_debug`, which writes a script, runs it, and retries until two evaluators accept the result. A researcher step goes through `researcher`, which writes a report from the files in the workspace and has its numbers checked against them. After each step, an adaptive review can rewrite the steps that have not run yet, and a checkpoint is saved so that an interrupted run can resume.
+
+Each role can use its own model and provider. By default every role uses `gemini-3.1-flash-lite`, except the figure reviewer, which uses `gemini-3.1-pro-preview`.
+
+## Installation
 
 ```bash
-python3.12 -m venv ~/pyvenvs/py312-cmbagent-lg
-source ~/pyvenvs/py312-cmbagent-lg/bin/activate
-pip install -e .
-cp .env.example .env  # GOOGLE_API_KEY (+ OPENAI_API_KEY / ANTHROPIC_API_KEY for those providers; LANGFUSE_* for tracing)
+python3 -m venv .venv
+source .venv/bin/activate
+pip install "cmbagent_lg @ git+https://github.com/CMBAgents/cmbagent"
 ```
 
-The engine runs generated code as a subprocess **in this venv**, so install whatever the analyses need (e.g. `pip install numpy scipy matplotlib pandas`). Requires `langchain-core` 1.x and a modern langchain stack.
+From a clone of this repository, use `pip install -e .` instead. Two extras are available: `escalation` (the Claude Agent SDK, for the optional escalation node) and `ocr` (Mistral OCR).
 
-## Public API
+The default models need `GOOGLE_API_KEY`. A role on an OpenAI or Anthropic model needs `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`, and the package `langchain-openai` or `langchain-anthropic`. Tracing needs the `LANGFUSE_*` variables described in [Tracing with Langfuse](#tracing-with-langfuse). The file [`.env.example`](.env.example) lists them; copy it to `.env`.
 
-```python
-from cmbagent_lg import (
-    PlanContext, Plan, Step, Review,
-    graph as planning_graph,           # planning
-    deep_research_graph,               # orchestrator
-    self_debug_graph, researcher_graph,
-    save_final_plan, load_final_plan, save_deep_research_summary,
-    EngineerResponse, ExecutionVerdict, StepVerdict, ImageReview,
-)
-```
+> [!WARNING]
+> The engineer's scripts run as subprocesses of the Python interpreter that runs CMBAgent, in the run's working directory, with your user's permissions and your environment variables, API keys included. Install the packages that the analyses need in that environment, for example `pip install numpy scipy matplotlib pandas`, and run CMBAgent in a container or a virtual machine when the task or the data are not trusted.
 
-## End-to-end
+## Quick start
 
 ```python
+from cmbagent_lg import PlanContext, graph as planning_graph, deep_research_graph, save_final_plan
+
 ctx = PlanContext(
-    main_task="Investigate how a small MLP learns a smooth 5-D function. "
-              "Generate data, train, and produce diagnostic plots.",
+    main_task=(
+        "Simulate 200 noisy measurements of a damped harmonic oscillator. "
+        "Fit its frequency and damping rate with uncertainties, and plot the data with the fit."
+    ),
     maximum_number_of_steps_in_plan=3,
-    available_agents=[("engineer", "writes+runs code"), ("researcher", "writes prose")],
-    # per-role, multi-provider (provider inferred from the name)
-    engineer_model="gpt-5.4", researcher_model="claude-sonnet-4-6",
-    planner_model="gemini-3.5-flash",
-    # multimodal grounding + plot-review loop. Leave vlm_model UNSET: the
-    # image_reviewer defaults to a non-lite vision model on purpose — reading a
-    # figure well enough to catch a wrong-physics plot is a precision task the
-    # lite models fail (see "Robustness & anti-fabrication").
-    vlm_enabled=True, max_vlm_review_attempts=2,
 )
 
 plan = planning_graph.invoke({}, context=ctx)["current_plan"]
-save_final_plan(plan, "runs/mlp")
+save_final_plan(plan, "runs/oscillator")
 
-res = deep_research_graph.invoke({"plan": plan, "work_dir": "runs/mlp"}, context=ctx)
-outcomes = res["step_outcomes"]      # [{step_number, fulfilled, attempts, escalated, reason?}, …]
+result = deep_research_graph.invoke({"plan": plan, "work_dir": "runs/oscillator"}, context=ctx)
+for outcome in result["step_outcomes"]:
+    print(outcome["step_number"], outcome["fulfilled"], outcome["attempts"])
 ```
 
-### Resume after a crash
+The scripts, data, figures and reports are written under `runs/oscillator/` (see [Working directory](#working-directory)). For a task with input data, place the files in `data/` inside the working directory before the run, or name them by absolute path in `main_task`. To mix providers, give each role its own model; the provider follows from the model name (`gemini-*` Google, `gpt-*` and `o1`, `o3`, `o4` OpenAI, `claude-*` Anthropic):
+
+```python
+ctx = PlanContext(
+    main_task="...",
+    planner_model="gemini-3.5-flash",
+    engineer_model="gpt-5.4",
+    researcher_model="claude-sonnet-4-6",
+)
+```
+
+### Resuming a run
+
+`deep_research` writes `logs/deep_research_run.json` after every step. To resume after a crash, start again from the first step that did not complete:
 
 ```python
 import json
-ck = json.load(open("runs/mlp/logs/deep_research_run.json"))   # written after each step
-resume_at = max(o["step_number"] for o in ck["outcomes"] if o["fulfilled"]) + 1
+
+checkpoint = json.load(open("runs/oscillator/logs/deep_research_run.json"))
+resume_at = max(o["step_number"] for o in checkpoint["outcomes"] if o["fulfilled"]) + 1
 deep_research_graph.invoke(
-    {"plan": plan, "work_dir": "runs/mlp", "step_index": resume_at,
-     "step_summaries": ck["step_summaries"][:resume_at-1],
-     "step_outcomes":  ck["outcomes"][:resume_at-1]},
+    {"plan": plan, "work_dir": "runs/oscillator", "step_index": resume_at,
+     "step_summaries": checkpoint["step_summaries"][:resume_at - 1],
+     "step_outcomes": checkpoint["outcomes"][:resume_at - 1]},
     context=ctx,
 )
 ```
 
-## The graphs
+## The four graphs
+
+The diagrams below show the nodes and edges of the compiled graphs. A node named `format_*` converts the free text of the node before it into a typed Pydantic object with `with_structured_output`.
 
 ### `planning`
 
-```
-START → planner → format_plan → [END if last round else continue]
-                                 │
-                                 ▼
-                             plan_reviewer → format_review → planner …
-```
-
-`num_rounds` counts **review cycles**; total planner passes = `num_rounds + 1`. Generators write free-form prose; tiny formatter nodes convert it to typed Pydantic via `with_structured_output`. The formatter dynamically constrains `Step.sub_task_agent` to `available_agents`.
-
-### `self_debug`
-
-```
-engineer → format_engineer → executor → execution_evaluator
-    ▲                                          │ success
-    │                                          ▼
-    │                          image_reviewer (if vlm_enabled)
-    │   figure needs revision ◄──────────────  │  (else → step_evaluator)
-    │   (+budget) → engineer                    ▼
-    │                                      step_evaluator
-    │   code FAILURE → engineer ◄─────────┐         │ goal MET → END
-    │   escalatable → escalation → executor│        │ goal MISS → engineer
-    └──────────────────────────────────────┘
+```mermaid
+flowchart LR
+    start(["task"]) --> planner["planner<br/>writes the plan"]
+    planner --> format_plan["format_plan<br/>text to Plan"]
+    format_plan -->|review rounds left| plan_reviewer["plan_reviewer<br/>criticises the plan"]
+    plan_reviewer --> format_review["format_review<br/>text to Review"]
+    format_review --> planner
+    format_plan -->|last round| done(["plan"])
 ```
 
-Two LLM gates over one shared retry budget (`max_n_attempts`): **`execution_evaluator`** (did it *run*? → `ExecutionVerdict`) and **`step_evaluator`** (did it *meet the goal*? → `StepVerdict`). When `vlm_enabled`, **`image_reviewer`** runs between them and can bounce a fixable figure back to the engineer (bounded by `max_vlm_review_attempts`). The `executor` writes `codebase/step_N.py` and runs it with `cwd = work_dir`, so the script's `data/<file>` outputs land in `work_dir/data/`; the data baseline is re-snapshotted each attempt so a step's manifest reflects only its successful attempt.
+`num_rounds` (default 2) sets the number of review cycles, so the planner writes `num_rounds + 1` versions of the plan. The plan has at most `maximum_number_of_steps_in_plan` steps (default 5), and the formatter only accepts agents listed in `available_agents` (by default the engineer and the researcher).
 
-The diagram above is the happy path. The full graph also routes through the on-by-default safety nodes — **`preflight`** (a deterministic pre-parse inspection of provided input files, zero LLM calls), **`data_fixer`** (a specialist node that inspects a real data file when a load fails), and **`missing_input`** (a terminal short-circuit that refuses to fabricate an absent required input) — plus the `execution_evaluator`'s output-size caps and timeouts. See [Robustness & anti-fabrication](#robustness--anti-fabrication).
+### `deep_research`
+
+```mermaid
+flowchart TD
+    start(["plan"]) --> run_step["run_step<br/>run the step with self_debug or researcher"]
+    run_step --> adaptive_review["adaptive_review<br/>review the finished step"]
+    adaptive_review -->|next step| run_step
+    adaptive_review -->|rewrite the remaining steps| replan_tail["replan_tail<br/>propose new remaining steps"]
+    replan_tail --> format_tail["format_tail<br/>text to steps"]
+    format_tail --> merge_plan["merge_plan<br/>keep the completed steps"]
+    merge_plan -->|steps left| run_step
+    merge_plan -->|no steps left| done(["end"])
+    adaptive_review -->|"plan finished, or a step failed"| done
+```
+
+`run_step` runs one step through `self_debug` (engineer) or `researcher`, and passes it a summary of the earlier steps: their code, their printed output, and a manifest of the files in the working directory. Only the last `carryover_recent_full` steps (default 3) are passed in full; older steps are reduced to a one-line header, and the agents can still open their files.
+
+`adaptive_review` (on by default, `adaptive_planning`) looks at each finished step and can rewrite the steps that have not run yet; completed steps never change. When a step fails after all its attempts, the run continues with rewritten remaining steps if a rewrite is still allowed, and stops otherwise. A run makes at most `max_adaptations` rewrites (default 3).
+
+### `self_debug`: engineer steps
+
+```mermaid
+flowchart TD
+    start(["engineer step"]) --> preflight["preflight<br/>inspect the input files"]
+    preflight --> engineer["engineer<br/>write the script"]
+    engineer --> format_engineer["format_engineer<br/>extract the code"]
+    format_engineer --> static_preflight["static_preflight<br/>does it parse and print?"]
+    static_preflight -->|accepted| api_preflight["api_preflight<br/>do the called APIs exist?"]
+    static_preflight -->|refused| execution_evaluator
+    api_preflight -->|missing API| engineer
+    api_preflight -->|ok| executor["executor<br/>run codebase/step_N.py"]
+    executor --> output_postcondition["output_postcondition<br/>were the declared outputs written?"]
+    output_postcondition -->|output missing| engineer
+    output_postcondition -->|ok| execution_evaluator["execution_evaluator<br/>did the script run?"]
+    execution_evaluator -->|failed| engineer
+    execution_evaluator -->|ran| image_reviewer["image_reviewer<br/>are the figures right?"]
+    image_reviewer -->|revise a figure| engineer
+    image_reviewer -->|figures accepted| step_evaluator["step_evaluator<br/>was the goal met?"]
+    step_evaluator -->|goal missed| engineer
+    step_evaluator -->|"goal met, or no attempts left"| done(["end"])
+    execution_evaluator -->|"missing package or renamed API"| escalation["escalation<br/>Claude Agent SDK agent"]
+    escalation --> executor
+    execution_evaluator -->|"data file fails to load"| data_fixer["data_fixer<br/>inspect the real file"]
+    data_fixer -->|loader guidance| engineer
+    execution_evaluator -->|"required input absent"| missing_input["missing_input<br/>end the step, never invent data"]
+    missing_input --> done
+    classDef optional stroke-dasharray: 5 5
+    class escalation,data_fixer optional
+```
+
+Two model gates decide the outcome. `execution_evaluator` judges whether the script ran, and `step_evaluator` judges whether the step's goal was met; a script that ran but returned a wrong result, such as a fit that stayed at its initial guess, is a goal miss. Every arrow back to the engineer uses one of the step's `max_n_attempts` attempts (default 3); when none are left, the step ends instead. Figure revisions are also limited by `max_vlm_review_attempts` (default 2).
+
+The other nodes are checks that make no model call, except the intent gate in `preflight`:
+
+| Node | Check | Setting |
+| --- | --- | --- |
+| `preflight` | Inspects the input files before the first attempt (delimiter, columns, HDF5 keys, dtypes) and gives the facts to the engineer. When no input file is found, one classifier call, the intent gate, decides whether the step needed input. | `enable_preflight`, `enable_intent_gate` (on) |
+| `static_preflight` | Refuses a script that does not parse, prints nothing, or loads a bundled demo dataset instead of the provided data. | always on |
+| `api_preflight` | Checks every third-party name the script uses against the installed packages, and returns the real API to the engineer before running. | `enable_api_preflight` (on) |
+| `output_postcondition` | Sends the script back when a run finished without writing an output file that the step declared. | always on |
+| `missing_input` | Ends the step when a required input file does not exist, so that the engineer does not invent the data. | `safe_loading`, `enable_intent_gate` (on) |
+
+The dashed nodes are optional. `data_fixer` (`enable_data_fixer`, off) inspects a data file that fails to load, down to its bytes or HDF5 tree, and gives the engineer loader guidance. `escalation` (`enable_escalation`, off) hands a missing package or a renamed API once to a Claude Agent SDK agent, with a budget of US$0.50. With `vlm_enabled=False`, a script that ran goes straight to `step_evaluator`.
+
+### `researcher`: researcher steps
+
+```mermaid
+flowchart LR
+    start(["researcher step"]) --> writer["react_researcher<br/>read files and figures,<br/>then write the report"]
+    writer --> step_evaluator["step_evaluator<br/>was the goal met?"]
+    step_evaluator -->|goal missed| writer
+    step_evaluator -->|goal met| claim_auditor["claim_auditor<br/>is every number sourced?"]
+    claim_auditor -->|unsupported number| writer
+    claim_auditor -->|numbers sourced| done(["reports/step_N.md"])
+    step_evaluator -->|no attempts left| done
+```
+
+The default writer, `react_researcher` (`researcher_mode="react"`), is a ReAct loop with three read-only tools, `list_workspace`, `read_file` and `view_image`, confined to the working directory. It can make up to `researcher_max_tool_calls` tool calls (default 6, plus one per earlier step) before writing, so it can quote a value that an earlier step saved to a file without printing it. `step_evaluator` grades the report against the step's requirements, and `claim_auditor` (`claim_audit_enabled`, on) checks each number in it against the files and printed outputs. With `researcher_mode="plain"`, the writer is the `researcher` node, which writes the report in one call from the earlier steps' printed output.
+
+The highest-numbered report that passed, `reports/step_N.md`, is the final report of the run; Denario uses it as `results.md`.
+
+### Working directory
 
 ```
 work_dir/
-├── codebase/   step_N.py, step_N.log, step_N_failure_I.py (audit trail)
-├── data/       output files the script produced (flat — only these are tracked)
-├── reports/    step_N.md  (researcher steps)
-└── logs/       step_N_execution_verdict.json, step_N_verdict.json,
-                step_N_data_manifest.json, step_N_image_review_*.json,
-                deep_research_run.json  (the per-step CHECKPOINT)
+├── codebase/   step_N.py, step_N.log, step_N_failure_K.py (failed attempts)
+├── data/       files written by the scripts
+├── reports/    step_N.md (researcher steps)
+└── logs/       verdicts, data manifests, figure reviews, researcher tool calls,
+                deep_research_run.json (the checkpoint)
 ```
 
-### `researcher`
+## Configuration
 
-```
-researcher → step_evaluator
-    ▲              │ goal MET → END
-    └──────────────┘ goal MISS → researcher   (until attempts == max_n_attempts)
-```
+All settings are fields of `PlanContext`, passed to every graph as `context=`. The main ones:
 
-A researcher step writes **prose, not code** (uses the `researcher_model`). The node makes one LLM call, saves the raw markdown to `reports/step_N.md`, and a `step_evaluator` grades it (`StepVerdict`); on a goal-miss the unmet requirements + feedback feed back into the next attempt (bounded by `max_n_attempts`, failures demoted to `reports/step_N_failure_*.md`). The highest-numbered non-failure `reports/step_N.md` is the final report — Denario takes it as `results.md`.
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `main_task` | required | The research task, in plain text. |
+| `maximum_number_of_steps_in_plan` | 5 | Maximum number of steps in the plan. |
+| `num_rounds` | 2 | Plan review cycles. |
+| `planner_model`, `plan_reviewer_model`, `engineer_model`, `researcher_model`, `evaluator_model`, `formatter_model` | `gemini-3.1-flash-lite` | Model of each role. |
+| `vlm_model` | `gemini-3.1-pro-preview` | Vision model of the figure reviewer. |
+| `max_n_attempts` | 3 | Attempts per step, shared by all retry paths. |
+| `code_execution_timeout` | 120 | Seconds before a running script is stopped. |
+| `vlm_enabled` | `True` | Figure review in `self_debug`, and figures shown to the researcher. |
+| `researcher_mode` | `"react"` | `"react"` for the ReAct writer, `"plain"` for the single-call writer. |
+| `claim_audit_enabled` | `True` | Number checks on each report. |
+| `adaptive_planning` | `True` | Rewriting of the remaining steps after each step. |
+| `carryover_recent_full` | 3 | Earlier steps passed in full to the next step. |
+| `enable_data_fixer`, `enable_escalation` | `False` | Optional nodes of `self_debug`. |
 
-**What's in the researcher's context** (its system prompt is assembled from):
+With Gemini 3 models, the engineer runs at temperature 0.2 with thinking level `high`, the planner and the researcher at temperature 1.0 with thinking level `low`, the reviewers and evaluators at temperature 0.4 with thinking level `low`, and the formatters at temperature 0. The full list of settings, with comments, is in [`cmbagent_lg/context.py`](cmbagent_lg/context.py).
 
-- `main_task` — the overall research task.
-- `researcher_append_instructions` — task-specific guidance (e.g. Denario's "write the full Results section, ~2000 words, academic, interpret the plots/tables").
-- `previous_steps_execution_summary` — the cross-step context: each prior step's **executed code + stdout**, plus a **workspace file manifest** (the relative paths under `codebase/`, `data/`, `reports/`). This is how the researcher learns what the analysis produced. On long plans this is **bounded** (`carryover_recent_full`, default 3): only the most recent steps are carried verbatim, older ones collapse to a one-line header — the detail stays on disk and any step re-opens it via the manifest (see [Robustness & anti-fabrication](#robustness--anti-fabrication)).
-- `current_sub_task` + its bullet-point `current_instructions`.
-- `retry_context` — on a retry, the previous report and the evaluator's unmet requirements / feedback.
-- **the generated plots** — when `vlm_enabled`, the figures under `data/` are attached to the prompt as images, so the report is grounded in what the plots actually show rather than inferred.
+## Tracing with Langfuse
 
-**Grounding.** The step summary carries prior steps' **stdout**, not the contents of saved data files, so the engineer is told to **print** its key results/tables. That is not enough on its own: a fit whose parameters went to `data/fit_params.csv` used to be written up in full detail, uncertainties and all, from a stdout that said only `saved data/fit_params.csv`. Three layers now close that gap, all on by default:
-
-- the researcher can **open the artifacts** (`researcher_mode="react"`) — `read_file` for tables/JSON/logs, `view_image` for figures (read by a non-lite vision model, since the lite one puts a 137 Hz peak at "≈140 Hz");
-- the prompt makes the rule explicit: state only what you can source, and manufacturing precision (`1.0028` for a value you only know as `1.0`) counts as fabrication;
-- the **step evaluator** sees the same evidence — prior stdout, the file manifest, and excerpts of whatever the researcher actually read (the **union** across all of the step's attempts, from `logs/step_N_researcher_tools_attemptK.json`) — so a report that covers every bullet point with invented numbers fails the gate, while a report whose numbers *were* sourced on an earlier attempt is not falsely failed on a retry that (correctly) re-read little.
-
-Set `researcher_mode="plain"` and `vlm_enabled=False` to get the older, ungrounded behaviour back.
-
-## Robustness & anti-fabrication
-
-When cmbagent_lg drives an autonomous scientific analysis, the dangerous failures are not crashes — those are visible and retried — but the ones that **look like success**: a wrong number reported as real, a figure nobody could see written up as if seen, a finding that silently never reaches the paper. Each safeguard below was added in response to a specific such failure observed under stress testing (real Gemini, real code execution), and each was measured before/after rather than assumed. All are **on by default**; every one has a `PlanContext` flag to restore the prior behaviour.
-
-**Never fabricate a missing input.** A load error on a required input file used to be retried like any other bug — which is exactly what tempts the engineer to *invent* the data (observed: it synthesised `2.5·exp(-0.5t)sin(2πt)+noise`, fit it, and reported the fitted parameters as real, past both gates). Now: a deterministic **pre-flight** inspects provided files before the first attempt (`enable_preflight`, 0 extra LLM calls); an absent required input short-circuits to a terminal **`missing_input`** rather than looping (`safe_loading`); a proactive **intent gate** on an empty workspace distinguishes "load the provided data" (must fail honestly) from "simulate the data" (generation is the task) (`enable_intent_gate`); and a specialist **`data_fixer`** inspects the real bytes/HDF5 tree of a genuinely malformed file instead of guessing (`enable_data_fixer`). The step evaluator treats absent-input / fabricated-data / non-converged-fit / wrong-named-column as **unfulfillable, never fulfilled**.
-
-**Never let a wrong-but-ran result pass.** The step evaluator judges the *goal*, not just the exit code — a fit that returned its initial guess, a summary of the wrong column, a mis-computed confidence interval are goal-misses even though the code ran cleanly (all three caught on live runs).
-
-**Bound what a long plan carries.** Each step's summary is fed into every later step's prompt, so an N-step plan carried O(N²) cumulative tokens (a 20-step plan re-sent >1M tokens of prior summaries). The carryover is now bounded — last `carryover_recent_full` steps verbatim, older ones as one-line headers (67–71% cumulative reduction, measured). This is safe because a printed-only finding is persisted to `codebase/step_N.log` and the researcher re-opens it on demand; the workspace manifest — which the code comments mark as an **invariant** — is what routes that recovery, so a synthesis step recalls a compacted step's number without it being carried verbatim. The researcher's tool budget **scales with plan length** so a long synthesis can open every earlier log it needs (12-step A/B: all findings recalled with the scaling vs. findings silently dropped under a fixed cap).
-
-**Figure grounding, both directions.** The **researcher** can `read_file` and `view_image` rather than describe a plot it cannot see (see *Grounding* above); the engineer's **`image_reviewer`** catches a figure that is blank, mis-scaled, or scientifically wrong — including the class nothing else catches, a plot annotation that contradicts the data (a peak marker on the wrong feature). Its default model is a **non-lite** vision model on purpose (the lite ones are phrasing-unstable on exactly that class), it judges the *figure* rather than compliance with a plotting bullet, and an unresolved defect at budget exhaustion **fails the step** instead of shipping `fulfilled=True`.
-
-The stress harnesses that produced these results are not part of this public branch.
-
-## Run the examples
+[Langfuse](https://langfuse.com) records every model call of a run, including the formatter calls, tagged with the name of its node. Set the keys of a Langfuse project and the URL of the server that issued them:
 
 ```bash
-python examples/run_planner_review.py        # planning
-python examples/run_self_debug_csv_plot.py   # self_debug (CSV + plot)
-python examples/run_deep_research.py runs/dr # full plan → multi-step execution
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_BASE_URL=https://cloud.langfuse.com   # read by the Langfuse SDK; or the URL of a self-hosted server
+LANGFUSE_HOST=https://cloud.langfuse.com       # same value, read by other tools
 ```
 
-Examples accept an optional explicit work_dir (cleared on rerun; `KEEP_WORK_DIR=1` to keep).
+Then pass the callbacks to each graph:
 
-## Langfuse (optional)
+```python
+from cmbagent_lg.tracing import langfuse_callbacks
 
-The key pair picks the Langfuse project. The server is Langfuse Cloud by default, or a self-hosted instance:
-
-```bash
-LANGFUSE_BASE_URL=https://cloud.langfuse.com   # the var the SDK reads (or your self-hosted URL)
-LANGFUSE_HOST=https://cloud.langfuse.com       # same value — other tooling reads this one
-LANGFUSE_PUBLIC_KEY=pk-lf-…
-LANGFUSE_SECRET_KEY=sk-lf-…
+result = deep_research_graph.invoke(state, context=ctx, config={"callbacks": langfuse_callbacks()})
 ```
 
-Set both URL variables to the server that issued the keys: Langfuse Cloud rejects the keys of a self-hosted project (401), and the traces then disappear without an obvious error. `cmbagent-lg-cost` likewise sees only the project whose keys are in your shell. For fully local development, run Langfuse itself with Docker Compose (see the Langfuse documentation) on `http://localhost:3000` and use that instance's keys.
+`langfuse_callbacks()` returns an empty list, with a warning, when the keys are not set. A key pair works only on the server that issued it: Langfuse Cloud rejects the keys of a self-hosted project with a 401 error, and the traces are lost without any other sign. After a run, `cmbagent-lg-cost <trace_id or work_dir>` prints the cost, tokens and latency of each agent.
 
-`tracing.py` builds a LangChain `CallbackHandler` from the `LANGFUSE_*` env vars; pass it via `config={"callbacks": [handler]}` and every LLM call (including formatter sub-calls) is traced, tagged by node name. Then:
+## Examples
 
-```bash
-cmbagent-lg-cost <trace_id | work_dir>   # per-agent cost / tokens / latency
+| Script | Content |
+| --- | --- |
+| [`examples/run_planner_review.py`](examples/run_planner_review.py) | Planning only. |
+| [`examples/run_self_debug_csv_plot.py`](examples/run_self_debug_csv_plot.py) | One engineer step that writes a CSV file and a plot. |
+| [`examples/run_self_debug_lorenz.py`](examples/run_self_debug_lorenz.py) | One engineer step that plots the Lorenz attractor. |
+| [`examples/run_deep_research_simple.py`](examples/run_deep_research_simple.py) | A minimal run from task to report. |
+| [`examples/run_deep_research.py`](examples/run_deep_research.py) | A run with several engineer steps. |
+| [`examples/react_demo.py`](examples/react_demo.py) | A ReAct loop, and the effect of the temperature on it. |
+| [`examples/smoke_test_keys.py`](examples/smoke_test_keys.py) | A check of the API keys in `.env` against each provider. |
+
+The examples take an optional working directory, for example `python examples/run_deep_research.py runs/demo`. It is cleared before each run unless `KEEP_WORK_DIR=1` is set.
+
+## Repository layout
+
+```
+cmbagent_lg/
+├── context.py        PlanContext: every run setting
+├── llms.py           chat_model(model, role): the provider from the model name, the defaults of each role
+├── persistence.py    working directory, plan and checkpoint files
+├── tracing.py        Langfuse callbacks
+├── cli.py            cmbagent-lg-cost
+├── planning/         planner and plan reviewer
+├── deep_research/    run_step, adaptive review and replanning
+├── self_debug/       engineer, executor, evaluators and the pre- and post-run checks
+├── researcher/       report writers, step evaluator and claim auditor
+├── vlm/              figures attached to prompts, and the figure reviewer
+└── ocr.py            PDF to markdown with Mistral OCR (extra `ocr`)
+examples/             runnable scripts
+tests/                test suite (python -m pytest tests)
 ```
 
-## Used by Denario
+## Citation
 
-cmbagent_lg is the analysis/results engine behind [Denario](https://github.com/AstroPilot-AI/Denario): `denario_results` maps `params.yaml`'s `Analysis module` (per-role models, `max_n_steps`, the VLM block) onto a `PlanContext` and runs `planning_graph` + `deep_research_graph`.
+```bibtex
+@software{CMBAGENT_2025,
+  author = {Boris Bolliet},
+  title = {CMBAGENT: Open-Source Multi-Agent System for Science},
+  year = {2025},
+  url = {https://github.com/CMBAgents/cmbagent},
+}
+
+@misc{xu2025opensourceplanning,
+  title = {Open Source Planning \& Control System with Language Agents for Autonomous Scientific Discovery},
+  author = {Licong Xu and Milind Sarkar and Anto I. Lonappan and Íñigo Zubeldia and Pablo Villanueva-Domingo and Santiago Casas and Christian Fidler and Chetana Amancharla and Ujjwal Tiwari and Adrian Bayer and Chadi Ait Ekiou and Miles Cranmer and Adrian Dimitrov and James Fergusson and Kahaan Gandhi and Sven Krippendorf and Andrew Laverick and Julien Lesgourgues and Antony Lewis and Thomas Meier and Blake Sherwin and Kristen Surrao and Francisco Villaescusa-Navarro and Chi Wang and Xueqing Xu and Boris Bolliet},
+  year = {2025},
+  eprint = {2507.07257},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.AI},
+  url = {https://arxiv.org/abs/2507.07257},
+}
+
+@misc{Laverick:2024fyh,
+  author = {Laverick, Andrew and Surrao, Kristen and Zubeldia, Inigo and Bolliet, Boris and Cranmer, Miles and Lewis, Antony and Sherwin, Blake and Lesgourgues, Julien},
+  title = {Multi-Agent System for Cosmological Parameter Analysis},
+  eprint = {2412.00431},
+  archivePrefix = {arXiv},
+  primaryClass = {astro-ph.IM},
+  year = {2024},
+}
+```
+
+## License
+
+MIT; see [LICENSE](LICENSE). The project is funded by the [Cambridge Centre for Data-Driven Discovery Accelerate Programme](https://science.ai.cam.ac.uk).
