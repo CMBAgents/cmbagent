@@ -1,6 +1,6 @@
 # cmbagent_lg
 
-> This is the `lg` branch of [CMBAgents/cmbagent](https://github.com/CMBAgents/cmbagent): `cmbagent_lg`, the LangGraph implementation of CMBAgent. Install it with `pip install "cmbagent_lg @ git+https://github.com/CMBAgents/cmbagent@lg"`.
+> `cmbagent_lg`, the LangGraph implementation of CMBAgent, is the main branch of [CMBAgents/cmbagent](https://github.com/CMBAgents/cmbagent) since 16 November 2026; the branch `lg` holds the same code. The earlier implementation, the `cmbagent` package on PyPI, is on the branch [`ag2`](https://github.com/CMBAgents/cmbagent/tree/ag2). Install `cmbagent_lg` with `pip install "cmbagent_lg @ git+https://github.com/CMBAgents/cmbagent"`.
 
 LangGraph re-implementation of [cmbagent](https://github.com/CMBAgents/cmbagent) deep research.
 
