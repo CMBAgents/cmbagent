@@ -1,145 +1,41 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel",
-    "Cython>=0.29.21",
-    "setuptools_scm"
-]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.0.1post64"
-name = "cmbagent"
-maintainers = [{name = "CMBAgents", email = "boris.bolliet@cmbagent.community"}]
-description = "Autonomous research system for scientific discovery across domains, powered by ag2"
-readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.12"
-license = "Apache-2.0"
-
-# Core dependencies - orchestration only
-# Note: Scientific packages (numpy, scipy, etc.) are NOT required here
-# because code execution happens on the client via remote executor
+name = "cmbagent_lg"
+version = "0.0.1"
+description = "LangGraph re-implementation of cmbagent deep research. Starting point: planner ↔ plan_reviewer propose-critique loop."
+requires-python = ">=3.11"
 dependencies = [
-    # LLM clients
-    "anthropic",
-    "mistralai",
-
-    # AG2 framework for multi-agent orchestration
-    "cmbagent_autogen>=0.0.91post11",
-
-    # Utilities
-    "ruamel.yaml",
-    "jsonref==1.1.0",
-    "pandas>=2.2",
-    "pydantic>=2.7.4",
-    "aiohttp>=3.9.0",
-    "ipython",
+    "langgraph>=0.2.50",
+    "langchain-core>=0.3",
+    # langfuse's `langfuse.langchain` integration imports the umbrella
+    # `langchain` package at module load — pinning just langchain-core is not
+    # enough.
+    "langchain>=0.3",
+    "langchain-google-genai>=2.0",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "langfuse>=4.0",
 ]
 
 [project.optional-dependencies]
-# Development and testing
-dev = [
-    "pytest",
-    "ipython",
-    "jupyterlab",
-    "ipykernel>=6.29.0",
-]
-
-# Jupyter notebook dependencies
-jupyter = [
-    "jupyter-kernel-gateway",
-    "jupyter-client>=8.6.0",
-]
-
-# Local execution - install these if running code locally (not via frontend)
-# The frontend installs packages on-demand via the installer agent
-local = [
-    "numpy>=1.24",
-    "scipy>=1.12",
-    "matplotlib>=3.8",
-    "scikit-learn>=1.4",
-]
-
-# Material sciences dependencies
-materials = [
-    "pymatgen>=2024.1",
-    "ase>=3.22",
-    "phonopy>=2.20",
-    "matminer>=0.9",
-]
-
-# Biochemistry and molecular sciences dependencies
-biochem = [
-    "biopython>=1.83",
-    "rdkit>=2023.9",
-    "mdanalysis>=2.6",
-    "prody>=2.4",
-]
-
-# Astronomy/astrophysics dependencies
-astro = [
-    "camb>=1.6.0",
-    "astropy>=6.0",
-    "healpy>=1.16",
-    "emcee>=3.1",
-    "cobaya",
-]
-
-# Data science, statistics and visualization dependencies
-data = [
-    "scipy>=1.12",
-    "xarray>=2024.3",
-    "h5py>=3.10",
-    "scikit-learn>=1.4",
-    "statsmodels>=0.14",
-    "linearmodels>=5.1",
-    "matplotlib>=3.8",
-    "seaborn>=0.13",
-    "plotly>=5.21",
-    "xgboost>=2.0",
-    "yfinance>=0.2",
-]
-
-# All scientific packages (for local execution with full capabilities)
-all = [
-    "cmbagent[local]",
-    "cmbagent[materials]",
-    "cmbagent[biochem]",
-    "cmbagent[astro]",
-    "cmbagent[data]",
-    "cmbagent[dev]",
-]
-
-[tool.setuptools.package-data]
-cmbagent = [
-  "cmbagent/apis/*.json",
-  "cmbagent/assistants/*.yaml",
-  "cmbagent/planner/*.yaml",
-  "cmbagent/engineer/*.yaml",
-  "cmbagent/executor/*.yaml",
-  "cmbagent/admin/*.yaml",
-  "logo.png"
-]
-
-[project.urls]
-Homepage = "https://github.com/CMBAgents/cmbagent"
-GitHub = "https://github.com/CMBAgents/cmbagent"
-
-
-[tool.setuptools.packages.find]
-include = ["cmbagent", "cmbagent.*"]
+dev = ["jupyterlab", "ipykernel"]
+# The self_debug escalation node (opt-in) runs a Claude Agent SDK agent.
+escalation = ["claude-agent-sdk>=0.1"]
+# OCR (cmbagent_lg.ocr) uses the Mistral OCR API. Works on both 1.x and the
+# latest 2.x SDK — cmbagent_lg.ocr handles the moved import path (2.x relocated
+# the client to `mistralai.client`).
+ocr = ["mistralai>=1.0"]
 
 [project.scripts]
-cmbagent = "cmbagent.cli:main"
+cmbagent-lg-cost = "cmbagent_lg.cli:cost_main"
 
+[tool.setuptools.packages.find]
+include = ["cmbagent_lg*"]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-norecursedirs = ["legacy", ".ipynb_checkpoints"]
-
-
-[dependency-groups]
-dev = [
-    "nbstripout>=0.9.0",
-    "pre-commit>=4.5.1",
-]
+[tool.setuptools.package-data]
+# Templates live in each module's own templates/ dir (planning/, self_debug/).
+cmbagent_lg = ["**/templates/*.yaml"]

@@ -1,0 +1,101 @@
+{
+  "claims": [
+    {
+      "statement": "As reported in `codebase/step_1.log`, linear regression on atom counts (C, N, O, F, H) explains the vast majority of the variance for `zpve` ($R^2=0.9973$), `u0` ($R^2=0.9993$), and `u0_atom` ($R^2=0.9898$).",
+      "kind": "quantitative",
+      "verdict": "unsupported_hard",
+      "evidence": "The referenced file `codebase/step_1.log` does not contain these R^2 values; it only lists R^2 values for `A_trans`, `B`, `C`, and `mu`."
+    },
+    {
+      "statement": "Properties such as `homo` ($R^2=0.1988$) and `mu` ($R^2=0.2761$) are less determined by size, indicating they carry more independent structural information.",
+      "kind": "quantitative",
+      "verdict": "unsupported_hard",
+      "evidence": "While `mu` ($R^2=0.2761$) is present in `step_1.log`, the claim that `homo` ($R^2=0.1988$) is in the log is incorrect; it does not appear there."
+    },
+    {
+      "statement": "Highly saturated molecules (`S_high`) exhibit the highest manifold complexity with an estimated ID of 5.59, followed by oxygen-containing systems like `H_CO` (ID = 5.33) and `H_CNO` (ID = 5.07).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "These values are confirmed in `data/family_joint_metrics.json`."
+    },
+    {
+      "statement": "In contrast, purely hydrocarbon systems (`H_C`) and nitrogen-only systems (`H_CN`) occupy lower-dimensional manifolds with IDs of 4.17 and 3.70, respectively (`data/family_joint_metrics.json`).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "These values are confirmed in `data/family_joint_metrics.json`."
+    },
+    {
+      "statement": "A 4-component Canonical Polyadic (CP) decomposition of the property covariance tensor across 10 structural families (reconstruction error = 0.4737, `codebase/step_3.log`) identifies distinct latent modes of organization",
+      "kind": "test_outcome",
+      "verdict": "supported",
+      "evidence": "Confirmed in `codebase/step_3.log`."
+    },
+    {
+      "statement": "Mode 0 (Geometric-Spatial): Couples electronic spatial extent ($res\\_r2$, loading 0.382) and polarizability ($res\\_alpha$, 0.244) against rotational constants $res\\_B$ (-0.371) and $res\\_C$ (-0.330).",
+      "kind": "figure_feature",
+      "verdict": "supported",
+      "evidence": "Confirmed in `data/tensor_loadings.csv`."
+    },
+    {
+      "statement": "This mode is most prominent in medium-saturation systems (`S_medium`, family weight 4.36) and hydrocarbons (`H_C`, 4.05).",
+      "kind": "figure_feature",
+      "verdict": "supported",
+      "evidence": "Confirmed in `data/tensor_loadings.csv`."
+    },
+    {
+      "statement": "Mode 1 (Vibrational-Energetic): Links zero-point energy ($res\\_zpve$, 0.459) and the transformed rotational constant ($res\\_A\\_trans$, 0.389) with stability metrics ($res\\_u0\\_atom$, -0.306).",
+      "kind": "figure_feature",
+      "verdict": "supported",
+      "evidence": "Confirmed in `data/tensor_loadings.csv`."
+    },
+    {
+      "statement": "It is strongly weighted in low-saturation molecules (`S_low`, 1.90) and fluorinated nitrogen systems (`H_CNF`, 1.79).",
+      "kind": "figure_feature",
+      "verdict": "supported",
+      "evidence": "Confirmed in `data/tensor_loadings.csv`."
+    },
+    {
+      "statement": "Mode 2 (Polar-Acceptor): Associates electronic acceptor capacity ($res\\_lumo$, 0.576) and atomization energy ($res\\_u0\\_atom$, 0.518) with a reduction in polarizability ($res\\_alpha$, -0.455) and dipole moment ($res\\_mu$, -0.399).",
+      "kind": "figure_feature",
+      "verdict": "supported",
+      "evidence": "Confirmed in `data/tensor_loadings.csv`."
+    },
+    {
+      "statement": "This mode is a hallmark of oxygenated systems (`H_CO`, 1.70).",
+      "kind": "figure_feature",
+      "verdict": "supported",
+      "evidence": "Confirmed in `data/tensor_loadings.csv`."
+    },
+    {
+      "statement": "Mode 3 (Frontier-Electronic): Uniquely identifies the HOMO energy residual ($res\\_homo$, 0.743) and its coupling with polarizability ($res\\_alpha$, 0.511).",
+      "kind": "figure_feature",
+      "verdict": "supported",
+      "evidence": "Confirmed in `data/tensor_loadings.csv`."
+    },
+    {
+      "statement": "This mode is disproportionately weighted in fluorine-containing families (`H_CNF`, 1.86; `H_CNOF`, 1.70).",
+      "kind": "figure_feature",
+      "verdict": "supported",
+      "evidence": "Confirmed in `data/tensor_loadings.csv`."
+    },
+    {
+      "statement": "The HOMO energy is most autonomous in oxygenated environments, with `H_COF` and `H_CO` showing maximum $dCor$ values of 0.214 and 0.255, respectively (`data/family_joint_metrics.json`).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "Confirmed in `step_4.log` summary statistics."
+    },
+    {
+      "statement": "the `H_CNF` family shows a significant coupling ($Max\\_dCor = 0.667$), as do pure hydrocarbons (`H_C`, $Max\\_dCor = 0.595$).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "Confirmed in `step_4.log` summary statistics."
+    },
+    {
+      "statement": "Unsaturated molecules show a more constrained coupling between geometry and electronic distribution... whereas saturated molecules occupy a more complex, high-dimensional space (ID 5.59 vs 3.96).",
+      "kind": "comparison",
+      "verdict": "supported",
+      "evidence": "Confirmed in `data/family_joint_metrics.json` (S_high ID 5.59, S_low ID 3.96)."
+    }
+  ],
+  "summary": "The report is well-grounded in the provided data artifacts, except for the claims regarding R^2 values in `step_1.log` for `zpve`, `u0`, `u0_atom`, and `homo`, which do not appear in the referenced log file."
+}

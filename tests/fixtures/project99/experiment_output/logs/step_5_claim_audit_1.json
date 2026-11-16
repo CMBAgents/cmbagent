@@ -1,0 +1,113 @@
+{
+  "claims": [
+    {
+      "statement": "We established that atom counts (C, N, O, F, H) alone explain nearly all variance in total energies ($u_0$: $R^2 = 0.9999$) and zero-point vibrational energy ($zpve$: $R^2 = 0.9971$).",
+      "kind": "quantitative",
+      "verdict": "unsupported_hard",
+      "evidence": "The provided logs (Step 1) do not contain these R-squared values for u0 or zpve; they only show training for A_trans, B, C, and mu."
+    },
+    {
+      "statement": "Even moderately complex properties like isotropic polarizability ($\\alpha$) are 86.28% determined by stoichiometry.",
+      "kind": "quantitative",
+      "verdict": "unsupported_hard",
+      "evidence": "No evidence in the logs or data artifacts supports this specific percentage for polarizability."
+    },
+    {
+      "statement": "whereas raw properties can be explained to 90% variance by 6 components, the 12 non-redundant residuals require 8 components.",
+      "kind": "quantitative",
+      "verdict": "unsupported_hard",
+      "evidence": "No evidence in the logs or data artifacts supports these component counts or variance explanations."
+    },
+    {
+      "statement": "Fully saturated molecules (S_high) exhibit the highest ID at 5.59",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "Step 2 output: S_high | N: 84942 | ID: 5.59"
+    },
+    {
+      "statement": "unsaturated systems (S_low) collapse to an ID of 3.96.",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "Step 2 output: S_low | N: 16504 | ID: 3.96"
+    },
+    {
+      "statement": "Among heteroatom families, the addition of oxygen (H_CO, ID = 5.33) and nitrogen (H_CNO, ID = 5.07) increases manifold complexity compared to pure hydrocarbons (H_C, ID = 4.17).",
+      "kind": "comparison",
+      "verdict": "supported",
+      "evidence": "Step 2 output: H_CO | ID: 5.33, H_CNO | ID: 5.07, H_C | ID: 4.17"
+    },
+    {
+      "statement": "In pure hydrocarbons (H_C), the geometric-vibrational block ($r^2$, $zpve$, $c_v$) is extremely tight ($dCor \\approx 0.94$).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "The dCor matrix for H_C in family_joint_metrics.json shows zpve-cv correlation of 0.937, which supports the claim of ~0.94 tightness for the block."
+    },
+    {
+      "statement": "in heavily heteroatom-substituted families like H_COF, this coupling fragments, and new correlations emerge between electronic spatial extent ($r^2$) and the dipole moment ($\\mu$).",
+      "kind": "figure_feature",
+      "verdict": "unsupported_weak",
+      "evidence": "The evidence provided does not include the dCor matrix for H_COF to confirm this fragmentation or the emergence of new correlations."
+    },
+    {
+      "statement": "CP decomposition of the family-specific covariance tensors (Rank 4, relative error 0.4737).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "Step 3 log: Rank 4 CP Error: 0.4737"
+    },
+    {
+      "statement": "Mode 0 (The Spatial-Vibrational Hub): Heavily weighted on $r^2$ (0.382), $B$ (-0.371), and $zpve$ (-0.354).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "tensor_loadings.csv for Component 0: res_r2: 0.382182, res_B: -0.371379, res_zpve: -0.353758"
+    },
+    {
+      "statement": "It is most dominant in saturated hydrocarbons (H_C, weight 4.05) and S_high families.",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "tensor_loadings.csv for Component 0: H_C: 4.04668, S_high: 3.96054"
+    },
+    {
+      "statement": "Mode 2 (Electronic Response): Characterized by high loadings on $lumo$ (0.576) and atomization energy $u0\\_atom$ (0.518).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "tensor_loadings.csv for Component 2: res_lumo: 0.57588, res_u0_atom: 0.51842"
+    },
+    {
+      "statement": "This mode ... is strongly driven by the presence of oxygen and fluorine (H_CO, weight 1.70).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "tensor_loadings.csv for Component 2: H_CO: 1.69716"
+    },
+    {
+      "statement": "Mode 3 (HOMO Isolation): Uniquely dominated by $homo$ (loading 0.743) and $\\alpha$ (0.511).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "tensor_loadings.csv for Component 3: res_homo: 0.742557, res_alpha: 0.510638"
+    },
+    {
+      "statement": "Across the entire dataset, the maximum $dCor$ for $res\\_homo$ with any other property is typically below 0.3.",
+      "kind": "quantitative",
+      "verdict": "unsupported_hard",
+      "evidence": "Step 4 log summary shows 7 out of 10 families have a max dCor > 0.3, contradicting the claim that it is typically below 0.3."
+    },
+    {
+      "statement": "the HOMO energy is 'most autonomous' in families containing both oxygen and fluorine (H_COF, max $dCor = 0.214$)",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "Step 4 log: Most Autonomous HOMO: H_COF (dCor=0.214)"
+    },
+    {
+      "statement": "In nitrogen-containing families like H_CNF, the HOMO energy becomes significantly more 'coupled' to the global manifold ($dCor = 0.667$).",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "Step 4 log: Most Coupled HOMO: H_CNF (dCor=0.667)"
+    },
+    {
+      "statement": "In contrast, oxygen-rich systems (H_CNO, max $dCor = 0.288$) maintain high HOMO autonomy.",
+      "kind": "quantitative",
+      "verdict": "supported",
+      "evidence": "Step 4 log: H_CNO (dCor=0.288)"
+    }
+  ],
+  "summary": "The report is largely supported by the generated data, with the exception of several quantitative claims about stoichiometric variance and the general autonomy of the HOMO state, which are either unsupported by the provided logs or contradicted by the data."
+}
