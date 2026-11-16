@@ -97,12 +97,12 @@ deep_research_graph.invoke(
 
 ## The four graphs
 
-The diagrams below show the nodes and edges of the compiled graphs. A node named `format_*` converts the free text of the node before it into a typed Pydantic object with `with_structured_output`.
+The diagrams below show the nodes and edges of the compiled graphs; dotted arrows are retries. A node named `format_*` converts the free text of the node before it into a typed Pydantic object with `with_structured_output`.
 
 ### `planning`
 
 ```mermaid
-flowchart LR
+flowchart TD
     start(["task"]) --> planner["planner<br/>writes the plan"]
     planner --> format_plan["format_plan<br/>text to Plan"]
     format_plan -->|review rounds left| plan_reviewer["plan_reviewer<br/>criticises the plan"]
@@ -141,24 +141,30 @@ flowchart TD
     engineer --> format_engineer["format_engineer<br/>extract the code"]
     format_engineer --> static_preflight["static_preflight<br/>does it parse and print?"]
     static_preflight -->|accepted| api_preflight["api_preflight<br/>do the called APIs exist?"]
-    static_preflight -->|refused| execution_evaluator
-    api_preflight -->|missing API| engineer
     api_preflight -->|ok| executor["executor<br/>run codebase/step_N.py"]
     executor --> output_postcondition["output_postcondition<br/>were the declared outputs written?"]
-    output_postcondition -->|output missing| engineer
     output_postcondition -->|ok| execution_evaluator["execution_evaluator<br/>did the script run?"]
-    execution_evaluator -->|failed| engineer
+    static_preflight -->|refused| execution_evaluator
     execution_evaluator -->|ran| image_reviewer["image_reviewer<br/>are the figures right?"]
-    image_reviewer -->|revise a figure| engineer
-    image_reviewer -->|figures accepted| step_evaluator["step_evaluator<br/>was the goal met?"]
-    step_evaluator -->|goal missed| engineer
+    image_reviewer -->|accepted| step_evaluator["step_evaluator<br/>was the goal met?"]
     step_evaluator -->|"goal met, or no attempts left"| done(["end"])
-    execution_evaluator -->|"missing package or renamed API"| escalation["escalation<br/>Claude Agent SDK agent"]
-    escalation --> executor
-    execution_evaluator -->|"data file fails to load"| data_fixer["data_fixer<br/>inspect the real file"]
-    data_fixer -->|loader guidance| engineer
-    execution_evaluator -->|"required input absent"| missing_input["missing_input<br/>end the step, never invent data"]
-    missing_input --> done
+    api_preflight -.->|missing API| retry
+    output_postcondition -.->|output missing| retry
+    execution_evaluator -.->|failed| retry
+    image_reviewer -.->|revise a figure| retry
+    step_evaluator -.->|goal missed| retry
+    retry(["next attempt"]) -.-> engineer
+```
+
+The code gate, `execution_evaluator`, has three more exits for failures that another attempt would not fix; the first two are optional:
+
+```mermaid
+flowchart TD
+    gate["execution_evaluator<br/>the script failed"] -->|missing package or renamed API| escalation["escalation<br/>Claude Agent SDK agent fixes it"]
+    escalation --> executor["executor<br/>run the fixed script"]
+    gate -->|data file fails to load| data_fixer["data_fixer<br/>inspect the real file"]
+    data_fixer -.->|loader guidance| engineer["engineer"]
+    gate -->|required input absent| missing_input["missing_input<br/>end the step, never invent data"]
     classDef optional stroke-dasharray: 5 5
     class escalation,data_fixer optional
 ```
@@ -180,14 +186,14 @@ The dashed nodes are optional. `data_fixer` (`enable_data_fixer`, off) inspects 
 ### `researcher`: researcher steps
 
 ```mermaid
-flowchart LR
+flowchart TD
     start(["researcher step"]) --> writer["react_researcher<br/>read files and figures,<br/>then write the report"]
     writer --> step_evaluator["step_evaluator<br/>was the goal met?"]
-    step_evaluator -->|goal missed| writer
     step_evaluator -->|goal met| claim_auditor["claim_auditor<br/>is every number sourced?"]
-    claim_auditor -->|unsupported number| writer
     claim_auditor -->|numbers sourced| done(["reports/step_N.md"])
     step_evaluator -->|no attempts left| done
+    step_evaluator -.->|goal missed| writer
+    claim_auditor -.->|unsupported number| writer
 ```
 
 The default writer, `react_researcher` (`researcher_mode="react"`), is a ReAct loop with three read-only tools, `list_workspace`, `read_file` and `view_image`, confined to the working directory. It can make up to `researcher_max_tool_calls` tool calls (default 6, plus one per earlier step) before writing, so it can quote a value that an earlier step saved to a file without printing it. `step_evaluator` grades the report against the step's requirements, and `claim_auditor` (`claim_audit_enabled`, on) checks each number in it against the files and printed outputs. With `researcher_mode="plain"`, the writer is the `researcher` node, which writes the report in one call from the earlier steps' printed output.
