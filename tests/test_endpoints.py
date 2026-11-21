@@ -99,3 +99,11 @@ def test_missing_env_key(registry, monkeypatch):
     llms.chat_model.cache_clear()
     with pytest.raises(RuntimeError, match="MY_ENDPOINT_KEY"):
         llms.chat_model("from-env")
+
+
+def test_gemini_thinking_level_by_major_version():
+    assert llms._gemini_supports_thinking_level("gemini-3.1-flash-lite")
+    assert llms._gemini_supports_thinking_level("gemini-4-neon")
+    assert llms._gemini_supports_thinking_level("gemini-10-pro")
+    assert not llms._gemini_supports_thinking_level("gemini-2.5-pro")
+    assert not llms._gemini_supports_thinking_level("gpt-5")
