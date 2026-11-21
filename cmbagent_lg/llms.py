@@ -31,6 +31,7 @@ The no-arg `proposer()/critic()/formatter()` wrappers honour the env overrides
 import json
 import logging
 import os
+import re
 from functools import lru_cache
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -149,8 +150,10 @@ def _is_openai_reasoning(model: str) -> bool:
 
 
 def _gemini_supports_thinking_level(model: str) -> bool:
-    """`thinking_level` is a Gemini-3+ knob; 2.x rejects it."""
-    return model.lower().startswith("gemini-3")
+    """`thinking_level` is a Gemini-3+ knob; 2.x rejects it. Read from the major version, so gemini-4-* and later
+    keep it (a name prefix check silently dropped it for Gemini 4)."""
+    m = re.match(r"gemini-(\d+)", model.lower())
+    return bool(m) and int(m.group(1)) >= 3
 
 
 @lru_cache(maxsize=None)
