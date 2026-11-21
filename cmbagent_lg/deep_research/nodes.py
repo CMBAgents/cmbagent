@@ -534,14 +534,18 @@ _DEFAULT_ADAPTIVE_PLANNER_MODEL = "gemini-3.6-flash"          # generator role
 _DEFAULT_MAX_ADAPTATIONS = 3
 
 
-def _reviewer_model() -> str:
-    """Model for `adaptive_review` reasoning. Env override or non-lite default."""
-    return os.environ.get("ADAPTIVE_REVIEWER_MODEL") or _DEFAULT_ADAPTIVE_REVIEWER_MODEL
+def _reviewer_model(ctx=None) -> str:
+    """Model for `adaptive_review` reasoning: `PlanContext.adaptive_reviewer_model`, else the env
+    override, else the non-lite default."""
+    return (getattr(ctx, "adaptive_reviewer_model", None) or os.environ.get("ADAPTIVE_REVIEWER_MODEL")
+            or _DEFAULT_ADAPTIVE_REVIEWER_MODEL)
 
 
-def _planner_model() -> str:
-    """Model for `replan_tail` reasoning. Env override or non-lite default."""
-    return os.environ.get("ADAPTIVE_PLANNER_MODEL") or _DEFAULT_ADAPTIVE_PLANNER_MODEL
+def _planner_model(ctx=None) -> str:
+    """Model for `replan_tail` reasoning: `PlanContext.adaptive_planner_model`, else the env
+    override, else the non-lite default."""
+    return (getattr(ctx, "adaptive_planner_model", None) or os.environ.get("ADAPTIVE_PLANNER_MODEL")
+            or _DEFAULT_ADAPTIVE_PLANNER_MODEL)
 
 
 # ── run-context helpers (tolerate runtime=None in unit tests) ──────────────
@@ -755,7 +759,7 @@ def adaptive_review(
     # refusal must never abort the run).
     prose = None
     try:
-        reasoner = chat_model(_reviewer_model(), "critic")
+        reasoner = chat_model(_reviewer_model(ctx), "critic")
         msg = reasoner.invoke(
             [
                 SystemMessage(adaptive_reviewer_instructions(ctx)),
@@ -835,7 +839,7 @@ def replan_tail(
     )
 
     try:
-        reasoner = chat_model(_planner_model(), "generator")
+        reasoner = chat_model(_planner_model(ctx), "generator")
         msg = reasoner.invoke(
             [
                 SystemMessage(adaptive_replanner_instructions(ctx)),

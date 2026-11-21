@@ -84,7 +84,8 @@ def endpoints() -> dict:
     return _registry(path, os.path.getmtime(path))
 
 
-def _endpoint_key(e: dict) -> str:
+def endpoint_api_key(e: dict) -> str:
+    """The API key of a registry entry: from `api_key_env`, `key_file` (+ `key_var`), else \"EMPTY\"."""
     if e.get("api_key_env"):
         key = os.environ.get(e["api_key_env"])
         if not key:
@@ -118,7 +119,7 @@ def _compat_model(name: str, e: dict, temperature):
             return super().with_structured_output(schema, method=method or _method, **kwargs)
 
     _method = method
-    kw = {"model": e.get("model") or name, "base_url": e["base_url"], "api_key": _endpoint_key(e),
+    kw = {"model": e.get("model") or name, "base_url": e["base_url"], "api_key": endpoint_api_key(e),
           "stream_usage": True}
     t = e.get("temperature", temperature)
     if t is not None:
@@ -204,3 +205,6 @@ def critic():
 
 def formatter():
     return chat_model(os.environ.get("FORMAT_MODEL"), "formatter")
+
+
+_endpoint_key = endpoint_api_key   # earlier private name

@@ -106,6 +106,10 @@ class PlanContext:
     researcher_model: str | None = None
     evaluator_model: str | None = None
     formatter_model: str | None = None
+    # Models of the adaptive reviewer and replanner between steps. None → the env overrides
+    # ADAPTIVE_REVIEWER_MODEL / ADAPTIVE_PLANNER_MODEL, else non-lite Gemini defaults.
+    adaptive_reviewer_model: str | None = None
+    adaptive_planner_model: str | None = None
 
     # ── multimodal grounding (cmbagent_lg.vlm) ───────────────────────────
     # Give the researcher (and the engineer step evaluator) the generated plots
