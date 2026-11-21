@@ -233,6 +233,30 @@ All settings are fields of `PlanContext`, passed to every graph as `context=`. T
 
 With Gemini 3 models, the engineer runs at temperature 0.2 with thinking level `high`, the planner and the researcher at temperature 1.0 with thinking level `low`, the reviewers and evaluators at temperature 0.4 with thinking level `low`, and the formatters at temperature 0. The full list of settings, with comments, is in [`cmbagent_lg/context.py`](cmbagent_lg/context.py).
 
+### Open models and other OpenAI-compatible servers
+
+A model name selects its provider: `gpt-*` and `o1`/`o3`/`o4` names go to OpenAI, `claude*` names to Anthropic, and every other name to Google Gemini. A model served by any server that speaks the OpenAI chat-completions API, such as vLLM, llama.cpp, SGLang or a hosted gateway, is used through an endpoint registry instead. `LLM_ENDPOINTS` names a JSON file that maps the model names used in `PlanContext` to their servers:
+
+```json
+{
+  "qwen3.8-flash-next": {"base_url": "http://127.0.0.1:30000/v1", "key_file": "~/.config/llm/qwen.key"},
+  "kimi-k3": {"base_url": "https://llm.example.org/v1", "model": "moonshotai/Kimi-K3",
+              "key_file": "~/.config/llm/endpoint.env", "key_var": "API_KEY", "max_tokens": 32000}
+}
+```
+
+Each entry needs `base_url`. The optional fields are:
+
+| Field | Meaning |
+| --- | --- |
+| `model` | The model id the server expects, when it differs from the name used in `PlanContext`. |
+| `api_key_env` | An environment variable holding the key. |
+| `key_file`, `key_var` | A file holding the key: a bare key, or `NAME=value` lines, of which `key_var` names the one to use. Without either key setting the key is `EMPTY`. |
+| `max_tokens`, `timeout`, `temperature` | Request settings; `temperature` replaces the role's. |
+| `structured_output` | `"json_schema"` (default) or `"function_calling"`, for servers that reject JSON-schema response formats. |
+
+A listed model can fill any role, and one run can mix endpoints. The roles need a server that returns JSON-schema structured output, and, for the ReAct researcher, multi-turn tool calls. `python tests/check_endpoints.py` checks both, and plain chat, for every model in the registry. `formatter_model` defaults to Gemini, so a run without a Google key sets it to a listed model too.
+
 ## Tracing with Langfuse
 
 [Langfuse](https://langfuse.com) records every model call of a run, including the formatter calls, tagged with the name of its node. Set the keys of a Langfuse project and the URL of the server that issued them:
