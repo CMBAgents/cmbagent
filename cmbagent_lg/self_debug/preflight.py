@@ -527,6 +527,19 @@ def resolve_named_input(text: str, work_dir: Optional[Path] = None) -> Optional[
     return None
 
 
+def existing_input_roots(ctx) -> list:
+    """`ctx.input_roots` that exist as directories on this machine, as absolute Paths. Never raises."""
+    out = []
+    for r in (getattr(ctx, "input_roots", None) or []):
+        try:
+            p = Path(r).expanduser()
+            if p.is_dir():
+                out.append(p.resolve())
+        except Exception:  # noqa: BLE001
+            continue
+    return out
+
+
 def named_input_for_step(step, work_dir: Optional[Path], ctx=None) -> Optional[Path]:
     """`resolve_named_input` over the step's text PLUS the run-level text. Never raises."""
     try:
@@ -693,6 +706,12 @@ def preflight(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         empty = not data_dir.is_dir() or not any(p.is_file() for p in data_dir.iterdir())
         if empty and os.environ.get(REMOTE_ENV):
             empty = _remote_data_empty(Path(raw).expanduser().name)  # the guest owns the exec dir
+        roots = existing_input_roots(ctx)
+        if empty and roots:
+            # provided input lives in declared directories outside data/: not an empty-input run
+            empty = False
+            print(f"[preflight] data/ is empty but the run declares input roots {', '.join(map(str, roots))} "
+                  f"→ intent gate NOT armed", file=sys.stderr, flush=True)
         if empty:
             wd = Path(raw).expanduser()
             remote_hit = False

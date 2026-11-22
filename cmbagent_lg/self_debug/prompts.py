@@ -297,6 +297,16 @@ def render_preflight_block(ctx: PlanContext, preflight_report: str | None) -> st
     return "\n".join(lines)
 
 
+def render_input_roots_block(ctx: PlanContext) -> str:
+    """Where the run's provided input data are, when `ctx.input_roots` declares them. Empty otherwise."""
+    roots = [str(r) for r in (getattr(ctx, "input_roots", None) or [])]
+    if not roots:
+        return ""
+    return ("**INPUT DATA:** the provided input data are in " + ", ".join("`%s`" % r for r in roots)
+            + " (read-only; read them by their absolute paths, as the task describes). The work-directory "
+            "`data/` is for the files YOUR script writes; it holds no input, and that is expected.\n")
+
+
 def render_intent_gate_directive(
     ctx: PlanContext,
     needs_provided_input: bool | None,
@@ -337,7 +347,7 @@ def engineer_instructions(
     # every other path's prompt — byte-for-byte unchanged.
     preflight_block = render_preflight_block(ctx, preflight_report) + render_intent_gate_directive(
         ctx, needs_provided_input, input_dir_empty
-    )
+    ) + render_input_roots_block(ctx)
     # `enable_api_digest` shares the same slot for the same reason: it is "facts
     # established before the engineer starts". None wherever the flag is off.
     if api_digest:
