@@ -310,6 +310,78 @@ def _make_tools(work_dir: Optional[Path], ctx: PlanContext, seen: List[dict]):
     return tools
 
 
+# ── extra tools (PlanContext.researcher_extra_tools) ─────────────────────
+#
+# A domain library the report can be checked against (e.g. a literature index):
+# loaded from "module:factory" specs, each factory returning plain functions.
+# Every call is wrapped like the workspace tools: it never raises, its result is
+# capped, and it is recorded in the audit log, so the graders see the published
+# numbers the report compares with. A spec that fails to load is skipped with a
+# warning, once per process (a worker must keep writing reports without it).
+
+_EXTRA_LOADED: dict = {}
+
+
+def _load_extra(spec: str):
+    """(functions, guidance) for one "module:factory" spec, cached per process."""
+    if spec in _EXTRA_LOADED:
+        return _EXTRA_LOADED[spec]
+    import importlib
+    try:
+        mod_name, _, attr = spec.partition(":")
+        mod = importlib.import_module(mod_name.strip())
+        fns = list(getattr(mod, attr.strip() or "tools")())
+        out = ([f for f in fns if callable(f)], str(getattr(mod, "TOOL_GUIDANCE", "") or ""))
+    except Exception as e:  # noqa: BLE001
+        print(f"[react_researcher] WARNING: extra tools {spec!r} not loaded: "
+              f"{type(e).__name__}: {e}", file=sys.stderr, flush=True)
+        out = ([], "")
+    _EXTRA_LOADED[spec] = out
+    return out
+
+
+def _wrap_extra(fn: Callable, cap: int, seen: List[dict]) -> Callable:
+    import functools
+
+    @functools.wraps(fn)
+    def call(*args, **kwargs):
+        name = fn.__name__
+        try:
+            out = str(fn(*args, **kwargs))
+        except Exception as e:  # noqa: BLE001
+            out = f"{name} error: {type(e).__name__}: {e}"
+        if len(out) > cap:
+            out = (out[:cap] + f"\n\n[{name}: result cut at {cap} of {len(out)} chars; "
+                   f"narrow the request to see the rest]")
+        try:
+            label = json.dumps(kwargs, sort_keys=True, default=str)[:300]
+        except Exception:  # noqa: BLE001
+            label = "?"
+        seen.append({"tool": name, "path": f"{name}:{label}", "chars": len(out),
+                     "output": out[:_AUDIT_CHARS]})
+        return out
+    return call
+
+
+def _extra_tools(ctx: PlanContext, seen: List[dict], taken: set):
+    """(wrapped functions, guidance text) for ctx.researcher_extra_tools."""
+    specs = [s.strip() for s in str(getattr(ctx, "researcher_extra_tools", "") or "").split(",") if s.strip()]
+    cap = max(1000, int(getattr(ctx, "researcher_extra_tool_chars", 12_000) or 12_000))
+    tools, guidance = [], []
+    for spec in specs:
+        fns, g = _load_extra(spec)
+        for f in fns:
+            if f.__name__ in taken:
+                print(f"[react_researcher] WARNING: extra tool {f.__name__!r} from {spec!r} "
+                      f"clashes with a tool already bound; skipped", file=sys.stderr, flush=True)
+                continue
+            taken.add(f.__name__)
+            tools.append(_wrap_extra(f, cap, seen))
+        if fns and g:
+            guidance.append(g.strip())
+    return tools, "\n\n".join(guidance)
+
+
 # ── the node ──────────────────────────────────────────────────────────────
 
 
@@ -378,6 +450,16 @@ def react_researcher(
 
         seen: List[dict] = []
         tools = _make_tools(work_dir, ctx, seen)
+        extra, extra_guidance = _extra_tools(ctx, seen, {t.__name__ for t in tools})
+        tools += extra
+        if extra_guidance:
+            messages_system_extra = (
+                "\n---\n**Reference tools (READ-ONLY).** Besides the workspace you "
+                "can consult the library below. Use it to set this analysis's "
+                "numbers against published ones; attribute every number taken from "
+                "it to its source, with the address the tool prints, and never "
+                "present it as a result of this analysis.\n\n" + extra_guidance)
+            system = system + messages_system_extra
         tool_map: dict[str, Callable] = {t.__name__: t for t in tools}
 
         base = _proposer(ctx)  # chat_model(researcher_model, "generator")
@@ -392,6 +474,8 @@ def react_researcher(
         base_calls = max(0, int(getattr(ctx, "researcher_max_tool_calls", 6)))
         n_prior_steps = max(0, int(state.get("step_number", 1)) - 1)
         max_calls = base_calls + min(n_prior_steps, 24)
+        if extra:
+            max_calls += max(0, int(getattr(ctx, "researcher_max_extra_tool_calls", 6) or 0))
         n_tool_roundtrips = 0
         n_llm_calls = 0
         ai: Optional[AIMessage] = None
