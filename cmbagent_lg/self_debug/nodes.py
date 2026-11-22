@@ -228,7 +228,18 @@ def _record_api_fact(ctx, code: str, stderr: str, stdout: str, work_dir) -> None
 
 @timed_node("format_engineer")
 def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
-    """Convert the engineer's prose into a typed `EngineerResponse`."""
+    """Convert the engineer's prose into a typed `EngineerResponse`.
+
+    An empty engineer answer (a model that returned no text, e.g. after spending its budget on
+    thinking) is turned into a script that fails with that diagnosis, so the attempt is counted and
+    retried like any failed run; sending the empty text to the formatter crashed the whole graph
+    ("contents are required")."""
+    raw = state.get("raw_engineer") or ""
+    if not raw.strip():
+        print("[format_engineer] the engineer returned an empty answer; this attempt fails", file=sys.stderr, flush=True)
+        return {"current_code": EngineerResponse(
+            python_code='if __name__ == "__main__":\n    raise SystemExit("the engineer returned an empty answer: no code was written")\n',
+            code_explanation="The engineer returned an empty answer, so no script was written; this attempt fails and is retried.")}
     structured = _formatter(runtime.context).with_structured_output(EngineerResponse)
     sys_prompt = SystemMessage(
         "You are a formatter. Convert the user's text into an EngineerResponse "
@@ -609,6 +620,14 @@ def _initial_input_dir_empty(state: DebugState, ctx: PlanContext, data_dir: Path
     if state.get("input_dir_empty") is not None or state.get("attempts", 0) > 1:
         return None
     empty = not data_baseline
+    if empty:
+        try:
+            from cmbagent_lg.self_debug.preflight import existing_input_roots
+
+            if existing_input_roots(ctx):
+                return False  # provided input lives in the declared input roots, outside data/
+        except Exception:  # noqa: BLE001
+            pass
     if empty:
         # Same reading as pre-flight: an input the task names at an existing path
         # OUTSIDE data/ is provided input, and the step_evaluator's "everything the

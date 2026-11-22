@@ -311,6 +311,12 @@ class PlanContext:
     # retry/escalation path.
     safe_loading: bool = True
 
+    # Directories that hold the run's PROVIDED input data, read-only, OUTSIDE the work dir (a shared
+    # data mirror, a mounted dataset). When any of them exists, an empty `data/` is not "no input":
+    # the empty-input guards (`input_dir_empty`, the intent gate's do-not-fabricate directive) stand
+    # down, and the engineer is told where the inputs are and that `data/` is for its outputs only.
+    input_roots: List[str] = field(default_factory=list)
+
     # ── data-loader fixer ────────────────────────────────────────────────
     # When True (nothing below fires when it is False):
     #   (a) an additive "Loading a provided INPUT data file" block in the
