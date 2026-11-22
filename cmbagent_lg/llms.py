@@ -108,16 +108,56 @@ def endpoint_api_key(e: dict) -> str:
     return "EMPTY"
 
 
+_BREVITY = ("Your previous answer to this request ran out of output tokens. Keep any reasoning short and give the "
+            "structured answer directly.")
+
+
+def _add_brevity(inp):
+    """Append the brevity request to a chat input (a string, a list of messages, or a prompt value)."""
+    from langchain_core.messages import HumanMessage
+    if isinstance(inp, str):
+        return inp + "\n\n" + _BREVITY
+    msgs = inp.to_messages() if hasattr(inp, "to_messages") else list(inp)
+    return msgs + [HumanMessage(_BREVITY)]
+
+
+def _length_error_types():
+    try:
+        from openai import LengthFinishReasonError
+        return (LengthFinishReasonError,)
+    except ImportError:  # pragma: no cover - openai always ships with langchain_openai
+        return ()
+
+
+def _with_length_retry(first, second):
+    """`first`, falling back to `second` only when `first` stops at its output-token limit."""
+    types = _length_error_types()
+    return first.with_fallbacks([second], exceptions_to_handle=types) if types else first
+
+
 def _compat_model(name: str, e: dict, temperature):
     from langchain_openai import ChatOpenAI
 
     method = e.get("structured_output", "json_schema")
 
     class _CompatChatOpenAI(ChatOpenAI):
-        """ChatOpenAI pointed at an OpenAI-compatible server, with the server's structured-output method."""
+        """ChatOpenAI pointed at an OpenAI-compatible server, with the server's structured-output method.
+
+        A structured answer that stops at the output limit (openai.LengthFinishReasonError: a thinking model spent its
+        budget reasoning) is retried once with a larger budget (`max_tokens_retry` of the registry entry, else 1.5x
+        `max_tokens`) and a note asking for brief reasoning; a second overflow raises as before. Without this, one
+        overlong evaluator or formatter answer ended the whole run."""
 
         def with_structured_output(self, schema=None, *, method=None, **kwargs):
-            return super().with_structured_output(schema, method=method or _method, **kwargs)
+            first = super().with_structured_output(schema, method=method or _method, **kwargs)
+            if not self.max_tokens:
+                return first
+            bigger = int(e.get("max_tokens_retry") or int(1.5 * self.max_tokens))
+            retry_model = self.model_copy(update={"max_tokens": bigger})
+            from langchain_core.runnables import RunnableLambda
+            second = RunnableLambda(_add_brevity) | ChatOpenAI.with_structured_output(
+                retry_model, schema, method=method or _method, **kwargs)
+            return _with_length_retry(first, second)
 
     _method = method
     kw = {"model": e.get("model") or name, "base_url": e["base_url"], "api_key": endpoint_api_key(e),
