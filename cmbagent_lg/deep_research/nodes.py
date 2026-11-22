@@ -28,6 +28,7 @@ from cmbagent_lg.deep_research.prompts import (
     adaptive_reviewer_instructions,
     adaptive_reviewer_user,
 )
+from cmbagent_lg.deep_research.file_schema import schema_line
 from cmbagent_lg.deep_research.schemas import AdaptiveReview
 from cmbagent_lg.deep_research.state import DeepResearchState
 from cmbagent_lg.llms import chat_model
@@ -146,8 +147,9 @@ def _build_step_summary(step: Step, sub_state: dict) -> str:
 def _build_workspace_manifest(work_dir: Optional[str]) -> str:
     """Flat listing of files under `codebase/`, `reports/`, `data/`, `logs/`.
 
-    Paths only — everything generated so far, so an agent knows the exact
-    relative paths to load earlier steps' work from. (Distinct from self_debug's
+    Everything generated so far, so an agent knows the exact relative paths to
+    load earlier steps' work from; each data file also gets a one-line schema
+    (columns, keys, arrays: `file_schema.py`), within a total budget. (Distinct from self_debug's
     `data_manifest`, which is provenance for *one* step's outputs.)
 
     INVARIANT: must list every step's `codebase/step_N.log`. Once a step is
@@ -164,6 +166,7 @@ def _build_workspace_manifest(work_dir: Optional[str]) -> str:
         ("Run logs (logs/)",            wd / "logs"),
     ]
     rendered = []
+    schema_budget = 8_000   # chars of schema lines in all; later files are listed by path only
     for label, sub in sections:
         if not sub.is_dir():
             continue
@@ -171,7 +174,15 @@ def _build_workspace_manifest(work_dir: Optional[str]) -> str:
         if not files:
             continue
         rendered.append(f"**{label}:**")
-        rendered.extend(f"- {p}" for p in files)
+        for p in files:
+            rendered.append(f"- {p}")
+            # data files carry their schema, so a later step loads the right columns and keys
+            # instead of guessing them (file_schema.py)
+            if sub.name == "data" and schema_budget > 0:
+                line = schema_line(wd / p)
+                if line:
+                    rendered.append(f"    {line}")
+                    schema_budget -= len(line)
         rendered.append("")
     if not rendered:
         return ""
