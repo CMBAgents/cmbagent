@@ -227,6 +227,22 @@ class PlanContext:
     # Upper bound on researcher tool-call round-trips. Higher than the
     # engineer's: a Results section legitimately spans several artifacts.
     researcher_max_tool_calls: int = 6
+    # Tools beyond the workspace ones, for the ReAct researcher: comma-separated
+    # "module:factory" specs, each factory returning a list of plain functions
+    # (typed arguments, a docstring the model reads, a string result). A module
+    # may define TOOL_GUIDANCE, appended to the researcher's instructions. Used
+    # for a domain literature library (e.g. "litlib.agent_tools:tools"), so a
+    # report can set its numbers against published ones. A spec that fails to
+    # import is skipped with a warning; `CMBAGENT_LG_RESEARCHER_EXTRA_TOOLS` sets
+    # it for a deployed worker.
+    researcher_extra_tools: str = field(
+        default_factory=lambda: _env_knob("researcher_extra_tools", ""))
+    # Extra round-trips allowed when extra tools are present (on top of
+    # researcher_max_tool_calls), and the cap on one extra tool's result.
+    researcher_max_extra_tool_calls: int = field(
+        default_factory=lambda: _env_knob("researcher_max_extra_tool_calls", 6))
+    researcher_extra_tool_chars: int = field(
+        default_factory=lambda: _env_knob("researcher_extra_tool_chars", 12_000))
 
     # ── researcher claim-audit guardrail ─────────────────────────────────
     # After step_evaluator PASSES a report, `claim_auditor` grades each
