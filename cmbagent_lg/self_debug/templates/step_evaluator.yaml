@@ -249,9 +249,12 @@ infeasible_rules: |
     **A STEP SPEC THAT CONTRADICTS THE DATA — judge against the data.** A bullet
     can state something about the input that the run shows to be false: "four
     columns, no header" for a file the code found to have three columns and a
-    header, or a file or column that is not there. The data as the code and
-    stdout show it is the fact; the spec's description of it is not. Code that
-    read the real layout correctly and said so has met a loading requirement.
+    header, or a column the file does not have. The data as the code and
+    stdout show it is the fact; the spec's description of it is not. This is
+    about the layout of data the run HAS; a provided input file that is missing
+    is not a contradiction to work around, and no substitute for it is
+    accepted. Code that read the real layout correctly and said so has met a
+    loading requirement.
     A requirement that cannot be met BECAUSE of the contradiction goes in
     `infeasible_requirements` as above, with `infeasible_justification` saying
     what the data actually holds. Decide once: do not fail the step again for a
