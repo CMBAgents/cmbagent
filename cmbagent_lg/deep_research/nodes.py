@@ -275,6 +275,40 @@ def _render_previous_steps(summaries: list, manifest: str,
 # ── run_step node ───────────────────────────────────────────────────────
 
 
+def evaluator_outcome_fields(sub_state: dict) -> dict:
+    """The step outcome's record of how its verdicts were produced (self_debug/state.py), so a score can tell a
+    model's verdict from an evaluator failure and a thinking-off retry from a first answer:
+
+    - `step_evaluator_errors`: every step_evaluator model failure on the step;
+    - `step_evaluator_failed_closed`: how many attempts failed closed (not only whether the last one did);
+    - `execution_verdict_fallbacks`: execution verdicts decided from the return code and stderr;
+    - `verdict_modes`: {"step": {mode: count}, "execution": {mode: count}}, present when a mode other than "model"
+      (a provider without the structured retry) occurs, so Gemini outcomes are unchanged.
+
+    Empty for an ordinary step on a provider without the retry."""
+    out: dict = {}
+    if sub_state.get("step_evaluator_errors_total"):
+        out["step_evaluator_errors"] = sub_state["step_evaluator_errors_total"]
+    step_modes = list(sub_state.get("step_verdict_modes") or [])
+    exec_modes = list(sub_state.get("execution_verdict_modes") or [])
+    n_closed = step_modes.count("failed_closed")
+    if not step_modes and sub_state.get("step_evaluator_outcome") == "failed_closed":
+        n_closed = 1                   # a state from before the modes were recorded
+    if n_closed:
+        out["step_evaluator_failed_closed"] = n_closed
+    if sub_state.get("execution_verdict_fallbacks"):
+        out["execution_verdict_fallbacks"] = sub_state["execution_verdict_fallbacks"]
+    if any(m != "model" for m in step_modes + exec_modes):
+        counts = {}
+        for key, modes in (("step", step_modes), ("execution", exec_modes)):
+            c: dict = {}
+            for m in modes:
+                c[m] = c.get(m, 0) + 1
+            counts[key] = c
+        out["verdict_modes"] = counts
+    return out
+
+
 @timed_node("run_step")
 def run_step(
     state: DeepResearchState, runtime: Runtime[PlanContext]
@@ -401,6 +435,7 @@ def run_step(
         "attempts": sub_state.get("attempts", 0),
         "escalated": sub_state.get("escalated", False),
     }
+    outcome.update(evaluator_outcome_fields(sub_state))
     if substituted:
         # Reaches the run summary, the report (through the step summary above) and
         # `analysis_status.json`'s `infeasible_steps`: a step completed by substitution

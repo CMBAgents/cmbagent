@@ -30,7 +30,7 @@ from langgraph.graph import END
 from langgraph.runtime import Runtime
 
 from cmbagent_lg.context import PlanContext, effective_code_execution_timeout
-from cmbagent_lg.llms import chat_model
+from cmbagent_lg.llms import answer_mode, answer_problem, chat_model, model_failure_types
 from cmbagent_lg.prompt_utils import schema_field_brief
 from cmbagent_lg.self_debug.api_digest import digest_for_step as api_digest_for_step
 from cmbagent_lg.self_debug import api_history as _api_history
@@ -228,18 +228,34 @@ def _record_api_fact(ctx, code: str, stderr: str, stdout: str, work_dir) -> None
 
 @timed_node("format_engineer")
 def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
-    """Convert the engineer's prose into a typed `EngineerResponse`.
+    """Turn the engineer's answer into a typed `EngineerResponse`.
+
+    The script is read deterministically (`code_extract.extract_engineer_response`): the fenced block after
+    `**Python Code:**`, else the last python block, with the explanation and modifications from their sections. Only
+    an answer with no usable fence (none, a blank block, or one cut off that does not parse) goes to the formatter
+    model, and its script is normalised the same way. Copying a whole script into a JSON string was a second long call per attempt for an open formatter, could overflow or fail to
+    validate, and once handed the executor a JSON-escaped one-line script (b13-1, rusty, 23 Nov 2026).
 
     An empty engineer answer (a model that returned no text, e.g. after spending its budget on
     thinking) is turned into a script that fails with that diagnosis, so the attempt is counted and
     retried like any failed run; sending the empty text to the formatter crashed the whole graph
     ("contents are required")."""
+    from cmbagent_lg.self_debug.code_extract import extract_engineer_response, normalise_code
+
     raw = state.get("raw_engineer") or ""
     if not raw.strip():
         print("[format_engineer] the engineer returned an empty answer; this attempt fails", file=sys.stderr, flush=True)
         return {"current_code": EngineerResponse(
             python_code='if __name__ == "__main__":\n    raise SystemExit("the engineer returned an empty answer: no code was written")\n',
             code_explanation="The engineer returned an empty answer, so no script was written; this attempt fails and is retried.")}
+    obj, how = extract_engineer_response(raw)
+    if obj is not None:
+        print(f"[format_engineer] script read from {how} ({obj.python_code.count(chr(10))} lines); "
+              f"no formatter call", file=sys.stderr, flush=True)
+        return {"current_code": obj}
+    print("[format_engineer] no usable fenced code block in the engineer's answer (none, blank, or cut off and not "
+          "parsing); asking the formatter",
+          file=sys.stderr, flush=True)
     structured = _formatter(runtime.context).with_structured_output(EngineerResponse)
     sys_prompt = SystemMessage(
         "You are a formatter. Convert the user's text into an EngineerResponse "
@@ -247,10 +263,10 @@ def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSt
         "alter it. The code block is the substantive content; do not summarize it."
     )
     obj = structured.invoke(
-        [sys_prompt, HumanMessage(state["raw_engineer"])],
+        [sys_prompt, HumanMessage(raw)],
         config={"tags": ["format_engineer"]},
     )
-    return {"current_code": obj}
+    return {"current_code": obj.model_copy(update={"python_code": normalise_code(obj.python_code)})}
 
 
 # ── on-disk layout ───────────────────────────────────────────────────────
@@ -795,11 +811,26 @@ def execution_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> Deb
         "Judge the execution above and emit a verdict. Cover these fields:\n\n"
         + schema_field_brief(ExecutionVerdict)
     )
+    n = state.get("step_number", 1)
+    attempt = state.get("attempts", 0)
     structured = _critic(runtime.context).with_structured_output(ExecutionVerdict)
-    verdict: ExecutionVerdict = structured.invoke(
-        [SystemMessage(system), HumanMessage(user)],
-        config={"tags": ["execution_evaluator"]},
-    )
+    fallbacks = {}
+    # Only an unusable answer, a timeout or a 5xx falls back (`llms.model_failure_types`); a wrong key or model name,
+    # a server that is gone or a quota error still ends the run rather than failing every later step quietly.
+    try:
+        verdict: ExecutionVerdict = structured.invoke(
+            [SystemMessage(system), HumanMessage(user)],
+            config={"tags": ["execution_evaluator"]},
+        )
+        mode = answer_mode(verdict)
+    except model_failure_types() as err:  # the run itself is judged below
+        verdict = deterministic_execution_verdict(state)
+        mode = "deterministic_fallback"
+        fallbacks = {"execution_verdict_fallbacks": state.get("execution_verdict_fallbacks", 0) + 1}
+        print(f"[execution_evaluator] step {n} attempt {attempt}: EVALUATOR ERROR "
+              f"({type(err).__name__}: {' '.join(str(err).split())[:300]}); verdict decided from the run instead "
+              f"(returncode, timeout, Traceback in stderr): {verdict.status}", file=sys.stderr, flush=True)
+    fallbacks["execution_verdict_modes"] = list(state.get("execution_verdict_modes") or []) + [mode]
 
     history = list(state.get("error_history", []))
     if verdict.status == "failure":
@@ -809,14 +840,9 @@ def execution_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> Deb
         )[-1]
         history.append(summary)
 
-    n = state.get("step_number", 1)
-    attempt = state.get("attempts", 0)
-
     logs = _logs_dir(state)
     if logs is not None:
-        (logs / f"step_{n}_execution_verdict.json").write_text(
-            verdict.model_dump_json(indent=2)
-        )
+        (logs / f"step_{n}_execution_verdict.json").write_text(_verdict_json(verdict, mode))
 
     # `{}` on every ordinary path — see the `_bypass_guard_*` helpers above.
     bypass_update = _bypass_guard_update(state, ctx, verdict)
@@ -843,7 +869,40 @@ def execution_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> Deb
                 canonical.rename(codebase / f"step_{n}_{suffix}_{attempt}.{ext}")
 
     return {"current_execution_verdict": verdict, "error_history": history,
-            **bypass_update, **infeasible_update}
+            **bypass_update, **infeasible_update, **fallbacks}
+
+
+def _verdict_json(verdict, mode: str, problem: Optional[str] = None) -> str:
+    """A verdict log file: the verdict's fields plus `answer_mode`, the attempt or fallback that produced it
+    (`llms.answer_mode`; "deterministic_fallback", "failed_closed"), and `answer_problem` when the lenient retry check
+    let a flawed answer through. Readers that validate the file as the schema ignore the extra keys."""
+    d = verdict.model_dump(mode="json")
+    d["answer_mode"] = mode
+    if problem:
+        d["answer_problem"] = problem
+    return json.dumps(d, indent=2)
+
+
+def deterministic_execution_verdict(state: DebugState) -> ExecutionVerdict:
+    """The code gate's verdict without a model, for when the evaluator call fails: success iff the script exited 0,
+    did not time out and printed no Traceback to stderr. A caught-and-printed error that exits 0 passes here; the
+    step evaluator still judges the output."""
+    rc = state.get("execution_returncode", -1)
+    timed_out = bool(state.get("execution_timed_out", False))
+    stderr = state.get("execution_stderr", "") or ""
+    if rc == 0 and not timed_out and "Traceback" not in stderr:
+        return ExecutionVerdict(status="success")
+    last = (stderr.strip().splitlines() or [""])[-1].strip()
+    if timed_out:
+        what = f"the script timed out after {state.get('execution_elapsed_s', 0) or 0:.0f} s"
+    elif "Traceback" in stderr:
+        what = "the script raised an exception"
+    else:
+        what = f"the script exited with return code {rc}"
+    return ExecutionVerdict(
+        status="failure", failure_kind="other",
+        error_summary=f"{what}" + (f": {last}" if last else "")
+        + " (judged from the return code and stderr: the evaluator model gave no verdict)")
 
 
 # ── step_evaluator ──────────────────────────────────────────────────────
@@ -895,14 +954,38 @@ def step_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
             "cosmetic issues (slightly dense ticks, minor styling) need not fail an "
             "otherwise-correct step."
         )
-    structured = _critic(runtime.context).with_structured_output(StepVerdict)
-    verdict: StepVerdict = structured.invoke(
-        [SystemMessage(system), HumanMessage(user)],
-        config={"tags": ["step_evaluator"]},
-    )
-
     n = state.get("step_number", 1)
     attempt = state.get("attempts", 0)
+    structured = _critic(runtime.context).with_structured_output(StepVerdict)
+    # A model failure (the call raised even after its structured retry) is not a verdict on the engineer's work:
+    # the same run is judged again without using an attempt and without feedback to the engineer, and only
+    # `_MAX_STEP_EVALUATOR_ERRORS` consecutive errors fail the attempt closed. Before, it ended the whole run.
+    errors = state.get("step_evaluator_errors", 0)
+    errors_total = state.get("step_evaluator_errors_total", 0)
+    failed_closed = False
+    # Only an unusable answer, a timeout or a 5xx (`llms.model_failure_types`) is absorbed; a wrong configuration or
+    # a server that is gone ends the run as before.
+    try:
+        verdict: StepVerdict = structured.invoke(
+            [SystemMessage(system), HumanMessage(user)],
+            config={"tags": ["step_evaluator"]},
+        )
+        errors = 0
+    except model_failure_types() as err:
+        errors, errors_total = errors + 1, errors_total + 1
+        failed_closed = errors >= _MAX_STEP_EVALUATOR_ERRORS
+        detail = f"{type(err).__name__}: {' '.join(str(err).split())[:300]}"
+        print(f"[step_evaluator] step {n} attempt {attempt}: EVALUATOR ERROR {errors} in a row ({detail}); "
+              + ("failing closed: the attempt is not accepted" if failed_closed
+                 else "judging the same run again (no attempt used, nothing sent to the engineer)"),
+              file=sys.stderr, flush=True)
+        _log_evaluator_error(state, n, attempt, errors, detail, failed_closed)
+        if not failed_closed:
+            return {"step_evaluator_outcome": "evaluator_error", "step_evaluator_errors": errors,
+                    "step_evaluator_errors_total": errors_total}
+        verdict = StepVerdict(fulfilled=False, feedback=_EVALUATOR_FAILED_FEEDBACK)
+    mode = "failed_closed" if failed_closed else answer_mode(verdict)
+    problem = None if failed_closed else answer_problem(verdict)
 
     # A requirement the evaluator declared IMPOSSIBLE in this environment is not a
     # goal-miss: the step is ACCEPTED with the substitution recorded, so the engineer is
@@ -923,7 +1006,7 @@ def step_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
         refutation_feedback,
     )
 
-    audit = audit_declaration(verdict, step, state)
+    audit = None if failed_closed else audit_declaration(verdict, step, state)
     state_with_audit = {**state, "infeasibility_check": audit}
     substituted = infeasible_substitutions(verdict, step, state_with_audit)
     accepted = verdict.fulfilled or bool(substituted)
@@ -944,7 +1027,7 @@ def step_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
     # On a goal-miss, record this attempt's feedback so the *next*
     # step_evaluator pass sees its own trail (mirrors `error_history`).
     feedback_history = list(prior_feedback)
-    if not accepted:
+    if not accepted and not failed_closed:     # a failed-closed attempt carries no feedback of the evaluator's own
         bits = []
         if verdict.unmet_requirements:
             bits.append("unmet — " + "; ".join(verdict.unmet_requirements))
@@ -956,12 +1039,12 @@ def step_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
 
     logs = _logs_dir(state)
     if logs is not None:
-        (logs / f"step_{n}_verdict.json").write_text(verdict.model_dump_json(indent=2))
+        (logs / f"step_{n}_verdict.json").write_text(_verdict_json(verdict, mode, problem))
         # Preserve rejections too: the canonical file is overwritten each attempt, so the
         # accepted verdict would otherwise clobber the "why did it retry" trail.
         if not accepted:
             (logs / f"step_{n}_verdict_failure_{attempt}.json").write_text(
-                verdict.model_dump_json(indent=2))
+                _verdict_json(verdict, mode, problem))
 
     # A goal-miss is a failure too: demote this attempt's script/log so the audit trail
     # covers BOTH gates (the code ran cleanly, so execution_evaluator left the canonical
@@ -986,7 +1069,39 @@ def step_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
         # None when the verdict made no infeasibility claim, so an ordinary step's state
         # is unchanged; `_evidence_refuses` fails closed on a missing key, not a None one.
         "infeasibility_check": audit,
+        "step_evaluator_outcome": "failed_closed" if failed_closed else "verdict",
+        "step_evaluator_errors": errors,
+        "step_evaluator_errors_total": errors_total,
+        # One entry per attempt judged: which model attempt or fallback produced its verdict.
+        "step_verdict_modes": list(state.get("step_verdict_modes") or []) + [mode],
     }
+
+
+# Consecutive step_evaluator model failures on one step before an attempt fails closed.
+_MAX_STEP_EVALUATOR_ERRORS = 2
+
+_EVALUATOR_FAILED_FEEDBACK = (
+    "No verdict: the step evaluator's model failed on this attempt "
+    f"{_MAX_STEP_EVALUATOR_ERRORS} times in a row, so the attempt is not accepted. Nothing specific was found "
+    "wrong; keep what works, and make sure the script prints every result the step asks for.")
+
+
+def _log_evaluator_error(state: DebugState, n: int, attempt: int, consecutive: int, detail: str,
+                         failed_closed: bool) -> None:
+    """Append one record to `logs/step_{N}_evaluator_errors.json`, so evaluator failures are counted apart from the
+    model's verdicts."""
+    logs = _logs_dir(state)
+    if logs is None:
+        return
+    path = logs / f"step_{n}_evaluator_errors.json"
+    try:
+        records = json.loads(path.read_text()) if path.exists() else []
+    except ValueError:
+        records = []
+    records.append({"attempt": attempt, "consecutive": consecutive, "error": detail,
+                    "outcome": "failed_closed" if failed_closed else "judged_again",
+                    "at": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+    path.write_text(json.dumps(records, indent=2))
 
 
 # Failure kinds the strict loop structurally cannot fix. Classified by
@@ -1323,7 +1438,7 @@ def route_after_step_evaluator(
     state: DebugState, runtime: Runtime[PlanContext]
 ) -> str:
     """Goal gate: fulfilled → END; not fulfilled & attempts left → engineer;
-    not fulfilled & exhausted → END.
+    not fulfilled & exhausted → END; an evaluator error (no verdict) → step_evaluator again.
 
     `step_goal_met` also ends the step when EVERY unmet requirement was declared
     infeasible in this environment (`StepVerdict.infeasible_requirements`); a verdict
@@ -1331,6 +1446,8 @@ def route_after_step_evaluator(
     SUB-graph — `deep_research.route_after_review` is what then sends an exhausted step
     to the adaptive replanner instead of halting the run."""
     ctx = runtime.context
+    if state.get("step_evaluator_outcome") == "evaluator_error":
+        return "step_evaluator"          # the model failed, not the run: judge the same run again
     if step_goal_met(state["current_step_verdict"], state.get("step"), state):
         return END
     if state.get("attempts", 0) >= ctx.max_n_attempts:

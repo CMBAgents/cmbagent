@@ -319,9 +319,13 @@ def _classify_intent(ctx: PlanContext, task: str) -> Optional[IntentVerdict]:
     FAIL-OPEN — None on any error (bad key, timeout, unparseable answer, missing
     model), and callers treat None exactly like False: the ordinary flow, with no
     directive and no guard.
+
+    Role "classifier", not "formatter": it is a judgement, so a registry that turns the
+    formatter's thinking off (an extraction role) leaves it alone; Gemini settings are the
+    formatter's.
     """
     try:
-        model = chat_model(ctx.intent_gate_model or ctx.formatter_model, "formatter")
+        model = chat_model(ctx.intent_gate_model or ctx.formatter_model, "classifier")
         return model.with_structured_output(IntentVerdict).invoke(
             [SystemMessage(_INTENT_SYSTEM), HumanMessage(task)],
             config={"tags": ["intent_gate"]},

@@ -3,7 +3,7 @@
 `chat_model(model, role)` builds a LangChain chat model. A model listed in the endpoint
 registry (below) is served by an OpenAI-compatible endpoint; otherwise the provider is
 inferred from the model name (gemini-* → Google, gpt-*/o[1-4]* → OpenAI, claude-* →
-Anthropic). The role (`generator` / `coder` / `critic` / `formatter`) sets temperature and,
+Anthropic). The role (`generator` / `coder` / `critic` / `formatter` / `classifier`) sets temperature and,
 for Gemini-3+, the thinking level. A `None` model falls back to `_DEFAULT_MODEL`. Per-run
 overrides arrive via `PlanContext.*_model`.
 
@@ -19,10 +19,42 @@ speak the OpenAI chat-completions API (vLLM, llama.cpp, SGLang, hosted gateways)
 Per entry: `base_url` (required); `model`, the id the server expects (default: the
 registry name); the key from `api_key_env` (an environment variable), or `key_file` (a bare
 key, or NAME=value lines with `key_var` naming the line), or "EMPTY"; optional
-`max_tokens`, `timeout` (s), `temperature` (overrides the role's), and
+`max_tokens`, `timeout` (s), `max_retries` (the openai SDK's own resends on a timeout, 429,
+5xx or connection error; SDK default 2), `temperature` (overrides the role's), and
 `structured_output` ("json_schema", the default, or "function_calling") for servers that
 reject JSON-schema response formats. Keys are read from files or the environment and
 never logged.
+
+Request fields for thinking models (each a dict of extra request fields, sent as the
+request's `extra_body`; when two are combined, nested dicts such as `chat_template_kwargs`
+are merged key by key, the later one winning):
+
+- `no_thinking`: the fields that turn the model's thinking off, e.g.
+  {"chat_template_kwargs": {"enable_thinking": false}}. Sent only by the two retries: an
+  empty plain answer is asked once more with them, and an unusable structured answer is
+  retried once with them (below).
+- `thinking`: role -> fields merged into every request of that role, e.g.
+  {"formatter": {"chat_template_kwargs": {"enable_thinking": false}}}. A role the
+  registry does not name gets none; a role `chat_model` does not know is read under the
+  same fallback key as its temperature ("formatter").
+- `structured_body`: fields added to every `with_structured_output` call whatever the
+  role, after the role's, e.g. a llama.cpp reasoning budget
+  {"reasoning_budget_tokens": 4000, "reasoning_budget_message": "..."}.
+- `max_tokens_retry`: `max_tokens` of the structured retry. Default: `max_tokens` when
+  `no_thinking` is given (thinking off needs no larger limit), else 1.5x `max_tokens`.
+
+A structured answer is retried once, and only once, when it is unusable: it stopped at the
+output limit (openai.LengthFinishReasonError) or did not parse or validate (a ValueError:
+pydantic ValidationError, OutputParserException, JSONDecodeError, no parsed answer, or the
+schema's own `structured_answer_problem` check, e.g. a failing verdict that gives no
+reason). The schema check earns the retry only: a retry answer that fails it is logged and
+returned, since a reason-less verdict is still a verdict and raising there ended runs whose
+caller has no handler (the researcher's step evaluator). `answer_mode(out)` says which
+attempt produced an answer ("first_attempt", "retry_no_thinking", "retry_max_tokens";
+"model" for providers without the retry) and `answer_problem(out)` what the lenient check
+let through. Entries are read when a (model, role) pair is first built, and the effective entry
+is logged then (never the key): registry edits reach a running process only after a
+restart.
 
 The no-arg `proposer()/critic()/formatter()` wrappers honour the env overrides
 `PROPOSE_MODEL / CRITIQUE_MODEL / FORMAT_MODEL` for the standalone examples.
@@ -53,6 +85,9 @@ _ROLE_DEFAULTS = {
     "coder":     {"temperature": 0.2, "thinking_level": "high"},
     "critic":    {"temperature": 0.4, "thinking_level": "low"},
     "formatter": {"temperature": 0.0},
+    # A short judgement given as a structured answer (the intent gate): the formatter's temperature, but its own key
+    # for the registry's `thinking` fields, so a formatter that does not think does not make the judge stop thinking.
+    "classifier": {"temperature": 0.0},
 }
 
 
@@ -109,8 +144,9 @@ def endpoint_api_key(e: dict) -> str:
     return "EMPTY"
 
 
-_BREVITY = ("Your previous answer to this request ran out of output tokens. Keep any reasoning short and give the "
-            "structured answer directly.")
+_BREVITY = ("Your previous answer to this request could not be used: it ran out of output tokens or did not match "
+            "the required format. Keep any reasoning short and give the structured answer directly, with every "
+            "field filled in.")
 
 
 _EMPTY_NOTE = ("Your previous answer to this request was empty: the output-token budget ran out before the answer "
@@ -135,63 +171,208 @@ def _msg_text(msg) -> str:
     return t if isinstance(t, str) else str(getattr(msg, "content", "") or "")
 
 
-def _length_error_types():
+def _structured_error_types():
+    """Errors that earn a structured call its one retry: an overflow (LengthFinishReasonError, a thinking model spent
+    its budget reasoning) or an answer that does not parse or validate (pydantic ValidationError,
+    OutputParserException, JSONDecodeError, LangChain's "no 'parsed' field", `structured_answer_problem`: all
+    ValueError). An HTTP error from the server (openai.APIStatusError) is not one of them."""
     try:
         from openai import LengthFinishReasonError
-        return (LengthFinishReasonError,)
+        return (LengthFinishReasonError, ValueError)
     except ImportError:  # pragma: no cover - openai always ships with langchain_openai
-        return ()
+        return (ValueError,)
 
 
-def _with_length_retry(first, second):
-    """`first`, falling back to `second` only when `first` stops at its output-token limit."""
-    types = _length_error_types()
-    return first.with_fallbacks([second], exceptions_to_handle=types) if types else first
+_length_error_types = _structured_error_types   # earlier name
 
 
-def _compat_model(name: str, e: dict, temperature):
+def _short(err, n=300) -> str:
+    return ("%s: %s" % (type(err).__name__, " ".join(str(err).split())))[:n]
+
+
+def model_failure_types():
+    """Errors of a model call that a graph node may absorb (fall back, judge again) rather than end the run on: an
+    unusable answer (`_structured_error_types`), a request that timed out, or a 5xx from the server. Authentication,
+    not-found, rate-limit and connection errors are not in it: those are a wrong configuration or a server that is
+    gone, and carrying on would score every later step as the model's failure."""
+    types = list(_structured_error_types())
+    try:
+        from openai import APITimeoutError, InternalServerError
+        types += [APITimeoutError, InternalServerError]
+    except ImportError:  # pragma: no cover
+        pass
+    return tuple(types)
+
+
+def _tag(out, mode=None, problem=None):
+    """Mark a structured answer with the attempt that produced it (and what the lenient check let through). Stored
+    outside the model's fields, so equality, dumps and checkpoints are unchanged; an answer that cannot carry an
+    attribute (a dict) is left alone."""
+    for name, value in (("_answer_mode", mode), ("_answer_problem", problem)):
+        if value is not None:
+            try:
+                object.__setattr__(out, name, value)
+            except (AttributeError, TypeError):
+                pass
+    return out
+
+
+def answer_mode(out) -> str:
+    """Which attempt produced a structured answer: "first_attempt", "retry_no_thinking", "retry_max_tokens", or
+    "model" (a provider without the structured retry, or an answer built in code)."""
+    return getattr(out, "_answer_mode", None) or "model"
+
+
+def answer_problem(out):
+    """What `structured_answer_problem` found in an answer the lenient retry check returned anyway, else None."""
+    return getattr(out, "_answer_problem", None)
+
+
+def _with_length_retry(first, second, label="structured call", note="", retry_mode="retry"):
+    """`first`, falling back once to `second` when `first` raises one of `_structured_error_types`. Both failures are
+    logged; when the retry fails too, its own error is raised (the first one is its __context__). The answer is
+    tagged with the attempt that produced it (`answer_mode`)."""
+    from langchain_core.runnables import RunnableLambda
+    types = _structured_error_types()
+
+    def _run(inp, config=None):
+        try:
+            return _tag(first.invoke(inp, config), "first_attempt")
+        except types as err:
+            print("[llms] %s: structured answer unusable (%s); retrying once%s" % (label, _short(err), note),
+                  file=sys.stderr, flush=True)
+        try:
+            return _tag(second.invoke(inp, config), retry_mode)
+        except Exception as err2:
+            print("[llms] %s: the structured retry failed too (%s)" % (label, _short(err2)), file=sys.stderr, flush=True)
+            raise
+
+    wrapper = RunnableLambda(_run, name="structured_retry")
+    wrapper.first_attempt, wrapper.retry = first, second    # for introspection (tests)
+    return wrapper
+
+
+_with_structured_retry = _with_length_retry
+
+
+def _merge_body(*bodies) -> dict | None:
+    """Combine extra_body dicts, later ones winning; nested dicts (`chat_template_kwargs`) are merged key by key
+    rather than replaced whole."""
+    out: dict = {}
+    for b in bodies:
+        for k, v in (b or {}).items():
+            if isinstance(v, dict) and isinstance(out.get(k), dict):
+                out[k] = _merge_body(out[k], v)
+            else:
+                out[k] = dict(v) if isinstance(v, dict) else v
+    return out or None
+
+
+def _is_structured_call(kwargs) -> bool:
+    """Was this request bound by `with_structured_output`? json_schema / json_mode bind `response_format`, and every
+    method binds `ls_structured_output_format` (function_calling binds the schema as a forced tool). A bare
+    `bind_tools` (the ReAct researcher) is not structured: its turns keep the empty-answer retry."""
+    return "response_format" in kwargs or "ls_structured_output_format" in kwargs
+
+
+def _has_tool_calls(msg) -> bool:
+    return bool(getattr(msg, "tool_calls", None) or getattr(msg, "invalid_tool_calls", None))
+
+
+def _check_answer(out, schema, strict=True, label="structured call"):
+    """Raise ValueError for a structured answer that parsed but cannot be used: none at all (function_calling with no
+    tool call), or, when `strict` (the first attempt), one the schema's `structured_answer_problem` rejects. On the
+    retry (`strict` False) such an answer is logged, tagged (`answer_problem`) and returned: the check is worth one
+    retry, not a crash. Applied on OpenAI-compatible endpoints only, so other providers' answers are read exactly as
+    before."""
+    if isinstance(schema, type) and out is None:
+        raise ValueError("the model gave no structured answer")
+    problem = getattr(out, "structured_answer_problem", None)
+    if callable(problem):
+        reason = problem()
+        if reason and strict:
+            raise ValueError("%s answer rejected: %s" % (type(out).__name__, reason))
+        if reason:
+            print("[llms] %s: answer used as it is, no retry left (%s)" % (label, reason), file=sys.stderr, flush=True)
+            _tag(out, problem=reason)
+    return out
+
+
+_LOGGED_ENTRIES: set = set()
+
+
+def _log_entry(name: str, e: dict, role, extra_body, max_tokens) -> None:
+    """Once per (model, role): the registry fields this client was built with (never the key), so a run's log says
+    which configuration produced its answers."""
+    if (name, role) in _LOGGED_ENTRIES:
+        return
+    _LOGGED_ENTRIES.add((name, role))
+    print("[llms] %s (role %s): max_tokens=%s max_tokens_retry=%s structured_output=%s no_thinking=%s "
+          "thinking[%s]=%s structured_body=%s" % (
+              name, role, max_tokens, e.get("max_tokens_retry"), e.get("structured_output", "json_schema"),
+              json.dumps(e.get("no_thinking")), role, json.dumps(extra_body),
+              json.dumps(e.get("structured_body"))), file=sys.stderr, flush=True)
+
+
+def _compat_model(name: str, e: dict, temperature, role: str | None = None):
     from langchain_openai import ChatOpenAI
+    from langchain_core.runnables import RunnableLambda
 
     method = e.get("structured_output", "json_schema")
 
     class _CompatChatOpenAI(ChatOpenAI):
         """ChatOpenAI pointed at an OpenAI-compatible server, with the server's structured-output method.
 
-        A structured answer that stops at the output limit (openai.LengthFinishReasonError: a thinking model spent its
-        budget reasoning) is retried once with a larger budget (`max_tokens_retry` of the registry entry, else 1.5x
-        `max_tokens`), the endpoint's `no_thinking` request fields when the registry gives them, and a note asking
-        for brief reasoning; a second overflow raises as before. Without this, one overlong evaluator or formatter
-        answer ended the whole run. A larger budget alone was not enough: DeepSeek and Qwen step evaluators overflowed
-        48k tokens as well and ended 9 of 12 overnight benchmark runs (22-23 Nov 2026)."""
+        A structured call sends the entry's `structured_body` (e.g. a reasoning budget) on top of the role's fields. An
+        unusable structured answer (see `_structured_error_types`: an overflow, or an answer that does not parse or
+        validate) is retried once, with the endpoint's `no_thinking` fields and the same `max_tokens` when the registry
+        gives them (else 1.5x `max_tokens`, or `max_tokens_retry`, with `structured_body` kept), and a note asking for
+        brief reasoning; a second failure raises, except that the schema's own check only logs on the retry. Without
+        this, one overlong evaluator or formatter answer ended the whole run: DeepSeek and Qwen
+        step evaluators overflowed 32k and 48k tokens and ended 9 of 12 overnight benchmark runs (22-23 Nov 2026)."""
 
         def invoke(self, input, config=None, **kwargs):
             """A plain answer with no text (a thinking model spent its whole budget reasoning: finish_reason
             "length", content empty) is asked once more, with the endpoint's `no_thinking` request fields when the
             registry gives them and a note asking for a direct answer. The engineer's six attempts were otherwise
-            all lost to the same overlong thinking, at up to five minutes each."""
+            all lost to the same overlong thinking, at up to five minutes each. A reply that holds tool calls is not
+            empty, and a structured call is left to the structured retry (one retry path, not two nested)."""
             msg = super().invoke(input, config=config, **kwargs)
-            if _msg_text(msg).strip():
+            if _msg_text(msg).strip() or _has_tool_calls(msg) or _is_structured_call(kwargs):
                 return msg
             reason = (getattr(msg, "response_metadata", None) or {}).get("finish_reason")
             extra = e.get("no_thinking")
             print("[llms] %s returned an empty answer (finish_reason=%s); asking once more%s" % (
                 self.model_name, reason, " with thinking off" if extra else ""), file=sys.stderr, flush=True)
-            retry = self.model_copy(update={"extra_body": {**(self.extra_body or {}), **extra}}) if extra else self
+            retry = self.model_copy(update={"extra_body": _merge_body(self.extra_body, extra)}) if extra else self
             return ChatOpenAI.invoke(retry, _add_brevity(input, _EMPTY_NOTE), config=config, **kwargs)
 
         def with_structured_output(self, schema=None, *, method=None, **kwargs):
-            first = super().with_structured_output(schema, method=method or _method, **kwargs)
-            if not self.max_tokens:
-                return first
-            bigger = int(e.get("max_tokens_retry") or int(1.5 * self.max_tokens))
-            update = {"max_tokens": bigger}
-            if e.get("no_thinking"):
-                update["extra_body"] = {**(self.extra_body or {}), **e["no_thinking"]}
-            retry_model = self.model_copy(update=update)
-            from langchain_core.runnables import RunnableLambda
+            base = self
+            if e.get("structured_body"):
+                base = self.model_copy(update={"extra_body": _merge_body(self.extra_body, e["structured_body"])})
+            label = "%s %s" % (self.model_name, getattr(schema, "__name__", "structured call"))
+            strict = RunnableLambda(lambda out: _check_answer(out, schema, True, label), name="check_structured_answer")
+            lenient = RunnableLambda(lambda out: _check_answer(out, schema, False, label),
+                                     name="check_structured_retry_answer")
+            first = ChatOpenAI.with_structured_output(base, schema, method=method or _method, **kwargs)
+            no_thinking = e.get("no_thinking")
+            if not (self.max_tokens or no_thinking):   # no retry: the only answer is checked leniently
+                return first | lenient | RunnableLambda(lambda out: _tag(out, "first_attempt"), name="tag_answer")
+            if no_thinking:   # thinking off: the same limit is ample
+                limit = e.get("max_tokens_retry") or self.max_tokens
+                update = {"extra_body": _merge_body(base.extra_body, no_thinking),
+                          "max_tokens": int(limit) if limit else None}
+                mode = "retry_no_thinking"
+            else:             # built from `base`, so the retry keeps structured_body
+                update = {"max_tokens": int(e.get("max_tokens_retry") or int(1.5 * self.max_tokens))}
+                mode = "retry_max_tokens"
+            retry_model = base.model_copy(update=update)
             second = RunnableLambda(_add_brevity) | ChatOpenAI.with_structured_output(
-                retry_model, schema, method=method or _method, **kwargs)
-            return _with_length_retry(first, second)
+                retry_model, schema, method=method or _method, **kwargs) | lenient
+            note = (" with thinking off (max_tokens=%s)" % update["max_tokens"] if no_thinking
+                    else " with max_tokens=%s" % update["max_tokens"])
+            return _with_length_retry(first | strict, second, label=label, note=note, retry_mode=mode)
 
     _method = method
     kw = {"model": e.get("model") or name, "base_url": e["base_url"], "api_key": endpoint_api_key(e),
@@ -203,6 +384,12 @@ def _compat_model(name: str, e: dict, temperature):
         kw["max_tokens"] = int(e["max_tokens"])
     if e.get("timeout"):
         kw["timeout"] = float(e["timeout"])
+    if e.get("max_retries") is not None:
+        kw["max_retries"] = int(e["max_retries"])
+    role_body = _merge_body((e.get("thinking") or {}).get(role)) if role else None
+    if role_body:
+        kw["extra_body"] = role_body
+    _log_entry(name, e, role, role_body, kw.get("max_tokens"))
     return _CompatChatOpenAI(**kw)
 
 
@@ -230,6 +417,12 @@ def _gemini_supports_thinking_level(model: str) -> bool:
     return bool(m) and int(m.group(1)) >= 3
 
 
+def _role_key(role: str) -> str:
+    """The `_ROLE_DEFAULTS` key a role is read under; an unknown role falls back to the formatter's (temperature and
+    the registry's `thinking` fields alike)."""
+    return role if role in _ROLE_DEFAULTS else "formatter"
+
+
 @lru_cache(maxsize=None)
 def chat_model(model: str | None = None, role: str = "generator"):
     """Build a chat model for `role`, honoring a per-run `model` override.
@@ -238,13 +431,14 @@ def chat_model(model: str | None = None, role: str = "generator"):
     role falls back to the `formatter` settings.
     """
     model = model or _DEFAULT_MODEL
-    cfg = _ROLE_DEFAULTS.get(role, _ROLE_DEFAULTS["formatter"])
+    role_key = _role_key(role)
+    cfg = _ROLE_DEFAULTS[role_key]
     temperature = cfg.get("temperature")
     thinking_level = cfg.get("thinking_level")
     provider = _provider(model)
 
     if provider == "compat":
-        return _compat_model(model, endpoints()[model], temperature)
+        return _compat_model(model, endpoints()[model], temperature, role_key)
 
     if provider == "openai":
         from langchain_openai import ChatOpenAI
