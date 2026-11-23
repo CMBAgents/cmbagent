@@ -21,7 +21,8 @@ instructions: |
       - WRITTEN BY THIS ATTEMPT: counts wherever it is (`answer.json`,
         `work/x.npz`, `data/plots/y.png`).
       - CARRIED OVER from an earlier attempt of this SAME step (unchanged by
-        this attempt): it was produced by this step's own earlier run. A
+        this attempt; the attempt may belong to a run of this step that was
+        stopped and restarted): it was produced by this step's own code. A
         script that resumes — loads what an earlier attempt saved and skips
         work already done — leaves such files untouched by design, so "not
         written by this attempt" does NOT mean "not processed". Use the code

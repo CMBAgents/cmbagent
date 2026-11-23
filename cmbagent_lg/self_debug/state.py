@@ -175,27 +175,27 @@ class DebugState(TypedDict, total=False):
     # infeasibility_check read. In remote mode: the guest's top-level data/ listing.
     data_manifest: List[dict]
     # The step's file history, for telling the files THIS attempt did not write apart
-    # (`attempt_manifest.StepHistory`). Both are per-step: absent at the step's first
-    # attempt (each step is a fresh graph invoke) and kept across its attempts.
-    # `step_baseline` — the run-directory snapshot taken right before the step's FIRST
-    #                   executed attempt ({"files": {rel: [size, mtime_ns, ctime_ns,
-    #                   inode]}, "truncated", "partial_dirs", "symlinked_dirs",
-    #                   "started_ns"}), bounded by the walk's file cap; set once by the
-    #                   executor, never overwritten.
-    # `step_writes`   — manifest path -> the attempt that last wrote it in this step,
-    #                   bounded by the same cap. Local executor only; remote mode sets
-    #                   neither.
-    step_baseline: Optional[dict]
-    step_writes: Optional[Dict[str, int]]
+    # (`attempt_manifest.StepHistory`): a small reference to `logs/step_N_history.json`,
+    # which holds the run-directory snapshot taken right before the step's FIRST executed
+    # attempt and the attempt that last wrote each file (with its signature). The file,
+    # not state, holds them: the snapshot can be `max_files` entries and every traced
+    # node span records the whole state. `{"path", "run", "key"}`, or `{"inline", "run"}`
+    # with no work dir. Absent at the first executor pass of a graph invoke; a fresh
+    # invoke of the same step (same number, same sub-task and bullets) reads the file as
+    # a previous run of the step. Local executor only; remote mode does not set it.
+    step_history: Optional[dict]
     # How `data_manifest` was made: scope ("work_dir" | "remote_data" | "none"),
     # complete / incomplete_reason (a walk cap was hit), omitted (always 0 now: the
     # manifest is never cut, only its rendering; kept for old checkpoints), symlinked_dirs
     # (not entered), partial_dirs (too large to list file by file), stdout_paths (each
     # file path stdout named, classified written / carried_over (with "attempt") /
     # pre_existing / missing / not_found, plus globs and directories counted by class with
-    # "kind"), started_ns, attempt, carried_over (files an earlier attempt of this step
-    # wrote and this one left unchanged, already shortened for the prompt). None after a
-    # static refusal and on old checkpoints.
+    # "kind"), started_ns, attempt, step_run (graph invokes of this step so far: 2+ after
+    # a restart), history (False when built without the step's history: a file this
+    # attempt did not write is then only "not written by this attempt"), history_error
+    # (the carry-over split failed; the rest stands), carried_over (files an earlier
+    # attempt of this step wrote and this one left unchanged, already shortened for the
+    # prompt). None after a static refusal and on old checkpoints.
     data_manifest_info: Optional[dict]
 
     # execution_evaluator — did the code RUN cleanly?
