@@ -124,3 +124,65 @@ def test_normalise_code_leaves_a_broken_script_alone():
     assert normalise_code("def f(:\n  pass") == "def f(:\n  pass\n"
     assert normalise_code("x = 'a\\nb'") == "x = 'a\\nb'\n"       # parses already: the escape is the script's
     assert normalise_code("    x = 1\n    print(x)\n") == "x = 1\nprint(x)\n"
+
+
+# ── layouts that used to return an empty or cut-off script ────────────────
+
+
+def test_fence_opened_on_the_header_line(monkeypatch):
+    out, calls = _run(monkeypatch, "**Code Explanation:**\nprints 3\n\n**Python Code:** ```python\nprint(3)\n```\n")
+    assert calls == 0 and out.python_code == "print(3)\n" and out.code_explanation == "prints 3"
+
+
+def test_bare_fence_line_inside_a_triple_quoted_string(monkeypatch):
+    script = 'README = """\n# Usage\n```\npython run.py\n```\n"""\n\nif __name__ == "__main__":\n    print(README)\n'
+    out, calls = _run(monkeypatch, "**Python Code:**\n```python\n" + script + "```\n\nRun it as is.\n")
+    assert calls == 0 and out.python_code == script
+    ast.parse(out.python_code)
+
+
+def test_header_and_fence_written_by_the_script_itself(monkeypatch):
+    script = ("MD = '''\n**Python Code:**\n```\nprint(1)\n```\n'''\n\n"
+              "if __name__ == \"__main__\":\n    print(MD)\n")
+    out, calls = _run(monkeypatch, "**Code Explanation:**\nwrites markdown\n\n**Python Code:**\n```python\n"
+                      + script + "```\n")
+    assert calls == 0 and out.python_code == script
+
+
+def test_header_inside_a_string_after_an_early_close(monkeypatch):
+    """The script's own header falls outside every block once a bare ``` line in a string closed the block early;
+    the real header's block is extended to the true closing fence."""
+    script = 'A = """\n```\n"""\nMD = """\n**Python Code:**\n"""\nprint(A, MD)\n'
+    out, calls = _run(monkeypatch, "**Python Code:**\n```python\n" + script + "```\n")
+    assert calls == 0 and out.python_code == script
+
+
+def test_a_blank_block_goes_to_the_formatter(monkeypatch):
+    assert extract_engineer_response("**Python Code:**\n```python\n\n```\n") == (None, "no usable fenced block")
+    out, calls = _run(monkeypatch, "**Python Code:**\n```python\n   \n```\n")
+    assert calls == 1
+
+
+def test_a_cut_off_block_that_does_not_parse_goes_to_the_formatter():
+    obj, how = extract_engineer_response("**Python Code:**\n```python\ndef main(:\n    x = [1,\n")
+    assert obj is None
+
+
+def test_an_unterminated_block_that_parses_is_used():
+    obj, _ = extract_engineer_response("**Python Code:**\n```python\nprint(1)\n")
+    assert obj.python_code == "print(1)\n"
+
+
+def test_modifications_written_after_the_code():
+    obj, _ = extract_engineer_response(ANSWER.replace("**Modifications:**\n\nSwitched to numpy.\n\n", "")
+                                       + "\n**Modifications:**\nSwitched to numpy.\n")
+    assert obj.python_code == SCRIPT and obj.modification_summary == "Switched to numpy."
+
+
+def test_quoted_json_escaped_one_line_script_is_decoded():
+    quoted = json.dumps(SCRIPT)                        # "…\n…" with the quotes: parses as one string expression
+    ast.parse(quoted)
+    assert normalise_code(quoted) == SCRIPT
+    assert normalise_code('"import os\\nprint(\\"a\\")"') == 'import os\nprint("a")\n'
+    assert normalise_code("'import os\\nprint(1)'") == "import os\nprint(1)\n"     # a Python literal, not JSON
+    assert normalise_code('"just a string"') == '"just a string"\n'               # no escapes: left alone
