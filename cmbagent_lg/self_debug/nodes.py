@@ -228,7 +228,33 @@ def _record_api_fact(ctx, code: str, stderr: str, stdout: str, work_dir) -> None
 
 @timed_node("format_engineer")
 def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
-    """Convert the engineer's prose into a typed `EngineerResponse`."""
+    """Turn the engineer's answer into a typed `EngineerResponse`.
+
+    The script is read deterministically (`code_extract.extract_engineer_response`): the fenced block after
+    `**Python Code:**`, else the last python block, with the explanation and modifications from their sections. Only
+    an answer with no fence goes to the formatter model, and its script is normalised the same way. Copying a whole
+    script into a JSON string was a second long call per attempt for an open formatter, could overflow or fail to
+    validate, and once handed the executor a JSON-escaped one-line script (b13-1, rusty, 23 Nov 2026).
+
+    An empty engineer answer (a model that returned no text, e.g. after spending its budget on
+    thinking) is turned into a script that fails with that diagnosis, so the attempt is counted and
+    retried like any failed run; sending the empty text to the formatter crashed the whole graph
+    ("contents are required")."""
+    from cmbagent_lg.self_debug.code_extract import extract_engineer_response, normalise_code
+
+    raw = state.get("raw_engineer") or ""
+    if not raw.strip():
+        print("[format_engineer] the engineer returned an empty answer; this attempt fails", file=sys.stderr, flush=True)
+        return {"current_code": EngineerResponse(
+            python_code='if __name__ == "__main__":\n    raise SystemExit("the engineer returned an empty answer: no code was written")\n',
+            code_explanation="The engineer returned an empty answer, so no script was written; this attempt fails and is retried.")}
+    obj, how = extract_engineer_response(raw)
+    if obj is not None:
+        print(f"[format_engineer] script read from {how} ({obj.python_code.count(chr(10))} lines); "
+              f"no formatter call", file=sys.stderr, flush=True)
+        return {"current_code": obj}
+    print("[format_engineer] no fenced code block in the engineer's answer; asking the formatter",
+          file=sys.stderr, flush=True)
     structured = _formatter(runtime.context).with_structured_output(EngineerResponse)
     sys_prompt = SystemMessage(
         "You are a formatter. Convert the user's text into an EngineerResponse "
@@ -236,10 +262,10 @@ def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSt
         "alter it. The code block is the substantive content; do not summarize it."
     )
     obj = structured.invoke(
-        [sys_prompt, HumanMessage(state["raw_engineer"])],
+        [sys_prompt, HumanMessage(raw)],
         config={"tags": ["format_engineer"]},
     )
-    return {"current_code": obj}
+    return {"current_code": obj.model_copy(update={"python_code": normalise_code(obj.python_code)})}
 
 
 # ── on-disk layout ───────────────────────────────────────────────────────
