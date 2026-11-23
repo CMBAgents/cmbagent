@@ -390,6 +390,13 @@ def run_step(
         "attempts": sub_state.get("attempts", 0),
         "escalated": sub_state.get("escalated", False),
     }
+    # Evaluator model failures, so a score can tell them from verdicts (self_debug/state.py).
+    if sub_state.get("step_evaluator_errors_total"):
+        outcome["step_evaluator_errors"] = sub_state["step_evaluator_errors_total"]
+    if sub_state.get("step_evaluator_outcome") == "failed_closed":
+        outcome["step_evaluator_failed_closed"] = True
+    if sub_state.get("execution_verdict_fallbacks"):
+        outcome["execution_verdict_fallbacks"] = sub_state["execution_verdict_fallbacks"]
     if substituted:
         # Reaches the run summary, the report (through the step summary above) and
         # `analysis_status.json`'s `infeasible_steps`: a step completed by substitution

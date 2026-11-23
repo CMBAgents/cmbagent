@@ -140,7 +140,7 @@ graph = (
     .add_conditional_edges(
         "step_evaluator",
         route_after_step_evaluator,
-        {"engineer": "engineer", END: END},
+        {"engineer": "engineer", "step_evaluator": "step_evaluator", END: END},
     )
     .compile()
 )
