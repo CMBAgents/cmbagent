@@ -331,6 +331,31 @@ def test_infeasibility_check_counts_a_nested_written_artifact():
     assert {"work/loocv.parquet", "loocv.parquet"} <= names
 
 
+def test_workspace_listing_includes_other_files_and_keeps_step_logs(tmp_path, monkeypatch):
+    from cmbagent_lg.deep_research import nodes as dr_nodes
+
+    (tmp_path / "codebase").mkdir()
+    (tmp_path / "codebase" / "step_1.log").write_text("x")
+    (tmp_path / "data" / "plots").mkdir(parents=True)
+    (tmp_path / "data" / "top.csv").write_text("x")
+    (tmp_path / "data" / "plots" / "km.png").write_text("x")
+    (tmp_path / "work").mkdir()
+    (tmp_path / "work" / "spectra.npz").write_text("x")
+    (tmp_path / "answer.json").write_text("{}")
+    (tmp_path / "planning").mkdir()
+    (tmp_path / "planning" / "final_plan.json").write_text("{}")
+    text = dr_nodes._build_workspace_manifest(str(tmp_path))
+    assert "- codebase/step_1.log" in text
+    assert "- data/top.csv" in text
+    other = text.split("**Other files in the run directory:**", 1)[1]
+    assert "- answer.json" in other and "- work/spectra.npz" in other
+    assert "- data/plots/km.png" in other
+    assert "data/top.csv" not in other and "planning/" not in other
+    monkeypatch.setattr(dr_nodes, "_WORKSPACE_OTHER_MAX", 1)
+    cut = dr_nodes._build_workspace_manifest(str(tmp_path))
+    assert "- ... and 2 more, not listed" in cut and "- codebase/step_1.log" in cut
+
+
 def test_remote_executor_keeps_the_guest_manifest(tmp_path, monkeypatch):
     from cmbagent_lg.self_debug import remote_exec
 
