@@ -397,6 +397,8 @@ def _rejection(state: DebugState, ctx: PlanContext, kind: str, code: str, stderr
         "execution_timed_out": False,
         "execution_elapsed_s": 0.0,
         "data_manifest": [],
+        # Nothing ran, so there is no listing; None keeps an earlier attempt's out.
+        "data_manifest_info": None,
     }
     # The executor captures the `safe_loading` fact on attempt 1 only. If attempt 1 is
     # refused here, attempt 2's executor would never set it — so take the same reading

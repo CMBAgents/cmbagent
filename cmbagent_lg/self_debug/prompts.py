@@ -382,12 +382,15 @@ def evaluator_instructions(
     )
 
 
-def _render_manifest(data_manifest: List[dict]) -> str:
-    if not data_manifest:
-        return "(no output files were produced)"
-    return "\n".join(
-        f"- {f['path']} ({f['bytes']} bytes)" for f in data_manifest
-    )
+def _render_manifest(data_manifest: List[dict], data_manifest_info: dict | None = None) -> str:
+    """The OUTPUT FILES section: what was checked, how far, and what stdout's paths are.
+
+    Says exactly what was scanned ("no file in the run directory was written or modified
+    by this attempt (checked recursively; ...)") rather than "(no output files were
+    produced)", which was false for every file written outside the top level of data/."""
+    from cmbagent_lg.self_debug.attempt_manifest import render_for_evaluator
+
+    return render_for_evaluator(data_manifest or [], data_manifest_info)
 
 
 def _render_step_history(step_feedback_history: List[str]) -> str:
@@ -423,6 +426,7 @@ def step_evaluator_instructions(
     step_feedback_history: List[str],
     input_dir_empty: bool | None = None,
     code: str | None = None,
+    data_manifest_info: dict | None = None,
 ) -> str:
     # The data-integrity rules (fabricated/absent input, wrong column, non-converged fit →
     # not fulfilled) are gated by `safe_loading` alone (default True), independent of
@@ -471,7 +475,7 @@ def step_evaluator_instructions(
             current_instructions="\n".join(f"- {b}" for b in step.bullet_points),
             executed_code=_render_code(code),
             stdout=_render_stdout(stdout),
-            data_manifest=_render_manifest(data_manifest),
+            data_manifest=_render_manifest(data_manifest, data_manifest_info),
             step_feedback_history=_render_step_history(step_feedback_history),
             data_integrity_rules=data_integrity_rules,
             infeasible_rules=infeasible_rules,

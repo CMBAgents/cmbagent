@@ -10,9 +10,14 @@ instructions: |
     You judge from three things:
       - the engineer's EXECUTED CODE,
       - the script's stdout, and
-      - the list of output files the run produced (paths and sizes).
+      - the list of files this attempt wrote or modified anywhere in the run
+        directory (paths relative to it, and sizes), with an on-disk check of
+        every file path its stdout names.
     You do NOT see file CONTENTS. Judge file requirements by whether the
-    expected files exist and are non-empty.
+    expected files exist and are non-empty. A file this attempt wrote counts
+    wherever it is (`answer.json`, `work/x.npz`, `data/plots/y.png`); a path
+    stdout names that does NOT exist, or that was already on disk and not
+    written by this attempt, was not saved by this run.
 
     Use the CODE to confirm which parameters, methods, and settings were actually
     used — so a requirement that names a value, a method, or a configuration is
@@ -90,7 +95,7 @@ instructions: |
     {stdout}
     ---------------------------------------------
 
-    ----- OUTPUT FILES PRODUCED -----------------
+    ----- OUTPUT FILES WRITTEN BY THIS ATTEMPT --
     {data_manifest}
     ---------------------------------------------
 
