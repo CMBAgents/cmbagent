@@ -307,6 +307,30 @@ def test_evaluator_wording_in_remote_mode_and_without_info():
 # ── consumers ───────────────────────────────────────────────────────────────
 
 
+def test_image_reviewer_sees_nested_and_stdout_named_images(tmp_path, tmp_path_factory):
+    from cmbagent_lg.vlm.images import images_from_manifest, with_images
+
+    outside = tmp_path_factory.mktemp("figs") / "abs.png"
+    out = _run(tmp_path, f"""
+        import os
+        os.makedirs("data/plots", exist_ok=True)
+        open("data/plots/km.png", "wb").write(b"png")
+        open({str(outside)!r}, "wb").write(b"png")
+        print("saved {outside}")
+    """)
+    imgs = images_from_manifest(str(tmp_path), out["data_manifest"])
+    assert sorted(map(str, imgs)) == sorted([str(tmp_path / "data/plots/km.png"), str(outside)])
+    content = with_images("t", [tmp_path / "data/plots/km.png"], root=str(tmp_path))
+    assert any(b.get("text") == "\nFigure — data/plots/km.png:" for b in content)
+
+
+def test_infeasibility_check_counts_a_nested_written_artifact():
+    from cmbagent_lg.self_debug.infeasibility_check import _written_artifacts
+
+    names = _written_artifacts({"data_manifest": [{"path": "work/loocv.parquet", "bytes": 1}]})
+    assert {"work/loocv.parquet", "loocv.parquet"} <= names
+
+
 def test_remote_executor_keeps_the_guest_manifest(tmp_path, monkeypatch):
     from cmbagent_lg.self_debug import remote_exec
 

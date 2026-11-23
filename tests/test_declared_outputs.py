@@ -13,7 +13,8 @@ existing retry machinery — `error_history`, the demotion of `step_{N}.py`, the
 budget, the safety layers in `route_after_execution_evaluator` — proceeds unchanged and
 bounds the bounce for free.
 
-Presence is judged from the attempt's `data_manifest` (the executor's baseline diff),
+Presence is judged from the attempt's `data_manifest` (the executor's recursive
+baseline diff of the run directory),
 NOT from `Path.exists()`. metabric Project3/Iteration1 step 5 is why: a stale
 `data/loocv_results.parquet` from an earlier run was sitting in `data/`, so an existence
 check would have waved through all eight attempts that never wrote it, and a later step
@@ -22,8 +23,8 @@ would have read the wrong numbers out of the stale file.
 Conservative by design, and the five guards are what these tests pin down: only
 SAVE-shaped declarations count (an absent INPUT is the `safe_loading` layer's business,
 never this one's), only unambiguous `data/...` paths, only after a run that exited 0,
-never under a remote executor or without a manifest, and a nested path falls back to
-existence because the manifest cannot see it.
+never under a remote executor or without a manifest, and a path the manifest could not
+see (a walk cap was hit) counts only when its mtime is not older than the attempt.
 
 Run:
     python tests/test_declared_outputs.py
@@ -169,17 +170,43 @@ def test_a_stale_file_from_an_earlier_run_does_not_count(tmp_path):
         _rt(ctx)))
 
 
-def test_a_nested_declared_path_falls_back_to_existence(tmp_path):
-    """`_data_manifest` enumerates only the top level of `data/`, so a nested path has
-    no per-attempt provenance; missing it beats bouncing correct code."""
+def test_a_nested_declared_path_is_judged_from_the_manifest(tmp_path):
+    """The manifest is recursive, so a nested path has per-attempt provenance like any
+    other: a stale copy on disk does not pass (the old existence fallback let it), and
+    the attempt that wrote it passes."""
     ctx = PlanContext(main_task="t")
     step = _step("plot it", "save the figure to data/plots/km.png")
+    (tmp_path / "data" / "plots").mkdir(parents=True)
+    (tmp_path / "data" / "plots" / "km.png").write_text("stale")
     out = output_postcondition(_clean_state(step, tmp_path, data_manifest=[]), _rt(ctx))
     assert out["output_postcondition_rejected"] == "missing_output"
-    (tmp_path / "data" / "plots").mkdir(parents=True)
-    (tmp_path / "data" / "plots" / "km.png").write_text("x")
     _assert_pass_through(output_postcondition(
-        _clean_state(step, tmp_path, data_manifest=[]), _rt(ctx)))
+        _clean_state(step, tmp_path,
+                     data_manifest=[{"path": "data/plots/km.png", "bytes": 5}]),
+        _rt(ctx)))
+
+
+def test_an_incomplete_manifest_falls_back_to_mtime_not_existence(tmp_path):
+    """When the walk hit a cap the listing may omit a file the attempt wrote: such a
+    file counts if its mtime is not older than the attempt; a stale one still does not."""
+    import time
+
+    ctx = PlanContext(main_task="t")
+    step = _step("plot it", "save the figure to data/plots/km.png")
+    target = tmp_path / "data" / "plots" / "km.png"
+    target.parent.mkdir(parents=True)
+    target.write_text("x")
+    old = time.time() - 3600
+    os.utime(target, (old, old))
+    info = {"scope": "work_dir", "complete": False,
+            "incomplete_reason": "the scan stopped at the 5-file cap",
+            "started_ns": time.time_ns(), "stdout_paths": [], "symlinked_dirs": []}
+    out = output_postcondition(
+        _clean_state(step, tmp_path, data_manifest=[], data_manifest_info=info), _rt(ctx))
+    assert out["output_postcondition_rejected"] == "missing_output"
+    target.write_text("fresh")  # mtime now >= started_ns
+    _assert_pass_through(output_postcondition(
+        _clean_state(step, tmp_path, data_manifest=[], data_manifest_info=info), _rt(ctx)))
 
 
 # ── (3) the node ──────────────────────────────────────────────────────────────

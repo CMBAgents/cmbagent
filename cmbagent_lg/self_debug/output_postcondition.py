@@ -30,8 +30,9 @@ stdout is left untouched: the script really did print what it printed, and the e
 needs to see it.
 
 PRESENCE IS JUDGED FROM THE PER-ATTEMPT MANIFEST, NOT FROM `Path.exists()`. The
-executor re-snapshots `data/` at the start of every attempt and diffs it afterwards, so
-`data_manifest` is exactly "written or modified by THIS attempt"; a bare existence check
+executor re-snapshots the run directory (recursively, see `attempt_manifest`) at the
+start of every attempt and diffs it afterwards, so `data_manifest` is exactly "written
+or modified by THIS attempt", at any depth; a bare existence check
 would be waved through by a file an EARLIER step or an earlier attempt left on disk.
 That is not hypothetical — it is the measured case: metabric Project3/Iteration1 step 5
 declared `data/loocv_results.parquet`, a stale copy from a previous run was sitting in
@@ -52,10 +53,13 @@ correct code:
      missing file is already explained by the traceback;
   4. never under `CMBAGENT_LG_REMOTE_EXECUTOR`: the data lives guest-side, so engine-side
      absence proves nothing; and never without a manifest to read;
-  5. a declared path INSIDE a subdirectory of `data/` falls back to existence, because
-     `_data_manifest` enumerates only the top level of `data/` and there is no
-     per-attempt provenance to read for it. A miss there is better than bouncing
-     correct code on a file the manifest structurally cannot see.
+  5. a declared path the manifest could not see — the walk hit a cap
+     (`data_manifest_info["complete"]` is False) or the path is under a symlinked
+     directory the walk does not enter — counts as written when its mtime is not older
+     than the attempt's start. Never a bare existence check: a stale copy is older than
+     the attempt, so the metabric case above is still caught. A declared path in a
+     subdirectory of `data/` (`data/plots/km.png`) is judged from the manifest like any
+     other, since the snapshot is recursive.
 """
 
 from __future__ import annotations
@@ -71,6 +75,7 @@ from langgraph.runtime import Runtime
 from langgraph.graph import END
 
 from cmbagent_lg.context import PlanContext
+from cmbagent_lg.self_debug import attempt_manifest as _am
 from cmbagent_lg.self_debug.nodes import _codebase_dir
 from cmbagent_lg.self_debug.schemas import ExecutionVerdict
 from cmbagent_lg.self_debug.state import DebugState
@@ -133,45 +138,32 @@ def declared_output_paths(step) -> List[str]:
     return out
 
 
-def _manifest_names(manifest) -> set:
-    """Every path and basename the run's data manifest reports, for the presence test."""
-    names = set()
-    for entry in manifest or []:
-        path = entry.get("path") if isinstance(entry, dict) else entry
-        if not path:
-            continue
-        names.add(str(path))
-        names.add(Path(str(path)).name)
-    return names
-
-
-def _is_nested(path: str) -> bool:
-    """A declared path below the top level of `data/` (`data/sub/x.csv`), which the
-    manifest structurally cannot report."""
-    return len(Path(path).parts) > 2
-
-
-def missing_declared_outputs(step, work_dir: Optional[str], manifest=None) -> List[str]:
+def missing_declared_outputs(step, work_dir: Optional[str], manifest=None,
+                             info: Optional[dict] = None) -> List[str]:
     """Declared output paths THIS ATTEMPT did not write (see `declared_output_paths`
     for what counts as declared, and the module docstring for why the manifest rather
     than `Path.exists()` decides).
 
     A path counts as WRITTEN when the attempt's `data_manifest` reports it, by path or
     by basename — a script that wrote the right content under a sibling name is the step
-    evaluator's judgement call, not this one's. A nested path falls back to existence.
+    evaluator's judgement call, not this one's. Where the manifest could not see the
+    path (`info` says the listing is incomplete, or the path is under a symlinked
+    directory), a file whose mtime is not older than the attempt counts (item 5).
     `[]` when there is no declaration, no workspace, or no manifest to read: never
     bounce blind.
     """
     declared = declared_output_paths(step)
     if not declared or not work_dir or not isinstance(manifest, list):
         return []
-    names = _manifest_names(manifest)
+    names = _am.written_names(manifest)
     root = Path(work_dir).expanduser()
+    whole = _am.listing_is_whole(info)
     missing = []
     for path in declared:
         if path in names or Path(path).name in names:
             continue
-        if _is_nested(path) and (root / path).is_file():
+        unseen = not whole or _am.under_symlinked_dir(path, info)
+        if unseen and _am.written_since_start(root / path, info):
             continue
         missing.append(path)
     return missing
@@ -183,7 +175,7 @@ def missing_output_report(missing: List[str]) -> str:
     return (
         f"The script exited 0 but the output file(s) this sub-task declared were not "
         f"written by this run: {paths}. Checked against the files this attempt actually "
-        f"created or modified in `data/`, so this is a FACT, "
+        f"created or modified anywhere in the run directory, so this is a FACT, "
         f"not a review comment — and a stale copy left in `data/` by an earlier run "
         f"does not count, because a later step would read the wrong numbers from it. "
         f"The step cannot be fulfilled without it. Write each declared path "
@@ -235,7 +227,8 @@ def output_postcondition(state: DebugState, runtime: Runtime[PlanContext]) -> De
         return out
     try:
         missing = missing_declared_outputs(
-            state.get("step"), state.get("work_dir"), state.get("data_manifest")
+            state.get("step"), state.get("work_dir"), state.get("data_manifest"),
+            state.get("data_manifest_info"),
         )
     except Exception as e:  # noqa: BLE001 — a post-condition must never break the graph
         print(f"[output_postcondition] check skipped (non-fatal): {e}",
