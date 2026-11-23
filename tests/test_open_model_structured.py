@@ -235,12 +235,35 @@ def test_a_failing_step_verdict_with_no_reason_is_retried(monkeypatch):
     assert out == good and len(calls) == 2
 
 
-def test_a_failing_execution_verdict_needs_an_error_summary(monkeypatch):
-    calls = _patch(monkeypatch, [_parsed(ExecutionVerdict(status="failure")),
-                                 _parsed(ExecutionVerdict(status="failure", error_summary="KeyError: 'z'"))])
+def test_a_failing_execution_verdict_without_a_summary_is_used_as_it_is(monkeypatch):
+    """execution_evaluator fills an empty error_summary from stderr; rejecting it cost a retry and could replace the
+    model's failure_kind with the fallback's "other"."""
+    bare = ExecutionVerdict(status="failure", failure_kind="missing_module")
+    calls = _patch(monkeypatch, [_parsed(bare)])
     out = llms._compat_model("qwen-test", _entry(no_thinking=NO_THINKING), 0.4, "critic") \
         .with_structured_output(ExecutionVerdict).invoke("judge")
-    assert out.error_summary == "KeyError: 'z'" and len(calls) == 2
+    assert out == bare and len(calls) == 1 and llms.answer_mode(out) == "first_attempt"
+
+
+def test_a_reasonless_verdict_on_the_retry_is_returned_not_raised(monkeypatch, capsys):
+    """The check earns one retry; a reason-less answer to the retry is still a verdict (the researcher's step
+    evaluator has no handler, and the self_debug one would spend two more calls to reach the same failure)."""
+    bare = StepVerdict(fulfilled=False)
+    calls = _patch(monkeypatch, [_parsed(bare), _parsed(StepVerdict(fulfilled=False))])
+    out = llms._compat_model("qwen-test", _entry(no_thinking=NO_THINKING), 0.4, "critic") \
+        .with_structured_output(StepVerdict).invoke("judge")
+    assert out == bare and len(calls) == 2
+    assert llms.answer_mode(out) == "retry_no_thinking"
+    assert "no reason is given" in llms.answer_problem(out)
+    assert "answer used as it is, no retry left" in capsys.readouterr().err
+
+
+def test_a_missing_answer_on_the_retry_still_raises(monkeypatch):
+    calls = _patch(monkeypatch, [AIMessage("no tool call", response_metadata={"finish_reason": "stop"})] * 2)
+    with pytest.raises(ValueError):
+        llms._compat_model("x-test", _entry(no_thinking=NO_THINKING, structured_output="function_calling"),
+                           0.4, "critic").with_structured_output(V).invoke("judge")
+    assert len(calls) == 2
 
 
 def test_verdict_rule():
@@ -251,12 +274,62 @@ def test_verdict_rule():
     for kw in ({"unmet_requirements": ["x"]}, {"feedback": "x"}, {"suspected_fabrications": ["x"]},
                {"infeasible_requirements": ["x"]}):
         assert StepVerdict(fulfilled=False, **kw).structured_answer_problem() is None
-    assert ExecutionVerdict(status="success").structured_answer_problem() is None
-    assert ExecutionVerdict(status="failure").structured_answer_problem()
-    assert ExecutionVerdict(status="failure", error_summary="x").structured_answer_problem() is None
+    assert not hasattr(ExecutionVerdict(status="failure"), "structured_answer_problem")
     # constructing such verdicts in code (data_fixer, tests, old transcripts) stays valid
     StepVerdict(fulfilled=False)
     ExecutionVerdict(status="failure")
+
+
+# ── answer modes, the retry's request fields, SDK resends, the classifier role ─
+
+
+def test_answer_mode_names_the_attempt(monkeypatch):
+    _patch(monkeypatch, [_parsed(V(ok=True))])
+    out = llms._compat_model("qwen-test", _entry(no_thinking=NO_THINKING), 0.4, "critic") \
+        .with_structured_output(V).invoke("judge")
+    assert llms.answer_mode(out) == "first_attempt" and llms.answer_problem(out) is None
+    _patch(monkeypatch, [_validation_error(), _parsed(V(ok=True))])
+    out = llms._compat_model("qwen-test", _entry(), 0.4, "critic").with_structured_output(V).invoke("judge")
+    assert llms.answer_mode(out) == "retry_max_tokens"
+    assert out == V(ok=True)                                # the tag is not a field: equality and dumps unchanged
+    assert out.model_dump() == {"ok": True}
+    assert llms.answer_mode(V(ok=True)) == "model"
+
+
+def test_the_larger_limit_retry_keeps_the_structured_body(monkeypatch):
+    calls = _patch(monkeypatch, [_validation_error(), _parsed(V(ok=True))])
+    llms._compat_model("ds-test", _entry(structured_body=BUDGET), 0.4, "critic").with_structured_output(V) \
+        .invoke("judge")
+    assert calls[0]["extra_body"] == BUDGET and calls[1]["extra_body"] == BUDGET
+    assert [c["max_tokens"] for c in calls] == [32000, 48000]
+
+
+def test_max_retries_and_timeout_come_from_the_registry():
+    m = llms._compat_model("qwen-test", _entry(max_retries=0, timeout=1800), 0.4, "critic")
+    assert m.max_retries == 0 and m.request_timeout == 1800.0
+    assert m.root_client.max_retries == 0 and m.root_client.timeout == 1800.0
+    d = llms._compat_model("qwen-test", _entry(), 0.4, "critic")
+    assert d.root_client.max_retries == 2                    # the SDK default when the registry says nothing
+
+
+def test_model_failure_types():
+    from openai import APIConnectionError, APITimeoutError, AuthenticationError, InternalServerError, \
+        LengthFinishReasonError, NotFoundError, RateLimitError
+    types = llms.model_failure_types()
+    for t in (ValueError, LengthFinishReasonError, APITimeoutError, InternalServerError):
+        assert any(issubclass(t, k) for k in types)
+    for t in (AuthenticationError, NotFoundError, RateLimitError, APIConnectionError):
+        assert not any(issubclass(t, k) for k in types)
+
+
+def test_the_intent_gate_is_a_classifier_not_a_formatter(registry):
+    registry({"qwen-test": _entry(thinking={"formatter": NO_THINKING})})
+    assert llms.chat_model("qwen-test", "formatter").extra_body == NO_THINKING
+    assert llms.chat_model("qwen-test", "classifier").extra_body is None
+    assert llms.chat_model("qwen-test", "classifier").temperature == 0.0
+    import inspect
+    from cmbagent_lg.self_debug import preflight
+    assert '"classifier")' in inspect.getsource(preflight._classify_intent)
 
 
 # ── g. the effective entry is logged once per (model, role), never the key ─

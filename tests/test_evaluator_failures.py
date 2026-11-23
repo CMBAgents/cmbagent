@@ -4,6 +4,10 @@
 - step_evaluator returns an `evaluator_error` outcome: the same run is judged again, no attempt is used and nothing
   reaches the engineer; two consecutive errors fail the attempt closed.
 
+Only an unusable answer, a timeout or a 5xx is absorbed (`llms.model_failure_types`): an authentication, not-found or
+connection error still ends the run. Each verdict records what produced it (`answer_mode`) in its log file, in state,
+and in the step outcome.
+
 No model is called: the proposer, formatter and critic are stubs, the scripts run in a subprocess.
 
     PYTHONPATH=. python -m pytest tests/test_evaluator_failures.py
@@ -29,8 +33,8 @@ def _step():
     return Step(sub_task="print the answer", sub_task_agent="engineer", bullet_points=["print the result"])
 
 
-class _Boom(Exception):
-    pass
+class _Boom(ValueError):
+    """An unusable answer, as the structured retry raises it (ValidationError, OutputParserException: ValueError)."""
 
 
 # ── execution_evaluator: deterministic fallback ─────────────────────────────
@@ -48,7 +52,7 @@ def test_deterministic_execution_verdict(rc, timed_out, stderr, status):
                                                   "execution_stderr": stderr, "execution_elapsed_s": 120.0})
     assert v.status == status
     if status == "failure":
-        assert v.error_summary and v.structured_answer_problem() is None and v.failure_kind == "other"
+        assert v.error_summary and v.failure_kind == "other"
 
 
 def test_execution_evaluator_falls_back_when_the_model_fails(tmp_path, monkeypatch, capsys):
@@ -70,6 +74,9 @@ def test_execution_evaluator_falls_back_when_the_model_fails(tmp_path, monkeypat
     assert out["execution_verdict_fallbacks"] == 1
     assert out["error_history"] == [v.error_summary]
     assert "EVALUATOR ERROR" in capsys.readouterr().err
+    assert out["execution_verdict_modes"] == ["deterministic_fallback"]
+    saved = json.loads((tmp_path / "logs" / "step_1_execution_verdict.json").read_text())
+    assert saved["answer_mode"] == "deterministic_fallback" and saved["status"] == "failure"
 
 
 # ── step_evaluator: evaluator_error outcome ─────────────────────────────────
@@ -153,3 +160,87 @@ def test_route_after_step_evaluator_on_error():
     st = {"step_evaluator_outcome": "evaluator_error", "attempts": 1,
           "current_step_verdict": StepVerdict(fulfilled=False, feedback="stale")}
     assert sd_nodes.route_after_step_evaluator(st, _rt(ctx)) == "step_evaluator"
+
+
+# ── which errors are absorbed ───────────────────────────────────────────────
+
+
+def _status_error(cls, code):
+    import httpx
+    req = httpx.Request("POST", "http://127.0.0.1:1/v1/chat/completions")
+    return cls("boom", response=httpx.Response(code, request=req), body=None)
+
+
+def _config_errors():
+    import httpx
+    from openai import APIConnectionError, AuthenticationError, NotFoundError, RateLimitError
+    req = httpx.Request("POST", "http://127.0.0.1:1/v1/chat/completions")
+    return [_status_error(AuthenticationError, 401), _status_error(NotFoundError, 404),
+            _status_error(RateLimitError, 429), APIConnectionError(request=req), RuntimeError("quota")]
+
+
+def _absorbed_errors():
+    import httpx
+    from openai import APITimeoutError, InternalServerError
+    req = httpx.Request("POST", "http://127.0.0.1:1/v1/chat/completions")
+    return [_Boom("bad answer"), APITimeoutError(request=req), _status_error(InternalServerError, 500)]
+
+
+@pytest.mark.parametrize("err", _config_errors(), ids=lambda e: type(e).__name__)
+def test_a_configuration_error_still_ends_the_run(tmp_path, monkeypatch, err):
+    with pytest.raises(type(err)):
+        _run_graph(tmp_path, monkeypatch, [err])
+
+    class _Critic:
+        def with_structured_output(self, _schema):
+            return self
+
+        def invoke(self, msgs, config=None):
+            raise err
+
+    monkeypatch.setattr(sd_nodes, "_critic", lambda _c: _Critic())
+    state = {"step": _step(), "step_number": 1, "attempts": 1, "work_dir": str(tmp_path),
+             "current_code": EngineerResponse(python_code=SCRIPT, code_explanation="x"),
+             "execution_stdout": "result: 42\n", "execution_stderr": "", "execution_returncode": 0,
+             "execution_timed_out": False}
+    with pytest.raises(type(err)):
+        sd_nodes.execution_evaluator(state, _rt(PlanContext(main_task="t")))
+
+
+@pytest.mark.parametrize("err", _absorbed_errors(), ids=lambda e: type(e).__name__)
+def test_an_unusable_answer_timeout_or_5xx_is_absorbed(tmp_path, monkeypatch, err):
+    out, _prompts, n_calls = _run_graph(tmp_path, monkeypatch, [err, StepVerdict(fulfilled=True)])
+    assert n_calls == 2 and out["current_step_verdict"].fulfilled
+
+
+# ── what produced each verdict ──────────────────────────────────────────────
+
+
+def test_answer_modes_reach_the_verdict_files_state_and_outcome(tmp_path, monkeypatch):
+    from cmbagent_lg.deep_research.nodes import evaluator_outcome_fields
+    from cmbagent_lg.llms import _tag
+
+    retried = _tag(StepVerdict(fulfilled=True), "retry_no_thinking")
+    out, _prompts, _n = _run_graph(tmp_path, monkeypatch, [_Boom("a"), _Boom("b"), retried], max_attempts=3)
+    assert out["step_verdict_modes"] == ["failed_closed", "retry_no_thinking"]
+    assert out["execution_verdict_modes"] == ["model", "model"]
+    assert json.loads((tmp_path / "logs" / "step_1_verdict.json").read_text())["answer_mode"] == "retry_no_thinking"
+    assert json.loads((tmp_path / "logs" / "step_1_verdict_failure_1.json").read_text())["answer_mode"] \
+        == "failed_closed"
+    fields = evaluator_outcome_fields(out)
+    # the earlier fail-closed attempt is counted although the last pass gave a real verdict
+    assert fields["step_evaluator_failed_closed"] == 1 and fields["step_evaluator_errors"] == 2
+    assert fields["verdict_modes"] == {"step": {"failed_closed": 1, "retry_no_thinking": 1},
+                                       "execution": {"model": 2}}
+
+
+def test_outcome_fields_are_empty_for_an_ordinary_step():
+    from cmbagent_lg.deep_research.nodes import evaluator_outcome_fields
+    assert evaluator_outcome_fields({"step_verdict_modes": ["model"], "execution_verdict_modes": ["model"],
+                                     "step_evaluator_outcome": "verdict", "step_evaluator_errors_total": 0}) == {}
+    assert evaluator_outcome_fields({}) == {}
+    fields = evaluator_outcome_fields({"step_verdict_modes": ["failed_closed", "failed_closed"],
+                                       "execution_verdict_modes": ["deterministic_fallback", "first_attempt"],
+                                       "execution_verdict_fallbacks": 1, "step_evaluator_errors_total": 3})
+    assert fields["step_evaluator_failed_closed"] == 2 and fields["execution_verdict_fallbacks"] == 1
+    assert fields["verdict_modes"]["execution"] == {"deterministic_fallback": 1, "first_attempt": 1}

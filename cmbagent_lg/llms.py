@@ -3,7 +3,7 @@
 `chat_model(model, role)` builds a LangChain chat model. A model listed in the endpoint
 registry (below) is served by an OpenAI-compatible endpoint; otherwise the provider is
 inferred from the model name (gemini-* → Google, gpt-*/o[1-4]* → OpenAI, claude-* →
-Anthropic). The role (`generator` / `coder` / `critic` / `formatter`) sets temperature and,
+Anthropic). The role (`generator` / `coder` / `critic` / `formatter` / `classifier`) sets temperature and,
 for Gemini-3+, the thinking level. A `None` model falls back to `_DEFAULT_MODEL`. Per-run
 overrides arrive via `PlanContext.*_model`.
 
@@ -19,7 +19,8 @@ speak the OpenAI chat-completions API (vLLM, llama.cpp, SGLang, hosted gateways)
 Per entry: `base_url` (required); `model`, the id the server expects (default: the
 registry name); the key from `api_key_env` (an environment variable), or `key_file` (a bare
 key, or NAME=value lines with `key_var` naming the line), or "EMPTY"; optional
-`max_tokens`, `timeout` (s), `temperature` (overrides the role's), and
+`max_tokens`, `timeout` (s), `max_retries` (the openai SDK's own resends on a timeout, 429,
+5xx or connection error; SDK default 2), `temperature` (overrides the role's), and
 `structured_output` ("json_schema", the default, or "function_calling") for servers that
 reject JSON-schema response formats. Keys are read from files or the environment and
 never logged.
@@ -46,7 +47,12 @@ A structured answer is retried once, and only once, when it is unusable: it stop
 output limit (openai.LengthFinishReasonError) or did not parse or validate (a ValueError:
 pydantic ValidationError, OutputParserException, JSONDecodeError, no parsed answer, or the
 schema's own `structured_answer_problem` check, e.g. a failing verdict that gives no
-reason). Entries are read when a (model, role) pair is first built, and the effective entry
+reason). The schema check earns the retry only: a retry answer that fails it is logged and
+returned, since a reason-less verdict is still a verdict and raising there ended runs whose
+caller has no handler (the researcher's step evaluator). `answer_mode(out)` says which
+attempt produced an answer ("first_attempt", "retry_no_thinking", "retry_max_tokens";
+"model" for providers without the retry) and `answer_problem(out)` what the lenient check
+let through. Entries are read when a (model, role) pair is first built, and the effective entry
 is logged then (never the key): registry edits reach a running process only after a
 restart.
 
@@ -78,6 +84,9 @@ _ROLE_DEFAULTS = {
     "coder":     {"temperature": 0.2, "thinking_level": "high"},
     "critic":    {"temperature": 0.4, "thinking_level": "low"},
     "formatter": {"temperature": 0.0},
+    # A short judgement given as a structured answer (the intent gate): the formatter's temperature, but its own key
+    # for the registry's `thinking` fields, so a formatter that does not think does not make the judge stop thinking.
+    "classifier": {"temperature": 0.0},
 }
 
 
@@ -180,20 +189,59 @@ def _short(err, n=300) -> str:
     return ("%s: %s" % (type(err).__name__, " ".join(str(err).split())))[:n]
 
 
-def _with_length_retry(first, second, label="structured call", note=""):
+def model_failure_types():
+    """Errors of a model call that a graph node may absorb (fall back, judge again) rather than end the run on: an
+    unusable answer (`_structured_error_types`), a request that timed out, or a 5xx from the server. Authentication,
+    not-found, rate-limit and connection errors are not in it: those are a wrong configuration or a server that is
+    gone, and carrying on would score every later step as the model's failure."""
+    types = list(_structured_error_types())
+    try:
+        from openai import APITimeoutError, InternalServerError
+        types += [APITimeoutError, InternalServerError]
+    except ImportError:  # pragma: no cover
+        pass
+    return tuple(types)
+
+
+def _tag(out, mode=None, problem=None):
+    """Mark a structured answer with the attempt that produced it (and what the lenient check let through). Stored
+    outside the model's fields, so equality, dumps and checkpoints are unchanged; an answer that cannot carry an
+    attribute (a dict) is left alone."""
+    for name, value in (("_answer_mode", mode), ("_answer_problem", problem)):
+        if value is not None:
+            try:
+                object.__setattr__(out, name, value)
+            except (AttributeError, TypeError):
+                pass
+    return out
+
+
+def answer_mode(out) -> str:
+    """Which attempt produced a structured answer: "first_attempt", "retry_no_thinking", "retry_max_tokens", or
+    "model" (a provider without the structured retry, or an answer built in code)."""
+    return getattr(out, "_answer_mode", None) or "model"
+
+
+def answer_problem(out):
+    """What `structured_answer_problem` found in an answer the lenient retry check returned anyway, else None."""
+    return getattr(out, "_answer_problem", None)
+
+
+def _with_length_retry(first, second, label="structured call", note="", retry_mode="retry"):
     """`first`, falling back once to `second` when `first` raises one of `_structured_error_types`. Both failures are
-    logged; when the retry fails too, its own error is raised (the first one is its __context__)."""
+    logged; when the retry fails too, its own error is raised (the first one is its __context__). The answer is
+    tagged with the attempt that produced it (`answer_mode`)."""
     from langchain_core.runnables import RunnableLambda
     types = _structured_error_types()
 
     def _run(inp, config=None):
         try:
-            return first.invoke(inp, config)
+            return _tag(first.invoke(inp, config), "first_attempt")
         except types as err:
             print("[llms] %s: structured answer unusable (%s); retrying once%s" % (label, _short(err), note),
                   file=sys.stderr, flush=True)
         try:
-            return second.invoke(inp, config)
+            return _tag(second.invoke(inp, config), retry_mode)
         except Exception as err2:
             print("[llms] %s: the structured retry failed too (%s)" % (label, _short(err2)), file=sys.stderr, flush=True)
             raise
@@ -230,17 +278,22 @@ def _has_tool_calls(msg) -> bool:
     return bool(getattr(msg, "tool_calls", None) or getattr(msg, "invalid_tool_calls", None))
 
 
-def _check_answer(out, schema):
+def _check_answer(out, schema, strict=True, label="structured call"):
     """Raise ValueError for a structured answer that parsed but cannot be used: none at all (function_calling with no
-    tool call), or one the schema's `structured_answer_problem` rejects. Applied on OpenAI-compatible endpoints only,
-    so other providers' answers are read exactly as before."""
+    tool call), or, when `strict` (the first attempt), one the schema's `structured_answer_problem` rejects. On the
+    retry (`strict` False) such an answer is logged, tagged (`answer_problem`) and returned: the check is worth one
+    retry, not a crash. Applied on OpenAI-compatible endpoints only, so other providers' answers are read exactly as
+    before."""
     if isinstance(schema, type) and out is None:
         raise ValueError("the model gave no structured answer")
     problem = getattr(out, "structured_answer_problem", None)
     if callable(problem):
         reason = problem()
-        if reason:
+        if reason and strict:
             raise ValueError("%s answer rejected: %s" % (type(out).__name__, reason))
+        if reason:
+            print("[llms] %s: answer used as it is, no retry left (%s)" % (label, reason), file=sys.stderr, flush=True)
+            _tag(out, problem=reason)
     return out
 
 
@@ -272,8 +325,9 @@ def _compat_model(name: str, e: dict, temperature, role: str | None = None):
         A structured call sends the entry's `structured_body` (e.g. a reasoning budget) on top of the role's fields. An
         unusable structured answer (see `_structured_error_types`: an overflow, or an answer that does not parse or
         validate) is retried once, with the endpoint's `no_thinking` fields and the same `max_tokens` when the registry
-        gives them (else 1.5x `max_tokens`, or `max_tokens_retry`), and a note asking for brief reasoning; a second
-        failure raises. Without this, one overlong evaluator or formatter answer ended the whole run: DeepSeek and Qwen
+        gives them (else 1.5x `max_tokens`, or `max_tokens_retry`, with `structured_body` kept), and a note asking for
+        brief reasoning; a second failure raises, except that the schema's own check only logs on the retry. Without
+        this, one overlong evaluator or formatter answer ended the whole run: DeepSeek and Qwen
         step evaluators overflowed 32k and 48k tokens and ended 9 of 12 overnight benchmark runs (22-23 Nov 2026)."""
 
         def invoke(self, input, config=None, **kwargs):
@@ -296,24 +350,28 @@ def _compat_model(name: str, e: dict, temperature, role: str | None = None):
             base = self
             if e.get("structured_body"):
                 base = self.model_copy(update={"extra_body": _merge_body(self.extra_body, e["structured_body"])})
-            check = RunnableLambda(lambda out: _check_answer(out, schema), name="check_structured_answer")
-            first = ChatOpenAI.with_structured_output(base, schema, method=method or _method, **kwargs) | check
+            label = "%s %s" % (self.model_name, getattr(schema, "__name__", "structured call"))
+            strict = RunnableLambda(lambda out: _check_answer(out, schema, True, label), name="check_structured_answer")
+            lenient = RunnableLambda(lambda out: _check_answer(out, schema, False, label),
+                                     name="check_structured_retry_answer")
+            first = ChatOpenAI.with_structured_output(base, schema, method=method or _method, **kwargs)
             no_thinking = e.get("no_thinking")
-            if not (self.max_tokens or no_thinking):
-                return first
+            if not (self.max_tokens or no_thinking):   # no retry: the only answer is checked leniently
+                return first | lenient | RunnableLambda(lambda out: _tag(out, "first_attempt"), name="tag_answer")
             if no_thinking:   # thinking off: the same limit is ample
                 limit = e.get("max_tokens_retry") or self.max_tokens
                 update = {"extra_body": _merge_body(base.extra_body, no_thinking),
                           "max_tokens": int(limit) if limit else None}
-            else:
+                mode = "retry_no_thinking"
+            else:             # built from `base`, so the retry keeps structured_body
                 update = {"max_tokens": int(e.get("max_tokens_retry") or int(1.5 * self.max_tokens))}
-            retry_model = self.model_copy(update=update)
+                mode = "retry_max_tokens"
+            retry_model = base.model_copy(update=update)
             second = RunnableLambda(_add_brevity) | ChatOpenAI.with_structured_output(
-                retry_model, schema, method=method or _method, **kwargs) | check
-            label = "%s %s" % (self.model_name, getattr(schema, "__name__", "structured call"))
+                retry_model, schema, method=method or _method, **kwargs) | lenient
             note = (" with thinking off (max_tokens=%s)" % update["max_tokens"] if no_thinking
                     else " with max_tokens=%s" % update["max_tokens"])
-            return _with_length_retry(first, second, label=label, note=note)
+            return _with_length_retry(first | strict, second, label=label, note=note, retry_mode=mode)
 
     _method = method
     kw = {"model": e.get("model") or name, "base_url": e["base_url"], "api_key": endpoint_api_key(e),
@@ -325,6 +383,8 @@ def _compat_model(name: str, e: dict, temperature, role: str | None = None):
         kw["max_tokens"] = int(e["max_tokens"])
     if e.get("timeout"):
         kw["timeout"] = float(e["timeout"])
+    if e.get("max_retries") is not None:
+        kw["max_retries"] = int(e["max_retries"])
     role_body = _merge_body((e.get("thinking") or {}).get(role)) if role else None
     if role_body:
         kw["extra_body"] = role_body

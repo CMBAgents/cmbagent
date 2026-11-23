@@ -198,10 +198,16 @@ class DebugState(TypedDict, total=False):
     #                                 "failed_closed" (not accepted after consecutive errors)
     # `step_evaluator_errors`       — consecutive errors for this step; a real verdict resets it
     # `step_evaluator_errors_total` — every error for this step
+    # `execution_verdict_modes` / `step_verdict_modes` — one entry per verdict, naming what produced it:
+    #                                 "first_attempt", "retry_no_thinking", "retry_max_tokens" (the open-model
+    #                                 structured retry, `llms.answer_mode`), "model" (a provider without it),
+    #                                 "deterministic_fallback" (execution) or "failed_closed" (step)
     execution_verdict_fallbacks: int
     step_evaluator_outcome: Optional[str]
     step_evaluator_errors: int
     step_evaluator_errors_total: int
+    execution_verdict_modes: List[str]
+    step_verdict_modes: List[str]
 
     # Bookkeeping
     work_dir: Optional[str]
