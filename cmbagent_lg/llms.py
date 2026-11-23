@@ -32,6 +32,7 @@ import json
 import logging
 import os
 import re
+import sys
 from functools import lru_cache
 
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -112,13 +113,26 @@ _BREVITY = ("Your previous answer to this request ran out of output tokens. Keep
             "structured answer directly.")
 
 
-def _add_brevity(inp):
-    """Append the brevity request to a chat input (a string, a list of messages, or a prompt value)."""
+_EMPTY_NOTE = ("Your previous answer to this request was empty: the output-token budget ran out before the answer "
+               "began. Keep any reasoning short and write the answer directly.")
+
+
+def _add_brevity(inp, note=_BREVITY):
+    """Append a note (by default the brevity request) to a chat input (a string, a list of messages, or a prompt
+    value)."""
     from langchain_core.messages import HumanMessage
     if isinstance(inp, str):
-        return inp + "\n\n" + _BREVITY
+        return inp + "\n\n" + note
     msgs = inp.to_messages() if hasattr(inp, "to_messages") else list(inp)
-    return msgs + [HumanMessage(_BREVITY)]
+    return msgs + [HumanMessage(note)]
+
+
+def _msg_text(msg) -> str:
+    t = getattr(msg, "text", "")
+    if isinstance(t, str):                 # langchain-core 1.x: a str property (also callable, deprecated)
+        return str(t)
+    t = t() if callable(t) else t          # older versions: a method
+    return t if isinstance(t, str) else str(getattr(msg, "content", "") or "")
 
 
 def _length_error_types():
@@ -147,6 +161,21 @@ def _compat_model(name: str, e: dict, temperature):
         budget reasoning) is retried once with a larger budget (`max_tokens_retry` of the registry entry, else 1.5x
         `max_tokens`) and a note asking for brief reasoning; a second overflow raises as before. Without this, one
         overlong evaluator or formatter answer ended the whole run."""
+
+        def invoke(self, input, config=None, **kwargs):
+            """A plain answer with no text (a thinking model spent its whole budget reasoning: finish_reason
+            "length", content empty) is asked once more, with the endpoint's `no_thinking` request fields when the
+            registry gives them and a note asking for a direct answer. The engineer's six attempts were otherwise
+            all lost to the same overlong thinking, at up to five minutes each."""
+            msg = super().invoke(input, config=config, **kwargs)
+            if _msg_text(msg).strip():
+                return msg
+            reason = (getattr(msg, "response_metadata", None) or {}).get("finish_reason")
+            extra = e.get("no_thinking")
+            print("[llms] %s returned an empty answer (finish_reason=%s); asking once more%s" % (
+                self.model_name, reason, " with thinking off" if extra else ""), file=sys.stderr, flush=True)
+            retry = self.model_copy(update={"extra_body": {**(self.extra_body or {}), **extra}}) if extra else self
+            return ChatOpenAI.invoke(retry, _add_brevity(input, _EMPTY_NOTE), config=config, **kwargs)
 
         def with_structured_output(self, schema=None, *, method=None, **kwargs):
             first = super().with_structured_output(schema, method=method or _method, **kwargs)
