@@ -164,11 +164,23 @@ class DebugState(TypedDict, total=False):
     execution_returncode: int
     execution_timed_out: bool
     execution_elapsed_s: float  # subprocess wall clock (separate from node total)
-    # Snapshot of data/ (filename → mtime) taken before each attempt — lets the executor
-    # attribute new/modified files to this step without touching the files or their names.
+    # Top level of data/ (filename → mtime) before each attempt; read only for the
+    # `input_dir_empty` fact. What an attempt wrote comes from the recursive run-directory
+    # snapshot in `attempt_manifest`, which is local to the executor and not kept here.
     data_baseline: Dict[str, float]
-    # Files this step produced (path/bytes/modified) — what step_evaluator sees.
+    # Files written or modified by THIS attempt (path/bytes/modified/change). `path` is
+    # relative to the work dir (answer.json, work/x.npz, data/plots/y.png); a file outside
+    # it that stdout named and this attempt wrote is listed by absolute path with
+    # "source": "stdout". What step_evaluator, output_postcondition, the image reviewer and
+    # infeasibility_check read. In remote mode: the guest's top-level data/ listing.
     data_manifest: List[dict]
+    # How `data_manifest` was made: scope ("work_dir" | "remote_data" | "none"),
+    # complete / incomplete_reason (a walk cap was hit), omitted (always 0 now: the
+    # manifest is never cut, only its rendering; kept for old checkpoints), symlinked_dirs
+    # (not entered), partial_dirs (too large to list file by file), stdout_paths (each
+    # file path stdout named, classified written / pre_existing / missing / not_found),
+    # started_ns. None after a static refusal and on old checkpoints.
+    data_manifest_info: Optional[dict]
 
     # execution_evaluator — did the code RUN cleanly?
     current_execution_verdict: ExecutionVerdict

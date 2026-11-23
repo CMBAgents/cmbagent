@@ -29,6 +29,7 @@ STANDARD_SKIP_KEYS = frozenset({
     "step_number",
     "data_baseline",
     "data_manifest",
+    "data_manifest_info",
     "step_feedback_history",
     "escalated",
 })

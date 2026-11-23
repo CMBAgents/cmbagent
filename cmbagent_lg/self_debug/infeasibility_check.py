@@ -129,15 +129,12 @@ def resolve_claimed_symbols(text: Optional[str], work_dir: Optional[str] = None
 
 
 def _written_artifacts(state: DebugState) -> set:
-    """Paths and basenames this ATTEMPT wrote into `data/` (the executor's manifest
-    diff, so an earlier attempt's leftovers do not count)."""
-    names = set()
-    for entry in state.get("data_manifest") or []:
-        path = entry.get("path") if isinstance(entry, dict) else entry
-        if path:
-            names.add(str(path))
-            names.add(str(path).rsplit("/", 1)[-1])
-    return names
+    """Paths and basenames this ATTEMPT wrote anywhere in the run directory (the
+    executor's recursive manifest diff, so an earlier attempt's leftovers do not count),
+    plus any file outside it that stdout named and this attempt wrote."""
+    from cmbagent_lg.self_debug.attempt_manifest import written_names
+
+    return written_names(state.get("data_manifest"))
 
 
 def _contradicting_artifact(verdict, step, state: DebugState) -> Optional[Tuple[str, str]]:

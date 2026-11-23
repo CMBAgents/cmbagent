@@ -144,17 +144,28 @@ def _build_step_summary(step: Step, sub_state: dict) -> str:
     return "\n".join(lines)
 
 
+# Entries in the listing's "other files" section (outputs outside the four engine
+# sections: root files, work/, nested data/ ...); the rest are counted, not listed.
+_WORKSPACE_OTHER_MAX = 60
+
+
 def _build_workspace_manifest(work_dir: Optional[str]) -> str:
-    """Flat listing of files under `codebase/`, `reports/`, `data/`, `logs/`.
+    """Flat listing of files under `codebase/`, `reports/`, `data/`, `logs/`, then every
+    other file in the run directory (root files, `work/`, nested `data/` subdirectories),
+    up to `_WORKSPACE_OTHER_MAX` of them.
 
     Everything generated so far, so an agent knows the exact relative paths to
     load earlier steps' work from; each data file also gets a one-line schema
     (columns, keys, arrays: `file_schema.py`), within a total budget. (Distinct from self_debug's
-    `data_manifest`, which is provenance for *one* step's outputs.)
+    `data_manifest`, which is provenance for *one* attempt's outputs.) The other-files
+    section uses the same bounded walk as that manifest (`attempt_manifest`), so it
+    skips the engine's directories, caches and symlinks, and says when it was cut.
 
     INVARIANT: must list every step's `codebase/step_N.log`. Once a step is
     compacted to a header (`_compact_summary`), that log is the only place its
     printed findings survive, and this listing is how the researcher finds it.
+    The four sections are listed in full and come first; the budget applies only to
+    the other-files section.
     """
     if not work_dir:
         return ""
@@ -183,6 +194,20 @@ def _build_workspace_manifest(work_dir: Optional[str]) -> str:
                 if line:
                     rendered.append(f"    {line}")
                     schema_budget -= len(line)
+        rendered.append("")
+    try:
+        from cmbagent_lg.self_debug.attempt_manifest import other_workspace_files
+
+        others, truncated = other_workspace_files(wd)
+    except Exception:  # noqa: BLE001 — the listing is a convenience, never a failure
+        others, truncated = [], None
+    if others or truncated:
+        rendered.append("**Other files in the run directory:**")
+        rendered.extend(f"- {rel}" for rel, _size in others[:_WORKSPACE_OTHER_MAX])
+        if len(others) > _WORKSPACE_OTHER_MAX:
+            rendered.append(f"- ... and {len(others) - _WORKSPACE_OTHER_MAX} more, not listed")
+        if truncated:
+            rendered.append(f"- (listing incomplete: {truncated})")
         rendered.append("")
     if not rendered:
         return ""

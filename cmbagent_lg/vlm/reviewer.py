@@ -105,6 +105,7 @@ def image_reviewer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
         "Review the attached figure(s) for the current sub-task and emit a "
         "structured verdict.",
         images,
+        root=state.get("work_dir"),
     )
     model = chat_model(ctx.vlm_model or _DEFAULT_REVIEW_MODEL, "critic")
     review: ImageReview = model.with_structured_output(ImageReview).invoke(

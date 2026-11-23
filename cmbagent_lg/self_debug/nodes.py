@@ -33,6 +33,7 @@ from cmbagent_lg.context import PlanContext, effective_code_execution_timeout
 from cmbagent_lg.llms import answer_mode, answer_problem, chat_model, model_failure_types
 from cmbagent_lg.prompt_utils import schema_field_brief
 from cmbagent_lg.self_debug.api_digest import digest_for_step as api_digest_for_step
+from cmbagent_lg.self_debug import attempt_manifest as _attempt_manifest
 from cmbagent_lg.self_debug import api_history as _api_history
 from cmbagent_lg.self_debug.api_introspect import retry_report as api_retry_report
 from cmbagent_lg.self_debug.api_introspect import classify_api_error as _bypass_classify_api_error
@@ -275,13 +276,18 @@ def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSt
 #   {work_dir}/codebase/step_{N}.log             ← stdout+stderr of the latest run
 #   {work_dir}/codebase/step_{N}_failure_{I}.py  ← attempt I's code, kept on failure
 #   {work_dir}/codebase/step_{N}_failure_{I}.log ← attempt I's run log, kept on failure
-#   {work_dir}/data/                                  ← output files the script produces
+#   {work_dir}/data/                                  ← the conventional output dir
+#   {work_dir}/<anything else>                        ← outputs a step writes elsewhere
+#                                                       (answer.json, work/spectra.npz)
 #   {work_dir}/logs/step_{N}_execution_verdict.json   ← did the code RUN cleanly
-#   {work_dir}/logs/step_{N}_data_manifest.json       ← which data/ files this step produced
+#   {work_dir}/logs/step_{N}_data_manifest.json       ← which files the latest attempt
+#                                                       wrote, and the stdout path checks
 #
 # On failure the evaluator demotes `step_{N}.{py,log}` → `step_{N}_failure_{I}.*`,
 # freeing the canonical name for the next attempt's overwrite. The manifest records
-# step→file provenance externally: data files and their names are never touched.
+# step→file provenance externally: output files and their names are never touched.
+# It covers the whole run directory, recursively, minus the engine's own directories
+# (codebase/, logs/, planning/, reports/, chats/) and caches — see `attempt_manifest`.
 
 
 def _codebase_dir(state: DebugState) -> Optional[Path]:
@@ -395,35 +401,38 @@ def _kill_process_group(proc: subprocess.Popen) -> None:
 
 
 def _snapshot_data_dir(data_dir: Path) -> dict:
-    """Map filename → mtime for every file currently in `data/`."""
+    """Map filename → mtime for every file at the top level of `data/`.
+
+    Only the `input_dir_empty` fact reads this ("was data/ empty before any code ran").
+    What an attempt WROTE is the recursive run-directory diff in `attempt_manifest`."""
     if not data_dir.is_dir():
         return {}
     return {p.name: p.stat().st_mtime for p in data_dir.iterdir() if p.is_file()}
 
 
-def _data_manifest(data_dir: Path, baseline: dict) -> list:
-    """Files in `data/` that are new or modified vs `baseline` — i.e. produced
-    by the current step. Paths are relative (`data/<name>`) so they read the
-    same way the engineer referred to them."""
-    out = []
-    if not data_dir.is_dir():
-        return out
-    for p in sorted(data_dir.iterdir()):
-        if not p.is_file():
-            continue
-        st = p.stat()
-        prior = baseline.get(p.name)
-        if prior is None or st.st_mtime > prior:
-            out.append(
-                {
-                    "path": f"data/{p.name}",
-                    "bytes": st.st_size,
-                    "modified": datetime.fromtimestamp(st.st_mtime, tz=timezone.utc)
-                    .isoformat()
-                    .replace("+00:00", "Z"),
-                }
-            )
-    return out
+def _write_manifest_log(state: DebugState, n: int, step, manifest: list, info: dict) -> None:
+    """`logs/step_{N}_data_manifest.json`: provenance, external to the files themselves."""
+    logs = _logs_dir(state)
+    if logs is None:
+        return
+    (logs / f"step_{n}_data_manifest.json").write_text(
+        json.dumps(
+            {
+                "step_number": n,
+                "sub_task": step.sub_task,
+                "attempt": state.get("attempts", 0),
+                "files": manifest,
+                "scope": info.get("scope"),
+                "complete": info.get("complete"),
+                "incomplete_reason": info.get("incomplete_reason"),
+                "omitted": info.get("omitted", 0),
+                "symlinked_dirs": info.get("symlinked_dirs", []),
+                "partial_dirs": info.get("partial_dirs", []),
+                "stdout_paths": info.get("stdout_paths", []),
+            },
+            indent=2,
+        )
+    )
 
 
 # ── executor ────────────────────────────────────────────────────────────
@@ -467,15 +476,10 @@ def _run_remote(spec: str, state: DebugState, codebase: Path, n: int, step, code
     )
     if returncode not in (0, None):
         _record_api_fact(ctx, code, stderr, stdout, state.get("work_dir"))
-    logs = _logs_dir(state)
-    if logs is not None:
-        (logs / f"step_{n}_data_manifest.json").write_text(
-            json.dumps(
-                {"step_number": n, "sub_task": step.sub_task,
-                 "attempt": state.get("attempts", 0), "files": manifest},
-                indent=2,
-            )
-        )
+    # The guest's manifest is the top level of ITS data/, as before; the info says so, so
+    # the evaluator is not told the run directory was checked recursively.
+    info = _attempt_manifest.remote_info()
+    _write_manifest_log(state, n, step, manifest, info)
     return {
         "execution_stdout": stdout,
         "execution_stderr": stderr,
@@ -484,6 +488,7 @@ def _run_remote(spec: str, state: DebugState, codebase: Path, n: int, step, code
         "execution_elapsed_s": execution_elapsed_s,
         "data_baseline": {},  # baseline is snapshotted guest-side in remote mode
         "data_manifest": manifest,
+        "data_manifest_info": info,
     }
 
 
@@ -495,6 +500,11 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
     paths (`data/<file>`) land in `{work_dir}/data/` — cmbagent's convention.
     The script's own directory (`codebase/`) stays on `sys.path[0]` regardless
     of cwd, so cross-step `from step_1 import …` still resolves.
+
+    The run directory is snapshotted recursively right before the script starts and
+    again after it ends; `data_manifest` lists what changed, wherever it was written,
+    and `data_manifest_info` says how complete that listing is and how each file path
+    stdout names checked out (see `attempt_manifest`).
     """
     ctx = runtime.context
     code = state["current_code"].python_code
@@ -520,9 +530,7 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         run_cwd = codebase.parent
         data_dir = run_cwd / "data"
         data_dir.mkdir(parents=True, exist_ok=True)
-        # Re-snapshot at the START of *every* attempt, so the manifest holds the LATEST
-        # attempt's outputs only: files written by an earlier failed attempt land in this
-        # baseline and are excluded. Each attempt is a complete standalone script.
+        # Top level of data/ only, for the `input_dir_empty` fact below.
         data_baseline = _snapshot_data_dir(data_dir)
     else:
         with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as f:
@@ -537,6 +545,15 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
     if run_cwd is None:
         run_cwd = code_path.parent
 
+    # Re-snapshot at the START of *every* attempt, so the manifest holds the LATEST
+    # attempt's outputs only: files written by an earlier step or failed attempt land in
+    # this baseline and are excluded. Each attempt is a complete standalone script.
+    tree_before = _attempt_manifest.snapshot_tree(run_cwd) if codebase is not None else None
+    # "Changed since the attempt started" is judged on the filesystem's own clock where
+    # there is one (a sentinel touched in logs/), so a skewed NFS/ceph server clock does
+    # not misclassify the attempt's files.
+    started_ns = _attempt_manifest.attempt_start_ns(
+        _logs_dir(state) if codebase is not None else None)
     timed_out = False
     t0 = time.perf_counter()
     try:
@@ -582,7 +599,21 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         flush=True,
     )
 
-    manifest = _data_manifest(data_dir, data_baseline) if data_dir is not None else []
+    try:
+        if tree_before is not None:
+            manifest, manifest_info = _attempt_manifest.build(
+                tree_before, _attempt_manifest.snapshot_tree(run_cwd), started_ns,
+                stdout or "", run_cwd, run_cwd)
+        else:
+            manifest, manifest_info = _attempt_manifest.no_work_dir_info(
+                stdout or "", run_cwd, started_ns)
+    except Exception as e:  # noqa: BLE001 — bookkeeping must never fail the attempt
+        print(f"[executor] output manifest not built (non-fatal): {e}", file=sys.stderr, flush=True)
+        manifest, manifest_info = [], {
+            "scope": "work_dir" if tree_before is not None else "none", "complete": False,
+            "incomplete_reason": f"the scan failed ({type(e).__name__})", "omitted": 0,
+            "symlinked_dirs": [], "partial_dirs": [], "stdout_paths": [],
+            "started_ns": started_ns}
 
     if returncode != 0 and not timed_out:
         _record_api_fact(ctx, code, stderr, stdout, state.get("work_dir"))
@@ -592,19 +623,7 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
             _run_log(returncode, timed_out, execution_elapsed_s, stdout, stderr)
         )
         # Provenance, external to the files themselves (names + bytes untouched).
-        logs = _logs_dir(state)
-        if logs is not None:
-            (logs / f"step_{n}_data_manifest.json").write_text(
-                json.dumps(
-                    {
-                        "step_number": n,
-                        "sub_task": step.sub_task,
-                        "attempt": state.get("attempts", 0),
-                        "files": manifest,
-                    },
-                    indent=2,
-                )
-            )
+        _write_manifest_log(state, n, step, manifest, manifest_info)
 
     out: DebugState = {
         "execution_stdout": stdout,
@@ -614,6 +633,7 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         "execution_elapsed_s": execution_elapsed_s,
         "data_baseline": data_baseline,
         "data_manifest": manifest,
+        "data_manifest_info": manifest_info,
     }
     # Not set in remote mode: engine-side data/ is not the exec dir.
     if data_dir is not None:
@@ -923,6 +943,7 @@ def step_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
         step,
         stdout=state.get("execution_stdout", ""),
         data_manifest=state.get("data_manifest", []),
+        data_manifest_info=state.get("data_manifest_info"),
         step_feedback_history=prior_feedback,
         # Safety fact: data/ held no provided input before the run, so anything "loaded"
         # was self-created. None when undetermined → the rule is not rendered.

@@ -199,6 +199,21 @@ def _make_tools(work_dir: Optional[Path], ctx: PlanContext, seen: List[dict]):
                 rows.append(f"{sub}/:")
                 rows += [f"  - {sub}/{p.name} ({p.stat().st_size} bytes)"
                          for p in files[:_MAX_LIST]]
+            # Outputs written elsewhere in the run directory (answer.json, work/,
+            # nested data/), from the same bounded walk as the attempt manifest.
+            try:
+                from cmbagent_lg.self_debug.attempt_manifest import other_workspace_files
+
+                others, truncated = other_workspace_files(work_dir)
+            except Exception:  # noqa: BLE001
+                others, truncated = [], None
+            if others or truncated:
+                rows.append("other files:")
+                rows += [f"  - {rel} ({size} bytes)" for rel, size in others[:_MAX_LIST]]
+                if len(others) > _MAX_LIST:
+                    rows.append(f"  - ... and {len(others) - _MAX_LIST} more, not listed")
+                if truncated:
+                    rows.append(f"  - (listing incomplete: {truncated})")
             return "\n".join(rows) if rows else "The workspace contains no files."
         except Exception as e:  # noqa: BLE001
             return f"list_workspace error: {e}"

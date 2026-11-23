@@ -44,24 +44,36 @@ def collect_images(work_dir, max_images: int = _MAX_IMAGES) -> List[Path]:
 
 
 def images_from_manifest(work_dir, data_manifest, max_images: int = _MAX_IMAGES) -> List[Path]:
-    """Image files THIS step produced, taken from its `data_manifest`.
+    """Image files THIS attempt produced, taken from its `data_manifest`.
 
-    Scoped to the current step (unlike `collect_images`, which scans all of
+    Scoped to the current attempt (unlike `collect_images`, which scans all of
     `data/`) — so the image reviewer only judges the plots the running step
-    actually made. Skips `*_failure*` artifacts and missing files.
+    actually made, wherever in the run directory it saved them (`data/plots/x.png`,
+    `figures/y.png`, or a stdout-named absolute path). Skips `*_failure*` artifacts
+    and missing files.
     """
-    if not work_dir or not data_manifest:
+    if not data_manifest:
         return []
-    wd = Path(work_dir).expanduser()
+    from cmbagent_lg.self_debug.attempt_manifest import image_paths
+
     out: List[Path] = []
-    for entry in data_manifest:
-        rel = (entry or {}).get("path", "")
-        p = wd / rel
+    for p in image_paths(work_dir, data_manifest):
         if (p.suffix.lower() in _IMG_EXTS
                 and not (p.stem.endswith("_failure") or "_failure_" in p.stem)
                 and p.is_file()):
             out.append(p)
     return out[:max_images]
+
+
+def _label(path: Path, root) -> str:
+    """The figure's path as the run refers to it: relative to `root` when inside it."""
+    if root:
+        try:
+            return path.relative_to(Path(root).expanduser()).as_posix()
+        except ValueError:
+            pass
+        return str(path)
+    return f"data/{path.name}"
 
 
 def _data_url(path: Path) -> str:
@@ -71,7 +83,7 @@ def _data_url(path: Path) -> str:
 
 
 def with_images(
-    text: str, paths: List[Path], max_bytes: int = _MAX_BYTES
+    text: str, paths: List[Path], max_bytes: int = _MAX_BYTES, root=None
 ) -> Union[str, list]:
     """Build a LangChain message ``content`` combining ``text`` with each image.
 
@@ -79,7 +91,8 @@ def with_images(
     block per usable figure) when there are images to attach; otherwise returns
     ``text`` unchanged, so callers can pass the result straight to
     ``HumanMessage(content=...)`` either way. Images over ``max_bytes`` or that
-    fail to read are skipped (logged to stderr).
+    fail to read are skipped (logged to stderr). With ``root`` (the work dir) each
+    figure is labelled by its path relative to it; without, as ``data/<name>``.
     """
     content: list = [{"type": "text", "text": text}]
     attached = 0
@@ -93,7 +106,7 @@ def with_images(
         except OSError as e:  # noqa: BLE001 — a bad image must never break a run
             print(f"[vlm] could not read image {p}: {e}", file=sys.stderr)
             continue
-        content.append({"type": "text", "text": f"\nFigure — data/{p.name}:"})
+        content.append({"type": "text", "text": f"\nFigure — {_label(p, root)}:"})
         content.append({"type": "image_url", "image_url": {"url": url}})
         attached += 1
     return content if attached else text
