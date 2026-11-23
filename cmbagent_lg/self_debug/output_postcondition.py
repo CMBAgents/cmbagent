@@ -41,6 +41,19 @@ existence check. It is also consistent with how the engine treats attempts: each
 a complete standalone script (see `executor`), so re-writing its own declared outputs is
 the expected behaviour, not an optimisation to skip.
 
+A DECLARED OUTPUT ONLY AN EARLIER ATTEMPT OF THIS STEP WROTE IS STILL REJECTED. The
+manifest now comes with the step's history (`data_manifest_info["carried_over"]`: files
+an earlier attempt of the same step wrote and this one left unchanged), and the step
+evaluator is shown it, so a resumable script that skips 61 already-saved chunk files is
+not mistaken for one that never processed them. This check deliberately does not read
+it. A carried-over file proves that SOME attempt wrote it, not that it holds this
+attempt's result: the earlier attempt may have failed after writing it, or used an
+approach this one replaced, and the declared path is the one file a later step will read
+as this step's answer. Accepting it would reopen the stale-file hole above for every
+file written within the step. The cost is bounded and explicit: a resumable script must
+rewrite (or touch) its DECLARED outputs on every attempt, which the bounce message says;
+intermediate files it skips are unaffected, because only declared paths are checked.
+
 CONSERVATIVE in five independent ways, because a false positive burns an attempt on
 correct code:
   1. only SAVE-shaped declarations count. For each candidate path the nearest preceding
@@ -148,7 +161,8 @@ def missing_declared_outputs(step, work_dir: Optional[str], manifest=None,
     than `Path.exists()` decides).
 
     A path counts as WRITTEN when the attempt's `data_manifest` reports it, by path or
-    by basename — a script that wrote the right content under a sibling name is the step
+    by basename (never because an earlier attempt of this step wrote it: carried-over
+    files are information for the evaluator, see the module docstring) — a script that wrote the right content under a sibling name is the step
     evaluator's judgement call, not this one's. Where the manifest could not see the
     path (`info` says the listing is incomplete, or the path is under a symlinked or
     partial directory), a file changed since the attempt started counts (item 5).
@@ -180,7 +194,9 @@ def missing_output_report(missing: List[str]) -> str:
         f"written by this run: {paths}. Checked against the files this attempt actually "
         f"created or modified anywhere in the run directory, so this is a FACT, "
         f"not a review comment — and a stale copy left in `data/` by an earlier run "
-        f"does not count, because a later step would read the wrong numbers from it. "
+        f"does not count, because a later step would read the wrong numbers from it; "
+        f"nor does a copy an earlier attempt of this step saved, so a script that "
+        f"reuses earlier results must still write its declared outputs on every run. "
         f"The step cannot be fulfilled without it. Write each declared path "
         f"exactly as the sub-task spells it (relative to the working directory, so "
         f"`data/<name>`, creating `data/` first if needed), print the path and the byte "

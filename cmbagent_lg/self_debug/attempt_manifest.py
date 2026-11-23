@@ -27,6 +27,32 @@ listing):
                         path stdout named: `written` / `pre_existing` / `missing` /
                         `not_found` (a bare file name found nowhere).
 
+THREE KINDS OF FILE, for the evaluator. A step's attempts share one run directory, and a
+resumable script (one that skips work an earlier attempt already saved) legitimately
+leaves that work untouched. So beside "written by THIS attempt" the evaluator is told
+which of the other files were written by an EARLIER ATTEMPT OF THE SAME STEP and left
+unchanged ("carried over", with the attempt number), and which were on disk before the
+step began (an earlier step's output or a provided input: "pre-existing"). The step's
+history is two small fields of graph state the executor keeps (`step_baseline`, the
+snapshot taken right before the step's first attempt ran, and `step_writes`, the attempt
+that last wrote each file), read through `StepHistory`:
+
+  `data_manifest_info["carried_over"]`  `{"count", "bytes", "listed", "groups",
+                        "more"}` — the carried-over files, already shortened for the
+                        prompt (at most `MAX_CARRIED_LISTED` entries; a longer set is
+                        summarised per directory and attempt), so the state holds only
+                        what the rendering needs.
+  stdout checks         a stdout-named file another attempt of this step wrote is
+                        `carried_over` (with `"attempt"`); a glob (`partial_results/*.json`)
+                        or a directory (`results/`) inside the run directory is counted
+                        by class against the walk (`"kind": "glob" | "directory"`), never
+                        listed file by file.
+
+`data_manifest` itself keeps its meaning ("written or modified by THIS attempt"):
+`output_postcondition` still rejects a declared output only an earlier attempt wrote
+(see its docstring). Carried-over files are information for the evaluator, not proof
+that a declared output was freshly written.
+
 Only the evaluator's RENDERING is shortened (`MAX_RENDERED` entries, chosen so root
 files, stdout-named files, declared outputs and figures come first, the rest collapsed per
 directory). The checks read the whole list, so a step that also writes 250 chunk files
@@ -105,6 +131,14 @@ _MAX_SYMLINKED = 500
 MAX_RENDERED = 40
 _MAX_RENDERED_GROUPS = 15
 MAX_STDOUT_PATHS = 25
+# Globs and directories named in stdout that are counted by class.
+MAX_STDOUT_GROUPS = 10
+# Glob/directory tokens resolved at most, to find those MAX_STDOUT_GROUPS.
+_GROUP_TRIES = 100
+# Carried-over files listed one by one; a longer set is summarised per directory.
+MAX_CARRIED_LISTED = 20
+# When summarised, at most this many stdout-named or root files are still listed.
+_MAX_CARRIED_KEPT = 10
 # Unique path-shaped candidates considered before choosing which to check.
 _MAX_CANDIDATES = 2000
 # Head + tail of stdout scanned for paths.
@@ -445,7 +479,9 @@ def check_stdout_paths(stdout: str, run_cwd, work_dir, after: Optional[WalkResul
     A bare name found nowhere is `not_found` (it may have been saved elsewhere), never
     `missing`; an ambiguous bare name (`np.log`) found nowhere is dropped. Only `stat()`
     is called; nothing is opened, no directory is listed, and a directory named in
-    stdout is not classified."""
+    stdout is not classified here (`expand_stdout_groups` counts it from the walk).
+    `build` then turns a `pre_existing` file an earlier attempt of this step wrote into
+    `carried_over`."""
     written = set(written)
     cwd = Path(run_cwd).expanduser() if run_cwd else None
     roots = _Roots(work_dir)
@@ -479,10 +515,12 @@ def check_stdout_paths(stdout: str, run_cwd, work_dir, after: Optional[WalkResul
                 if match in walked:
                     entry["bytes"] = walked[match][0]
                     entry["mtime_ns"] = walked[match][1]
+                    entry["change_ns"] = max(walked[match][1:3])
                 else:
                     try:
                         s2 = (roots.root / match).stat()
                         entry["bytes"], entry["mtime_ns"] = s2.st_size, s2.st_mtime_ns
+                        entry["change_ns"] = changed_ns(s2)
                     except OSError:
                         entry["bytes"], entry["mtime_ns"] = 0, started_ns
         if "status" not in entry:
@@ -501,6 +539,7 @@ def check_stdout_paths(stdout: str, run_cwd, work_dir, after: Optional[WalkResul
                                        if changed_ns(st) >= started_ns - MTIME_SLACK_NS
                                        else "pre_existing")
                 entry["mtime_ns"] = st.st_mtime_ns
+                entry["change_ns"] = changed_ns(st)
         entry["in_work_dir"] = rel is not None
         if rel is not None:
             entry["rel"] = rel
@@ -508,13 +547,296 @@ def check_stdout_paths(stdout: str, run_cwd, work_dir, after: Optional[WalkResul
     return out
 
 
+# ── the step's history: carried over vs pre-existing ─────────────────────────
+
+
+def freeze_baseline(before: Optional[WalkResult], started_ns: int) -> dict:
+    """`step_baseline` for graph state: the snapshot taken right before the step's FIRST
+    attempt ran (bounded by the walk's caps), plus what that walk could not see. Taken
+    once per step by the executor and never overwritten."""
+    if before is None:
+        return {"files": {}, "truncated": "no run directory was set", "partial_dirs": [],
+                "symlinked_dirs": [], "started_ns": started_ns}
+    return {"files": {rel: list(sig) for rel, sig in before.files.items()},
+            "truncated": before.truncated, "partial_dirs": list(before.partial_dirs),
+            "symlinked_dirs": list(before.symlinked_dirs), "started_ns": started_ns}
+
+
+def update_step_writes(writes: Optional[dict], manifest: Iterable[dict], attempt: int,
+                       cap: Optional[int] = None) -> dict:
+    """`step_writes` after an attempt: manifest path -> the attempt that last wrote it.
+    Bounded by `cap` (the walk's file cap): past it the oldest attempts' entries go
+    first, and such a file then reads as "written earlier in this step" without a number
+    (the baseline still tells it apart from a pre-existing one)."""
+    out = dict(writes or {})
+    for entry in manifest or ():
+        path = entry.get("path") if isinstance(entry, dict) else None
+        if path:
+            out.pop(path, None)
+            out[path] = int(attempt)
+    cap = walk_limits()[0] if cap is None else cap
+    if len(out) > cap:
+        keep = sorted(out.items(), key=lambda kv: kv[1])[-cap:]
+        out = dict(keep)
+    return out
+
+
+class StepHistory:
+    """What the step knew before this attempt ran: `step_baseline` and `step_writes`
+    from graph state. `prior(path, ...)` tells a file this attempt did NOT write apart:
+    `(True, k)` written by attempt k of this step and unchanged since, `(True, None)`
+    changed after the step began but by no recorded attempt, `(False, None)` on disk
+    before the step began."""
+
+    __slots__ = ("baseline", "writes", "attempt")
+
+    def __init__(self, baseline: Optional[dict], writes: Optional[dict] = None,
+                 attempt: int = 0):
+        self.baseline = baseline if isinstance(baseline, dict) else None
+        self.writes = dict(writes or {})
+        self.attempt = int(attempt or 0)
+
+    def prior(self, key: str, sig=None, change_ns: Optional[int] = None
+              ) -> Tuple[bool, Optional[int]]:
+        if key in self.writes:
+            return True, self.writes[key]
+        b = self.baseline
+        if b is None:
+            return False, None
+        files = b.get("files") or {}
+        if sig is not None and key in files:
+            return tuple(files[key]) != tuple(sig), None
+        seen = (sig is not None and not key.startswith("/") and not b.get("truncated")
+                and not _under(key, b.get("partial_dirs") or ())
+                and not _under(key, b.get("symlinked_dirs") or ()))
+        if seen:
+            return True, None  # the baseline walk saw its directory and it was not there
+        started = b.get("started_ns")
+        if change_ns is not None and started is not None and \
+                change_ns >= started - MTIME_SLACK_NS:
+            return True, None
+        return False, None
+
+
+def _carried_summary(carried: List[dict], stdout_named: set) -> dict:
+    """The carried-over files as the prompt shows them: all of them up to
+    `MAX_CARRIED_LISTED`, otherwise the stdout-named and root ones (at most
+    `_MAX_CARRIED_KEPT`) and one line per directory and attempt for the rest."""
+    total = sum(int(e.get("bytes") or 0) for e in carried)
+    if len(carried) <= MAX_CARRIED_LISTED:
+        return {"count": len(carried), "bytes": total, "listed": list(carried),
+                "groups": [], "more": None}
+    order = sorted(range(len(carried)),
+                   key=lambda i: (_rank(carried[i], stdout_named, set()), i))
+    keep = {i for i in order[:_MAX_CARRIED_KEPT]
+            if _rank(carried[i], stdout_named, set()) <= 2}
+    listed = [e for i, e in enumerate(carried) if i in keep]
+    groups: Dict[Tuple[str, Optional[int]], List[int]] = {}
+    for i, e in enumerate(carried):
+        if i in keep:
+            continue
+        path = str(e.get("path", ""))
+        parent = path.rsplit("/", 1)[0] + "/" if "/" in path else "./"
+        g = groups.setdefault((parent, e.get("attempt")), [0, 0])
+        g[0] += 1
+        g[1] += int(e.get("bytes") or 0)
+    ranked = sorted(groups.items(), key=lambda kv: (-kv[1][0], kv[0][0], kv[0][1] or 0))
+    shown = [{"dir": d, "attempt": a, "files": n, "bytes": b}
+             for (d, a), (n, b) in ranked[:_MAX_RENDERED_GROUPS]]
+    extra = ranked[_MAX_RENDERED_GROUPS:]
+    more = ({"files": sum(v[0] for _k, v in extra), "groups": len(extra)}
+            if extra else None)
+    return {"count": len(carried), "bytes": total, "listed": listed, "groups": shown,
+            "more": more}
+
+
+# Globs and directories named in stdout. A token is cut at whitespace and stripped of
+# quoting and sentence punctuation; a glob needs a `*` and either a file extension or a
+# `/`-separated `*` segment (so `**bold**` and `2*np.pi/3` are not globs); a directory
+# needs a `/` and must be an existing directory inside the run directory (`stat` only).
+_TOKEN_STRIP_LEAD = "([{<'\"`"
+_TOKEN_STRIP_TRAIL = ")]}>'\"`,;:!?."
+_GLOB_SHAPE = re.compile(r"(?:~/|\.{1,2}/|/)?[\w.+\-*]+(?:/[\w.+\-*]+)*/?")
+_DIR_SHAPE = re.compile(r"(?:~/|\.{1,2}/|/)?[\w.+\-]+(?:/[\w.+\-]+)*/?")
+
+
+def _is_glob(tok: str) -> bool:
+    if "*" not in tok or "//" in tok or not _GLOB_SHAPE.fullmatch(tok):
+        return False
+    last = tok.rstrip("/").rsplit("/", 1)[-1]
+    if last in ("*", "**"):
+        return "/" in tok
+    m = re.search(r"\.([A-Za-z][A-Za-z0-9]{0,7}|\*)$", last)
+    return bool(m) and (m.group(1) == "*" or m.group(1).lower() in _FILE_EXTS)
+
+
+def _group_candidates(stdout: str) -> List[Tuple[str, str, bool]]:
+    """`(token, kind, after_save_verb)` per unique glob- or directory-shaped token."""
+    if not stdout:
+        return []
+    text = stdout
+    if len(text) > _STDOUT_SCAN_CHARS:
+        half = _STDOUT_SCAN_CHARS // 2
+        text = text[:half] + "\n" + text[-half:]
+    out: List[Tuple[str, str, bool]] = []
+    seen = set()
+    for line in text.splitlines():
+        for m in re.finditer(r"\S+", line):
+            tok = m.group(0).lstrip(_TOKEN_STRIP_LEAD).rstrip(_TOKEN_STRIP_TRAIL)
+            if "=" in tok:  # out=results/ -> results/
+                tok = tok.rsplit("=", 1)[-1].lstrip(_TOKEN_STRIP_LEAD)
+            if not tok or len(tok) > 300 or tok in seen:
+                continue
+            if _is_glob(tok):
+                kind = "glob"
+            elif ("/" in tok and "//" not in tok and _DIR_SHAPE.fullmatch(tok)
+                  and not _HOST_RE.match(tok)
+                  and Path(tok.rstrip("/")).suffix.lower().lstrip(".") not in _FILE_EXTS):
+                kind = "directory"
+            else:
+                continue
+            seen.add(tok)
+            saved = bool(_SAVE_CTX_RE.search(line, 0, m.start()))
+            out.append((tok, kind, saved))
+            if len(out) >= _MAX_CANDIDATES:
+                return out
+    return out
+
+
+def _glob_regex(pattern: str) -> "re.Pattern":
+    """A glob over relative posix paths: `*` within one segment, `**` across them."""
+    parts = []
+    i = 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            parts.append("(?:[^/]+/)*")
+            i += 3
+        elif pattern.startswith("**", i):
+            parts.append(".*")
+            i += 2
+        elif pattern[i] == "*":
+            parts.append("[^/]*")
+            i += 1
+        else:
+            parts.append(re.escape(pattern[i]))
+            i += 1
+    return re.compile("".join(parts))
+
+
+def _unscanned_note(rel_dir: str, after: WalkResult) -> bool:
+    """Could the walk have missed files under `rel_dir`?"""
+    top = rel_dir.split("/", 1)[0]
+    if top in ENGINE_DIRS or any(seg.startswith(".") or seg in CACHE_DIRS
+                                 for seg in rel_dir.split("/") if seg):
+        return True
+    return bool(after.truncated) or _under(rel_dir, after.partial_dirs) or _under(
+        rel_dir, after.symlinked_dirs) or any(_under(d, [rel_dir]) for d in
+                                               after.partial_dirs + after.symlinked_dirs)
+
+
+def expand_stdout_groups(stdout: str, run_cwd, work_dir, after: Optional[WalkResult],
+                         written: Iterable[str], carried: Dict[str, Optional[int]],
+                         max_groups: int = MAX_STDOUT_GROUPS) -> List[dict]:
+    """Count the files a stdout glob or directory covers, by class, from the walk alone
+    (nothing is listed or opened): `{"path", "kind", "rel", "total", "written",
+    "carried_over": {attempt: n}, "pre_existing", "unscanned"}`. `carried_over` keys are
+    attempt numbers as strings ("?" for an unrecorded one). Only globs and directories
+    inside the run directory (not the run directory itself) are counted; others are
+    dropped, since listing outside it is not this check's business."""
+    if after is None or not work_dir:
+        return []
+    roots = _Roots(work_dir)
+    cwd = Path(run_cwd).expanduser() if run_cwd else roots.root
+    written = set(written)
+    cands = _group_candidates(stdout)
+    # Tokens after a save verb first, then the latest others; a token that is not a
+    # glob or a directory in the run directory (`and/or`, `km/s`) does not use a slot,
+    # but at most `_GROUP_TRIES` tokens are resolved (one `stat` each).
+    order = ([i for i, c in enumerate(cands) if c[2]][::-1]
+             + [i for i, c in enumerate(cands) if not c[2]][::-1])
+    found: List[Tuple[int, dict]] = []
+    for i in order[:_GROUP_TRIES]:
+        if len(found) >= max_groups:
+            break
+        entry = _count_group(cands[i][0], cands[i][1], cwd, roots, after, written, carried)
+        if entry is not None:
+            found.append((i, entry))
+    return [e for _i, e in sorted(found, key=lambda t: t[0])]
+
+
+def _count_group(tok: str, kind: str, cwd: Path, roots: "_Roots", after: WalkResult,
+                 written: set, carried: Dict[str, Optional[int]]) -> Optional[dict]:
+    """One glob or directory token counted by class, or None when it is not one inside
+    the run directory."""
+    raw = Path(tok.rstrip("/") or "/").expanduser()
+    relative = not raw.is_absolute()
+    if kind == "glob":
+        segs = tok.rstrip("/").split("/")
+        cut = next(i for i, sg in enumerate(segs) if "*" in sg)
+        head = "/".join(segs[:cut])
+        if tok.startswith("/") and not head:
+            head = "/"
+        head_path = Path(head).expanduser() if head else Path(".")
+        if not head_path.is_absolute():
+            head_path = cwd / head_path
+        rel_head = roots.rel(Path(os.path.normpath(head_path)))
+        if rel_head is None:
+            return None
+        tail = "/".join(segs[cut:])
+        rel_pat = tail if rel_head in ("", ".") else f"{rel_head}/{tail}"
+        rx = _glob_regex(rel_pat)
+        matches = [r for r in after.files if rx.fullmatch(r)]
+        head_parts = [sg for sg in head.split("/") if sg not in ("", ".")]
+        if not matches and relative and head_parts and ".." not in head_parts:
+            # Printed after os.chdir, or relative to a subdirectory: match by suffix.
+            rx2 = re.compile("(?:.*/)?" + _glob_regex("/".join(head_parts + [tail])).pattern)
+            matches = [r for r in after.files if rx2.fullmatch(r)]
+        scope_dir = rel_head if rel_head not in ("", ".") else ""
+    else:
+        p = raw if not relative else cwd / raw
+        try:
+            p = Path(os.path.normpath(p))
+            st = p.stat()
+        except OSError:
+            return None
+        if not _stat.S_ISDIR(st.st_mode):
+            return None
+        rel_dir = roots.rel(p)
+        if rel_dir in (None, "", "."):
+            return None
+        rel_pat = rel_dir
+        prefix = rel_dir.rstrip("/") + "/"
+        matches = [r for r in after.files if r.startswith(prefix)]
+        scope_dir = rel_dir
+    counts = {"written": 0, "pre_existing": 0}
+    by_attempt: Dict[str, int] = {}
+    for r in matches:
+        if r in written:
+            counts["written"] += 1
+        elif r in carried:
+            a = carried[r]
+            key = "?" if a is None else str(a)
+            by_attempt[key] = by_attempt.get(key, 0) + 1
+        else:
+            counts["pre_existing"] += 1
+    return {"path": tok, "kind": kind, "rel": rel_pat, "total": len(matches),
+            "written": counts["written"], "carried_over": by_attempt,
+            "pre_existing": counts["pre_existing"],
+            "unscanned": _unscanned_note(scope_dir, after) if scope_dir
+            else bool(after.truncated)}
+
+
 # ── building the attempt's manifest ─────────────────────────────────────────
 
 
 def build(before: WalkResult, after: WalkResult, started_ns: int, stdout: str,
-          run_cwd, work_dir) -> Tuple[List[dict], dict]:
+          run_cwd, work_dir, history: Optional[StepHistory] = None
+          ) -> Tuple[List[dict], dict]:
     """`(data_manifest, data_manifest_info)` for a local attempt (see module docstring).
-    The manifest is the whole diff; nothing is cut for display here."""
+    The manifest is the whole diff; nothing is cut for display here. `history` (the
+    step's baseline and earlier attempts' writes) splits the files this attempt did not
+    write into carried over and pre-existing; without it every such file is
+    pre-existing, as before."""
     files = diff_snapshots(before, after, started_ns)
     written = {f["path"] for f in files}
     checks = check_stdout_paths(stdout, run_cwd, work_dir, after, written, started_ns)
@@ -530,8 +852,11 @@ def build(before: WalkResult, after: WalkResult, started_ns: int, stdout: str,
         files.append({"path": key, "bytes": c.get("bytes", 0),
                       "modified": _iso(c["mtime_ns"]), "change": "written",
                       "source": "stdout"})
+    carried, groups = _classify_unwritten(checks, after, written, history, stdout, run_cwd,
+                                          work_dir)
     for c in checks:
         c.pop("mtime_ns", None)
+        c.pop("change_ns", None)
     reason = before.truncated or after.truncated
     info = {
         "scope": "work_dir",
@@ -540,24 +865,71 @@ def build(before: WalkResult, after: WalkResult, started_ns: int, stdout: str,
         "omitted": 0,
         "symlinked_dirs": sorted(set(before.symlinked_dirs) | set(after.symlinked_dirs)),
         "partial_dirs": sorted(set(before.partial_dirs) | set(after.partial_dirs)),
-        "stdout_paths": checks,
+        "stdout_paths": checks + groups,
         "started_ns": started_ns,
+        "attempt": history.attempt if history is not None else None,
+        "carried_over": carried,
     }
     return files, info
 
 
-def no_work_dir_info(stdout: str, run_cwd, started_ns: int) -> Tuple[List[dict], dict]:
+def _classify_unwritten(checks: List[dict], after: Optional[WalkResult], written: set,
+                        history: Optional[StepHistory], stdout: str, run_cwd, work_dir
+                        ) -> Tuple[dict, List[dict]]:
+    """Mark each stdout-checked file an earlier attempt of this step wrote as
+    `carried_over` (in place), and return `(carried-over summary, glob/directory
+    counts)`."""
+    walked = after.files if after is not None else {}
+    carried_list: List[dict] = []
+    carried_map: Dict[str, Optional[int]] = {}
+    if history is not None:
+        for rel in sorted(walked):
+            if rel in written:
+                continue
+            cur = walked[rel]
+            is_c, att = history.prior(rel, cur, max(cur[1:3]))
+            if is_c:
+                carried_map[rel] = att
+                carried_list.append({"path": rel, "bytes": cur[0], "attempt": att})
+        for c in checks:
+            if c["status"] != "pre_existing":
+                continue
+            rel = c.get("rel")
+            if rel is not None and rel in walked:
+                if rel in carried_map:
+                    c["status"], c["attempt"] = "carried_over", carried_map[rel]
+                continue
+            key = rel or c["resolved"]
+            is_c, att = history.prior(key, None, c.get("change_ns"))
+            if is_c:
+                c["status"], c["attempt"] = "carried_over", att
+                if key not in carried_map:
+                    carried_map[key] = att
+                    carried_list.append({"path": key, "bytes": c.get("bytes", 0),
+                                         "attempt": att, "source": "stdout"})
+    stdout_named = {c.get("rel") or c.get("resolved") for c in checks} - {None}
+    groups = expand_stdout_groups(stdout, run_cwd, work_dir, after, written, carried_map)
+    return _carried_summary(carried_list, stdout_named), groups
+
+
+def no_work_dir_info(stdout: str, run_cwd, started_ns: int,
+                     history: Optional[StepHistory] = None) -> Tuple[List[dict], dict]:
     """A run with no work dir (ephemeral tempfile): nothing to walk, only stdout checks."""
     checks = check_stdout_paths(stdout, run_cwd, None, None, (), started_ns)
     files = [{"path": c["resolved"], "bytes": c.get("bytes", 0),
               "modified": _iso(c["mtime_ns"]), "change": "written", "source": "stdout"}
              for c in checks if c["status"] == "written"]
+    carried, _groups = _classify_unwritten(checks, None, {f["path"] for f in files},
+                                           history, "", run_cwd, None)
     for c in checks:
         c.pop("mtime_ns", None)
+        c.pop("change_ns", None)
     return files, {"scope": "none", "complete": False,
                    "incomplete_reason": "no run directory was set, so it was not scanned",
                    "omitted": 0, "symlinked_dirs": [], "partial_dirs": [],
-                   "stdout_paths": checks, "started_ns": started_ns}
+                   "stdout_paths": checks, "started_ns": started_ns,
+                   "attempt": history.attempt if history is not None else None,
+                   "carried_over": carried}
 
 
 def remote_info() -> dict:
@@ -643,13 +1015,88 @@ _EXCLUDED_NOTE = ("engine directories " + ", ".join(f"{d}/" for d in sorted(ENGI
 
 _STDOUT_STATUS = {
     "written": "exists; written or modified by this attempt",
-    "pre_existing": "exists, but was NOT written or modified by this attempt "
-                    "(it was already on disk before the run)",
+    "pre_existing": "exists, but was NOT written or modified by this attempt or an "
+                    "earlier attempt of this step (it was on disk before this step "
+                    "began: an earlier step's output or a provided input)",
     "missing": "does NOT exist",
     "not_found": "no file at this name in the script's working directory, and no file "
                  "of this name in the scanned run directory (a bare name; it may refer "
                  "to a file saved elsewhere)",
 }
+
+CARRIED_OVER_HEADER = ("----- FILES CARRIED OVER FROM EARLIER ATTEMPTS OF THIS STEP "
+                       "(unchanged by this attempt) --")
+
+
+def _from_attempt(attempt, current) -> str:
+    """"attempt 5", or what to say when the number is unknown or is this attempt's own
+    (an escalation re-runs the same attempt)."""
+    if attempt is None or attempt == "?":
+        return "an earlier attempt of this step (attempt not recorded)"
+    try:
+        if current is not None and int(attempt) == int(current):
+            return f"an earlier run of this attempt ({attempt}, before it was re-run)"
+    except (TypeError, ValueError):
+        pass
+    return f"attempt {attempt}"
+
+
+def _carried_status(c: dict, current) -> str:
+    return (f"exists; written by {_from_attempt(c.get('attempt'), current)} and NOT "
+            "rewritten by this attempt (carried over from earlier in this step)")
+
+
+def _group_line(c: dict, current) -> str:
+    what = "pattern" if c.get("kind") == "glob" else "directory"
+    where = (f" (as {c['rel']}/ in the run directory)" if c.get("kind") == "directory"
+             and c.get("rel") and c["rel"].rstrip("/") != str(c["path"]).rstrip("/")
+             else "")
+    note = (" The scan did not cover all of it, so the counts may be low."
+            if c.get("unscanned") else "")
+    if not c.get("total"):
+        return (f"- {c['path']} ({what}{where}): no file in the scanned run directory "
+                f"matches.{note}")
+    parts = [f"{c.get('written', 0)} written by this attempt"]
+    for att, n in sorted((c.get("carried_over") or {}).items(),
+                         key=lambda kv: (kv[0] == "?", int(kv[0]) if kv[0] != "?" else 0)):
+        parts.append(f"{n} carried over from {_from_attempt(att, current)} "
+                     "(unchanged by this attempt)")
+    parts.append(f"{c.get('pre_existing', 0)} on disk before this step began")
+    return (f"- {c['path']} ({what}{where}): {c['total']} file(s): "
+            + "; ".join(parts) + "." + note)
+
+
+def render_carried_over(info: Optional[dict]) -> str:
+    """The FILES CARRIED OVER section, or "" when there are none (or no history): files
+    an earlier attempt of THIS step wrote and this attempt left unchanged, by attempt,
+    summarised per directory when long. Read from `data_manifest_info["carried_over"]`,
+    which the executor already shortened."""
+    if not isinstance(info, dict):
+        return ""
+    co = info.get("carried_over")
+    if not isinstance(co, dict) or not co.get("count"):
+        return ""
+    current = info.get("attempt")
+    lines = [CARRIED_OVER_HEADER,
+             f"{co['count']} file(s), {_human(int(co.get('bytes') or 0))}, written in the "
+             "run directory by an earlier attempt of this same step and left unchanged by "
+             "this one (paths relative to the run directory). They exist, but this "
+             "attempt did not write them:"]
+    for e in co.get("listed") or []:
+        where = ", named in stdout" if e.get("source") == "stdout" else ""
+        lines.append(f"- {e['path']} ({e.get('bytes', '?')} bytes{where}; from "
+                     f"{_from_attempt(e.get('attempt'), current)})")
+    for g in co.get("groups") or []:
+        lines.append(f"- {g['dir']}: {g['files']} file(s) from "
+                     f"{_from_attempt(g.get('attempt'), current)}, "
+                     f"{_human(int(g.get('bytes') or 0))}")
+    more = co.get("more")
+    if more:
+        lines.append(f"- ... and {more['files']} more file(s) in {more['groups']} other "
+                     "director(ies)/attempt(s)")
+    lines.append("-" * 45)
+    return "\n".join(lines)
+
 
 _IMAGE_EXTS = frozenset({".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf",
                          ".eps", ".tif", ".tiff", ".bmp"})
@@ -683,7 +1130,7 @@ def _choose(manifest: List[dict], info: Optional[dict], priority: Iterable[str],
     if len(manifest) <= limit:
         return list(manifest), []
     stdout_named = {c.get("rel") for c in ((info or {}).get("stdout_paths") or [])
-                    if isinstance(info, dict)} - {None}
+                    if isinstance(info, dict) and not c.get("kind")} - {None}
     prio = set()
     for p in priority or ():
         prio.add(p)
@@ -781,9 +1228,17 @@ def render_for_evaluator(manifest: List[dict], info: Optional[dict],
         if checks:
             lines.append("")
             lines.append("File paths named in stdout, checked on disk (stat only, "
-                         "contents not read):")
+                         "contents not read; a pattern or directory is counted against "
+                         "the scanned run directory, by class):")
+            current = info.get("attempt")
             for c in checks:
-                status = _STDOUT_STATUS.get(c["status"], c["status"])
+                if c.get("kind"):
+                    lines.append(_group_line(c, current))
+                    continue
+                if c["status"] == "carried_over":
+                    status = _carried_status(c, current)
+                else:
+                    status = _STDOUT_STATUS.get(c["status"], c["status"])
                 if c.get("matched_by") == "suffix" and c.get("rel"):
                     status += f" (found as {c['rel']})"
                 elif c["status"] == "missing" and not str(c["path"]).startswith(("/", "~")):
@@ -838,5 +1293,7 @@ __all__ = [
     "check_stdout_paths", "build", "no_work_dir_info", "remote_info", "attempt_start_ns",
     "changed_ns", "written_names", "listing_is_whole", "written_since_start",
     "under_unscanned_dir", "under_symlinked_dir", "render_for_evaluator", "image_paths",
-    "other_workspace_files", "walk_limits",
+    "other_workspace_files", "walk_limits", "freeze_baseline", "update_step_writes",
+    "StepHistory", "expand_stdout_groups", "render_carried_over", "CARRIED_OVER_HEADER",
+    "MAX_CARRIED_LISTED", "MAX_STDOUT_GROUPS",
 ]

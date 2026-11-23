@@ -429,6 +429,7 @@ def _write_manifest_log(state: DebugState, n: int, step, manifest: list, info: d
                 "symlinked_dirs": info.get("symlinked_dirs", []),
                 "partial_dirs": info.get("partial_dirs", []),
                 "stdout_paths": info.get("stdout_paths", []),
+                "carried_over": info.get("carried_over"),
             },
             indent=2,
         )
@@ -554,6 +555,17 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
     # not misclassify the attempt's files.
     started_ns = _attempt_manifest.attempt_start_ns(
         _logs_dir(state) if codebase is not None else None)
+    # The step's history, so the evaluator can tell a file an EARLIER ATTEMPT OF THIS STEP
+    # wrote (a resumable script skips it) from one that was on disk before the step began.
+    # The baseline is the snapshot taken before the step's first executed attempt: state
+    # is fresh for each step (deep_research invokes the graph once per step) and persists
+    # across its attempts, so the first executor pass with no `step_baseline` takes it.
+    step_baseline = state.get("step_baseline")
+    new_baseline = None
+    if not isinstance(step_baseline, dict):
+        step_baseline = new_baseline = _attempt_manifest.freeze_baseline(tree_before, started_ns)
+    history = _attempt_manifest.StepHistory(
+        step_baseline, state.get("step_writes"), state.get("attempts", 0))
     timed_out = False
     t0 = time.perf_counter()
     try:
@@ -603,10 +615,10 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         if tree_before is not None:
             manifest, manifest_info = _attempt_manifest.build(
                 tree_before, _attempt_manifest.snapshot_tree(run_cwd), started_ns,
-                stdout or "", run_cwd, run_cwd)
+                stdout or "", run_cwd, run_cwd, history=history)
         else:
             manifest, manifest_info = _attempt_manifest.no_work_dir_info(
-                stdout or "", run_cwd, started_ns)
+                stdout or "", run_cwd, started_ns, history=history)
     except Exception as e:  # noqa: BLE001 — bookkeeping must never fail the attempt
         print(f"[executor] output manifest not built (non-fatal): {e}", file=sys.stderr, flush=True)
         manifest, manifest_info = [], {
@@ -634,7 +646,11 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         "data_baseline": data_baseline,
         "data_manifest": manifest,
         "data_manifest_info": manifest_info,
+        "step_writes": _attempt_manifest.update_step_writes(
+            state.get("step_writes"), manifest, state.get("attempts", 0)),
     }
+    if new_baseline is not None:
+        out["step_baseline"] = new_baseline
     # Not set in remote mode: engine-side data/ is not the exec dir.
     if data_dir is not None:
         fact = _initial_input_dir_empty(state, ctx, data_dir, data_baseline)
