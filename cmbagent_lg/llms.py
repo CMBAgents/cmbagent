@@ -159,8 +159,10 @@ def _compat_model(name: str, e: dict, temperature):
 
         A structured answer that stops at the output limit (openai.LengthFinishReasonError: a thinking model spent its
         budget reasoning) is retried once with a larger budget (`max_tokens_retry` of the registry entry, else 1.5x
-        `max_tokens`) and a note asking for brief reasoning; a second overflow raises as before. Without this, one
-        overlong evaluator or formatter answer ended the whole run."""
+        `max_tokens`), the endpoint's `no_thinking` request fields when the registry gives them, and a note asking
+        for brief reasoning; a second overflow raises as before. Without this, one overlong evaluator or formatter
+        answer ended the whole run. A larger budget alone was not enough: DeepSeek and Qwen step evaluators overflowed
+        48k tokens as well and ended 9 of 12 overnight benchmark runs (22-23 Nov 2026)."""
 
         def invoke(self, input, config=None, **kwargs):
             """A plain answer with no text (a thinking model spent its whole budget reasoning: finish_reason
@@ -182,7 +184,10 @@ def _compat_model(name: str, e: dict, temperature):
             if not self.max_tokens:
                 return first
             bigger = int(e.get("max_tokens_retry") or int(1.5 * self.max_tokens))
-            retry_model = self.model_copy(update={"max_tokens": bigger})
+            update = {"max_tokens": bigger}
+            if e.get("no_thinking"):
+                update["extra_body"] = {**(self.extra_body or {}), **e["no_thinking"]}
+            retry_model = self.model_copy(update=update)
             from langchain_core.runnables import RunnableLambda
             second = RunnableLambda(_add_brevity) | ChatOpenAI.with_structured_output(
                 retry_model, schema, method=method or _method, **kwargs)

@@ -97,3 +97,31 @@ def test_nonempty_answer_is_not_retried(monkeypatch):
     monkeypatch.setattr(ChatOpenAI, "invoke", _fake_invoke([("ok", "stop")], calls))
     m = llms._compat_model("ds-test", {"base_url": "http://127.0.0.1:1/v1", "max_tokens": 32000}, 0.2)
     assert m.invoke("x").text == "ok" and len(calls) == 1
+
+
+
+def test_structured_retry_turns_thinking_off(monkeypatch):
+    """The step evaluator's overflow: the retry runs with the registry's no_thinking fields and the larger budget."""
+    from langchain_core.messages import AIMessage
+    from langchain_openai import ChatOpenAI
+    from pydantic import BaseModel
+    seen = []
+
+    def invoke(self, input, config=None, **kwargs):
+        seen.append({"extra_body": self.extra_body, "max_tokens": self.max_tokens, "input": input})
+        if len(seen) == 1:
+            raise _Overflow()
+        return AIMessage('{"ok": true}', additional_kwargs={"parsed": V(ok=True)})
+    monkeypatch.setattr(ChatOpenAI, "invoke", invoke)
+
+    class V(BaseModel):
+        ok: bool
+
+    e = {"base_url": "http://127.0.0.1:1/v1", "max_tokens": 32000,
+         "no_thinking": {"chat_template_kwargs": {"enable_thinking": False}}}
+    res = llms._compat_model("ds-test", e, 0.2).with_structured_output(V).invoke([HumanMessage("judge this step")])
+    assert res == V(ok=True) and len(seen) == 2
+    assert seen[0]["extra_body"] is None and seen[0]["max_tokens"] == 32000
+    assert seen[1]["extra_body"] == {"chat_template_kwargs": {"enable_thinking": False}}
+    assert seen[1]["max_tokens"] == 48000
+    assert llms._BREVITY in seen[1]["input"][-1].content
