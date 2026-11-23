@@ -61,6 +61,14 @@ class ExecutionVerdict(BaseModel):
         "next attempt. Null on success.",
     )
 
+    def structured_answer_problem(self) -> Optional[str]:
+        """Why a model's verdict cannot be used, or None. A failure must say what failed: the summary is the
+        engineer's retry context and the error history. Checked on answers from OpenAI-compatible endpoints only
+        (`llms._check_answer`), where it earns the one structured retry; constructing a verdict in code is unchanged."""
+        if self.status == "failure" and not (self.error_summary or "").strip():
+            return "status is failure but error_summary is empty"
+        return None
+
     def format(self) -> str:
         out = f"**Status:** {self.status}\n"
         if self.error_summary:
@@ -125,6 +133,21 @@ class StepVerdict(BaseModel):
         "— the absent library/API or the absent data column — and what the run "
         "delivered instead. Null when `infeasible_requirements` is empty.",
     )
+
+    def structured_answer_problem(self) -> Optional[str]:
+        """Why a model's verdict cannot be used, or None. A step that is not fulfilled must give a reason: an unmet
+        requirement, a suspected fabrication (researcher), an infeasible requirement, or feedback. Qwen with thinking
+        off answered `{"fulfilled": false}` and nothing else (probe of 23 Nov 2026), which would fail the attempt with
+        no feedback for the engineer. Checked on answers from OpenAI-compatible endpoints only (`llms._check_answer`),
+        where it earns the one structured retry; Gemini answers and verdicts built in code are unchanged."""
+        if self.fulfilled:
+            return None
+        reasons = [*self.unmet_requirements, *self.suspected_fabrications, *self.infeasible_requirements,
+                   self.feedback or ""]
+        if not any((r or "").strip() for r in reasons):
+            return ("fulfilled is false but no reason is given (unmet_requirements, suspected_fabrications, "
+                    "infeasible_requirements and feedback are all empty)")
+        return None
 
     def format(self) -> str:
         out = f"**Step fulfilled:** {self.fulfilled}\n"

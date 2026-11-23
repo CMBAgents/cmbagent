@@ -74,6 +74,7 @@ def test_structured_output_method(registry):
         ok: bool
 
     def bound_kwargs(runnable):
+        runnable = getattr(runnable, "first_attempt", runnable)    # inside the structured retry wrapper
         first = runnable.first if hasattr(runnable, "first") else runnable.steps[0]
         return getattr(first, "kwargs", {})
 
