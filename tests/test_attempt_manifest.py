@@ -42,6 +42,7 @@ def _local(monkeypatch):
     monkeypatch.delenv(REMOTE_ENV, raising=False)
     monkeypatch.delenv("CMBAGENT_LG_MANIFEST_MAX_FILES", raising=False)
     monkeypatch.delenv("CMBAGENT_LG_MANIFEST_MAX_DEPTH", raising=False)
+    monkeypatch.delenv("CMBAGENT_LG_MANIFEST_MAX_DIR_ENTRIES", raising=False)
 
 
 def _rt(ctx):
@@ -52,7 +53,7 @@ def _step(sub_task="do it", *bullets):
     return Step(sub_task=sub_task, sub_task_agent="engineer", bullet_points=list(bullets) or ["x"])
 
 
-def _run(work_dir, code, step=None, **kw):
+def _run(work_dir, code, step=None, ctx=None, **kw):
     state = {
         "step": step or _step(),
         "current_code": EngineerResponse(python_code=textwrap.dedent(code), code_explanation="x"),
@@ -61,7 +62,7 @@ def _run(work_dir, code, step=None, **kw):
         "work_dir": str(work_dir),
     }
     state.update(kw)
-    return sd_nodes.executor(state, _rt(PlanContext(main_task="t")))
+    return sd_nodes.executor(state, _rt(ctx or PlanContext(main_task="t")))
 
 
 def _paths(out):
@@ -185,28 +186,35 @@ def test_a_file_past_a_truncated_baseline_is_listed_only_if_new(tmp_path):
     before.truncated = "the scan stopped at the 1-file cap"
     started = time.time_ns()
     after = am.WalkResult()
-    after.files = {"old.txt": (1, started - 10 * am.MTIME_SLACK_NS),
-                   "new.txt": (1, started + 1)}
+    old_ns = started - 10 * am.MTIME_SLACK_NS
+    after.files = {"old.txt": (1, old_ns, old_ns, 1),
+                   "new.txt": (1, started + 1, started + 1, 2)}
     assert [f["path"] for f in am.diff_snapshots(before, after, started)] == ["new.txt"]
 
 
-def test_the_listing_cap_counts_what_it_omits(tmp_path, monkeypatch):
-    monkeypatch.setattr(am, "MAX_LISTED", 2)
+def test_the_render_cap_shortens_only_the_prompt_not_the_manifest(tmp_path, monkeypatch):
+    monkeypatch.setattr(am, "MAX_RENDERED", 2)
     out = _run(tmp_path, """
+        import os
+        os.makedirs("work", exist_ok=True)
         for i in range(4):
-            open(f"f{i}.txt", "w").write("x")
+            open(f"work/f{i}.txt", "w").write("x")
         print("ok")
     """)
-    assert len(out["data_manifest"]) == 2
-    assert out["data_manifest_info"]["omitted"] == 2
-    assert "and 2 more file(s)" in am.render_for_evaluator(
-        out["data_manifest"], out["data_manifest_info"])
+    assert len(out["data_manifest"]) == 4
+    assert out["data_manifest_info"]["omitted"] == 0
+    text = am.render_for_evaluator(out["data_manifest"], out["data_manifest_info"])
+    assert "- work/f0.txt (1 bytes)" in text and "- work/f3.txt" not in text
+    assert "- work/: 2 more file(s) written by this attempt, 2 bytes" in text
 
 
 # ── stdout-named paths ──────────────────────────────────────────────────────
 
 
-def test_stdout_paths_written_pre_existing_and_missing(tmp_path, tmp_path_factory):
+def test_stdout_paths_written_pre_existing_and_missing(tmp_path, tmp_path_factory, monkeypatch):
+    # `os.utime` sets ctime to now; without slack, and with the attempt starting a moment
+    # after the setup, the backdated outside file reads as pre-existing.
+    monkeypatch.setattr(am, "MTIME_SLACK_NS", 0)
     wd = tmp_path / "run"
     (wd / "data").mkdir(parents=True)
     stale = wd / "data" / "old.csv"
@@ -217,6 +225,7 @@ def test_stdout_paths_written_pre_existing_and_missing(tmp_path, tmp_path_factor
     outside_old.write_text("{}")
     _make_old(outside_old)
     out_abs = outside / "answer.json"
+    time.sleep(0.05)
     out = _run(wd, f"""
         open("data/new.csv", "w").write("x")
         open({str(out_abs)!r}, "w").write('{{"v": 1}}')
@@ -324,11 +333,18 @@ def test_image_reviewer_sees_nested_and_stdout_named_images(tmp_path, tmp_path_f
     assert any(b.get("text") == "\nFigure — data/plots/km.png:" for b in content)
 
 
-def test_infeasibility_check_counts_a_nested_written_artifact():
+def test_infeasibility_check_counts_a_nested_written_artifact(tmp_path):
+    """From a real executor run, so the test fails on the old top-level-only scan."""
     from cmbagent_lg.self_debug.infeasibility_check import _written_artifacts
 
-    names = _written_artifacts({"data_manifest": [{"path": "work/loocv.parquet", "bytes": 1}]})
-    assert {"work/loocv.parquet", "loocv.parquet"} <= names
+    out = _run(tmp_path, """
+        import os
+        os.makedirs("data/plots", exist_ok=True)
+        open("data/plots/km.png", "wb").write(b"png")
+        print("ok")
+    """)
+    names = _written_artifacts(out)
+    assert {"data/plots/km.png", "km.png"} <= names
 
 
 def test_workspace_listing_includes_other_files_and_keeps_step_logs(tmp_path, monkeypatch):
@@ -391,3 +407,288 @@ def test_no_work_dir_still_checks_absolute_stdout_paths(tmp_path):
     out = sd_nodes.executor(state, _rt(PlanContext(main_task="t")))
     assert out["data_manifest_info"]["scope"] == "none"
     assert [f["path"] for f in out["data_manifest"]] == [str(target)]
+
+
+# ── review fixes ────────────────────────────────────────────────────────────
+
+
+def _postcondition(step, work_dir, out):
+    from cmbagent_lg.self_debug.output_postcondition import output_postcondition
+
+    state = {"step": step, "work_dir": str(work_dir), "step_number": 1, "attempts": 1,
+             "execution_returncode": 0, "execution_timed_out": False,
+             "execution_stdout": out["execution_stdout"], "execution_stderr": "",
+             "data_manifest": out["data_manifest"],
+             "data_manifest_info": out["data_manifest_info"]}
+    return output_postcondition(state, _rt(PlanContext(main_task="t")))
+
+
+def test_many_written_files_never_hide_a_declared_output(tmp_path):
+    """250 chunk files plus the declared summary: the manifest keeps every entry, the
+    postcondition passes, and the evaluator is shown the declared file by name."""
+    step = _step("summarise", "save the summary table to data/summary.csv")
+    out = _run(tmp_path, """
+        import os
+        os.makedirs("data/chunks", exist_ok=True)
+        for i in range(250):
+            open(f"data/chunks/c{i:03d}.csv", "w").write("x")
+        open("data/summary.csv", "w").write("a,b")
+        print("done")
+    """, step=step)
+    assert len(out["data_manifest"]) == 251
+    assert "data/summary.csv" in _paths(out)
+    assert _postcondition(step, tmp_path, out)["output_postcondition_rejected"] is None
+    prompt = step_evaluator_instructions(
+        PlanContext(main_task="t"), step, stdout="done", data_manifest=out["data_manifest"],
+        step_feedback_history=[], data_manifest_info=out["data_manifest_info"])
+    assert "- data/summary.csv (3 bytes)" in prompt
+    assert "- data/chunks/: " in prompt and "more file(s) written by this attempt" in prompt
+    assert prompt.count("- data/chunks/c") <= am.MAX_RENDERED
+
+
+def test_a_legacy_cut_manifest_is_not_treated_as_whole():
+    assert am.listing_is_whole({"complete": True, "omitted": 3}) is False
+    assert am.listing_is_whole({"complete": True, "omitted": 0}) is True
+
+
+def test_a_bare_name_or_a_path_printed_after_chdir_resolves_by_suffix(tmp_path):
+    out = _run(tmp_path, """
+        import os
+        os.makedirs("data", exist_ok=True)
+        open("data/spectrum.png", "wb").write(b"png")
+        os.makedirs("work/out", exist_ok=True)
+        os.chdir("work")
+        open("out/x.npz", "wb").write(b"1")
+        print("Saved figure spectrum.png")
+        print("saved out/x.npz")
+        print("see notes.txt")
+        print("and gone/y.csv")
+    """)
+    checks = {c["path"]: c for c in out["data_manifest_info"]["stdout_paths"]}
+    assert checks["spectrum.png"]["status"] == "written"
+    assert checks["spectrum.png"]["rel"] == "data/spectrum.png"
+    assert checks["out/x.npz"]["status"] == "written"
+    assert checks["out/x.npz"]["rel"] == "work/out/x.npz"
+    # A bare name found nowhere is not claimed to be absent; a path with a / is.
+    assert checks["notes.txt"]["status"] == "not_found"
+    assert checks["gone/y.csv"]["status"] == "missing"
+    text = am.render_for_evaluator(out["data_manifest"], out["data_manifest_info"])
+    assert "- spectrum.png: exists; written or modified by this attempt (found as " \
+           "data/spectrum.png)" in text
+    assert "- notes.txt: does NOT exist" not in text
+    assert "- gone/y.csv: does NOT exist (resolved against the script's working " \
+           "directory)" in text
+    # Each file is listed once, by its run-relative path.
+    assert sorted(_paths(out)) == ["data/spectrum.png", "work/out/x.npz"]
+
+
+def test_a_bare_name_that_exists_but_was_not_written_is_pre_existing(tmp_path):
+    (tmp_path / "data").mkdir()
+    inp = tmp_path / "data" / "cohort.csv"
+    inp.write_text("a")
+    _make_old(inp)
+    out = _run(tmp_path, "print('loaded cohort.csv')\n")
+    (c,) = out["data_manifest_info"]["stdout_paths"]
+    assert c["status"] == "pre_existing" and c["rel"] == "data/cohort.csv"
+
+
+def test_attribute_names_with_file_extensions_are_never_reported_absent(tmp_path):
+    (tmp_path / "run.log").write_text("x")
+    stdout = ("np.log of x; model.fit(X) done; self.out; np.mat; ROOT.root; "
+              "from astropy.io.fits import open; norm.cdf; ruamel.yaml; np.save(x); "
+              "wrote run.log")
+    checks = am.check_stdout_paths(stdout, tmp_path, tmp_path,
+                                   am.snapshot_tree(tmp_path), (), time.time_ns())
+    assert [c["path"] for c in checks] == ["run.log"]
+    assert "model.fit" not in am.stdout_path_tokens(stdout)
+    assert "np.save" not in " ".join(am.stdout_path_tokens(stdout))
+
+
+def test_a_path_printed_through_an_alias_of_the_run_dir_is_listed_once(tmp_path):
+    real = tmp_path / "real"
+    real.mkdir()
+    alias = tmp_path / "alias"
+    alias.symlink_to(real, target_is_directory=True)
+    out = _run(alias, f"""
+        open("answer.json", "w").write("{{}}")
+        print("saved {real / 'answer.json'}")
+    """)
+    assert _paths(out) == ["answer.json"]
+    (c,) = out["data_manifest_info"]["stdout_paths"]
+    assert c["status"] == "written" and c["rel"] == "answer.json" and c["in_work_dir"]
+    text = am.render_for_evaluator(out["data_manifest"], out["data_manifest_info"])
+    assert "outside the run directory" not in text
+
+
+def test_a_path_printed_through_a_symlinked_data_dir_maps_to_data(tmp_path):
+    real_data = tmp_path / "real_data"
+    real_data.mkdir()
+    wd = tmp_path / "run"
+    wd.mkdir()
+    (wd / "data").symlink_to(real_data, target_is_directory=True)
+    out = _run(wd, f"""
+        open("data/out.csv", "w").write("x")
+        print("saved {real_data / 'out.csv'}")
+    """)
+    assert _paths(out) == ["data/out.csv"]
+    (c,) = out["data_manifest_info"]["stdout_paths"]
+    assert c["rel"] == "data/out.csv" and c["status"] == "written"
+
+
+def test_mtime_preserving_writes_are_seen(tmp_path, tmp_path_factory, monkeypatch):
+    """copy2 keeps the source's mtime; ctime (which userland cannot set) still moves."""
+    monkeypatch.setattr(am, "MTIME_SLACK_NS", 0)
+    src_dir = tmp_path_factory.mktemp("src")
+    src = src_dir / "src.txt"
+    src.write_text("xx")
+    (tmp_path / "work").mkdir()
+    same = tmp_path / "work" / "same.txt"
+    same.write_text("yy")
+    t = time.time() - 3600
+    os.utime(src, (t, t))
+    os.utime(same, (t, t))
+    outside = tmp_path_factory.mktemp("dest") / "copied.txt"
+    time.sleep(0.05)
+    out = _run(tmp_path, f"""
+        import shutil
+        shutil.copy2({str(src)!r}, "work/same.txt")
+        shutil.copy2({str(src)!r}, {str(outside)!r})
+        print("copied to {outside}")
+    """)
+    assert out["execution_returncode"] == 0, out["execution_stderr"]
+    by_path = {f["path"]: f for f in out["data_manifest"]}
+    assert by_path["work/same.txt"]["change"] == "modified"
+    (c,) = out["data_manifest_info"]["stdout_paths"]
+    assert c["status"] == "written"
+    assert str(outside) in by_path
+
+
+def test_attempt_start_comes_from_the_filesystem_and_leaves_no_sentinel(tmp_path):
+    before = time.time_ns()
+    started = am.attempt_start_ns(tmp_path)
+    assert started <= time.time_ns()
+    assert started >= before - 5 * 10**9
+    assert list(tmp_path.iterdir()) == []
+    assert am.attempt_start_ns(None) >= before
+
+
+def test_a_huge_directory_is_summarised_and_the_rest_still_scanned(tmp_path, monkeypatch):
+    monkeypatch.setenv("CMBAGENT_LG_MANIFEST_MAX_DIR_ENTRIES", "5")
+    monkeypatch.setattr(am, "MTIME_SLACK_NS", 0)
+    chunks = tmp_path / "data" / "chunks"
+    chunks.mkdir(parents=True)
+    for i in range(10):
+        (chunks / f"c{i}.csv").write_text("x")
+        _make_old(chunks / f"c{i}.csv")
+    (tmp_path / "zz").mkdir()
+    time.sleep(0.05)
+    step = _step("chunk", "write the new chunk to data/chunks/c_new.csv")
+    out = _run(tmp_path, """
+        open("data/chunks/c_new.csv", "w").write("x")
+        open("zz/after.txt", "w").write("x")
+        print("ok")
+    """, step=step)
+    info = out["data_manifest_info"]
+    assert info["partial_dirs"] == ["data/chunks"] and info["complete"] is True
+    assert _paths(out) == ["zz/after.txt"]
+    # Unseen by the walk, written by the attempt: the change-time fallback passes it.
+    assert _postcondition(step, tmp_path, out)["output_postcondition_rejected"] is None
+    # A stale file in the same directory does not pass.
+    stale_step = _step("chunk", "write the chunk to data/chunks/c0.csv")
+    assert _postcondition(stale_step, tmp_path, out)["output_postcondition_rejected"] \
+        == "missing_output"
+    text = am.render_for_evaluator(out["data_manifest"], info)
+    assert "too large to list file by file" in text and "data/chunks/" in text
+
+
+def test_a_directory_that_shrank_below_the_cap_does_not_list_stale_files(tmp_path):
+    before = am.WalkResult()
+    before.partial_dirs = ["big"]
+    started = time.time_ns()
+    old = started - 10 * am.MTIME_SLACK_NS
+    after = am.WalkResult()
+    after.files = {"big/old.txt": (1, old, old, 1), "big/new.txt": (1, started, started, 2)}
+    assert [f["path"] for f in am.diff_snapshots(before, after, started)] == ["big/new.txt"]
+
+
+def test_the_stdout_check_cap_keeps_saved_and_last_paths():
+    lines = [f"reading /in/file_{i}.csv" for i in range(30)] + ["saved /out/answer.json"]
+    toks = am.stdout_path_tokens("\n".join(lines))
+    assert len(toks) == am.MAX_STDOUT_PATHS and toks[-1] == "/out/answer.json"
+    assert "/in/file_29.csv" in toks and "/in/file_0.csv" not in toks
+    # A save-verb path early on survives many later ones.
+    lines = ["wrote /out/first.json"] + [f"see /in/f{i}.csv" for i in range(40)]
+    assert "/out/first.json" in am.stdout_path_tokens("\n".join(lines))
+
+
+def test_many_symlinked_dirs_are_all_kept_for_the_postcondition(tmp_path):
+    target = tmp_path / "target"
+    target.mkdir()
+    wd = tmp_path / "run"
+    (wd / "data").mkdir(parents=True)
+    for i in range(25):
+        (wd / "data" / f"link{i:02d}").symlink_to(target, target_is_directory=True)
+    snap = am.snapshot_tree(wd)
+    assert len(snap.symlinked_dirs) == 25
+    info = {"symlinked_dirs": snap.symlinked_dirs, "complete": True}
+    assert am.under_unscanned_dir("data/link24/x.png", info)
+    text = am.render_for_evaluator([], {"scope": "work_dir", "complete": True,
+                                        "symlinked_dirs": snap.symlinked_dirs})
+    assert "and 5 more." in text
+
+
+def test_incomplete_listing_with_nothing_found_is_worded_as_partial():
+    info = {"scope": "work_dir", "complete": False, "incomplete_reason": "cap",
+            "stdout_paths": []}
+    text = am.render_for_evaluator([], info)
+    assert "No written file was found in the scanned part of the run directory" in text
+    assert "No file in the run directory was written" not in text
+
+
+def test_junk_files_and_tool_scratch_dirs_are_not_outputs(tmp_path):
+    out = _run(tmp_path, """
+        import os
+        for d in ("dask-worker-space", "wandb", "mlruns", "work/lightning_logs"):
+            os.makedirs(d, exist_ok=True)
+            open(os.path.join(d, "f.txt"), "w").write("x")
+        os.makedirs("work", exist_ok=True)
+        for n in (".nfs000123", ".~lock.table.csv#", "~$book.xlsx", "kept.csv"):
+            open(os.path.join("work", n), "w").write("x")
+        print("ok")
+    """)
+    assert _paths(out) == ["work/kept.csv"]
+
+
+def test_colon_prefixed_paths_are_extracted_but_host_ports_are_not():
+    toks = am.stdout_path_tokens("Saved to:/abs/answer.json; out:answer.json; "
+                                 "serving localhost:8000/index.html; "
+                                 "mirror www.example.com/data.csv, cdn.example.org/x.json")
+    assert toks == ["/abs/answer.json", "answer.json"]
+
+
+def test_a_timed_out_attempt_still_lists_what_it_wrote(tmp_path):
+    from cmbagent_lg.planning.schemas import Step
+
+    step = Step(sub_task="x", sub_task_agent="engineer", bullet_points=["x"],
+                code_execution_timeout=1)
+    out = _run(tmp_path, """
+        import time
+        open("partial.csv", "w").write("x")
+        print("wrote partial.csv", flush=True)
+        time.sleep(30)
+    """, step=step)
+    assert out["execution_timed_out"] is True
+    assert _paths(out) == ["partial.csv"]
+    assert out["data_manifest_info"]["stdout_paths"][0]["status"] == "written"
+
+
+def test_a_static_refusal_clears_the_previous_listing(tmp_path):
+    from cmbagent_lg.self_debug.static_preflight import static_preflight
+
+    state = {"step": _step(), "work_dir": str(tmp_path), "step_number": 1, "attempts": 2,
+             "current_code": EngineerResponse(python_code="def f(:\n", code_explanation="x"),
+             "data_manifest": [{"path": "answer.json", "bytes": 2}],
+             "data_manifest_info": {"scope": "work_dir", "complete": True}}
+    out = static_preflight(state, _rt(PlanContext(main_task="t")))
+    assert out["static_preflight_rejected"] == "syntax"
+    assert out["data_manifest"] == [] and out["data_manifest_info"] is None

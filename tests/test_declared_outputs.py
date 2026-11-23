@@ -186,11 +186,16 @@ def test_a_nested_declared_path_is_judged_from_the_manifest(tmp_path):
         _rt(ctx)))
 
 
-def test_an_incomplete_manifest_falls_back_to_mtime_not_existence(tmp_path):
+def test_an_incomplete_manifest_falls_back_to_mtime_not_existence(tmp_path, monkeypatch):
     """When the walk hit a cap the listing may omit a file the attempt wrote: such a
-    file counts if its mtime is not older than the attempt; a stale one still does not."""
+    file counts if it changed (mtime or ctime) after the attempt started; a stale one
+    still does not. `os.utime` sets the inode's ctime to now, so the slack is removed
+    and the attempt starts a moment after the setup."""
     import time
 
+    from cmbagent_lg.self_debug import attempt_manifest as am
+
+    monkeypatch.setattr(am, "MTIME_SLACK_NS", 0)
     ctx = PlanContext(main_task="t")
     step = _step("plot it", "save the figure to data/plots/km.png")
     target = tmp_path / "data" / "plots" / "km.png"
@@ -198,6 +203,7 @@ def test_an_incomplete_manifest_falls_back_to_mtime_not_existence(tmp_path):
     target.write_text("x")
     old = time.time() - 3600
     os.utime(target, (old, old))
+    time.sleep(0.05)
     info = {"scope": "work_dir", "complete": False,
             "incomplete_reason": "the scan stopped at the 5-file cap",
             "started_ns": time.time_ns(), "stdout_paths": [], "symlinked_dirs": []}

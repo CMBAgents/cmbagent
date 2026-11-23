@@ -55,9 +55,12 @@ correct code:
      absence proves nothing; and never without a manifest to read;
   5. a declared path the manifest could not see — the walk hit a cap
      (`data_manifest_info["complete"]` is False) or the path is under a symlinked
-     directory the walk does not enter — counts as written when its mtime is not older
-     than the attempt's start. Never a bare existence check: a stale copy is older than
-     the attempt, so the metabric case above is still caught. A declared path in a
+     directory the walk does not enter or one too large to list file by file
+     (`partial_dirs`) — counts as written when it changed (mtime or ctime) after the
+     attempt started. Never a bare existence check: a stale copy is older than the
+     attempt, so the metabric case above is still caught. The manifest is never cut for
+     display (only the evaluator's rendering is), so a step that also writes hundreds of
+     other files is still judged on the full list. A declared path in a
      subdirectory of `data/` (`data/plots/km.png`) is judged from the manifest like any
      other, since the snapshot is recursive.
 """
@@ -147,8 +150,8 @@ def missing_declared_outputs(step, work_dir: Optional[str], manifest=None,
     A path counts as WRITTEN when the attempt's `data_manifest` reports it, by path or
     by basename — a script that wrote the right content under a sibling name is the step
     evaluator's judgement call, not this one's. Where the manifest could not see the
-    path (`info` says the listing is incomplete, or the path is under a symlinked
-    directory), a file whose mtime is not older than the attempt counts (item 5).
+    path (`info` says the listing is incomplete, or the path is under a symlinked or
+    partial directory), a file changed since the attempt started counts (item 5).
     `[]` when there is no declaration, no workspace, or no manifest to read: never
     bounce blind.
     """
@@ -162,7 +165,7 @@ def missing_declared_outputs(step, work_dir: Optional[str], manifest=None,
     for path in declared:
         if path in names or Path(path).name in names:
             continue
-        unseen = not whole or _am.under_symlinked_dir(path, info)
+        unseen = not whole or _am.under_unscanned_dir(path, info)
         if unseen and _am.written_since_start(root / path, info):
             continue
         missing.append(path)

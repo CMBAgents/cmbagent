@@ -175,10 +175,11 @@ class DebugState(TypedDict, total=False):
     # infeasibility_check read. In remote mode: the guest's top-level data/ listing.
     data_manifest: List[dict]
     # How `data_manifest` was made: scope ("work_dir" | "remote_data" | "none"),
-    # complete / incomplete_reason (a walk cap was hit), omitted (entries past the listing
-    # cap), symlinked_dirs (not entered), stdout_paths (each file path stdout named,
-    # classified written / pre_existing / missing), started_ns. None after a static
-    # refusal and on old checkpoints.
+    # complete / incomplete_reason (a walk cap was hit), omitted (always 0 now: the
+    # manifest is never cut, only its rendering; kept for old checkpoints), symlinked_dirs
+    # (not entered), partial_dirs (too large to list file by file), stdout_paths (each
+    # file path stdout named, classified written / pre_existing / missing / not_found),
+    # started_ns. None after a static refusal and on old checkpoints.
     data_manifest_info: Optional[dict]
 
     # execution_evaluator — did the code RUN cleanly?

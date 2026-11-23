@@ -382,15 +382,26 @@ def evaluator_instructions(
     )
 
 
-def _render_manifest(data_manifest: List[dict], data_manifest_info: dict | None = None) -> str:
+def _render_manifest(data_manifest: List[dict], data_manifest_info: dict | None = None,
+                     step=None) -> str:
     """The OUTPUT FILES section: what was checked, how far, and what stdout's paths are.
 
     Says exactly what was scanned ("no file in the run directory was written or modified
     by this attempt (checked recursively; ...)") rather than "(no output files were
-    produced)", which was false for every file written outside the top level of data/."""
+    produced)", which was false for every file written outside the top level of data/.
+    The step's declared outputs are listed first when the manifest is too long to show
+    whole."""
     from cmbagent_lg.self_debug.attempt_manifest import render_for_evaluator
 
-    return render_for_evaluator(data_manifest or [], data_manifest_info)
+    priority: List[str] = []
+    if step is not None:
+        try:
+            from cmbagent_lg.self_debug.output_postcondition import declared_output_paths
+
+            priority = declared_output_paths(step)
+        except Exception:  # noqa: BLE001 — ordering only; never break the prompt
+            priority = []
+    return render_for_evaluator(data_manifest or [], data_manifest_info, priority)
 
 
 def _render_step_history(step_feedback_history: List[str]) -> str:
@@ -475,7 +486,7 @@ def step_evaluator_instructions(
             current_instructions="\n".join(f"- {b}" for b in step.bullet_points),
             executed_code=_render_code(code),
             stdout=_render_stdout(stdout),
-            data_manifest=_render_manifest(data_manifest, data_manifest_info),
+            data_manifest=_render_manifest(data_manifest, data_manifest_info, step),
             step_feedback_history=_render_step_history(step_feedback_history),
             data_integrity_rules=data_integrity_rules,
             infeasible_rules=infeasible_rules,

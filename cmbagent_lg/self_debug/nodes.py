@@ -427,6 +427,7 @@ def _write_manifest_log(state: DebugState, n: int, step, manifest: list, info: d
                 "incomplete_reason": info.get("incomplete_reason"),
                 "omitted": info.get("omitted", 0),
                 "symlinked_dirs": info.get("symlinked_dirs", []),
+                "partial_dirs": info.get("partial_dirs", []),
                 "stdout_paths": info.get("stdout_paths", []),
             },
             indent=2,
@@ -548,7 +549,11 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
     # attempt's outputs only: files written by an earlier step or failed attempt land in
     # this baseline and are excluded. Each attempt is a complete standalone script.
     tree_before = _attempt_manifest.snapshot_tree(run_cwd) if codebase is not None else None
-    started_ns = time.time_ns()
+    # "Changed since the attempt started" is judged on the filesystem's own clock where
+    # there is one (a sentinel touched in logs/), so a skewed NFS/ceph server clock does
+    # not misclassify the attempt's files.
+    started_ns = _attempt_manifest.attempt_start_ns(
+        _logs_dir(state) if codebase is not None else None)
     timed_out = False
     t0 = time.perf_counter()
     try:
@@ -607,7 +612,8 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         manifest, manifest_info = [], {
             "scope": "work_dir" if tree_before is not None else "none", "complete": False,
             "incomplete_reason": f"the scan failed ({type(e).__name__})", "omitted": 0,
-            "symlinked_dirs": [], "stdout_paths": [], "started_ns": started_ns}
+            "symlinked_dirs": [], "partial_dirs": [], "stdout_paths": [],
+            "started_ns": started_ns}
 
     if returncode != 0 and not timed_out:
         _record_api_fact(ctx, code, stderr, stdout, state.get("work_dir"))

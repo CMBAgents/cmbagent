@@ -17,7 +17,8 @@ instructions: |
     expected files exist and are non-empty. A file this attempt wrote counts
     wherever it is (`answer.json`, `work/x.npz`, `data/plots/y.png`); a path
     stdout names that does NOT exist, or that was already on disk and not
-    written by this attempt, was not saved by this run.
+    written by this attempt, was not saved by this run. A bare file name the
+    check could not find anywhere it looked is not proof either way.
 
     Use the CODE to confirm which parameters, methods, and settings were actually
     used — so a requirement that names a value, a method, or a configuration is
