@@ -246,5 +246,16 @@ infeasible_rules: |
     standing: a step with one impossible requirement and one the engineer can still
     fix is a FAILED step, and must be retried for the fixable one.
 
+    **A STEP SPEC THAT CONTRADICTS THE DATA — judge against the data.** A bullet
+    can state something about the input that the run shows to be false: "four
+    columns, no header" for a file the code found to have three columns and a
+    header, or a file or column that is not there. The data as the code and
+    stdout show it is the fact; the spec's description of it is not. Code that
+    read the real layout correctly and said so has met a loading requirement.
+    A requirement that cannot be met BECAUSE of the contradiction goes in
+    `infeasible_requirements` as above, with `infeasible_justification` saying
+    what the data actually holds. Decide once: do not fail the step again for a
+    demand the data rules out, and do not go back and forth over the conflict.
+
 description: |
     Judges whether the step's goal (sub-task + bullet points) was achieved.
