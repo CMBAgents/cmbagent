@@ -414,6 +414,18 @@ def _render_manifest(data_manifest: List[dict], data_manifest_info: dict | None 
     return render_for_evaluator(data_manifest or [], data_manifest_info, priority)
 
 
+def _render_carried_over(data_manifest_info: dict | None,
+                         input_dir_empty: bool = False) -> str:
+    """The FILES CARRIED OVER section, with the two newlines that separate it from the
+    OUTPUT FILES block it follows, or "" (the prompt is then unchanged). With the
+    empty-data/ fact shown, it says the carried-over files were generated within the
+    step, so "carried over" does not read as "provided"."""
+    from cmbagent_lg.self_debug.attempt_manifest import render_carried_over
+
+    text = render_carried_over(data_manifest_info, input_dir_empty=input_dir_empty)
+    return "\n\n" + text if text else ""
+
+
 def _render_step_history(step_feedback_history: List[str]) -> str:
     if not step_feedback_history:
         return "(this is the first attempt — no prior feedback on this step)"
@@ -497,6 +509,7 @@ def step_evaluator_instructions(
             executed_code=_render_code(code),
             stdout=_render_stdout(stdout),
             data_manifest=_render_manifest(data_manifest, data_manifest_info, step),
+            carried_over_files=_render_carried_over(data_manifest_info, bool(input_dir_state)),
             step_feedback_history=_render_step_history(step_feedback_history),
             data_integrity_rules=data_integrity_rules,
             infeasible_rules=infeasible_rules,

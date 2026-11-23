@@ -12,13 +12,32 @@ instructions: |
       - the script's stdout, and
       - the list of files this attempt wrote or modified anywhere in the run
         directory (paths relative to it, and sizes), with an on-disk check of
-        every file path its stdout names.
+        every file path its stdout names, and, when there are any, the files
+        an earlier attempt of this same step wrote and this attempt left
+        unchanged.
     You do NOT see file CONTENTS. Judge file requirements by whether the
-    expected files exist and are non-empty. A file this attempt wrote counts
-    wherever it is (`answer.json`, `work/x.npz`, `data/plots/y.png`); a path
-    stdout names that does NOT exist, or that was already on disk and not
-    written by this attempt, was not saved by this run. A bare file name the
-    check could not find anywhere it looked is not proof either way.
+    expected files exist and are non-empty. Every file in the run directory is
+    one of three kinds, and the listings say which:
+      - WRITTEN BY THIS ATTEMPT: counts wherever it is (`answer.json`,
+        `work/x.npz`, `data/plots/y.png`).
+      - CARRIED OVER from an earlier attempt of this SAME step (unchanged by
+        this attempt; the attempt may belong to a run of this step that was
+        stopped and restarted): it was produced by this step's own code. A
+        script that resumes — loads what an earlier attempt saved and skips
+        work already done — leaves such files untouched by design, so "not
+        written by this attempt" does NOT mean "not processed". Use the code
+        and stdout to decide whether this attempt really reused them (it
+        reads or checks them, and reports their results) and whether the step
+        as a whole is complete; a carried-over file the code ignores, or one
+        from an attempt whose approach this attempt abandoned, is not this
+        attempt's result.
+      - ON DISK BEFORE THIS STEP BEGAN (an earlier step's output or a provided
+        input): not produced by this step at all.
+    A path stdout names that does NOT exist, or that was on disk before this
+    step began and not written by this attempt, was not saved by this run. A
+    bare file name the check could not find anywhere it looked is not proof
+    either way. A pattern or directory stdout names (`partial_results/*.json`,
+    `results/`) is shown as counts of its files by kind.
 
     Use the CODE to confirm which parameters, methods, and settings were actually
     used — so a requirement that names a value, a method, or a configuration is
@@ -98,7 +117,7 @@ instructions: |
 
     ----- OUTPUT FILES WRITTEN BY THIS ATTEMPT --
     {data_manifest}
-    ---------------------------------------------
+    ---------------------------------------------{carried_over_files}
 
 data_integrity_rules: |
     **Data-integrity rules — these make a run NOT fulfilled, even if it ran
