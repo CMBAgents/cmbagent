@@ -163,8 +163,11 @@ def _missing_required_input(state: DebugState, data_dir: Optional[Path], code: s
     """Return the name of a genuinely-absent PROVIDED input, else None.
 
     Absent = a FileNotFoundError whose file is not on disk AND the code does not
-    write it first. Returns None for create-then-read (code writes it) so we
-    never short-circuit the legitimate produce-then-consume case."""
+    write it first AND this attempt's bounded search (`input_search`, run by the
+    execution evaluator) did not find it under `data/` or a declared input root.
+    Returns None for create-then-read (code writes it) so we never short-circuit
+    the legitimate produce-then-consume case, and None for a file found elsewhere
+    (a wrong path: an ordinary failure, retried with the locations found)."""
     is_fnf, path = looks_like_file_not_found(state)
     if not is_fnf:
         return None
@@ -174,6 +177,10 @@ def _missing_required_input(state: DebugState, data_dir: Optional[Path], code: s
             return None  # the file IS there — a different fault, not "missing"
         if _code_writes(code, name):
             return None  # create-then-read — let the engineer produce it
+        from cmbagent_lg.self_debug.input_search import found_elsewhere
+
+        if found_elsewhere(state):
+            return None  # the file exists elsewhere: a wrong path, not a missing input
         return name
     # No parseable path: only call it missing when data/ is empty AND the code
     # reads but never writes any file (a pure consumer of an absent input).

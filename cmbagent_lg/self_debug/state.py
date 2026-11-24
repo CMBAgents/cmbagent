@@ -76,6 +76,17 @@ class DebugState(TypedDict, total=False):
     # replanner, but never an unfulfillable one, since a rewritten plan could only
     # invent a stand-in. Absent on every other path and on old checkpoints.
     unfulfillable: Optional[bool]
+    # `missing_input` — what the terminal node declared missing ({"missing", "path", "search"}).
+    missing_input_record: Optional[dict]
+
+    # input_search — before a file-not-found on a provided input is declared MISSING, the
+    # execution evaluator searches `data/` and the declared input roots for the file
+    # (`self_debug/input_search.py`). `missing_input_search` is the latest attempt's record
+    # (stale once `attempt` != `attempts`); a hit makes the attempt an ordinary failure and
+    # the engineer's next prompt lists the locations. `missing_input_searches` keeps one
+    # short entry per search for the step outcome.
+    missing_input_search: Optional[dict]
+    missing_input_searches: Optional[List[dict]]
 
     # output_postcondition — the deterministic check that the output artifacts the STEP
     # DECLARED (paths under `data/` in its text) exist once the subprocess has returned

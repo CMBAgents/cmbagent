@@ -183,6 +183,7 @@ def engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         api_introspect_report=api_introspect_report,
         api_preflight_report=api_preflight_report,
         bypass_after_fault_report=bypass_after_fault_report,
+        input_search_note=_input_search_note(state, attempts),
     )
 
     system = engineer_instructions(
@@ -222,6 +223,17 @@ def engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         "api_preflight_report": None,
         "bypass_after_fault_report": None,
     }
+
+
+def _input_search_note(state: DebugState, attempts: int) -> str:
+    """The WRONG INPUT PATH note for the attempt right after a search that found the "missing"
+    input elsewhere (`input_search`). Empty otherwise."""
+    rec = state.get("missing_input_search")
+    if not isinstance(rec, dict) or rec.get("attempt") != attempts - 1:
+        return ""
+    from cmbagent_lg.self_debug.input_search import render_search_note
+
+    return render_search_note(rec)
 
 
 def _first_attempt_api_facts(ctx, step, work_dir, attempts: int):
@@ -923,6 +935,10 @@ def execution_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> Deb
 
     infeasible_update = _observe_infeasible(state, verdict, ctx)
 
+    # Before a file-not-found can be declared a MISSING input (terminal), look for the file
+    # under data/ and the declared input roots. `{}` unless this failure is such a candidate.
+    search_update = _missing_input_search_update(state, ctx, verdict)
+
     # Demote the canonical script/log so the next attempt can overwrite `step_{N}.py`
     # cleanly while the audit trail survives. A SUCCESS the bypass guard just flagged is
     # demoted too (own suffix): it is about to be retried, and its artifact would
@@ -937,7 +953,65 @@ def execution_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> Deb
                 canonical.rename(codebase / f"step_{n}_{suffix}_{attempt}.{ext}")
 
     return {"current_execution_verdict": verdict, "error_history": history,
-            **bypass_update, **infeasible_update, **fallbacks}
+            **bypass_update, **infeasible_update, **search_update, **fallbacks}
+
+
+def _missing_input_search_update(state: DebugState, ctx: PlanContext, verdict) -> dict:
+    """Run `input_search.search_missing_input` when this failed attempt would otherwise be a
+    missing-input candidate: a file-not-found with a parsed path, not a package fault, on a file
+    absent from data/ that the script does not write. Logs the result (stderr line and
+    `logs/step_N_missing_input_search_A.json`) and returns the state update; `{}` otherwise.
+    Never raises."""
+    if getattr(verdict, "status", None) != "failure":
+        return {}
+    if getattr(verdict, "failure_kind", None) in _ESCALATABLE_KINDS:
+        return {}
+    try:
+        from cmbagent_lg.self_debug.data_fixer import (
+            _data_dir,
+            _error_text,
+            _missing_required_input,
+            looks_like_file_not_found,
+        )
+        from cmbagent_lg.self_debug.input_search import search_missing_input, summary_line, search_found
+
+        probe = {**state, "current_execution_verdict": verdict, "missing_input_search": None}
+        if any(m in _error_text(probe) for m in _PACKAGE_FAULT_MARKERS):
+            return {}
+        is_fnf, path = looks_like_file_not_found(probe)
+        if not is_fnf or not path:
+            return {}
+        cc = state.get("current_code")
+        code = getattr(cc, "python_code", "") or "" if cc is not None else ""
+        if _missing_required_input(probe, _data_dir(probe), code) is None:
+            return {}
+        n = state.get("step_number", 1)
+        attempt = state.get("attempts", 0)
+        record = search_missing_input(path, state.get("work_dir"), ctx, attempt=attempt)
+        if record is None:
+            return {}
+        hit = search_found(record)
+        print(f"[input_search] step {n} attempt {attempt}: {path!r} does not exist; "
+              f"{summary_line(record)} → "
+              + ("an ordinary failure (retry with the locations), NOT a missing input" if hit
+                 else "no other location, the missing-input checks decide"),
+              file=sys.stderr, flush=True)
+        logs = _logs_dir(state)
+        if logs is not None:
+            try:
+                (logs / f"step_{n}_missing_input_search_{attempt}.json").write_text(
+                    json.dumps(record, indent=2))
+            except Exception:  # noqa: BLE001
+                pass
+        brief = {"attempt": attempt, "path": path, "found": bool(record.get("found")),
+                 "close": bool(record.get("close")), "locations": (record.get("found") or record.get("close") or [])[:3]}
+        if record.get("skipped"):
+            brief["skipped"] = record["skipped"]
+        return {"missing_input_search": record,
+                "missing_input_searches": list(state.get("missing_input_searches") or []) + [brief]}
+    except Exception as e:  # noqa: BLE001 — the search must never break the graph
+        print(f"[input_search] skipped (non-fatal): {e}", file=sys.stderr, flush=True)
+        return {}
 
 
 def _verdict_json(verdict, mode: str, problem: Optional[str] = None) -> str:
@@ -1388,8 +1462,11 @@ def missing_input(state: DebugState, runtime: Runtime[PlanContext]) -> DebugStat
                   file=sys.stderr, flush=True)
     else:
         missing = _missing_provided_input(state, ctx) or "(required input file)"
+        from cmbagent_lg.self_debug.preflight import existing_input_roots
+
+        where = "data/" + (" and the declared input roots" if existing_input_roots(ctx) else "")
         notes = (
-            f"Required input '{missing}' is absent from data/ and the script does "
+            f"Required input '{missing}' is absent from {where} and the script does "
             f"not create it. It cannot be loaded; the step is unfulfillable. Data "
             f"must NOT be fabricated to stand in for it."
         )
@@ -1398,16 +1475,18 @@ def missing_input(state: DebugState, runtime: Runtime[PlanContext]) -> DebugStat
         unmet = [f"required input '{missing}' is missing and cannot be loaded"]
 
     n = state.get("step_number", 1)
+    from cmbagent_lg.self_debug.input_search import current_search
+
+    record = {"missing": missing, "notes": notes, "search": current_search(state)}
     logs = _logs_dir(state)
     if logs is not None:
         try:
-            (logs / f"step_{n}_missing_input.json").write_text(
-                json.dumps({"missing": missing, "notes": notes}, indent=2)
-            )
+            (logs / f"step_{n}_missing_input.json").write_text(json.dumps(record, indent=2))
         except Exception:  # noqa: BLE001
             pass
 
     return {
+        "missing_input_record": record,
         # `unfulfillable` is what keeps the exhaustion replanner away from this step:
         # the input does not exist, so a rewritten plan could only invent a stand-in
         # (see `deep_research.nodes._replannable_exhaustion`).

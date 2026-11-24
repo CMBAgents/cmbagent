@@ -126,6 +126,7 @@ def render_retry_context(
     api_introspect_report: str | None = None,
     api_preflight_report: str | None = None,
     bypass_after_fault_report: str | None = None,
+    input_search_note: str | None = None,
 ) -> str:
     """Block injected into the engineer prompt on retries. Empty on first attempt.
 
@@ -158,6 +159,11 @@ def render_retry_context(
             data_fixer_guidance,
             "",
         ]
+
+    # The previous script opened a path that does not exist while the file is elsewhere
+    # (`input_search`): the locations come from the file system, so they go first.
+    if input_search_note:
+        lines += [input_search_note, ""]
 
     if last_code:
         lines += [
