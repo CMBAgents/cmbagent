@@ -56,6 +56,35 @@ def test_step_code_asks():
     assert ac.step_code_asks(no) == []
 
 
+@pytest.mark.parametrize("text", [
+    "Review the literature on halo mass functions and summarize the methods used to calculate them",
+    "Discuss how to compute the baryonic suppression in the literature",
+    "Explain the computational load and memory requirements",
+    "Read the tables in Schaye et al. 2023 and summarize the reported calibration",
+    "Read the output files from steps 1-2 and write the final report",
+    "Write a short literature summary and save it to a markdown file literature.md",
+    "Write the findings into the report file",
+    "Calculate analytically the expected scaling from the self-similar model",
+    "Interpret the power spectra computed in step 1 and compare with published results",
+    "Analyze the computed statistics; you need not compute them again",
+])
+def test_literature_and_discussion_steps_do_not_ask_for_code(text):
+    assert ac.step_code_asks(Step(sub_task=text, sub_task_agent="researcher", bullet_points=[])) == []
+
+
+@pytest.mark.parametrize("text, label", [
+    ("Compute the mean and scatter of the halo masses", "compute"),
+    ("Using the step-1 catalogue, calculate the stellar-to-halo mass ratio", "compute"),
+    ("Summarise the method and then compute the suppression at k=1 h/Mpc", "compute"),
+    ("1. Load the halo catalogue and tabulate the masses", "load"),
+    ("Read the snapshot headers in snap_0077.hdf5", "read files"),
+    ("Run the MCMC chains for the HOD fit", "run code"),
+    ("Save the statistics to data/stats.csv", "persist"),
+])
+def test_imperative_code_asks_are_found(text, label):
+    assert label in ac.step_code_asks(Step(sub_task=text, sub_task_agent="researcher", bullet_points=[]))
+
+
 def test_a_middle_compute_step_moves_to_the_engineer_and_the_report_stays(capsys):
     plan = Plan(sub_tasks=[ENG1, COMPUTE_R, LIT_R, REPORT])
     new, recs = ac.reassign_code_steps(plan, _ctx())
@@ -126,7 +155,10 @@ def test_the_report_saying_it_cannot_run_code_is_a_signal(report):
 ])
 def test_the_verdict_saying_the_step_needs_code_is_a_signal(feedback):
     v = StepVerdict(fulfilled=False, unmet_requirements=["numbers"], feedback=feedback)
-    assert ac.needs_code_signal(v, "a report")["source"] == "verdict"
+    assert ac.needs_code_signal(v, "a report", COMPUTE_R)["source"] == "verdict"
+    # ... but only on a step whose text asks for code work
+    assert ac.needs_code_signal(v, "a report", LIT_R) is None
+    assert ac.needs_code_signal(v, "a report", REPORT) is None
 
 
 @pytest.mark.parametrize("feedback,report", [
@@ -136,7 +168,30 @@ def test_the_verdict_saying_the_step_needs_code_is_a_signal(feedback):
 ])
 def test_ordinary_goal_misses_are_not_a_signal(feedback, report):
     v = StepVerdict(fulfilled=False, unmet_requirements=["x"], feedback=feedback)
-    assert ac.needs_code_signal(v, report) is None
+    assert ac.needs_code_signal(v, report, COMPUTE_R) is None
+
+
+@pytest.mark.parametrize("feedback,report,step", [
+    # ReAct researchers have read_file: "cannot read" means the file is missing
+    ("Report lacks the final numbers.", "I cannot read the file data/answer.json because it is not listed.",
+     COMPUTE_R),
+    ("Values not grounded.", "We do not have access to the raw simulation data files, so we quote the paper.",
+     COMPUTE_R),
+    # a literature step's report declining new calculations is a normal sentence
+    ("Missing citations for the literature claims.",
+     "We cannot perform new calculations here; we rely on published values.", LIT_R),
+    # a final report asked to quote the scripts' values is not asked to write code
+    ("The report must include the values obtained from running the scripts in step 2.", "Results.", REPORT),
+])
+def test_report_and_verdict_sentences_that_are_not_signals(feedback, report, step):
+    v = StepVerdict(fulfilled=False, unmet_requirements=["x"], feedback=feedback)
+    assert ac.needs_code_signal(v, report, step) is None
+
+
+def test_a_compute_step_report_declining_calculations_is_a_signal():
+    v = StepVerdict(fulfilled=False, unmet_requirements=["stats"], feedback="incomplete")
+    sig = ac.needs_code_signal(v, "We cannot perform the calculations on the catalogue files.", COMPUTE_R)
+    assert sig and sig["source"] == "report"
 
 
 def test_a_fulfilled_verdict_is_never_a_signal():
@@ -193,6 +248,54 @@ def test_run_step_gives_the_step_to_the_engineer_once(monkeypatch, tmp_path, cap
     assert out["plan"].sub_tasks[1].sub_task_agent == "researcher"
     assert "### Step 1 (engineer)" in out["step_summaries"][-1]
     assert "reassigned to the engineer" in capsys.readouterr().err
+
+
+def test_run_step_never_moves_the_final_report_of_a_plan_of_several_steps(monkeypatch, tmp_path):
+    plan = Plan(sub_tasks=[ENG1, REPORT])
+    miss = StepVerdict(fulfilled=False, unmet_requirements=["x"], feedback="requires executing code")
+    seen = {}
+
+    def researcher_invoke(inp, **k):
+        seen["allowed"] = inp["engineer_reassignment_allowed"]
+        return _researcher_sub(miss, 3, need={"source": "report", "matched": "cannot execute code"})
+
+    def boom(*a, **k):
+        raise AssertionError("the engineer must not run")
+    monkeypatch.setattr(dr_nodes.researcher_graph, "invoke", researcher_invoke, raising=False)
+    monkeypatch.setattr(dr_nodes.self_debug_graph, "invoke", boom, raising=False)
+    out = dr_nodes.run_step({"plan": plan, "step_index": 2, "work_dir": str(tmp_path)}, _rt(_ctx()))
+    assert seen["allowed"] is False
+    assert "reassigned" not in out["step_outcomes"][-1] and "plan" not in out
+
+
+def test_run_step_moves_a_single_step_researcher_plan(monkeypatch, tmp_path):
+    plan = Plan(sub_tasks=[COMPUTE_R])
+    miss = StepVerdict(fulfilled=False, unmet_requirements=["stats"], feedback="incomplete")
+    monkeypatch.setattr(dr_nodes.researcher_graph, "invoke",
+                        lambda inp, **k: _researcher_sub(miss, need={"source": "report", "matched": "m"}),
+                        raising=False)
+    monkeypatch.setattr(dr_nodes.self_debug_graph, "invoke", lambda inp, **k: _engineer_sub(inp["step"]),
+                        raising=False)
+    out = dr_nodes.run_step({"plan": plan, "step_index": 1, "work_dir": str(tmp_path)}, _rt(_ctx()))
+    assert out["step_outcomes"][-1]["reassigned"]["at"] == "run_time"
+    assert out["plan"].sub_tasks[0].sub_task_agent == "engineer"
+
+
+def test_format_tail_applies_the_check(monkeypatch):
+    class _S:
+        def invoke(self, *a, **k):
+            return plan_nodes._build_dynamic_plan_model(_ctx().available_agents)(
+                sub_tasks=[COMPUTE_R.model_dump(exclude={"reassigned_from"}),
+                           REPORT.model_dump(exclude={"reassigned_from"})])
+
+    class _F:
+        def with_structured_output(self, *a, **k):
+            return _S()
+    monkeypatch.setattr(dr_nodes, "_formatter", lambda ctx: _F())
+    out = dr_nodes.format_tail({"raw_tail": "x"}, _rt(_ctx()))
+    tail = out["new_tail"].sub_tasks
+    assert [s.sub_task_agent for s in tail] == ["engineer", "researcher"]
+    assert tail[0].reassigned_from == "researcher"
 
 
 def test_run_step_without_the_signal_keeps_the_researcher(monkeypatch, tmp_path):

@@ -385,7 +385,11 @@ def run_step(
     elif step.sub_task_agent == "researcher":
         from cmbagent_lg.planning.agent_check import reassignment_enabled
 
-        allowed = reassignment_enabled(runtime.context)
+        # Never the last step of a plan of several steps: that step is the final report, and an
+        # engineer cannot write it. A single-step plan (one researcher step asked to compute) can
+        # still move.
+        final_report = n == len(plan.sub_tasks) and len(plan.sub_tasks) > 1
+        allowed = reassignment_enabled(runtime.context) and not final_report
         sub_state = researcher_graph.invoke(
             {**invoke_input, "engineer_reassignment_allowed": allowed}, context=runtime.context)
         need = sub_state.get("needs_engineer") if allowed else None

@@ -452,7 +452,7 @@ def step_evaluator(
     if not verdict.fulfilled and state.get("engineer_reassignment_allowed"):
         from cmbagent_lg.planning.agent_check import needs_code_signal, reassignment_enabled
 
-        signal = needs_code_signal(verdict, report) if reassignment_enabled(ctx) else None
+        signal = needs_code_signal(verdict, report, state.get("step")) if reassignment_enabled(ctx) else None
         if signal:
             out["needs_engineer"] = {**signal, "attempt": attempt}
             print(f"[researcher] step {n} attempt {attempt}: not fulfilled and the {signal['source']} says the "
