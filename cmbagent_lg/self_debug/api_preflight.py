@@ -1184,6 +1184,56 @@ def resolve_dotted_call_by_func_name(code: str, func_name: str) -> Optional[str]
     return next(iter(found)) if len(found) == 1 else None
 
 
+def calls_on_line(code: str, line: int) -> List[dict]:
+    """Every call whose source span covers `line`, for `api_introspect.retry_report`'s shapes
+    that name no function (the traceback names the line instead).
+
+    Each entry: `dotted` — the installed callable a module-alias call resolves to, else None;
+    `attr` — the attribute name when the callee is `<expr>.attr` on a NON-module receiver, else
+    None; `keywords` — the literal keyword names; `starstar` — whether `**` is unpacked; `start`
+    — the call's first line. [] when the script does not parse.
+    """
+    an = _analyze(code)
+    if an is None:
+        return []
+    # The call already RAN when this is asked, so the pre-run reasons to distrust an alias
+    # (`getattr(camb, "__version__", ...)` making `camb` "dynamic") do not apply. Still
+    # required: the name is bound exactly once, by an import, and never assigned.
+    loose: Dict[str, str] = {}
+    from_locals: set = set()
+    for node in ast.walk(an.tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                loose[a.asname or a.name.split(".")[0]] = a.name if a.asname else a.name.split(".")[0]
+        elif isinstance(node, ast.ImportFrom) and node.module and not node.level:
+            for a in node.names:
+                loose[a.asname or a.name] = f"{node.module}.{a.name}"
+                from_locals.add(a.asname or a.name)
+    loose = {n: t for n, t in loose.items() if an.alias_hits.get(n, 0) == 1 and n not in an.counts}
+    out: List[dict] = []
+    for node in ast.walk(an.tree):
+        if not isinstance(node, ast.Call):
+            continue
+        lo, hi = getattr(node, "lineno", None), getattr(node, "end_lineno", None)
+        if lo is None or not (lo <= line <= (hi or lo)):
+            continue
+        fn = node.func
+        dotted = None
+        if isinstance(fn, ast.Attribute):
+            got = _chain(fn)
+            if got is not None and got[0] in loose and got[1]:
+                dotted = ".".join([loose[got[0]]] + got[1])
+        elif isinstance(fn, ast.Name) and fn.id in loose and fn.id in from_locals:
+            dotted = loose[fn.id]
+        attr = None
+        if dotted is None and isinstance(fn, ast.Attribute):
+            attr = fn.attr
+        out.append({"dotted": dotted, "attr": attr, "start": lo,
+                    "keywords": [k.arg for k in node.keywords if k.arg],
+                    "starstar": any(k.arg is None for k in node.keywords)})
+    return out
+
+
 # ── typed receivers (api_types) ──────────────────────────────────────────────
 
 
@@ -1971,6 +2021,7 @@ __all__ = [
     "absent_instance_attributes",
     "absent_signature_mismatches",
     "resolve_dotted_call_by_func_name",
+    "calls_on_line",
     "resolve_dotted_object",
     "typed_method_calls",
     "missing_packages",

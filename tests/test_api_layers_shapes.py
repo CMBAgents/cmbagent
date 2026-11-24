@@ -197,3 +197,142 @@ def test_frozen_and_builtin_modules_are_not_workspace_code(lib, monkeypatch):
     assert "Params.set_x" in findings[0].fid
 
 
+# ── 2. retry report for `Cls.method()` errors ───────────────────────────────
+
+
+def test_method_kwarg_error_on_an_untyped_receiver_gets_the_signature(lib):
+    # The receiver comes from an unannotated factory AND has an attribute assigned, so no
+    # pre-flight tier can type it; CPython's message still names the class.
+    code, err = _run(lib, "import os\nimport apil_fx\np = apil_fx.make()\np.flag = True\n"
+                          "p.set_x(c=3)\n")
+    assert "Params.set_x() got an unexpected keyword argument 'c'" in err
+    rep = _retry(lib, code, err)
+    assert rep and "CALLABLE apil_fx.Params.set_x(a=1, b=2, neutrino_count=3)" in rep, rep
+    assert "INVALID: 'c'" in rep and "VALID PARAMETER NAMES (3): a, b, neutrino_count" in rep
+
+
+def test_method_error_resolution_must_agree_with_the_message(lib):
+    code = "import apil_fx\np = apil_fx.make()\np.set_x(a=1)\n"
+    # The resolved signature NAMES the keyword: the crash came from elsewhere.
+    tb = "TypeError: Params.set_x() got an unexpected keyword argument 'a'\n"
+    assert _retry(lib, code, tb) is None
+    # Two imported packages export different classes named Params: ambiguous, silent.
+    both = "import apil_fx\nimport apil_other\np = apil_fx.make()\np.set_x(c=1)\n"
+    tb = "TypeError: Params.set_x() got an unexpected keyword argument 'c'\n"
+    assert _retry(lib, both, tb) is None
+    # The message names Params, but the method is defined on Base: qualnames disagree.
+    tb = "TypeError: Params.inherited() got an unexpected keyword argument 'c'\n"
+    assert _retry(lib, code, tb) is None
+    # Named correctly (the DEFINING class), it resolves.
+    code2, err = _run(lib, "import apil_fx\np = apil_fx.make()\np.inherited(c=1)\n")
+    assert "Base.inherited() got an unexpected keyword argument 'c'" in err
+    rep = _retry(lib, code2, err)
+    assert rep and "apil_fx.Base.inherited(a=1)" in rep, rep
+
+
+def test_method_kwarg_error_is_recorded_in_history(lib):
+    code, err = _run(lib, "import apil_fx\np = apil_fx.make()\np.flag = 1\np.set_x(c=3)\n")
+    ctx = PlanContext(main_task="t", api_preflight_cache_dir=str(lib.wd / "cache"))
+    rec = ah.record_from_run(ctx, code, err, "", str(lib.wd))
+    assert rec and rec["kind"] == "kwarg" and rec["cls"] == "apil_fx.Params", rec
+    assert rec["attr"] == "set_x" and rec["kwarg"] == "c"
+
+
+def test_missing_required_argument_names_the_parameter(lib):
+    code, err = _run(lib, "import apil_fx as fx\nfx.need(1)\n")
+    rep = _retry(lib, code, err)
+    assert rep and "MISSING: required parameter(s) 'z'" in rep and "need(a, z)" in rep, rep
+    # The script's OWN function: nothing installed to explain it.
+    code, err = _run(lib, "def need(a, z):\n    return a\nneed(1)\n")
+    assert _retry(lib, code, err) is None
+
+
+# ── 3. shapes that name no function ─────────────────────────────────────────
+
+
+def test_property_without_setter(lib):
+    code, err = _run(lib, "import apil_fx\np = apil_fx.make()\np.ro = 3\n")
+    assert "has no setter" in err
+    rep = _retry(lib, code, err)
+    assert rep and "READ-ONLY: Params.ro is a property with NO SETTER" in rep, rep
+    assert "A read-only value." in rep and "SETTER METHODS OF Params" in rep
+
+
+def test_calling_a_property_value(lib):
+    code, err = _run(lib, "import apil_fx\np = apil_fx.make()\nv = float(p.ro())\n")
+    rep = _retry(lib, code, err)
+    assert rep and "NOT A METHOD: Params.ro is a data attribute (a property)" in rep, rep
+    # A plain local value called by mistake: nothing installed to explain it.
+    code, err = _run(lib, "import apil_fx\nx = 1.5\nx()\n")
+    assert _retry(lib, code, err) is None
+    # Two imported classes define a property `ro`: ambiguous, silent.
+    code, err = _run(lib, "import apil_fx\nimport apil_other\np = apil_fx.make()\np.ro()\n")
+    assert _retry(lib, code, err) is None
+
+
+def test_ctypes_arity_is_checked_against_argtypes(lib):
+    code, err = _run(lib, "import apil_fx\np = apil_fx.make()\np.f_AddNeutrino(1)\n")
+    assert "this function takes at least 3 arguments (2 given)" in err
+    rep = _retry(lib, code, err)
+    assert rep and "takes exactly 3 arguments" in rep and "c_void_p, c_int, c_int" in rep, rep
+    # The method with the related parameter name is named.
+    assert "set_x: neutrino_count=3" in rep
+    # A count that disagrees with the wrapper's argtypes: silent.
+    tb = err.replace("at least 3 arguments", "at least 5 arguments")
+    assert _retry(lib, code, tb) is None
+
+
+def test_unknown_argument_from_a_forwarder(lib):
+    code, err = _run(lib, "import apil_fx\ncp = apil_fx.configure(\n    a=1,\n    neutrino_cnt=3,\n)\n")
+    assert "FxUnknownArgumentError: Unrecognized parameter: neutrino_cnt" in err
+    rep = _retry(lib, code, err)
+    assert rep and "UNKNOWN PARAMETER: 'neutrino_cnt'" in rep, rep
+    assert "apil_fx.Params.set_x: a, b, neutrino_count" in rep
+    assert "CLOSEST ACCEPTED PARAMETER NAMES: neutrino_count" in rep
+    # The call on the line never passed the keyword (no literal, no **): silent.
+    tb = err.replace("neutrino_cnt", "other_name")
+    assert _retry(lib, code, tb) is None
+
+
+def test_wrong_value_type_inside_the_library(lib):
+    code, err = _run(lib, "import apil_fx\nh = apil_fx.setup(Acc=1)\n")
+    assert "expected Acc instance, got int" in err
+    rep = _retry(lib, code, err)
+    assert rep and "WRONG VALUE TYPE: Acc (class apil_fx.Acc) is required" in rep, rep
+    assert "Holder.Acc holds an Acc instance — the failing call passes 'Acc='" in rep
+    assert "Acc MEMBERS (2): boost, lboost" in rep
+
+    code, err = _run(lib, "import apil_fx\ncp = apil_fx.configure(a=1, mnu=[0.1])\n")
+    assert "must be real number, not list" in err
+    rep = _retry(lib, code, err)
+    assert rep and "RAISED INSIDE: apil_fx.set_c(mnu=0.06)" in rep, rep
+    assert "set_c (default shown): mnu=0.06" in rep
+
+
+def test_missing_submodule_lists_the_package_submodules(lib):
+    code, err = _run(lib, "import apil_fx.massfunctions\n")
+    rep = _retry(lib, code, err)
+    assert rep and "mass_function  (submodule: import apil_fx.mass_function)" in rep, rep
+    assert "SUBMODULES OF apil_fx (1): mass_function" in rep
+
+
+def test_new_shapes_classify(lib):
+    assert ai.classify_api_error("AttributeError: property 'N' of 'P' object has no setter\n") == (
+        "property_setter", "P", "N")
+    assert ai.classify_api_error("TypeError: 'float' object is not callable\n") == (
+        "not_callable", "float", "")
+    assert ai.classify_api_error(
+        "TypeError: this function takes at least 7 arguments (4 given)\n") == ("ctypes_arity", "7", "4")
+    assert ai.classify_api_error("TypeError: expected A instance, got int\n") == (
+        "value_type", "A", "int")
+    assert ai.classify_api_error("TypeError: must be real number, not list\n") == (
+        "value_type", "real number", "list")
+    assert ai.classify_api_error(
+        "pkg.base.PkgUnknownArgumentError: Unrecognized parameter: n_eff\n") == (
+        "unknown_argument", "PkgUnknownArgumentError", "n_eff")
+    assert ai.classify_api_error(
+        "TypeError: f() missing 2 required positional arguments: 'a' and 'b'\n") == ("signature", "f", "")
+    # Free text that merely mentions an unknown parameter is not an exception line.
+    assert ai.classify_api_error("warning: Unrecognized parameter: x\n") is None
+
+

@@ -413,6 +413,22 @@ def _class_record(type_name: str, attr: str, code: str, tree: ast.AST,
             "kwarg": "", "suggest": _closest(dir(cls), attr)}
 
 
+def _class_from_imports(cls_name: str, code: str, work_dir: Optional[str]):
+    """The ONE installed class named `cls_name` that the script's own imports export
+    (`import pkg` → `pkg.<cls_name>`, `from m import <cls_name>`), by identity; else None.
+    Modules that are engineer code are never asked."""
+    from cmbagent_lg.self_debug import api_preflight as _apf
+    modules, froms = _ai._imported_modules(code)
+    paths = [f"{m}.{cls_name}" for m in modules if not _engineer_module(m, work_dir)]
+    paths += [f"{m}.{n}" for m, n in froms if n == cls_name and not _engineer_module(m, work_dir)]
+    found = {}
+    for p in paths:
+        obj = _apf.resolve_dotted_object(p, work_dir)
+        if inspect.isclass(obj) and obj.__name__ == cls_name:
+            found.setdefault(id(obj), obj)
+    return next(iter(found.values())) if len(found) == 1 else None
+
+
 def _kwarg_record(cls_name: Optional[str], func: str, kw: str, code: str,
                   tree: ast.AST, work_dir: Optional[str]) -> Optional[dict]:
     """The function the TypeError names, found through the script's own call sites — a
@@ -439,16 +455,26 @@ def _kwarg_record(cls_name: Optional[str], func: str, kw: str, code: str,
         for cls, attr in _apf.typed_method_calls(code, func, work_dir):
             candidates.append((cls, f"{cls.__module__}.{cls.__qualname__}", attr,
                                inspect.getattr_static(cls, attr, None)))
+        if cls_name and not candidates:
+            # The receiver is untyped (a factory's result, a variable the script assigns to), but
+            # CPython named the class that defines the method: resolve it from the script's own
+            # imports. The qualname and signature checks below still have to agree.
+            cls = _class_from_imports(cls_name, code, work_dir)
+            if cls is not None:
+                candidates.append((cls, f"{cls.__module__}.{cls.__qualname__}", func,
+                                   inspect.getattr_static(cls, func, None)))
     for owner, cls_path, attr, fn in candidates:
         qual = getattr(fn, "__qualname__", None) or getattr(fn, "__name__", None)
         if not qual or qual.split(".")[-2:] != want_qual.split(".")[-2:]:
             if not (cls_name is None and qual and qual.split(".")[-1] == func):
                 continue
-        # If the signature is introspectable and NAMES the keyword, the crash came from
-        # somewhere else; do not record a contradiction.
+        # If the signature is introspectable and NAMES the keyword, or takes `**kwargs` (call
+        # binding never raises this for one), the crash came from somewhere else; do not
+        # record a contradiction.
         try:
             sig = inspect.signature(fn)
-            if kw in sig.parameters:
+            if kw in sig.parameters or any(p.kind == inspect.Parameter.VAR_KEYWORD
+                                           for p in sig.parameters.values()):
                 continue
         except (TypeError, ValueError):
             pass

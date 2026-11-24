@@ -50,7 +50,7 @@ def env_report(snippet: str, spec: dict, work_dir, local) -> str:
 # text to the guest). Must stay self-contained and stdlib-only: no imports from this package,
 # and no dependency on how it is transported.
 SNIPPET = r'''
-import difflib, importlib, inspect, json, re, sys
+import difflib, importlib, inspect, json, pkgutil, re, sys
 
 def _is_submodule(module_name, symbol):
     # A submodule is not an ATTRIBUTE until something imports it: `from scipy import special` is
@@ -116,6 +116,17 @@ def _report(module_name, symbol=None, max_names=60):
                     elsewhere.append(".".join(parts[:i]))
             for anc_name in elsewhere:
                 out.append(f"NOTE: '{symbol}' EXISTS as {anc_name}.{symbol} — import it from there.")
+            # A package's submodules are not attributes until something imports them, so
+            # `dir()` leaves out the very names a missing submodule is most often confused
+            # with (`colossus.lss.massfunctions` vs `mass_function`). List them from disk.
+            subs = []
+            try:
+                if hasattr(mod, "__path__"):
+                    subs = sorted({m_.name for m_ in pkgutil.iter_modules(mod.__path__)
+                                   if not m_.name.startswith("_")})[:200]
+            except Exception:
+                subs = []
+            public = sorted(set(public) | set(subs))
             close = difflib.get_close_matches(symbol, public, n=8, cutoff=0.5)
             # KEEP THIS BLOCK LITERALLY IDENTICAL to the one in CLASS_SNIPPET's `_render`: the two
             # snippets are separate strings by design (each must be self-contained), so the only
@@ -158,6 +169,9 @@ def _report(module_name, symbol=None, max_names=60):
                            "DIFFERENT ORDER, or return a different quantity):")
                 for c in close:
                     obj_ = getattr(mod, c, None)
+                    if c in subs and (obj_ is None or inspect.ismodule(obj_)):
+                        out.append(f"  {c}  (submodule: import {module_name}.{c})")
+                        continue
                     try:
                         sig = str(inspect.signature(obj_))
                     except Exception:
@@ -176,6 +190,9 @@ def _report(module_name, symbol=None, max_names=60):
                     out.append(f"  {c}{sig}" + (f"\n      {first}" if first else ""))
             else:
                 out.append("No similarly-named symbol found. Public names are listed below.")
+            if subs:
+                out.append(f"SUBMODULES OF {module_name} ({len(subs)}): " + ", ".join(subs[:max_names])
+                           + (" ..." if len(subs) > max_names else ""))
             out.append(f"ALL PUBLIC NAMES ({len(public)}):")
             out.append("  " + ", ".join(public[:max_names])
                        + (" ..." if len(public) > max_names else ""))
@@ -248,6 +265,33 @@ _BAD_ARITY = (r"(?:(?P<cls>\w+)\.)?(?P<func>\w+)\(\) takes [^\n']*positional arg
 # than guessing. Note the class name is embedded, unlike CPython's own TypeError wording.
 _ARTIST_SET_KWARG = r"(?P<cls>\w+)\.set\(\) got an unexpected keyword argument '(?P<kw>\w+)'"
 
+# The missing-argument counterpart, raised by Python's own call binding whatever the signature's
+# `*args`/`**kwargs`: `modelTinker10() missing 1 required positional argument: 'z'`. The names
+# are quoted and joined with ", " and " and ".
+_MISSING_ARG = (r"(?:(?P<cls>\w+)\.)?(?P<func>\w+)\(\) missing \d+ required "
+                r"(?:positional|keyword-only) arguments?: (?P<names>'\w+'(?:(?:,? and |, )'\w+')*)")
+
+# Shapes that name no function, or name it only through the failing script line. Each is
+# answered from the class or callable the script line and the traceback point at, and stays
+# silent when that resolution is not unique (see SHAPE_SNIPPET).
+# Assigning a property that has no setter (CPython >= 3.11 wording).
+_NO_SETTER = r"property '(?P<attr>\w+)' of '(?P<type>\w+)' object has no setter"
+# Calling a value: `pars.N_eff()` where `N_eff` is a property returning a float.
+_NOT_CALLABLE = r"'(?P<type>\w+)' object is not callable"
+# ctypes' own arity check on a foreign function with `argtypes`; it names no function.
+_CTYPES_ARITY = r"this function takes at least (?P<n>\d+) arguments? \((?P<m>\d+) given\)"
+# A value of the wrong type for a typed field or parameter, raised inside the library: ctypes
+# Structure fields (`expected AccuracyParams instance, got int`) and C-level float conversion.
+_EXPECTED_INSTANCE = r"expected (?P<type>\w+) instance, got (?P<got>\w+)"
+_REAL_NUMBER = r"must be real number, not (?P<got>\w+)"
+# A library's OWN unknown-argument exception, raised by a `**kwargs` forwarder after it found no
+# home for a keyword (`camb.baseconfig.CAMBUnknownArgumentError: Unrecognized parameter: n_eff`).
+# Anchored on an exception CLASS name that says so, never on free message text.
+_UNKNOWN_ARG = (r"^(?:[\w.]+\.)?(?P<exc>\w*(?:Unknown|Unrecogni[sz]ed|Unexpected|Invalid)\w*"
+                r"(?:Argument|Parameter|Param|Keyword|Kwarg|Option)\w*): "
+                r"(?:[^\n:]*?(?:argument|parameter|keyword|kwarg|option)s?\s*:?\s*)?"
+                r"['\"]?(?P<kw>[A-Za-z_]\w*)['\"]?\s*$")
+
 # STDERR patterns: anchored on the exception name, i.e. a real traceback.
 _ERROR_PATTERNS = (
     # AttributeError: module 'scipy.special' has no attribute 'sph_harm'
@@ -261,11 +305,22 @@ _INSTANCE_PATTERN = re.compile("AttributeError: " + _INSTANCE_ATTR)
 _SIGNATURE_KWARG_PATTERN = re.compile("TypeError: " + _UNEXPECTED_KWARG)
 _SIGNATURE_ARITY_PATTERN = re.compile("TypeError: " + _BAD_ARITY)
 _ARTIST_SET_PATTERN = re.compile("AttributeError: " + _ARTIST_SET_KWARG)
+_SIGNATURE_MISSING_PATTERN = re.compile("TypeError: " + _MISSING_ARG)
+_NO_SETTER_PATTERN = re.compile("AttributeError: " + _NO_SETTER)
+_NOT_CALLABLE_PATTERN = re.compile("TypeError: " + _NOT_CALLABLE)
+_CTYPES_ARITY_PATTERN = re.compile("TypeError: " + _CTYPES_ARITY)
+_EXPECTED_INSTANCE_PATTERN = re.compile("TypeError: " + _EXPECTED_INSTANCE)
+_REAL_NUMBER_PATTERN = re.compile("TypeError: " + _REAL_NUMBER)
+_UNKNOWN_ARG_PATTERN = re.compile(_UNKNOWN_ARG, re.M)
 _PATTERNS = (
     tuple(("module", p) for p in _ERROR_PATTERNS)
     + (("instance", _INSTANCE_PATTERN),)
-    + (("signature_kw", _SIGNATURE_KWARG_PATTERN), ("signature_arity", _SIGNATURE_ARITY_PATTERN))
+    + (("signature_kw", _SIGNATURE_KWARG_PATTERN), ("signature_arity", _SIGNATURE_ARITY_PATTERN),
+       ("signature_missing", _SIGNATURE_MISSING_PATTERN))
     + (("artist_kwarg", _ARTIST_SET_PATTERN),)
+    + (("property_setter", _NO_SETTER_PATTERN), ("not_callable", _NOT_CALLABLE_PATTERN),
+       ("ctypes_arity", _CTYPES_ARITY_PATTERN), ("value_type", _EXPECTED_INSTANCE_PATTERN),
+       ("value_type", _REAL_NUMBER_PATTERN), ("unknown_argument", _UNKNOWN_ARG_PATTERN))
 )
 
 # STDOUT patterns: the same shapes with the exception name absent — what a script that catches
@@ -302,31 +357,54 @@ def kwarg_error_qualifier(stderr: str | None) -> str | None:
     `Mixin.score() got an unexpected keyword argument`), or None when the message
     names a bare function. Companion to `classify_api_error`, whose tuple shape is fixed."""
     best = None
-    for pat in (_SIGNATURE_KWARG_PATTERN, _SIGNATURE_ARITY_PATTERN):
+    for pat in (_SIGNATURE_KWARG_PATTERN, _SIGNATURE_ARITY_PATTERN, _SIGNATURE_MISSING_PATTERN):
         for m in pat.finditer(stderr or ""):
             if best is None or m.start() > best.start():
                 best = m
     return best.group("cls") if best is not None else None
 
 
+def _last_match(text: str | None, allow_bare: bool = False) -> tuple[str, "re.Match"] | None:
+    """`(kind, match)` for the LAST recognised error in `text`, or None. The one matcher
+    behind `classify_api_error` (fixed tuple shape) and `retry_report` (needs the groups)."""
+    best: tuple[int, str, "re.Match"] | None = None
+    for kind, pat in _PATTERNS + (_BARE_PATTERNS if allow_bare else ()):
+        for m in pat.finditer(text or ""):
+            if best is None or m.start() > best[0]:
+                best = (m.start(), kind, m)
+    return (best[1], best[2]) if best is not None else None
+
+
 def classify_api_error(stderr: str | None, allow_bare: bool = False) -> tuple[str, str, str] | None:
     """`("module", module, symbol)` / `("instance", type_name, attribute)` /
     `("signature", func_name, invalid_kwarg_or_empty)` / `("artist_kwarg", class_name, kwarg)` /
-    None.
+    `("property_setter", type_name, attribute)` / `("not_callable", type_name, "")` /
+    `("ctypes_arity", n_expected, n_given)` / `("value_type", expected_type_or_"real number",
+    given_type)` / `("unknown_argument", exception_name, keyword)` / None.
 
-    The `"signature"` third element is `""` for the arity form, which names no keyword. Returns
-    the LAST recognised error in the text — a traceback ends with the exception that actually
-    killed the run. `allow_bare` also accepts the message with no exception-name prefix (a
-    caught-and-printed `str(e)`); reserved for STDOUT, since stderr carries a real traceback.
+    The `"signature"` third element is `""` for the arity and missing-argument forms, which name
+    no keyword. Returns the LAST recognised error in the text — a traceback ends with the
+    exception that actually killed the run. `allow_bare` also accepts the message with no
+    exception-name prefix (a caught-and-printed `str(e)`); reserved for STDOUT, since stderr
+    carries a real traceback. The shapes after `artist_kwarg` are stderr-only.
     """
-    best: tuple[int, str, "re.Match"] | None = None
-    for kind, pat in _PATTERNS + (_BARE_PATTERNS if allow_bare else ()):
-        for m in pat.finditer(stderr or ""):
-            if best is None or m.start() > best[0]:
-                best = (m.start(), kind, m)
+    best = _last_match(stderr, allow_bare)
     if best is None:
         return None
-    _, kind, m = best
+    kind, m = best
+    if kind == "property_setter":
+        return ("property_setter", m.group("type"), m.group("attr"))
+    if kind == "not_callable":
+        return ("not_callable", m.group("type"), "")
+    if kind == "ctypes_arity":
+        return ("ctypes_arity", m.group("n"), m.group("m"))
+    if kind == "value_type":
+        exp = m.groupdict().get("type") or "real number"
+        return ("value_type", exp, m.group("got"))
+    if kind == "unknown_argument":
+        return ("unknown_argument", m.group("exc"), m.group("kw"))
+    if kind == "signature_missing":
+        return ("signature", m.group("func"), "")
     if kind == "module":
         return ("module", m.group("module"), m.group("symbol"))
     if kind == "instance":
@@ -894,20 +972,114 @@ def _render(path, obj, sig, reason):
     lines.append("VALID PARAMETER NAMES (%d): %s" % (len(names), ", ".join(names)))
     return "\n".join(lines)
 
+def _resolve_class(type_name, modules, froms):
+    """`(label, class)` for the ONE class named `type_name` the script's own imports reach, or
+    None. Same rule as CLASS_SNIPPET's `_resolve` (duplicated: each snippet is self-contained),
+    plus one fallback: a class a package does not export at top level (its factory does) is
+    looked up in the already-imported submodules of the script's own top-level packages, by
+    identity and `__module__`, with the same uniqueness rule."""
+    found = {}
+    for module_name, attr in [(m, type_name) for m in modules] + [tuple(f) for f in froms]:
+        try:
+            mod = importlib.import_module(module_name)
+        except Exception:
+            continue
+        obj = getattr(mod, attr, None)
+        if inspect.isclass(obj) and obj.__name__ == type_name:
+            found.setdefault(id(obj), (module_name + "." + attr, obj))
+    if not found:
+        roots = {m.split(".")[0] for m in modules} | {f[0].split(".")[0] for f in froms}
+        for name, mod in list(sys.modules.items()):
+            if mod is None or name.split(".")[0] not in roots:
+                continue
+            try:
+                obj = vars(mod).get(type_name)
+            except Exception:
+                continue
+            if (inspect.isclass(obj) and obj.__name__ == type_name
+                    and getattr(obj, "__module__", None) == name):
+                found.setdefault(id(obj), (name + "." + type_name, obj))
+    return list(found.values())[0] if len(found) == 1 else None
+
+def _resolve_method(spec):
+    """`(label, function, signature_without_self)` for `type.method`, or None.
+
+    The class name is CPython's own (`CAMBparams.set_cosmology() got an unexpected keyword
+    argument`); it names the class that DEFINES the method. The resolved method must agree:
+    its `__qualname__` ends in `type.method`, so a same-named class or an override elsewhere
+    in the hierarchy stays silent."""
+    resolved = _resolve_class(spec.get("type", ""), spec.get("modules", []),
+                              spec.get("froms", []))
+    if resolved is None:
+        return None
+    label, cls = resolved
+    name = spec.get("method", "")
+    try:
+        raw = inspect.getattr_static(cls, name)
+    except AttributeError:
+        return None
+    static = isinstance(raw, staticmethod)
+    fn = raw.__func__ if isinstance(raw, (staticmethod, classmethod)) else raw
+    qual = getattr(fn, "__qualname__", "") or ""
+    if qual.split(".")[-2:] != [spec.get("type", ""), name] or not callable(fn):
+        return None
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return None
+    params = list(sig.parameters.values())
+    if not static and params and params[0].kind in (inspect.Parameter.POSITIONAL_ONLY,
+                                                    inspect.Parameter.POSITIONAL_OR_KEYWORD):
+        sig = sig.replace(parameters=params[1:])
+    return f"{label}.{name}", fn, sig
+
+def _qual_agrees(obj, qualname):
+    """True when `obj` is the callable a qualified message names: a function whose
+    `__qualname__` ends in it, or a class whose `__init__` does."""
+    want = qualname.split(".")[-2:]
+    fn = getattr(obj, "__init__", None) if inspect.isclass(obj) else obj
+    qual = getattr(fn, "__qualname__", "") or ""
+    return qual.split(".")[-2:] == want
+
 def _signature_report(spec):
     """Report for a call PROVEN to conflict with the RESOLVED signature, else "" — including
     when the signature accepts `**kwargs`, which means nothing can be proven at this boundary (a
     permissive signature says any keyword MAY be valid)."""
-    path = spec.get("callable", "")
-    if not path:
-        return ""
-    obj = _resolve_dotted(path)
-    if obj is None or not callable(obj):
-        return ""
-    try:
-        sig = inspect.signature(obj)
-    except (TypeError, ValueError):
-        return ""
+    if spec.get("type"):
+        if not spec.get("already_failed"):
+            return ""
+        resolved = _resolve_method(spec)
+        if resolved is None:
+            return ""
+        path, obj, sig = resolved
+    else:
+        path = spec.get("callable", "")
+        if not path:
+            return ""
+        obj = _resolve_dotted(path)
+        if obj is None or not callable(obj):
+            return ""
+        if spec.get("qualname") and not _qual_agrees(obj, spec["qualname"]):
+            return ""
+        try:
+            sig = inspect.signature(obj)
+        except (TypeError, ValueError):
+            return ""
+
+    missing = spec.get("missing") or []
+    if spec.get("already_failed") and missing:
+        # Python's call binding raises "missing N required argument(s)" whatever `*args` or
+        # `**kwargs` the signature has, so the agreement check is on the names themselves:
+        # each must be a parameter of the RESOLVED signature with no default.
+        for n in missing:
+            p = sig.parameters.get(n)
+            if (p is None or p.default is not inspect.Parameter.empty
+                    or p.kind in (inspect.Parameter.VAR_POSITIONAL,
+                                  inspect.Parameter.VAR_KEYWORD)):
+                return ""
+        return _render(path, obj, sig,
+                       "MISSING: required parameter(s) %s not given — the INSTALLED signature "
+                       "has no default for them." % ", ".join(repr(n) for n in missing))
 
     if spec.get("already_failed"):
         # Retry-time: a TypeError already proved a keyword/arity mismatch against WHATEVER
@@ -1094,6 +1266,532 @@ def introspect_artist_kwarg_local(spec: dict) -> str:
         return ""
 
 
+# ── SHAPE_SNIPPET (shapes that name no function) ─────────────────────────────
+#
+# Answers the `classify_api_error` kinds whose message names no callable, or only a type:
+# `property_setter`, `not_callable`, `ctypes_arity`, `value_type` and `unknown_argument`. The
+# engine reads the failing script line and the traceback frames (`_traceback_frames`, pure
+# text), and this snippet, executed INSIDE the environment the code ran in like the others,
+# resolves what they name and checks that it agrees with the message before saying anything:
+#   * property_setter — the class from the script's imports, and the attribute IS a property
+#     with no setter on it;
+#   * not_callable / ctypes_arity — the attribute called on the failing line is, on exactly ONE
+#     class the script's imports export, a non-callable data attribute / a ctypes wrapper whose
+#     `argtypes` count equals the count in the message;
+#   * value_type / unknown_argument — the library callable the failing line calls (a module
+#     alias call, resolved engine-side) and the innermost library frame's function, found by
+#     its file AND line range, never by name alone.
+# Anything else, including more than one candidate, yields "".
+SHAPE_SNIPPET = r'''
+import difflib, importlib, inspect, json, re, sys
+
+def _resolve(type_name, modules, froms):
+    found = {}
+    for module_name, attr in [(m, type_name) for m in modules] + [tuple(f) for f in froms]:
+        try:
+            mod = importlib.import_module(module_name)
+        except Exception:
+            continue
+        obj = getattr(mod, attr, None)
+        if inspect.isclass(obj) and obj.__name__ == type_name:
+            found.setdefault(id(obj), (module_name + "." + attr, obj))
+    return list(found.values())[0] if len(found) == 1 else None
+
+def _resolve_dotted(path):
+    parts = [p for p in path.split(".") if p]
+    for i in range(len(parts), 0, -1):
+        try:
+            obj = importlib.import_module(".".join(parts[:i]))
+        except Exception:
+            continue
+        for p in parts[i:]:
+            obj = getattr(obj, p, None)
+            if obj is None:
+                return None
+        return obj
+    return None
+
+def _version(cls_or_fn):
+    root = (getattr(cls_or_fn, "__module__", "") or "").split(".")[0]
+    ver = None
+    try:
+        ver = getattr(importlib.import_module(root), "__version__", None)
+    except Exception:
+        pass
+    if not isinstance(ver, str):
+        try:
+            from importlib.metadata import version as _pkgver
+            ver = _pkgver(root)
+        except Exception:
+            ver = None
+    return root, ver
+
+def _doc(obj, n=6):
+    try:
+        return ["  " + l for l in (inspect.getdoc(obj) or "").strip().splitlines()[:n]]
+    except Exception:
+        return []
+
+def _sig(obj, cap=400):
+    try:
+        s = str(inspect.signature(obj))
+    except (TypeError, ValueError):
+        return "(...)"
+    return s if len(s) <= cap else s[:cap] + "…)"
+
+def _params(obj, skip_self=False):
+    try:
+        ps = list(inspect.signature(obj).parameters.values())
+    except (TypeError, ValueError):
+        return []
+    if skip_self and ps and ps[0].name in ("self", "cls"):
+        ps = ps[1:]
+    return [p for p in ps if p.kind not in (inspect.Parameter.VAR_POSITIONAL,
+                                            inspect.Parameter.VAR_KEYWORD)]
+
+def _exported_classes(modules, froms):
+    seen = {}
+    for m in modules:
+        try:
+            mod = importlib.import_module(m)
+        except Exception:
+            continue
+        try:
+            vals = list(vars(mod).values())
+        except Exception:
+            continue
+        for v in vals:
+            if inspect.isclass(v):
+                seen.setdefault(id(v), v)
+    for m, n in froms:
+        try:
+            v = getattr(importlib.import_module(m), n, None)
+        except Exception:
+            continue
+        if inspect.isclass(v):
+            seen.setdefault(id(v), v)
+    return list(seen.values())
+
+def _definer(cls, attr):
+    for klass in getattr(cls, "__mro__", [cls]):
+        try:
+            if attr in vars(klass):
+                return klass
+        except Exception:
+            return None
+    return None
+
+def _candidates(attrs, spec, pred):
+    """`[(attr, defining_class, raw)]`, one per DEFINING class, over the classes the script's
+    imports export, for attributes satisfying `pred(raw)`."""
+    out = {}
+    for cls in _exported_classes(spec.get("modules", []), spec.get("froms", [])):
+        for a in attrs:
+            try:
+                raw = inspect.getattr_static(cls, a)
+            except AttributeError:
+                continue
+            except Exception:
+                continue
+            if not pred(raw):
+                continue
+            d = _definer(cls, a) or cls
+            out.setdefault((a, id(d)), (a, d, raw))
+    return list(out.values())
+
+def _words(name):
+    ws = [w.lower() for part in name.split("_")
+          for w in re.findall(r"[A-Z]+(?![a-z])|[A-Z][a-z]*|[^A-Z_]+", part)]
+    return [w for w in ws if len(w) >= 4]
+
+def _related_params(cls, attr, skip=()):
+    """Public methods of `cls` with a parameter sharing a 4+-letter word with `attr`, as
+    `name: p=default, ...` lines (at most 5). Facts about real signatures, nothing ranked."""
+    words = _words(attr)
+    if not words:
+        return []
+    lines = []
+    for n in sorted(dir(cls)):
+        if n.startswith("_") or n.startswith("f_") or n in skip:
+            continue
+        fn = getattr(cls, n, None)
+        if not callable(fn) or inspect.isclass(fn):
+            continue
+        hits = [p for p in _params(fn, skip_self=True)
+                if any(w in p.name.lower() for w in words)]
+        if hits:
+            lines.append("  %s: %s" % (n, ", ".join(
+                p.name + ("" if p.default is inspect.Parameter.empty else "=" + repr(p.default)[:30])
+                for p in hits[:6])))
+        if len(lines) >= 5:
+            break
+    return lines
+
+def _setter_names(cls):
+    return sorted(n for n in dir(cls) if n.startswith("set") and not n.startswith("_")
+                  and callable(getattr(cls, n, None)))[:30]
+
+def _property_setter_report(spec):
+    resolved = _resolve(spec.get("type", ""), spec.get("modules", []), spec.get("froms", []))
+    if resolved is None:
+        return ""
+    label, cls = resolved
+    attr = spec.get("attr", "")
+    try:
+        raw = inspect.getattr_static(cls, attr)
+    except AttributeError:
+        return ""
+    if not isinstance(raw, property) or raw.fset is not None:
+        return ""   # disagrees with the message: say nothing
+    root, ver = _version(cls)
+    out = [f"CLASS {label}  (defined in {cls.__module__}; {root} version={ver!r})",
+           f"READ-ONLY: {cls.__name__}.{attr} is a property with NO SETTER in the INSTALLED "
+           f"version — it is computed, and cannot be assigned."]
+    doc = _doc(raw.fget)
+    if doc:
+        out += ["GETTER DOC (first lines):"] + doc
+    rel = _related_params(cls, attr)
+    if rel:
+        out += [f"PUBLIC METHODS OF {cls.__name__} WITH A PARAMETER SHARING A WORD WITH '{attr}':"] + rel
+    setters = _setter_names(cls)
+    if setters:
+        out.append(f"SETTER METHODS OF {cls.__name__} ({len(setters)}): " + ", ".join(setters))
+    return "\n".join(out)
+
+def _is_value_attr(raw):
+    # A data attribute read as a value: a property, a C-level getset/member descriptor, or a
+    # ctypes Structure field. Never a function, a class or a callable object.
+    if inspect.isfunction(raw) or inspect.isclass(raw) or isinstance(raw, (staticmethod, classmethod)):
+        return False
+    return isinstance(raw, property) or inspect.isgetsetdescriptor(raw) \
+        or inspect.ismemberdescriptor(raw) or (inspect.isdatadescriptor(raw) and not callable(raw))
+
+def _not_callable_report(spec):
+    hits = _candidates(spec.get("attrs", []), spec, _is_value_attr)
+    if len(hits) != 1:
+        return ""
+    attr, cls, raw = hits[0]
+    root, ver = _version(cls)
+    out = [f"CLASS {cls.__module__}.{cls.__name__}  ({root} version={ver!r})",
+           f"NOT A METHOD: {cls.__name__}.{attr} is a data attribute"
+           + (" (a property)" if isinstance(raw, property) else "")
+           + f" in the INSTALLED version. Reading it gives the value itself (here a "
+           f"{spec.get('type', 'value')}); read it as `obj.{attr}`, without parentheses."]
+    doc = _doc(raw.fget if isinstance(raw, property) else raw)
+    if doc:
+        out += ["DOC (first lines):"] + doc
+    return "\n".join(out)
+
+def _ctypes_argtypes(raw):
+    """The `argtypes` of the ctypes foreign function a Python wrapper closes over, or None."""
+    try:
+        import ctypes
+        base = getattr(ctypes, "_CFuncPtr", None)
+    except Exception:
+        return None
+    if base is None:
+        return None
+    fn = raw.__func__ if isinstance(raw, (staticmethod, classmethod)) else raw
+    found = []
+    for cell in (getattr(fn, "__closure__", None) or ()):
+        try:
+            v = cell.cell_contents
+        except Exception:
+            continue
+        at = getattr(v, "argtypes", None) if isinstance(v, base) else None
+        if isinstance(at, (list, tuple)):
+            found.append(list(at))
+    return found[0] if len(found) == 1 else None
+
+def _ctypes_arity_report(spec):
+    n = int(spec.get("n", -1))
+    hits = _candidates(spec.get("attrs", []), spec,
+                       lambda raw: (lambda at: at is not None and len(at) == n)(_ctypes_argtypes(raw)))
+    if len(hits) != 1:
+        return ""
+    attr, cls, raw = hits[0]
+    root, ver = _version(cls)
+    at = _ctypes_argtypes(raw)
+    names = [getattr(t, "__name__", str(t)) for t in at]
+    out = [f"CLASS {cls.__module__}.{cls.__name__}  ({root} version={ver!r})",
+           f"COMPILED FUNCTION: {cls.__name__}.{attr} is a thin wrapper around a compiled "
+           f"(ctypes) function that takes exactly {n} arguments, the object itself first: "
+           + ", ".join(names),
+           f"The call passed {spec.get('m', '?')} (counting the object). Its Python signature "
+           f"`{attr}{_sig(raw)}` does not show this."]
+    doc = _doc(raw)
+    if doc:
+        out += ["DOC (first lines):"] + doc
+    rel = _related_params(cls, attr)
+    if rel:
+        out += [f"PUBLIC METHODS OF {cls.__name__} WITH A PARAMETER SHARING A WORD WITH "
+                f"'{attr}' (the usual Python-level way to set the same thing):"] + rel
+    return "\n".join(out)
+
+def _frame_function(tail, line, func, roots):
+    """The function a traceback frame ran: found in the module its file names, and checked by
+    file AND line range. `tail` is the path under site-packages (`pkg/mod.py`)."""
+    if not tail.endswith(".py"):
+        return None
+    modname = tail[:-3].replace("/", ".").replace("\\", ".")
+    if modname.endswith(".__init__"):
+        modname = modname[: -len(".__init__")]
+    if modname.split(".")[0] not in roots:
+        return None
+    try:
+        mod = importlib.import_module(modname)
+    except Exception:
+        return None
+    cands = []
+    try:
+        items = list(vars(mod).items())
+    except Exception:
+        return None
+    for name, v in items:
+        if name == func and inspect.isfunction(v):
+            cands.append((f"{modname}.{name}", v))
+        elif inspect.isclass(v) and getattr(v, "__module__", None) == modname:
+            raw = vars(v).get(func)
+            raw = raw.__func__ if isinstance(raw, (staticmethod, classmethod)) else raw
+            if inspect.isfunction(raw):
+                cands.append((f"{modname}.{v.__qualname__}.{func}", raw))
+    out = {}
+    for label, fn in cands:
+        code = getattr(fn, "__code__", None)
+        if code is None or not code.co_filename.replace("\\", "/").endswith(tail):
+            continue
+        try:
+            lines = [l for _s, _e, l in code.co_lines() if l is not None]
+        except Exception:
+            lines = []
+        if lines and min(lines + [code.co_firstlineno]) <= line <= max(lines):
+            out.setdefault(id(fn), (label, fn))
+    return list(out.values())[0] if len(out) == 1 else None
+
+_ROLE_RE = re.compile(r":(?:meth|func):`~?(\.?[\w.]+)`")
+
+def _forward_targets(callee, cap=10):
+    """Callables a `**kwargs` forwarder's docstring names with Sphinx roles, resolved inside its
+    own package. Facts read from the installed docstring, never inferred."""
+    mod = getattr(callee, "__module__", "") or ""
+    root = mod.split(".")[0]
+    seen, out = set(), []
+    for ref in _ROLE_RE.findall(inspect.getdoc(callee) or ""):
+        for path in ([root + ref] if ref.startswith(".") else [ref, root + "." + ref]):
+            obj = _resolve_dotted(path)
+            if obj is not None and callable(obj):
+                if id(obj) not in seen:
+                    seen.add(id(obj))
+                    out.append((path.lstrip("."), obj))
+                break
+        if len(out) >= cap:
+            break
+    return out
+
+def _type_fields(type_name, root):
+    """`(class_named_type_or_None, [(holder, field)])`: the ONE class named `type_name` in the
+    already-imported modules of `root`, and the ctypes `_fields_` entries of that type."""
+    found, holders = {}, []
+    for name, mod in list(sys.modules.items()):
+        if mod is None or name.split(".")[0] != root:
+            continue
+        try:
+            vals = list(vars(mod).values())
+        except Exception:
+            continue
+        for v in vals:
+            if inspect.isclass(v) and v.__name__ == type_name:
+                found.setdefault(id(v), v)
+    cls = list(found.values())[0] if len(found) == 1 else None
+    if cls is None:
+        return None, []
+    for name, mod in list(sys.modules.items()):
+        if mod is None or name.split(".")[0] != root:
+            continue
+        try:
+            vals = list(vars(mod).values())
+        except Exception:
+            continue
+        for v in vals:
+            if not inspect.isclass(v):
+                continue
+            try:
+                fields = vars(v).get("_fields_") or []
+            except Exception:
+                continue
+            for f in fields:
+                if isinstance(f, (list, tuple)) and len(f) >= 2 and f[1] is cls:
+                    holders.append((v, f[0]))
+    uniq = {}
+    for v, f in holders:
+        uniq.setdefault((id(v), f), (v, f))
+    return cls, list(uniq.values())[:4]
+
+def _frame_report(spec):
+    roots = set(spec.get("roots", []))
+    callee_path = spec.get("callee") or ""
+    callee = _resolve_dotted(callee_path) if callee_path else None
+    if callee is not None and not callable(callee):
+        callee = None
+    inner = None
+    if spec.get("inner"):
+        tail, line, func = spec["inner"]
+        inner = _frame_function(tail, int(line), func, roots)
+    if callee is None and inner is None:
+        return ""
+    kw = spec.get("kw") or ""
+    if kw:
+        # Agreement: a callable that NAMES the keyword cannot be the one that rejected it.
+        for obj in [callee] + ([inner[1]] if inner else []):
+            if obj is not None and kw in [p.name for p in _params(obj)]:
+                return ""
+    out = []
+    anchor = callee if callee is not None else inner[1]
+    root, ver = _version(anchor)
+    if callee is not None:
+        out.append(f"CALL ON THE FAILING LINE: {callee_path}{_sig(callee)}  ({root} version={ver!r})")
+        out += (["DOC (first lines):"] + _doc(callee)) if _doc(callee) else []
+    if inner is not None and (callee is None or inner[1] is not getattr(callee, "__func__", callee)):
+        out.append(f"RAISED INSIDE: {inner[0]}{_sig(inner[1])}")
+        if callee is None:
+            out += (["DOC (first lines):"] + _doc(inner[1])) if _doc(inner[1]) else []
+    keywords = spec.get("call_keywords") or []
+    if spec.get("shape") == "unknown_argument" and kw:
+        out.append(f"UNKNOWN PARAMETER: '{kw}' is not accepted by the INSTALLED version.")
+        pool = {}
+        try:
+            forwards = callee is not None and any(
+                p.kind == inspect.Parameter.VAR_KEYWORD
+                for p in inspect.signature(callee).parameters.values())
+        except (TypeError, ValueError):
+            forwards = False
+        targets = _forward_targets(callee) if forwards else []
+        if targets:
+            out.append("THE FUNCTIONS IT FORWARDS KEYWORDS TO (named in its docstring), with "
+                       "their parameter names:")
+            for path, obj in targets:
+                names = [p.name for p in _params(obj, skip_self=True)]
+                for n in names:
+                    pool.setdefault(n, path)
+                line_ = "  " + path + ": " + ", ".join(names)
+                out.append(line_ if len(line_) <= 240 else line_[:237] + "...")
+        for obj in [callee] + ([inner[1]] if inner else []):
+            if obj is not None:
+                for p in _params(obj, skip_self=True):
+                    pool.setdefault(p.name, "")
+        close = difflib.get_close_matches(kw, list(pool), n=5, cutoff=0.6)
+        low = {n.lower(): n for n in pool}
+        if kw.lower() in low and low[kw.lower()] not in close:
+            close.insert(0, low[kw.lower()])
+        if close:
+            out.append("CLOSEST ACCEPTED PARAMETER NAMES: " + ", ".join(
+                c + (f" ({pool[c]})" if pool[c] else "") for c in close))
+    elif spec.get("shape") == "value_type":
+        exp, got = spec.get("expected") or "", spec.get("got") or ""
+        if exp == "real number":
+            out.append(f"WRONG VALUE TYPE: a parameter here needs a real number (a float); a "
+                       f"value of type {got} was given.")
+            if inner is not None and keywords:
+                ps = {p.name: p for p in _params(inner[1], skip_self=True)}
+                shared = [k for k in keywords if k in ps]
+                if shared:
+                    out.append("KEYWORDS OF THE FAILING CALL THAT ARE PARAMETERS OF "
+                               f"{inner[0].rsplit('.', 1)[-1]} (default shown): " + ", ".join(
+                                   k + ("" if ps[k].default is inspect.Parameter.empty
+                                        else "=" + repr(ps[k].default)[:30]) for k in shared[:12]))
+        elif exp:
+            cls, holders = _type_fields(exp, root)
+            if cls is None:
+                out.append(f"WRONG VALUE TYPE: an {exp} instance is required; a value of type "
+                           f"{got} was given.")
+                return "\n".join(out)
+            out.append(f"WRONG VALUE TYPE: {exp} (class {cls.__module__}.{cls.__qualname__}) is "
+                       f"required; a value of type {got} was given.")
+            for holder, field in holders:
+                note = (f"  {holder.__name__}.{field} holds an {exp} instance"
+                        + (f" — the failing call passes '{field}=', which sets it" if field in keywords
+                           else ""))
+                out.append(note)
+            try:
+                members = [f[0] for f in (vars(cls).get("_fields_") or [])
+                           if isinstance(f, (list, tuple)) and f and not str(f[0]).startswith("_")]
+            except Exception:
+                members = []
+            if not members:
+                members = [n for n in dir(cls) if not n.startswith("_")][:30]
+            if members:
+                out.append(f"{exp} MEMBERS ({len(members)}): " + ", ".join(members[:30])
+                           + (" ..." if len(members) > 30 else ""))
+    return "\n".join(out)
+
+def _shape_report(spec):
+    kind = spec.get("shape", "")
+    if kind == "property_setter":
+        return _property_setter_report(spec)
+    if kind == "not_callable":
+        return _not_callable_report(spec)
+    if kind == "ctypes_arity":
+        return _ctypes_arity_report(spec)
+    if kind in ("value_type", "unknown_argument"):
+        return _frame_report(spec)
+    return ""
+
+if __name__ == "__main__":
+    _spec = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {}
+    print(_shape_report(_spec))
+'''
+
+
+def introspect_shape_local(spec: dict) -> str:
+    """Run the SHAPE_SNIPPET report against THIS process's environment. "" when nothing is
+    provable. Same seam and contract as `introspect_call_signature_local`."""
+    ns: dict = {}
+    exec(compile(SHAPE_SNIPPET, "<api_introspect_shape>", "exec"), ns)
+    try:
+        return ns["_shape_report"](spec)
+    except Exception as e:  # noqa: BLE001 — a tool must never raise into the agent loop
+        print(f"[api_introspect] shape report failed: {type(e).__name__}: {e}",
+              file=sys.stderr, flush=True)
+        return ""
+
+
+# Traceback frames, read as text. A SCRIPT frame is one whose shown source line is the script's
+# own line at that number and whose file is not under site-/dist-packages; that is checkable
+# without knowing where the script was written or under which name it ran.
+_FRAME_RE = re.compile(r'^  File "(?P<path>[^"]+)", line (?P<line>\d+), in (?P<func>[^\n]+)\n'
+                       r'(?:    (?P<src>[^\n]*)\n)?', re.M)
+_LIB_DIR_RE = re.compile(r"[/\\](?:site|dist)-packages[/\\]")
+
+
+def _traceback_frames(stderr: str | None, code: str | None):
+    """`(script_line, library_frame)` for the LAST traceback in `stderr`: the line number of the
+    innermost frame that ran the script's own code, and `(path_under_site_packages, line, func)`
+    of the innermost frame when it is library code below that script frame. Either may be None."""
+    text = stderr or ""
+    start = text.rfind("Traceback (most recent call last):")
+    if start < 0 or not code:
+        return None, None
+    lines = code.splitlines()
+    frames = [(m["path"], int(m["line"]), m["func"].strip(), (m["src"] or "").strip())
+              for m in _FRAME_RE.finditer(text, start)]
+    script_idx = None
+    for i, (path, ln, _f, src) in enumerate(frames):
+        if (src and not _LIB_DIR_RE.search(path) and 0 < ln <= len(lines)
+                and lines[ln - 1].strip() == src):
+            script_idx = i
+    if script_idx is None:
+        return None, None
+    lib = None
+    path, ln, func, _src = frames[-1]
+    if len(frames) - 1 > script_idx:
+        m = None
+        for m in _LIB_DIR_RE.finditer(path):
+            pass
+        if m is not None:
+            lib = (path[m.end():].replace("\\", "/"), ln, func)
+    return frames[script_idx][1], lib
+
+
 # Reads the top "CLOSEST EXISTING NAMES" candidate back out of the report text rather than
 # re-running the matching a third time, so the candidate detailed here can never disagree with
 # the one shown. Two leading spaces, an identifier, then "(" is exactly `_report`'s own
@@ -1141,26 +1839,186 @@ def module_shape_report(module: str, symbol: str) -> str | None:
     return "\n".join([_HEADER, "", report, "", _STEER])
 
 
+_STEER_CALL = (
+    "The failure above is a call that does not match the INSTALLED API (a parameter, an "
+    "argument count, or an attribute's kind). Adapt the call to the signature and attributes "
+    "shown above. Do not resubmit the same call, and do not work around it by inventing data."
+)
+
+# Kinds `classify_api_error` learned after the original four. When one of them is the stderr
+# hit but yields no report, the stdout (caught-and-printed) hit is still tried, exactly as it
+# was when these messages matched nothing.
+_LATER_KINDS = frozenset({"signature_missing", "property_setter", "not_callable", "ctypes_arity",
+                          "value_type", "unknown_argument"})
+
+_QUOTED_NAME_RE = re.compile(r"'(\w+)'")
+
+
+def _script_imports(code: str, work_dir, apf):
+    """`(modules, froms)` the script imports, minus anything that is engineer code."""
+    modules, froms = _imported_modules(code)
+    modules = [m for m in modules if not apf._workspace_root(m.split(".")[0], work_dir)]
+    froms = [(m, n) for m, n in froms if not apf._workspace_root(m.split(".")[0], work_dir)]
+    return modules, froms
+
+
+def _retry_body(kind: str, m: "re.Match", code, stderr, work_dir, apf, why: list):
+    """`(report, steer)` for one recognised error, or None. Appends the reason to `why` when
+    silent."""
+    if kind == "module":
+        module, symbol = m.group("module"), m.group("symbol")
+        if apf._workspace_root(module.split(".")[0], work_dir):
+            why.append(f"module {module} is engineer code")
+            return None
+        report = env_report(SNIPPET, {"module": module, "symbol": symbol}, work_dir,
+                            lambda: introspect_local(module, symbol))
+        # "MODULE 'x' could NOT be imported" repeats what the traceback already said, so inject
+        # nothing. Checked on the FIRST line only — a successful report also opens with
+        # "MODULE ", and a docstring below it may say anything.
+        if not report or report.startswith(
+                "introspection failed") or "could NOT be imported" in report.split("\n", 1)[0]:
+            why.append(f"module {module} not importable here")
+            return None
+        return report, _STEER
+    if kind == "artist_kwarg":
+        # No code needed: the class comes from matplotlib's own closed set of Artist subclasses,
+        # not from what the failing script imported (see ARTIST_SNIPPET).
+        spec = {"cls_name": m.group("cls"), "kwarg": m.group("kw")}
+        report = env_report(ARTIST_SNIPPET, spec, work_dir,
+                            lambda: introspect_artist_kwarg_local(spec))
+        if not report:      # unresolvable/ambiguous class, or disagrees with the crash → silent
+            why.append("artist class unresolved")
+            return None
+        # Distinct steer: the TOP-LEVEL call the engineer wrote is not itself wrong — only the
+        # kwarg it forwarded, several frames deeper, to a matplotlib Artist.
+        return report, (
+            "The failure above is matplotlib rejecting an invalid property several frames "
+            "inside a plotting call whose OWN signature accepts arbitrary keywords (so it could "
+            "not be caught earlier) — it is not evidence the top-level function name is wrong. "
+            "Drop the invalid keyword, or move it to wherever the report above says it actually "
+            "belongs. Do not resubmit the same call, and do not work around it by inventing "
+            "data.")
+    # Every other shape is resolved from the failing script — no code, no guess.
+    if not code:
+        why.append("no script to resolve against")
+        return None
+    if kind == "instance":
+        modules, froms = _script_imports(code, work_dir, apf)
+        spec = {"type": m.group("type"), "attr": m.group("attr"), "modules": modules,
+                "froms": froms}
+        report = env_report(CLASS_SNIPPET, spec, work_dir, lambda: introspect_class_local(spec))
+        if not report:
+            why.append(f"class {spec['type']} unresolved or has {spec['attr']}")
+            return None
+        return report, _STEER
+    if kind in ("signature_kw", "signature_arity", "signature_missing"):
+        cls_name, func = m.groupdict().get("cls"), m.group("func")
+        base = {"already_failed": True}
+        if kind == "signature_kw":
+            base["invalid_kwarg"] = m.group("kw")
+        if kind == "signature_missing":
+            base["missing"] = _QUOTED_NAME_RE.findall(m.group("names"))
+        report = ""
+        if cls_name:
+            # CPython names the class that DEFINES the method (`CAMBparams.set_cosmology()`):
+            # resolve it from the script's imports, whatever object the call was made on.
+            modules, froms = _script_imports(code, work_dir, apf)
+            spec = dict(base, type=cls_name, method=func, modules=modules, froms=froms)
+            report = env_report(SIGNATURE_SNIPPET, spec, work_dir,
+                                lambda: introspect_call_signature_local(spec))
+            if report:
+                return report, _STEER_CALL
+        # The traceback's function, found through the script's own call sites. A qualified
+        # message must agree with what that resolves to (`_qual_agrees`).
+        target = cls_name if func == "__init__" and cls_name else func
+        dotted = apf.resolve_dotted_call_by_func_name(code, target)
+        if dotted is None:  # ambiguous or unresolvable — do not guess which callable it was
+            why.append(f"{(cls_name + '.') if cls_name else ''}{func} unresolved from the script")
+            return None
+        spec = dict(base, callable=dotted)
+        if cls_name:
+            spec["qualname"] = f"{cls_name}.{func}"
+        report = env_report(SIGNATURE_SNIPPET, spec, work_dir,
+                            lambda: introspect_call_signature_local(spec))
+        if not report:      # unprovable, or the resolution disagreed with the crash → silent
+            why.append(f"no signature report for {dotted} (unresolvable here, disagrees with "
+                       f"the error, or takes **kwargs)")
+            return None
+        return report, (_STEER_CALL if kind == "signature_missing" else _STEER)
+    # Shapes that name no function: the failing script line names it instead.
+    line, lib = _traceback_frames(stderr, code)
+    if line is None:
+        why.append("no script frame in the traceback")
+        return None
+    calls = apf.calls_on_line(code, line)
+    modules, froms = _script_imports(code, work_dir, apf)
+    if kind == "property_setter":
+        spec = {"shape": kind, "type": m.group("type"), "attr": m.group("attr"),
+                "modules": modules, "froms": froms}
+    elif kind in ("not_callable", "ctypes_arity"):
+        attrs = sorted({c["attr"] for c in calls if c["attr"]})
+        if not attrs:
+            why.append("no attribute call on the failing line")
+            return None
+        spec = {"shape": kind, "attrs": attrs, "modules": modules, "froms": froms}
+        if kind == "not_callable":
+            spec["type"] = m.group("type")
+        else:
+            spec.update(n=int(m.group("n")), m=int(m.group("m")))
+    else:  # value_type / unknown_argument
+        lib_calls = [c for c in calls if c["dotted"]
+                     and not apf._workspace_root(c["dotted"].split(".")[0], work_dir)]
+        # The call that led into the library: the one resolved library call on the line.
+        dotted = {c["dotted"] for c in lib_calls}
+        callee = next(iter(dotted)) if len(dotted) == 1 else None
+        call = next((c for c in lib_calls if c["dotted"] == callee), None)
+        kw = m.groupdict().get("kw") or ""
+        if kind == "unknown_argument" and (call is None or (kw not in call["keywords"]
+                                                            and not call["starstar"])):
+            # The call on the line must be the one that passed the keyword (literally or
+            # through `**`); otherwise the message is about something this line did not do.
+            why.append(f"no library call on the failing line passes '{kw}'")
+            return None
+        roots = sorted({x.split(".")[0] for x in modules} | {f[0].split(".")[0] for f in froms})
+        inner = list(lib) if lib is not None else None
+        if callee is None and inner is None:
+            why.append("no library call or library frame resolved")
+            return None
+        spec = {"shape": kind, "callee": callee, "inner": inner, "roots": roots,
+                "kw": kw if kind == "unknown_argument" else "",
+                "call_keywords": call["keywords"] if call else [],
+                "modules": modules, "froms": froms}
+        if kind == "value_type":
+            spec["expected"] = m.groupdict().get("type") or "real number"
+            spec["got"] = m.group("got")
+    report = env_report(SHAPE_SNIPPET, spec, work_dir, lambda: introspect_shape_local(spec))
+    if not report:
+        why.append(f"{kind}: nothing resolved uniquely")
+        return None
+    return report, _STEER_CALL
+
+
 def retry_report(ctx, stderr: str | None, code: str | None = None,
-                 stdout: str | None = None, work_dir: str | None = None) -> str | None:
+                 stdout: str | None = None, work_dir: str | None = None,
+                 reasons: list | None = None) -> str | None:
     """Report to inject into the next engineer attempt, or None to leave the retry untouched.
 
-    `code` is the script that produced this output; it is needed only for the instance and call
-    shapes, whose origin has to be resolved from the script's own imports/call sites. `stdout`
-    is consulted only when stderr yields nothing, and accepts the prefix-less form (a script
-    that caught and printed its own exception exits 0 with empty stderr). `work_dir` names the
-    guest session under `CMBAGENT_LG_REMOTE_EXECUTOR` (see `env_report`). None — inject NOTHING
-    — whenever anything is unprovable; never a hedged or partial answer.
+    `code` is the script that produced this output; it is needed for every shape whose origin
+    has to be resolved from the script's own imports, call sites or failing line. `stdout` is
+    consulted only when stderr yields nothing, and accepts the prefix-less form (a script that
+    caught and printed its own exception exits 0 with empty stderr). `work_dir` names the guest
+    session under `CMBAGENT_LG_REMOTE_EXECUTOR` (see `env_report`). None — inject NOTHING —
+    whenever anything is unprovable; never a hedged or partial answer. `reasons`, when given,
+    receives one line saying why nothing was injected (for the engineer's log); it never changes
+    the answer.
     """
+    why: list = reasons if reasons is not None else []
     raw = os.environ.get("CMBAGENT_LG_API_INTROSPECT_RETRY")
     if raw == "0":
+        why.append("disabled")
         return None
     if raw != "1" and not getattr(ctx, "api_introspect_retry", False):
-        return None
-
-    # stderr first (a real traceback), then stdout for the caught-and-printed case.
-    hit = classify_api_error(stderr) or classify_api_error(stdout, allow_bare=True)
-    if hit is None:
+        why.append("disabled")
         return None
 
     # Lazy import: `api_preflight` imports THIS module at load time, so a module-scope import
@@ -1168,68 +2026,32 @@ def retry_report(ctx, stderr: str | None, code: str | None = None,
     # engineer code": the traceback names a module, and the report would import it.
     from cmbagent_lg.self_debug import api_preflight as _apf
 
-    if hit[0] == "module":
-        if _apf._workspace_root(hit[1].split(".")[0], work_dir):
-            return None
-        report = env_report(SNIPPET, {"module": hit[1], "symbol": hit[2]}, work_dir,
-                            lambda: introspect_local(hit[1], hit[2]))
-        # "MODULE 'x' could NOT be imported" repeats what the traceback already said, so inject
-        # nothing. Checked on the FIRST line only — a successful report also opens with
-        # "MODULE ", and a docstring below it may say anything.
-        if not report or report.startswith(
-                "introspection failed") or "could NOT be imported" in report.split("\n", 1)[0]:
-            return None
-    elif hit[0] == "instance":
-        # Instance shape: resolvable only from the script's own imports, so without the code
-        # we leave it alone rather than guess which module the type came from.
-        if not code:
-            return None
-        modules, froms = _imported_modules(code)
-        # Never hand the resolver a module that is engineer code (`step_N`, anything in the
-        # workspace): `_resolve` imports every module it is given.
-        modules = [m for m in modules if not _apf._workspace_root(m.split(".")[0], work_dir)]
-        froms = [(m, n) for m, n in froms if not _apf._workspace_root(m.split(".")[0], work_dir)]
-        spec = {"type": hit[1], "attr": hit[2], "modules": modules, "froms": froms}
-        report = env_report(CLASS_SNIPPET, spec, work_dir,
-                            lambda: introspect_class_local(spec))
-        if not report:      # unprovable → stay silent
-            return None
-    elif hit[0] == "artist_kwarg":
-        # No code needed: the class comes from matplotlib's own closed set of Artist subclasses,
-        # not from what the failing script imported (see ARTIST_SNIPPET).
-        spec = {"cls_name": hit[1], "kwarg": hit[2]}
-        report = env_report(ARTIST_SNIPPET, spec, work_dir,
-                            lambda: introspect_artist_kwarg_local(spec))
-        if not report:      # unresolvable/ambiguous class, or disagrees with the crash → silent
-            return None
-        # Distinct steer: the TOP-LEVEL call the engineer wrote is not itself wrong — only the
-        # kwarg it forwarded, several frames deeper, to a matplotlib Artist.
-        return "\n".join([_HEADER, "", report, "", (
-            "The failure above is matplotlib rejecting an invalid property several frames "
-            "inside a plotting call whose OWN signature accepts arbitrary keywords (so it could "
-            "not be caught earlier) — it is not evidence the top-level function name is wrong. "
-            "Drop the invalid keyword, or move it to wherever the report above says it actually "
-            "belongs. Do not resubmit the same call, and do not work around it by inventing "
-            "data.")])
-    else:
-        # Call shape: the traceback names only the bare function, so the dotted path has to come
-        # from the failing SCRIPT's own call sites — same "no code, no guess" rule as above.
-        if not code:
-            return None
-        dotted = _apf.resolve_dotted_call_by_func_name(code, hit[1])
-        if dotted is None:  # ambiguous or unresolvable — do not guess which callable it was
-            return None
-        spec = {"callable": dotted, "already_failed": True}
-        if hit[2]:
-            spec["invalid_kwarg"] = hit[2]
-        report = env_report(SIGNATURE_SNIPPET, spec, work_dir,
-                            lambda: introspect_call_signature_local(spec))
-        if not report:      # unprovable, or the resolution disagreed with the crash → silent
-            return None
-    return "\n".join([_HEADER, "", report, "", _STEER])
+    # stderr first (a real traceback), then stdout for the caught-and-printed case.
+    hits = []
+    err_hit = _last_match(stderr)
+    if err_hit is not None:
+        hits.append((err_hit, stderr))
+    if err_hit is None or err_hit[0] in _LATER_KINDS:
+        out_hit = _last_match(stdout, allow_bare=True)
+        if out_hit is not None:
+            hits.append((out_hit, stdout))
+    if not hits:
+        why.append("no API-shaped error in the output")
+        return None
+    for (kind, m), text in hits:
+        try:
+            body = _retry_body(kind, m, code, text, work_dir, _apf, why)
+        except Exception as e:  # noqa: BLE001 — a retry aid must never break the step
+            why.append(f"{kind}: {type(e).__name__}: {e}")
+            body = None
+        if body is not None:
+            report, steer = body
+            return "\n".join([_HEADER, "", report, "", steer])
+    return None
 
 
-__all__ = ["SNIPPET", "CLASS_SNIPPET", "SIGNATURE_SNIPPET", "ARTIST_SNIPPET", "introspect_local",
+__all__ = ["SNIPPET", "CLASS_SNIPPET", "SIGNATURE_SNIPPET", "ARTIST_SNIPPET", "SHAPE_SNIPPET",
+           "introspect_local", "introspect_shape_local",
            "introspect_class_local", "introspect_callable_class_local",
            "introspect_full_class_local", "introspect_call_signature_local",
            "introspect_artist_kwarg_local", "parse_api_error", "classify_api_error",
