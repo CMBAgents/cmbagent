@@ -923,11 +923,19 @@ def test_the_check_cannot_loop_forever():
         assert out.get("api_preflight_report") is None, "the cap was not enforced"
         assert route_after_api_preflight(_state(ABSENT_CODE, **out), _rt(ctx)) == "executor"
 
-        # A bounce costs an engineer pass, so it is never issued past the attempt budget —
-        # otherwise the step could end having never executed anything at all.
+        # The LAST attempt is bounced at most once (the engineer's re-ask after it does not
+        # count as an attempt), so the step still ends having executed a script.
         spent = _state(ABSENT_CODE, attempts=3, api_preflight_bounces=0)
         ctx3 = PlanContext(main_task="t", enable_api_preflight=True, max_n_attempts=3)
-        assert api_preflight(spent, _rt(ctx3)).get("api_preflight_report") is None
+        last = api_preflight(spent, _rt(ctx3))
+        assert last.get("api_preflight_report") and last.get("api_preflight_last_bounced") is True
+        again = _state(ABSENT_CODE, attempts=3, api_preflight_bounces=1,
+                       api_preflight_last_bounced=True)
+        assert api_preflight(again, _rt(ctx3)).get("api_preflight_report") is None
+        # A single-attempt budget has no retry prompt to carry the report: never bounced.
+        ctx1 = PlanContext(main_task="t", enable_api_preflight=True, max_n_attempts=1)
+        assert api_preflight(_state(ABSENT_CODE, attempts=1), _rt(ctx1)).get(
+            "api_preflight_report") is None
     print("ok test_the_check_cannot_loop_forever: bounce cap and attempt budget both enforced")
 
 

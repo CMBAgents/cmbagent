@@ -1969,12 +1969,17 @@ def api_preflight(state: DebugState, runtime: Runtime[PlanContext]) -> DebugStat
         return {}
 
     # Both bounds mirror how `max_n_attempts` is respected elsewhere: a pathological case
-    # degrades to normal execution rather than spinning, and no bounce is issued once the
-    # attempt budget is spent — a real traceback beats a step that never ran at all.
+    # degrades to normal execution rather than spinning, and the last attempt is bounced at
+    # most ONCE — the engineer's re-ask after that bounce does not count as an attempt
+    # (`api_preflight_last_bounced`, read in `engineer`), so the step still runs a script and
+    # a real traceback still beats a step that never ran at all. With a single-attempt budget
+    # there is no retry prompt to carry a bounce report, so that attempt is never bounced.
     bounces = state.get("api_preflight_bounces", 0) or 0
     if bounces >= getattr(ctx, "max_api_preflight_bounces", 4):
         return {"api_preflight_report": None}
-    if state.get("attempts", 0) >= getattr(ctx, "max_n_attempts", 3):
+    attempts = state.get("attempts", 0) or 0
+    at_last = attempts >= getattr(ctx, "max_n_attempts", 3)
+    if at_last and (attempts <= 1 or state.get("api_preflight_last_bounced")):
         return {"api_preflight_report": None}
 
     code_obj = state.get("current_code")
@@ -2022,8 +2027,11 @@ def api_preflight(state: DebugState, runtime: Runtime[PlanContext]) -> DebugStat
     except Exception as e:  # noqa: BLE001 — a pre-flight check must never break the graph
         print(f"[api_preflight] check skipped (non-fatal): {e}", file=sys.stderr, flush=True)
         return {"api_preflight_report": None}
-    return {"api_preflight_report": report, "api_preflight_bounces": bounces + 1,
-            "api_preflight_bounced": bounced}
+    out = {"api_preflight_report": report, "api_preflight_bounces": bounces + 1,
+           "api_preflight_bounced": bounced}
+    if at_last:
+        out["api_preflight_last_bounced"] = True
+    return out
 
 
 def route_after_format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> str:

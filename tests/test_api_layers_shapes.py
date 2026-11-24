@@ -397,3 +397,11 @@ def test_engineer_keeps_every_api_report_it_receives(lib, capfd):
         (lib.wd / "codebase").chmod(0o700)
 
 
+def test_the_reask_after_a_last_attempt_bounce_is_free(lib):
+    ctx = PlanContext(main_task="t", api_introspect_retry=False, max_n_attempts=3)
+    out, system = _engineer(ctx, lib.wd, attempts=3, api_preflight_report="LAST BOUNCE",
+                            api_preflight_last_bounced=True)
+    assert out["attempts"] == 3 and "LAST BOUNCE" in system
+    # An ordinary bounce still costs an attempt.
+    out, _ = _engineer(ctx, lib.wd, attempts=2, api_preflight_report="BOUNCE")
+    assert out["attempts"] == 3

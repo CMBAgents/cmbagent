@@ -75,10 +75,17 @@ def _formatter(ctx: PlanContext):
 
 @timed_node("engineer")
 def engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
-    """Propose code for the current sub-task. Bumps `attempts`."""
+    """Propose code for the current sub-task. Bumps `attempts`, except for the one re-ask
+    after a bounce of the LAST attempt (`api_preflight_last_bounced`), which the attempt budget
+    does not pay for: that script never ran."""
     ctx = runtime.context
     step = state["step"]
-    attempts = state.get("attempts", 0) + 1
+    free_reask = bool(
+        state.get("api_preflight_report")
+        and state.get("api_preflight_last_bounced")
+        and state.get("attempts", 0) >= ctx.max_n_attempts
+    )
+    attempts = state.get("attempts", 0) + (0 if free_reask else 1)
     error_history = state.get("error_history", [])
 
     last_code = None

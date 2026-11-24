@@ -62,9 +62,13 @@ class DebugState(TypedDict, total=False):
     #                            to the step. Absent on old checkpoints (readers use
     #                            `state.get(..., {}) or {}`). Per-step state, so it
     #                            resets with the rest on each sub-graph invoke.
+    # `api_preflight_last_bounced` — True once the LAST attempt has been bounced; the
+    #                            engineer's re-ask after it keeps the attempt count (that
+    #                            script never ran), and no second last-attempt bounce follows.
     api_preflight_report: Optional[str]
     api_preflight_bounces: int
     api_preflight_bounced: Optional[dict]
+    api_preflight_last_bounced: Optional[bool]
 
     # Set by the terminal `missing_input` node: this step cannot be fulfilled by ANY
     # script, because the input it needs does not exist. Distinct from an exhausted
