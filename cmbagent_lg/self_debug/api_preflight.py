@@ -502,7 +502,16 @@ def _workspace_root(root: str, work_dir: Optional[str]) -> bool:
         spec = importlib.util.find_spec(root)
     except BaseException:  # noqa: BLE001 — find_spec can raise anything for a broken package
         spec, ans = None, True
+    # Only a FILE origin says where the code lives. A frozen or built-in module (`os`, `sys`,
+    # `time`, `itertools` in CPython 3.12) has `origin` "frozen" / "built-in" and
+    # `has_location` False; resolving that string as a path lands in the CURRENT directory, so
+    # a run launched with cwd = the run dir took `import os` for engineer code and silenced
+    # every class-level tier through `_import_everything`.
     origin = getattr(spec, "origin", None) if spec is not None else None
+    if spec is not None and not getattr(spec, "has_location", False):
+        origin = None
+    if origin and not os.path.isabs(origin):
+        origin = None
     if origin and work_dir:
         try:
             Path(origin).resolve().relative_to(Path(work_dir).expanduser().resolve())
