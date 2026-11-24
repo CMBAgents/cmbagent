@@ -12,7 +12,7 @@ speak the OpenAI chat-completions API (vLLM, llama.cpp, SGLang, hosted gateways)
 
     {"qwen3.8-flash-next": {"base_url": "http://127.0.0.1:30000/v1",
                             "key_file": "~/.config/llm/qwen.key"},
-     "kimi-k3": {"base_url": "https://llm.example.org/v1", "model": "moonshotai/Kimi-K3",
+     "kimi-k3": {"base_url": "https://llm.example.org/v1", "model": "moonshotai/Kimi-K3.1-Pro",
                  "key_file": "~/.config/llm/endpoint.env", "key_var": "API_KEY",
                  "max_tokens": 32000, "structured_output": "json_schema"}}
 
@@ -42,6 +42,13 @@ are merged key by key, the later one winning):
   {"reasoning_budget_tokens": 4000, "reasoning_budget_message": "..."}.
 - `max_tokens_retry`: `max_tokens` of the structured retry. Default: `max_tokens` when
   `no_thinking` is given (thinking off needs no larger limit), else 1.5x `max_tokens`.
+- `extra_body`: fields sent with EVERY request of the endpoint, whatever the role, plain and
+  structured calls and both retries alike, e.g. a gateway's cache switch
+  {"cache": {"no-cache": true, "no-store": true}}. It is the lowest layer.
+
+Precedence, lowest first (each layer deep-merged onto the one before, so a later layer
+wins key by key inside nested dicts): `extra_body` < `thinking[role]` < `structured_body`
+(structured calls) < `no_thinking` (the retries only).
 
 A structured answer is retried once, and only once, when it is unusable: it stopped at the
 output limit (openai.LengthFinishReasonError) or did not parse or validate (a ValueError:
@@ -109,6 +116,9 @@ def _registry(path: str, mtime: float) -> dict:
     for name, e in reg.items():
         if not isinstance(e, dict) or not e.get("base_url"):
             raise ValueError("%s: entry %r needs a base_url" % (path, name))
+        for field in ("extra_body", "no_thinking", "structured_body", "thinking"):
+            if e.get(field) is not None and not isinstance(e[field], dict):
+                raise ValueError("%s: entry %r: %s must be a JSON object" % (path, name, field))
     return reg
 
 
@@ -301,16 +311,18 @@ def _check_answer(out, schema, strict=True, label="structured call"):
 _LOGGED_ENTRIES: set = set()
 
 
-def _log_entry(name: str, e: dict, role, extra_body, max_tokens) -> None:
+def _log_entry(name: str, e: dict, role, role_body, max_tokens) -> None:
     """Once per (model, role): the registry fields this client was built with (never the key), so a run's log says
-    which configuration produced its answers."""
+    which configuration produced its answers. `role_body` is the role's `thinking` fields; `extra_body` is the
+    endpoint-wide layer under them."""
     if (name, role) in _LOGGED_ENTRIES:
         return
     _LOGGED_ENTRIES.add((name, role))
-    print("[llms] %s (role %s): max_tokens=%s max_tokens_retry=%s structured_output=%s no_thinking=%s "
-          "thinking[%s]=%s structured_body=%s" % (
-              name, role, max_tokens, e.get("max_tokens_retry"), e.get("structured_output", "json_schema"),
-              json.dumps(e.get("no_thinking")), role, json.dumps(extra_body),
+    print("[llms] %s (role %s): model=%s max_tokens=%s max_tokens_retry=%s structured_output=%s extra_body=%s "
+          "no_thinking=%s thinking[%s]=%s structured_body=%s" % (
+              name, role, e.get("model") or name, max_tokens, e.get("max_tokens_retry"),
+              e.get("structured_output", "json_schema"), json.dumps(e.get("extra_body")),
+              json.dumps(e.get("no_thinking")), role, json.dumps(role_body),
               json.dumps(e.get("structured_body"))), file=sys.stderr, flush=True)
 
 
@@ -387,8 +399,11 @@ def _compat_model(name: str, e: dict, temperature, role: str | None = None):
     if e.get("max_retries") is not None:
         kw["max_retries"] = int(e["max_retries"])
     role_body = _merge_body((e.get("thinking") or {}).get(role)) if role else None
-    if role_body:
-        kw["extra_body"] = role_body
+    # `extra_body` is the endpoint-wide base layer: everything later (structured_body, no_thinking) is merged onto
+    # `self.extra_body`, so it reaches every request and both retries.
+    body = _merge_body(e.get("extra_body"), role_body)
+    if body:
+        kw["extra_body"] = body
     _log_entry(name, e, role, role_body, kw.get("max_tokens"))
     return _CompatChatOpenAI(**kw)
 

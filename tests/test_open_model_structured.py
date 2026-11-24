@@ -352,3 +352,53 @@ def test_effective_entry_logged_once_per_model_and_role(registry, monkeypatch, c
     assert 'thinking[formatter]={"chat_template_kwargs": {"enable_thinking": false}}' in lines[0]
     assert "thinking[critic]=null" in lines[1]
     assert "sk-very-secret-123" not in err
+
+
+# ── h. the endpoint-wide extra_body layer ─────────────────────────────────
+
+NO_CACHE = {"cache": {"no-cache": True, "no-store": True}}
+
+
+def test_extra_body_reaches_every_role(registry):
+    registry({"gw-test": _entry(extra_body=NO_CACHE, thinking={"formatter": NO_THINKING})})
+    assert llms.chat_model("gw-test", "critic").extra_body == NO_CACHE
+    assert llms.chat_model("gw-test", "coder").extra_body == NO_CACHE
+    assert llms.chat_model("gw-test", "formatter").extra_body == {**NO_CACHE, **NO_THINKING}
+
+
+def test_extra_body_is_sent_on_plain_structured_and_retry_calls(monkeypatch):
+    e = _entry(extra_body=NO_CACHE, no_thinking=NO_THINKING, structured_body=BUDGET)
+    calls = _patch(monkeypatch, [AIMessage("prose", response_metadata={"finish_reason": "stop"})])
+    llms._compat_model("gw-test", e, 0.4, "critic").invoke("review this")
+    assert calls[0]["extra_body"] == NO_CACHE
+    calls = _patch(monkeypatch, [_validation_error(), _parsed(V(ok=True))])
+    llms._compat_model("gw-test", e, 0.4, "critic").with_structured_output(V).invoke("judge")
+    assert calls[0]["extra_body"] == {**NO_CACHE, **BUDGET}
+    assert calls[1]["extra_body"] == {**NO_CACHE, **BUDGET, **NO_THINKING}
+    calls = _patch(monkeypatch, [AIMessage("", response_metadata={"finish_reason": "length"}),
+                                 AIMessage("answer", response_metadata={"finish_reason": "stop"})])
+    llms._compat_model("gw-test", e, 0.4, "critic").invoke("write")
+    assert calls[1]["extra_body"] == {**NO_CACHE, **NO_THINKING}
+
+
+def test_later_layers_win_key_by_key_over_extra_body(monkeypatch):
+    base = {"chat_template_kwargs": {"enable_thinking": True, "keep": 1}, "cache": {"no-cache": True}}
+    e = _entry(extra_body=base, thinking={"formatter": NO_THINKING})
+    m = llms._compat_model("gw-test", e, 0.0, "formatter")
+    assert m.extra_body == {"chat_template_kwargs": {"enable_thinking": False, "keep": 1}, "cache": {"no-cache": True}}
+    assert base["chat_template_kwargs"]["enable_thinking"] is True          # the registry entry is not mutated
+
+
+def test_extra_body_must_be_an_object(registry):
+    registry({"gw-test": _entry(extra_body=["no"])})
+    with pytest.raises(ValueError, match="extra_body must be a JSON object"):
+        llms.chat_model("gw-test", "critic")
+
+
+def test_extra_body_and_model_are_in_the_effective_entry_line(registry, capsys):
+    registry({"gw-log": _entry(model="org/Model-1", extra_body=NO_CACHE)})
+    llms._LOGGED_ENTRIES.discard(("gw-log", "critic"))
+    llms.chat_model("gw-log", "critic")
+    line = [ln for ln in capsys.readouterr().err.splitlines() if ln.startswith("[llms] gw-log")][0]
+    assert 'extra_body={"cache": {"no-cache": true, "no-store": true}}' in line
+    assert "model=org/Model-1" in line
