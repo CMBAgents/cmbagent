@@ -507,17 +507,30 @@ def _workspace_root(root: str, work_dir: Optional[str]) -> bool:
     # `has_location` False; resolving that string as a path lands in the CURRENT directory, so
     # a run launched with cwd = the run dir took `import os` for engineer code and silenced
     # every class-level tier through `_import_everything`.
+    # A relative file origin (only a custom finder gives one) is resolved against cwd, which is
+    # where the loader reads it.
     origin = getattr(spec, "origin", None) if spec is not None else None
     if spec is not None and not getattr(spec, "has_location", False):
         origin = None
-    if origin and not os.path.isabs(origin):
-        origin = None
-    if origin and work_dir:
+    # A namespace package has no origin at all; its directories say where it lives.
+    try:
+        locations = list(getattr(spec, "submodule_search_locations", None) or ())
+    except BaseException:  # noqa: BLE001 — a _NamespacePath recomputes itself when iterated
+        locations, ans = [], True
+    if work_dir and (origin or locations):
         try:
-            Path(origin).resolve().relative_to(Path(work_dir).expanduser().resolve())
-            ans = True  # lives in the workspace → engineer-written, never import it
-        except (ValueError, OSError):
-            pass
+            wd = Path(work_dir).expanduser().resolve()
+        except (OSError, RuntimeError):
+            wd, ans = None, True
+        for place in ([origin] if origin else []) + [str(x) for x in locations]:
+            if wd is None:
+                break
+            try:
+                Path(place).resolve().relative_to(wd)
+                ans = True  # lives in the workspace → engineer-written, never import it
+                break
+            except (ValueError, OSError, RuntimeError):
+                pass
     _workspace_cache[key] = ans
     return ans
 
@@ -1793,15 +1806,18 @@ def _persist_bounce(state: DebugState, code: str, report: str, index: int) -> No
               file=sys.stderr, flush=True)
 
 
-def persist_engineer_report(state: DebugState, attempt: int, kind: str, report: str) -> None:
+def persist_engineer_report(state: DebugState, attempt: int, kind: str, report: str,
+                            index: Optional[int] = None) -> None:
     """Keep an API report the engineer is about to RECEIVE on disk, and say so on stderr.
     Never raises.
 
     Prompts are not stored in the run dir, so without this nothing records which report an
     attempt was given. `kind` is "retry" (`api_introspect.retry_report`, built from the last
     traceback) or "bounce" (`api_preflight_report`, the refused script's report); the file is
-    `codebase/step_{N}_attempt_{K}.{kind}.log`, K being the attempt that receives it. Same
-    pattern as `_persist_bounce`.
+    `codebase/step_{N}_attempt_{K}.{kind}.log`, K being the attempt that receives it, or
+    `step_{N}_attempt_{K}_b{index}.{kind}.log` when `index` (the step's bounce count) is given:
+    a bounce of the last attempt is re-asked at the same K, so K alone would overwrite the
+    report of the bounce before it. Same pattern as `_persist_bounce`.
     """
     try:
         n = state.get("step_number", 1) or 1
@@ -1812,7 +1828,8 @@ def persist_engineer_report(state: DebugState, attempt: int, kind: str, report: 
             return
         codebase = Path(work_dir).expanduser() / "codebase"
         codebase.mkdir(parents=True, exist_ok=True)
-        (codebase / f"step_{n}_attempt_{attempt}.{kind}.log").write_text(report)
+        tag = f"_b{index}" if index else ""
+        (codebase / f"step_{n}_attempt_{attempt}{tag}.{kind}.log").write_text(report)
     except Exception as e:  # noqa: BLE001 — bookkeeping must never break the attempt
         print(f"[api_report] could not persist the {kind} report (non-fatal): {e}",
               file=sys.stderr, flush=True)

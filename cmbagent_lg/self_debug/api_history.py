@@ -437,7 +437,16 @@ def _kwarg_record(cls_name: Optional[str], func: str, kw: str, code: str,
     the function that raised."""
     from cmbagent_lg.self_debug import api_preflight as _apf
 
+    if cls_name and cls_name in _script_class_names(tree):
+        return None  # the engineer's own class; a same-named library class must not answer
     want_qual = f"{cls_name}.{func}" if cls_name else func
+
+    def _qual_ok(fn) -> bool:
+        qual = getattr(fn, "__qualname__", None) or getattr(fn, "__name__", None)
+        if qual and qual.split(".")[-2:] == want_qual.split(".")[-2:]:
+            return True
+        return bool(cls_name is None and qual and qual.split(".")[-1] == func)
+
     candidates = []
     if func == "__init__" and cls_name:
         dotted = _apf.resolve_dotted_call_by_func_name(code, cls_name)
@@ -455,7 +464,7 @@ def _kwarg_record(cls_name: Optional[str], func: str, kw: str, code: str,
         for cls, attr in _apf.typed_method_calls(code, func, work_dir):
             candidates.append((cls, f"{cls.__module__}.{cls.__qualname__}", attr,
                                inspect.getattr_static(cls, attr, None)))
-        if cls_name and not candidates:
+        if cls_name and not any(_qual_ok(c[3]) for c in candidates):
             # The receiver is untyped (a factory's result, a variable the script assigns to), but
             # CPython named the class that defines the method: resolve it from the script's own
             # imports. The qualname and signature checks below still have to agree.
@@ -464,10 +473,8 @@ def _kwarg_record(cls_name: Optional[str], func: str, kw: str, code: str,
                 candidates.append((cls, f"{cls.__module__}.{cls.__qualname__}", func,
                                    inspect.getattr_static(cls, func, None)))
     for owner, cls_path, attr, fn in candidates:
-        qual = getattr(fn, "__qualname__", None) or getattr(fn, "__name__", None)
-        if not qual or qual.split(".")[-2:] != want_qual.split(".")[-2:]:
-            if not (cls_name is None and qual and qual.split(".")[-1] == func):
-                continue
+        if not _qual_ok(fn):
+            continue
         # If the signature is introspectable and NAMES the keyword, or takes `**kwargs` (call
         # binding never raises this for one), the crash came from somewhere else; do not
         # record a contradiction.

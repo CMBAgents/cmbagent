@@ -12,7 +12,9 @@ FAILURE verdict naming an absent input file, and the proactive intent gate on a 
 verdict for a step that had nothing to load. Disjoint by construction, so they never
 double-terminate. A missing PACKAGE is recoverable and explicitly excluded from both.
 
-Total engineer passes = at most `max_n_attempts`; escalation does not consume an attempt.
+Total engineer passes = at most `max_n_attempts` + 1: escalation does not consume an
+attempt, and neither does the one re-ask after the pre-flight bounces the LAST attempt
+(`api_preflight_last_bounced`; that script never ran).
 Plot revisions are additionally bounded by `max_vlm_review_attempts`.
 """
 

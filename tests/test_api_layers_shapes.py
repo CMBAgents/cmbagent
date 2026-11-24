@@ -34,6 +34,8 @@ PKG_INIT = '''
 """Synthetic library for the API-layer tests."""
 import ctypes
 
+from . import _impl
+
 __version__ = "1.0"
 
 
@@ -82,9 +84,16 @@ class Params(Base):
 
     f_AddNeutrino = _wrap(_FN)
 
+    def opts(self, a=1, **kw):
+        return a
+
 
 def make():
     return Params()
+
+
+def make_hidden():
+    return _impl.Hidden()
 
 
 def need(a, z):
@@ -136,6 +145,9 @@ def lib(tmp_path, monkeypatch):
     (site / PKG).mkdir(parents=True)
     (site / PKG / "__init__.py").write_text(textwrap.dedent(PKG_INIT))
     (site / PKG / "mass_function.py").write_text("def massFunction(m):\n    return m\n")
+    # A class the package does not export at top level; only its factory returns one.
+    (site / PKG / "_impl.py").write_text("class Hidden:\n    def run(self, a=1, b=2):\n"
+                                         "        return a\n")
     # Distribution metadata, so the observed-absence store can version a fact about it.
     dist = site / f"{PKG}-1.0.dist-info"
     dist.mkdir()
@@ -405,3 +417,162 @@ def test_the_reask_after_a_last_attempt_bounce_is_free(lib):
     # An ordinary bounce still costs an attempt.
     out, _ = _engineer(ctx, lib.wd, attempts=2, api_preflight_report="BOUNCE")
     assert out["attempts"] == 3
+
+
+# ── 5. review fixes ──────────────────────────────────────────────────────────
+
+
+def test_a_later_shape_does_not_hide_an_earlier_module_error(lib):
+    # The script probes a removed name, catches the AttributeError, and its fallback then calls
+    # None: the traceback ends with the later shape, but the module error is the one to answer.
+    code, err = _run(lib, "import apil_fx\ntry:\n    f = apil_fx.gone_fn\nexcept AttributeError:\n"
+                          "    f = None\n    f(1)\n")
+    assert "'NoneType' object is not callable" in err
+    assert ai.classify_api_error(err) == ("module", "apil_fx", "gone_fn")
+    rep = _retry(lib, code, err)
+    assert rep and "apil_fx.gone_fn" in rep and "ABSENT" in rep, rep
+
+
+def test_a_later_shape_does_not_hide_an_earlier_keyword_error(lib):
+    code, err = _run(lib, "import apil_fx\np = apil_fx.make()\np.flag = 1\ntry:\n"
+                          "    p.set_x(c=3)\nexcept TypeError:\n    apil_fx.need(1)\n")
+    assert "missing 1 required positional argument" in err
+    assert ai.classify_api_error(err) == ("signature", "set_x", "c")
+    assert ai.kwarg_error_qualifier(err) == "Params"
+    ctx = PlanContext(main_task="t", api_preflight_cache_dir=str(lib.wd / "cache"))
+    rec = ah.record_from_run(ctx, code, err, "", str(lib.wd))
+    assert rec and rec["kind"] == "kwarg" and rec["kwarg"] == "c", rec
+    # The retry tries the LAST error first; this one (a call inside an `except`) does not
+    # resolve from the script, so the earlier keyword error is answered instead.
+    why = []
+    rep = _retry(lib, code, err, why)
+    assert why == ["need unresolved from the script"], why
+    assert rep and "INVALID: 'c'" in rep and "apil_fx.Params.set_x(" in rep, rep
+
+
+def test_a_later_shape_alone_still_classifies():
+    assert ai.classify_api_error("TypeError: 'float' object is not callable\n") == (
+        "not_callable", "float", "")
+    assert ai.kwarg_error_qualifier("TypeError: P.f() missing 1 required positional argument: "
+                                    "'a'\n") == "P"
+
+
+def test_a_silent_later_shape_still_tries_stdout(lib):
+    # stderr's only hit is a later shape that resolves nothing (no script frame); the script
+    # caught and printed a module error, which stdout answers.
+    code = "import json\ntry:\n    json.load_all\nexcept AttributeError as e:\n    print(e)\n"
+    ctx = PlanContext(main_task="t", api_introspect_retry=True)
+    why = []
+    rep = ai.retry_report(ctx, "TypeError: 'float' object is not callable\n", code,
+                          "module 'json' has no attribute 'load_all'\n", str(lib.wd), reasons=why)
+    assert rep and "ABSENT: json.load_all" in rep, why
+    # An original-kind stderr hit that is silent does not fall back to stdout (unchanged).
+    rep = ai.retry_report(ctx, "TypeError: nope() got an unexpected keyword argument 'x'\n", code,
+                          "module 'json' has no attribute 'load_all'\n", str(lib.wd))
+    assert rep is None
+
+
+def test_a_script_class_shadowing_a_library_class_is_never_answered(lib):
+    shadow = ("import apil_fx\nclass Params:\n    def set_x(self, a=1):\n        return a\n"
+              "    @property\n    def ro(self):\n        return 2\n")
+    code, err = _run(lib, shadow + "p = Params()\np.set_x(c=1)\n")
+    assert "Params.set_x() got an unexpected keyword argument 'c'" in err
+    why = []
+    assert _retry(lib, code, err, why) is None and "defined by the script" in why[-1], why
+    ctx = PlanContext(main_task="t", api_preflight_cache_dir=str(lib.wd / "cache"))
+    assert ah.record_from_run(ctx, code, err, "", str(lib.wd)) is None
+
+    code, err = _run(lib, shadow + "p = Params()\np.ro = 3\n")
+    assert "has no setter" in err
+    assert _retry(lib, code, err) is None
+
+    code, err = _run(lib, shadow + "p = Params()\np.nothing_here()\n")
+    assert "'Params' object has no attribute 'nothing_here'" in err
+    assert _retry(lib, code, err) is None
+
+    # An attribute the script's own class carries (class body or `self.x = ...`), called.
+    for own in ("class C:\n    ro = 2.0\n", "class C:\n    def __init__(self):\n        self.ro = 2.0\n"):
+        code, err = _run(lib, "import apil_fx\n" + own + "c = C()\nv = c.ro()\n")
+        assert "'float' object is not callable" in err
+        assert _retry(lib, code, err) is None, own
+
+
+def test_history_kwarg_fact_needs_a_signature_without_var_keyword(lib):
+    # `Params.opts(self, a=1, **kw)`: call binding never raises the unexpected-keyword error
+    # for it, so a traceback saying so is about something else and records nothing.
+    code = "import apil_fx\np = apil_fx.make()\np.flag = 1\np.opts(c=3)\n"
+    tb = "TypeError: Params.opts() got an unexpected keyword argument 'c'\n"
+    ctx = PlanContext(main_task="t", api_preflight_cache_dir=str(lib.wd / "cache"))
+    assert ah.record_from_run(ctx, code, tb, "", str(lib.wd)) is None
+
+
+def test_history_class_fallback_ignores_a_same_named_module_function(lib):
+    (lib.site / "apil_kw2").mkdir()
+    (lib.site / "apil_kw2" / "__init__.py").write_text("def set_x(q=1):\n    return q\n")
+    code, err = _run(lib, "import apil_fx\nimport apil_kw2\napil_kw2.set_x(1)\n"
+                          "p = apil_fx.make()\np.flag = 1\np.set_x(c=3)\n")
+    ctx = PlanContext(main_task="t", api_preflight_cache_dir=str(lib.wd / "cache"))
+    rec = ah.record_from_run(ctx, code, err, "", str(lib.wd))
+    assert rec and rec["cls"] == "apil_fx.Params" and rec["kwarg"] == "c", rec
+
+
+def test_qualified_message_must_agree_on_the_bare_function_path(lib):
+    # `need` resolves through the script's call site to the MODULE function `apil_fx.need`,
+    # but the message names `Params.need`: not the function that raised, so silent.
+    code = "import apil_fx\napil_fx.need(1, w=2)\n"
+    tb = "TypeError: Params.need() got an unexpected keyword argument 'w'\n"
+    assert _retry(lib, code, tb) is None
+    # Unqualified, the same call resolves.
+    rep = _retry(lib, code, "TypeError: need() got an unexpected keyword argument 'w'\n")
+    assert rep and "need(a, z)" in rep, rep
+
+
+def test_method_of_a_class_the_package_does_not_export(lib):
+    code, err = _run(lib, "import apil_fx\nh = apil_fx.make_hidden()\nh.run(c=1)\n")
+    assert "Hidden.run() got an unexpected keyword argument 'c'" in err
+    rep = _retry(lib, code, err)
+    assert rep and "apil_fx._impl.Hidden.run(a=1, b=2)" in rep, rep
+
+
+def test_namespace_package_in_the_workspace_is_workspace_code(lib, monkeypatch):
+    (lib.wd / "helpers_ns").mkdir()
+    (lib.wd / "helpers_ns" / "tools.py").write_text("raise SystemExit('executed')\n")
+    monkeypatch.chdir(lib.wd)
+    monkeypatch.syspath_prepend(str(lib.wd))   # e.g. an engine started with `python -m`
+    apf._workspace_cache.clear()
+    assert apf._workspace_root("helpers_ns", str(lib.wd)) is True
+    apf._workspace_cache.clear()
+    assert apf._workspace_root(PKG, str(lib.wd)) is False
+
+
+def test_relative_file_origin_is_resolved_against_cwd(lib, monkeypatch):
+    import importlib.machinery
+    import importlib.util
+    (lib.wd / "relmod.py").write_text("X = 1\n")
+    spec = importlib.machinery.ModuleSpec("relmod", None, origin="relmod.py")
+    spec.has_location = True
+    real = importlib.util.find_spec
+    monkeypatch.setattr(importlib.util, "find_spec",
+                        lambda name, *a: spec if name == "relmod" else real(name, *a))
+    monkeypatch.chdir(lib.wd)
+    apf._workspace_cache.clear()
+    assert apf._workspace_root("relmod", str(lib.wd)) is True
+    apf._workspace_cache.clear()
+
+
+def test_two_bounces_at_the_same_attempt_keep_both_reports(lib):
+    ctx = PlanContext(main_task="t", api_introspect_retry=False, max_n_attempts=3)
+    _engineer(ctx, lib.wd, attempts=2, api_preflight_report="FIRST", api_preflight_bounces=1)
+    _engineer(ctx, lib.wd, attempts=3, api_preflight_report="SECOND", api_preflight_bounces=2,
+              api_preflight_last_bounced=True)
+    cb = lib.wd / "codebase"
+    assert (cb / "step_2_attempt_3_b1.bounce.log").read_text() == "FIRST"
+    assert (cb / "step_2_attempt_3_b2.bounce.log").read_text() == "SECOND"
+
+
+def test_long_reports_are_cut_at_a_line():
+    text = "\n".join(f"line {i} " + "x" * 90 for i in range(200))
+    out = ai._cap_report(text, limit=1000)
+    assert len(out) <= 1100 and out.endswith("more lines omitted]")
+    assert all(l.startswith("line ") for l in out.splitlines()[:-1])
+    assert ai._cap_report("short") == "short"

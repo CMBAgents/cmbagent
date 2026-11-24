@@ -155,7 +155,8 @@ def engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
                 print(f"[api_report] step {state.get('step_number', 1) or 1} attempt {attempts}: "
                       f"no retry report ({silent_why[-1]})", file=sys.stderr, flush=True)
         else:
-            _persist_api_report(state, attempts, "bounce", api_preflight_report)
+            _persist_api_report(state, attempts, "bounce", api_preflight_report,
+                                index=state.get("api_preflight_bounces"))
 
     retry_block = render_retry_context(
         attempts=attempts,

@@ -353,25 +353,42 @@ _STEER = (
 
 
 def kwarg_error_qualifier(stderr: str | None) -> str | None:
-    """The class qualifier of the LAST call-shape TypeError in `stderr` (`Mixin` in
-    `Mixin.score() got an unexpected keyword argument`), or None when the message
-    names a bare function. Companion to `classify_api_error`, whose tuple shape is fixed."""
-    best = None
-    for pat in (_SIGNATURE_KWARG_PATTERN, _SIGNATURE_ARITY_PATTERN, _SIGNATURE_MISSING_PATTERN):
-        for m in pat.finditer(stderr or ""):
-            if best is None or m.start() > best.start():
-                best = m
-    return best.group("cls") if best is not None else None
+    """The class qualifier (`Mixin` in `Mixin.score() got an unexpected keyword argument`) of the
+    call-shape TypeError `classify_api_error` picks from `stderr`, or None when it picks another
+    shape or the message names a bare function. Companion to `classify_api_error`, whose tuple
+    shape is fixed."""
+    best = _last_match(stderr)
+    if best is None or not best[0].startswith("signature"):
+        return None
+    return best[1].groupdict().get("cls")
+
+
+# The shapes `classify_api_error` recognised before the stderr-only ones below them in
+# `_PATTERNS`. Every reader of its answer (api_history's facts, the bypass-after-fault guard)
+# was written against these, so one of them, when present anywhere in the text, still wins.
+_ORIGINAL_KINDS = frozenset({"module", "instance", "signature_kw", "signature_arity",
+                             "artist_kwarg"})
+
+
+def _all_matches(text: str | None, allow_bare: bool = False) -> list:
+    """Every recognised error in `text` as `(start, kind, match)`, in text order."""
+    out = []
+    for kind, pat in _PATTERNS + (_BARE_PATTERNS if allow_bare else ()):
+        for m in pat.finditer(text or ""):
+            out.append((m.start(), kind, m))
+    out.sort(key=lambda x: x[0])
+    return out
 
 
 def _last_match(text: str | None, allow_bare: bool = False) -> tuple[str, "re.Match"] | None:
-    """`(kind, match)` for the LAST recognised error in `text`, or None. The one matcher
-    behind `classify_api_error` (fixed tuple shape) and `retry_report` (needs the groups)."""
-    best: tuple[int, str, "re.Match"] | None = None
-    for kind, pat in _PATTERNS + (_BARE_PATTERNS if allow_bare else ()):
-        for m in pat.finditer(text or ""):
-            if best is None or m.start() > best[0]:
-                best = (m.start(), kind, m)
+    """`(kind, match)` for the LAST recognised error in `text` among `_ORIGINAL_KINDS`, else
+    the last of the later kinds, else None. The one matcher behind `classify_api_error` (fixed
+    tuple shape) and `kwarg_error_qualifier`. A later kind never displaces an original one: in
+    a chained traceback (`np.trapz` raising, the `except` branch then calling None) the original
+    hit is the one every reader can act on."""
+    hits = _all_matches(text, allow_bare)
+    orig = [h for h in hits if h[1] in _ORIGINAL_KINDS]
+    best = (orig or hits or [None])[-1]
     return (best[1], best[2]) if best is not None else None
 
 
@@ -1667,7 +1684,7 @@ def _frame_report(spec):
             forwards = False
         targets = _forward_targets(callee) if forwards else []
         if targets:
-            out.append("THE FUNCTIONS IT FORWARDS KEYWORDS TO (named in its docstring), with "
+            out.append("THE FUNCTIONS ITS DOCSTRING NAMES (where it may forward keywords), with "
                        "their parameter names:")
             for path, obj in targets:
                 names = [p.name for p in _params(obj, skip_self=True)]
@@ -1845,13 +1862,51 @@ _STEER_CALL = (
     "shown above. Do not resubmit the same call, and do not work around it by inventing data."
 )
 
-# Kinds `classify_api_error` learned after the original four. When one of them is the stderr
-# hit but yields no report, the stdout (caught-and-printed) hit is still tried, exactly as it
-# was when these messages matched nothing.
-_LATER_KINDS = frozenset({"signature_missing", "property_setter", "not_callable", "ctypes_arity",
-                          "value_type", "unknown_argument"})
+# How many distinct stderr hits `retry_report` tries; each may start an introspection process.
+_MAX_STDERR_HITS = 3
+# Bound on the injected report body; a longer one is cut at a line, and says so.
+_MAX_REPORT_CHARS = 4000
 
 _QUOTED_NAME_RE = re.compile(r"'(\w+)'")
+
+
+def _script_classes(code: str | None) -> tuple[set, set]:
+    """`(names, attrs)` of the classes the SCRIPT defines: their names, and every attribute one
+    of them carries — a class-body name (method, assignment) or a `self.<attr> = ...` in a
+    method. A traceback that names one of these is about the engineer's own class, which a
+    same-named library class must never answer for. `(set(), set())` when the script does not
+    parse."""
+    try:
+        tree = ast.parse(code or "")
+    except Exception:  # noqa: BLE001
+        return set(), set()
+    names, attrs = set(), set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        names.add(node.name)
+        for stmt in node.body:
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                attrs.add(stmt.name)
+            elif isinstance(stmt, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                targets = stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]
+                for t in targets:
+                    for sub in ast.walk(t):
+                        if isinstance(sub, ast.Name):
+                            attrs.add(sub.id)
+        for sub in ast.walk(node):
+            if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)) and sub.args.args:
+                me = sub.args.args[0].arg
+                for st in ast.walk(sub):
+                    targets = (st.targets if isinstance(st, ast.Assign) else
+                               [st.target] if isinstance(st, (ast.AnnAssign, ast.AugAssign))
+                               else [])
+                    for t in targets:
+                        for x in ast.walk(t):
+                            if (isinstance(x, ast.Attribute) and isinstance(x.value, ast.Name)
+                                    and x.value.id == me):
+                                attrs.add(x.attr)
+    return names, attrs
 
 
 def _script_imports(code: str, work_dir, apf):
@@ -1902,7 +1957,11 @@ def _retry_body(kind: str, m: "re.Match", code, stderr, work_dir, apf, why: list
     if not code:
         why.append("no script to resolve against")
         return None
+    own_classes, own_attrs = _script_classes(code)
     if kind == "instance":
+        if m.group("type") in own_classes:
+            why.append(f"class {m.group('type')} is defined by the script")
+            return None
         modules, froms = _script_imports(code, work_dir, apf)
         spec = {"type": m.group("type"), "attr": m.group("attr"), "modules": modules,
                 "froms": froms}
@@ -1913,6 +1972,9 @@ def _retry_body(kind: str, m: "re.Match", code, stderr, work_dir, apf, why: list
         return report, _STEER
     if kind in ("signature_kw", "signature_arity", "signature_missing"):
         cls_name, func = m.groupdict().get("cls"), m.group("func")
+        if cls_name and cls_name in own_classes:
+            why.append(f"class {cls_name} is defined by the script")
+            return None
         base = {"already_failed": True}
         if kind == "signature_kw":
             base["invalid_kwarg"] = m.group("kw")
@@ -1953,12 +2015,16 @@ def _retry_body(kind: str, m: "re.Match", code, stderr, work_dir, apf, why: list
     calls = apf.calls_on_line(code, line)
     modules, froms = _script_imports(code, work_dir, apf)
     if kind == "property_setter":
+        if m.group("type") in own_classes:
+            why.append(f"class {m.group('type')} is defined by the script")
+            return None
         spec = {"shape": kind, "type": m.group("type"), "attr": m.group("attr"),
                 "modules": modules, "froms": froms}
     elif kind in ("not_callable", "ctypes_arity"):
-        attrs = sorted({c["attr"] for c in calls if c["attr"]})
+        # An attribute one of the script's own classes carries is not the library's to answer.
+        attrs = sorted({c["attr"] for c in calls if c["attr"] and c["attr"] not in own_attrs})
         if not attrs:
-            why.append("no attribute call on the failing line")
+            why.append("no library attribute call on the failing line")
             return None
         spec = {"shape": kind, "attrs": attrs, "modules": modules, "froms": froms}
         if kind == "not_callable":
@@ -2026,12 +2092,25 @@ def retry_report(ctx, stderr: str | None, code: str | None = None,
     # engineer code": the traceback names a module, and the report would import it.
     from cmbagent_lg.self_debug import api_preflight as _apf
 
-    # stderr first (a real traceback), then stdout for the caught-and-printed case.
+    # stderr first (a real traceback): the last hit, then the one `classify_api_error` picks
+    # (they differ when a later kind follows an original one), then the other hits from last to
+    # first, at most `_MAX_STDERR_HITS` in all. stdout (the caught-and-printed case) only when
+    # stderr holds no original-kind hit, as before the later kinds existed.
     hits = []
-    err_hit = _last_match(stderr)
-    if err_hit is not None:
-        hits.append((err_hit, stderr))
-    if err_hit is None or err_hit[0] in _LATER_KINDS:
+    seen = set()
+    err_all = _all_matches(stderr)
+    picked = _last_match(stderr)
+    ordered = ([err_all[-1]] if err_all else []) + (
+        [(None, picked[0], picked[1])] if picked else []) + err_all[::-1]
+    for _start, kind, m in ordered:
+        key = (kind, m.group(0))
+        if key in seen:
+            continue
+        seen.add(key)
+        hits.append(((kind, m), stderr))
+        if len(hits) >= _MAX_STDERR_HITS:
+            break
+    if not any(h[0][0] in _ORIGINAL_KINDS for h in hits):
         out_hit = _last_match(stdout, allow_bare=True)
         if out_hit is not None:
             hits.append((out_hit, stdout))
@@ -2046,8 +2125,25 @@ def retry_report(ctx, stderr: str | None, code: str | None = None,
             body = None
         if body is not None:
             report, steer = body
-            return "\n".join([_HEADER, "", report, "", steer])
+            return "\n".join([_HEADER, "", _cap_report(report), "", steer])
     return None
+
+
+def _cap_report(report: str, limit: int = _MAX_REPORT_CHARS) -> str:
+    """`report` cut at the last whole line within `limit` characters, with a line saying how
+    many lines were left out; unchanged when it fits."""
+    if len(report) <= limit:
+        return report
+    lines = report.split("\n")
+    kept, size = [], 0
+    for line in lines:
+        if size + len(line) + 1 > limit:
+            break
+        kept.append(line)
+        size += len(line) + 1
+    if not kept:  # one very long line: cut it
+        kept = [lines[0][:limit]]
+    return "\n".join(kept + [f"[report cut here: {len(lines) - len(kept)} more lines omitted]"])
 
 
 __all__ = ["SNIPPET", "CLASS_SNIPPET", "SIGNATURE_SNIPPET", "ARTIST_SNIPPET", "SHAPE_SNIPPET",
