@@ -82,9 +82,10 @@ class DebugState(TypedDict, total=False):
     # input_search — before a file-not-found on a provided input is declared MISSING, the
     # execution evaluator searches `data/` and the declared input roots for the file
     # (`self_debug/input_search.py`). `missing_input_search` is the latest attempt's record
-    # (stale once `attempt` != `attempts`); a hit makes the attempt an ordinary failure and
-    # the engineer's next prompt lists the locations. `missing_input_searches` keeps one
-    # short entry per search for the step outcome.
+    # (stale once `attempt` != `attempts`); a hit that may veto (`veto`: a strong hit on every
+    # attempt, a weak hit or close name once per basename) makes the attempt an ordinary failure
+    # and the engineer's next prompt lists the locations. `missing_input_searches` keeps one
+    # short entry per search, for that once-per-basename check and the step outcome.
     missing_input_search: Optional[dict]
     missing_input_searches: Optional[List[dict]]
 

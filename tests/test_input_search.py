@@ -82,6 +82,7 @@ def test_same_basename_under_an_input_root_is_found_and_ranked(layout):
     # the run the script named comes first
     assert rec["found"][0] == str(root / "L1000N1800_HYDRO" / "output_list_ps.txt")
     assert rec["truncated"] is None and isr.search_found(rec)
+    assert rec["veto"] == "strong" and rec["n_strong"] == 1          # the other run is a weak hit
 
 
 def test_wrong_path_is_an_ordinary_failure_with_the_locations_in_the_next_prompt(layout, monkeypatch, capsys):
@@ -134,11 +135,102 @@ def test_truncated_user_dir_is_found_by_basename(layout, monkeypatch):
 def test_close_name_in_the_existing_parent(layout):
     wd, root = layout
     ctx = PlanContext(main_task="t", input_roots=[str(root)])
-    misspelt = str(root / "L1000N1800_DMO" / "power_spectra" / "ps_000.txt")
+    (root / "L1000N1800_DMO" / "halo_catalogue.hdf5").write_text("x")
+    misspelt = str(root / "L1000N1800_DMO" / "halo_catalog.hdf5")
     rec = isr.search_missing_input(misspelt, wd, ctx, attempt=2)
     assert rec["found"] == []
-    assert rec["close"] == [str(root / "L1000N1800_DMO" / "power_spectra" / "ps_0000.txt")]
+    assert rec["close"] == [str(root / "L1000N1800_DMO" / "halo_catalogue.hdf5")]
+    assert rec["veto"] == "close"
     assert "close name" in isr.render_search_note(rec)
+
+
+@pytest.mark.parametrize("wanted, neighbour", [
+    ("snapshot_0077.hdf5", "snapshot_0078.hdf5"),
+    ("power_spectrum_z0.5.txt", "power_spectrum_z1.0.txt"),
+    ("halo_catalogue_L1000N1800.hdf5", "halo_catalogue_L1000N3600.hdf5"),
+    ("ps_000.txt", "ps_0000.txt"),
+])
+def test_a_close_name_with_other_numbers_is_a_hint_not_a_hit(layout, monkeypatch, wanted, neighbour):
+    """The neighbouring snapshot, redshift or resolution is a different input: the missing-input
+    route stays, and the terminal note names the neighbour as not taken."""
+    wd, root = layout
+    ctx = PlanContext(main_task="t", input_roots=[str(root)])
+    (root / "L1000N1800_DMO" / neighbour).write_text("x")
+    path = str(root / "L1000N1800_DMO" / wanted)
+    state = _evaluate(_fnf_state(wd, path), ctx, monkeypatch)
+    rec = state["missing_input_search"]
+    assert rec["close"] == [] and rec["close_hint"] == [str(root / "L1000N1800_DMO" / neighbour)]
+    assert rec["veto"] is None and isr.render_search_note(rec) == ""
+    assert nodes.route_after_execution_evaluator(state, _rt(ctx)) == "missing_input"
+    fb = nodes.missing_input(state, _rt(ctx))["current_step_verdict"].feedback
+    assert neighbour in fb and "not taken as this input" in fb
+
+
+def test_a_same_name_file_under_another_run_vetoes_once(layout, monkeypatch):
+    """A task naming a run that is not mirrored: output_list_ps.txt exists under every OTHER run.
+    The first attempt is retried with a do-not-substitute note; the second ends missing."""
+    wd, root = layout
+    ctx = PlanContext(main_task="t", input_roots=[str(root)], max_n_attempts=5)
+    absent_run = str(root / "L2800N5040_HYDRO" / "output_list_ps.txt")
+    s1 = _evaluate(_fnf_state(wd, absent_run, attempts=1), ctx, monkeypatch)
+    rec = s1["missing_input_search"]
+    assert rec["n_found"] == 2 and rec["strong"] == [] and rec["veto"] == "weak"
+    assert nodes.route_after_execution_evaluator(s1, _rt(ctx)) == "engineer"
+    note = nodes._input_search_note(s1, attempts=2)
+    assert "only under directories the path did not name" in note
+    assert "DIFFERENT input" in note and "report that the input is missing" in note
+    s2 = _evaluate({**s1, **_fnf_state(wd, absent_run, attempts=2)}, ctx, monkeypatch)
+    assert s2["missing_input_search"]["veto"] is None
+    assert [b["veto"] for b in s2["missing_input_searches"]] == ["weak", None]
+    assert nodes.route_after_execution_evaluator(s2, _rt(ctx)) == "missing_input"
+    fb = nodes.missing_input(s2, _rt(ctx))["current_step_verdict"].feedback
+    assert "exist only under directories the path did not name" in fb
+
+
+def test_a_strong_hit_vetoes_on_every_attempt(layout, monkeypatch):
+    wd, root = layout
+    ctx = PlanContext(main_task="t", input_roots=[str(root)], max_n_attempts=5)
+    wrong = str(root / "L1000N1800_HYDRO" / "power_spectra" / "output_list_ps.txt")
+    s1 = _evaluate(_fnf_state(wd, wrong, attempts=1), ctx, monkeypatch)
+    s2 = _evaluate({**s1, **_fnf_state(wd, wrong, attempts=2)}, ctx, monkeypatch)
+    assert [b["veto"] for b in s2["missing_input_searches"]] == ["strong", "strong"]
+    assert nodes.route_after_execution_evaluator(s2, _rt(ctx)) == "engineer"
+
+
+def test_a_directory_of_that_name_is_found(layout):
+    wd, root = layout
+    ctx = PlanContext(main_task="t", input_roots=[str(root)])
+    rec = isr.search_missing_input(str(root / "power_spectra"), wd, ctx, attempt=1)
+    assert rec["n_found"] == 2 and rec["veto"] == "weak"
+
+
+def test_a_truncated_search_is_named_in_the_terminal_note(layout, monkeypatch):
+    wd, root = layout
+    ctx = PlanContext(main_task="t", input_roots=[str(root)])
+    monkeypatch.setattr(isr, "MAX_ENTRIES", 2)
+    absent = str(root / "L1000N1800_HYDRO" / "halo_catalogue_zzz.hdf5")
+    state = _evaluate(_fnf_state(wd, absent), ctx, monkeypatch)
+    assert state["missing_input_search"]["truncated"] == "entries"
+    fb = nodes.missing_input(state, _rt(ctx))["current_step_verdict"].feedback
+    assert "stopped at its entries bound" in fb
+
+
+def test_the_engineer_prompt_carries_the_wrong_path_note(layout, monkeypatch):
+    """The wiring in `engineer()`: the attempt after a vetoing search opens with the note."""
+    wd, root = layout
+    ctx = PlanContext(main_task="t", input_roots=[str(root)], max_n_attempts=3, enable_api_digest=False)
+    wrong = str(root / "L1000N1800_HYDRO" / "power_spectra" / "output_list_ps.txt")
+    state = _evaluate(_fnf_state(wd, wrong), ctx, monkeypatch)
+    seen = []
+
+    class _P:
+        def invoke(self, msgs, config=None):
+            seen.append("\n".join(str(m.content) for m in msgs))
+            return types.SimpleNamespace(text="```python\nprint(1)\n```")
+    monkeypatch.setattr(nodes, "_proposer", lambda ctx: _P())
+    nodes.engineer(state, _rt(ctx))
+    assert "WRONG INPUT PATH" in seen[0]
+    assert str(root / "L1000N1800_HYDRO" / "output_list_ps.txt") in seen[0]
 
 
 def test_without_input_roots_data_is_still_searched(tmp_path, monkeypatch):
