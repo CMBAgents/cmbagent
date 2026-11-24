@@ -27,9 +27,12 @@ def load_yaml(package: str, name: str) -> dict:
 
 def schema_field_brief(schema) -> str:
     """One bullet per Pydantic field — drop into a generator prompt so the
-    LLM knows which fields to cover before the formatter extracts them."""
+    LLM knows which fields to cover before the formatter extracts them. Fields marked
+    `json_schema_extra={"internal": True}` are set by the engine and left out."""
     lines = []
     for name, field in schema.model_fields.items():
+        if isinstance(field.json_schema_extra, dict) and field.json_schema_extra.get("internal"):
+            continue
         t = str(field.annotation).replace("typing.", "")
         if t.startswith("<class '") and t.endswith("'>"):
             t = t[len("<class '") : -len("'>")]

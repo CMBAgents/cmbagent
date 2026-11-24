@@ -130,6 +130,12 @@ class PlanContext:
     # Max engineer attempts per sub-task before giving up. Mirrors
     # cmbagent's `max_n_attempts` (default 3 there too).
     max_n_attempts: int = 3
+    # A researcher step that needs code goes to the engineer (`planning/agent_check.py`):
+    # after format_plan (a researcher step other than the last that asks to compute, load,
+    # read data files, run code or persist results), and at run time once, when a
+    # researcher verdict or report says the work needs executing code / reading data
+    # files / writing files. Only when an `engineer` agent is available. False: neither.
+    reassign_researcher_code_steps: bool = True
     # ── operator text, and WHICH AGENTS SEE IT ───────────────────────────
     # Three slots, because "who is this addressed to" is a real distinction and
     # getting it wrong is expensive. Measured on the metabric fleet: the operator

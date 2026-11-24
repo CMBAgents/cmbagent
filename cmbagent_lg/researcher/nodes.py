@@ -447,6 +447,17 @@ def step_evaluator(
         "current_step_verdict": verdict,
         "step_feedback_history": feedback_history,
     }
+    # A goal-miss whose verdict or report says the work needs code: hand the step to the
+    # engineer (deep_research.run_step) rather than rewriting the report again.
+    if not verdict.fulfilled and state.get("engineer_reassignment_allowed"):
+        from cmbagent_lg.planning.agent_check import needs_code_signal, reassignment_enabled
+
+        signal = needs_code_signal(verdict, report) if reassignment_enabled(ctx) else None
+        if signal:
+            out["needs_engineer"] = {**signal, "attempt": attempt}
+            print(f"[researcher] step {n} attempt {attempt}: not fulfilled and the {signal['source']} says the "
+                  f"work needs code ({signal['matched']!r}) → ending the researcher loop for the engineer",
+                  file=sys.stderr, flush=True)
     if evidence.on:
         out["claim_hints"] = hints
         out["source_index_key"] = evidence.index.key
@@ -475,6 +486,8 @@ def route_after_step_evaluator(
     ctx = runtime.context
     if state["current_step_verdict"].fulfilled:
         return "claim_auditor" if getattr(ctx, "claim_audit_enabled", True) else END
+    if state.get("needs_engineer"):
+        return END          # deep_research.run_step gives the step to the engineer
     if state.get("attempts", 0) >= ctx.max_n_attempts:
         return END
     return writer_node_name(ctx)

@@ -23,6 +23,14 @@ class Step(BaseModel):
         default=None,
         description="Max seconds for code execution in this step. None = default.",
     )
+    # Set by the engine, never by the planner (kept out of the planner's field brief): the
+    # agent this step was moved from, e.g. a researcher step that asks for code work
+    # (`planning/agent_check.py`).
+    reassigned_from: Optional[str] = Field(
+        default=None,
+        description="Agent this step was reassigned from by the engine.",
+        json_schema_extra={"internal": True},
+    )
 
 
 class Plan(BaseModel):

@@ -53,5 +53,13 @@ class ResearcherState(TypedDict, total=False):
     claim_hints: List[str]
     source_index_key: str
 
+    # Run-time reassignment (`planning/agent_check.py`). `engineer_reassignment_allowed` is
+    # set by `deep_research.run_step` when an engineer could take the step over; standalone
+    # researcher runs never set it. `needs_engineer` — {"source", "matched", "attempt"} — is
+    # set by the step evaluator when an unfulfilled verdict or the report says the work needs
+    # code; the router then ENDs instead of spending the remaining attempts.
+    engineer_reassignment_allowed: bool
+    needs_engineer: Optional[dict]
+
     # Bookkeeping
     node_elapsed_s: Annotated[List[NodeTiming], operator.add]

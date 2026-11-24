@@ -379,10 +379,30 @@ def run_step(
         "step_number": n,
         "previous_steps_execution_summary": summary_block,
     }
+    reassigned = None
     if step.sub_task_agent == "engineer":
         sub_state = self_debug_graph.invoke(invoke_input, context=runtime.context)
     elif step.sub_task_agent == "researcher":
-        sub_state = researcher_graph.invoke(invoke_input, context=runtime.context)
+        from cmbagent_lg.planning.agent_check import reassignment_enabled
+
+        allowed = reassignment_enabled(runtime.context)
+        sub_state = researcher_graph.invoke(
+            {**invoke_input, "engineer_reassignment_allowed": allowed}, context=runtime.context)
+        need = sub_state.get("needs_engineer") if allowed else None
+        if need and not getattr(sub_state.get("current_step_verdict"), "fulfilled", False):
+            # The researcher cannot execute code: run the step ONCE with the engineer instead
+            # of spending its remaining attempts (`planning/agent_check.py`).
+            reassigned = {"from": "researcher", "to": "engineer", "at": "run_time",
+                          "source": need.get("source"), "matched": need.get("matched"),
+                          "researcher_attempts": sub_state.get("attempts", 0)}
+            print(f"[deep_research] step {n}: the researcher's {need.get('source')} says the work needs code "
+                  f"({need.get('matched')!r}) → reassigned to the engineer for this step",
+                  file=sys.stderr, flush=True)
+            step = step.model_copy(update={"sub_task_agent": "engineer", "reassigned_from": "researcher"})
+            tasks = list(plan.sub_tasks)
+            tasks[n - 1] = step
+            plan = plan.model_copy(update={"sub_tasks": tasks})
+            sub_state = self_debug_graph.invoke({**invoke_input, "step": step}, context=runtime.context)
     else:
         outcome = {
             "step_number": n,
@@ -461,6 +481,7 @@ def run_step(
         "escalated": sub_state.get("escalated", False),
     }
     outcome.update(evaluator_outcome_fields(sub_state))
+    outcome.update(_reassignment_and_input_fields(step, sub_state, reassigned))
     if substituted:
         # Reaches the run summary, the report (through the step summary above) and
         # `analysis_status.json`'s `infeasible_steps`: a step completed by substitution
@@ -547,11 +568,38 @@ def run_step(
     new_outcomes = state.get("step_outcomes", []) + [outcome]
     # Checkpoint after every completed step so a later crash is recoverable.
     _checkpoint(state.get("work_dir"), plan, new_outcomes, new_summaries)
-    return {
+    out = {
         "step_summaries": new_summaries,
         "step_outcomes": new_outcomes,
         "step_index": n + 1,
     }
+    if reassigned:
+        out["plan"] = plan          # the step now names the agent that ran it
+    return out
+
+
+def _reassignment_and_input_fields(step: Step, sub_state: dict, reassigned: Optional[dict]) -> dict:
+    """Step-outcome fields for a researcher step moved to the engineer (`reassigned`: at "plan"
+    by the plan check, or at "run_time") and for the missing-input gate: `missing_input` when the
+    step ended because a provided input was found nowhere, `input_searches` for every search the
+    gate ran (a found location means the attempt was retried, not ended). Empty otherwise."""
+    out: dict = {}
+    if reassigned:
+        out["reassigned"] = dict(reassigned)
+    elif getattr(step, "reassigned_from", None):
+        out["reassigned"] = {"from": step.reassigned_from, "to": step.sub_task_agent, "at": "plan"}
+    record = sub_state.get("missing_input_record")
+    if sub_state.get("unfulfillable") or record:
+        rec = record or {}
+        search = rec.get("search") or {}
+        out["missing_input"] = {"missing": rec.get("missing"), "searched_roots": search.get("roots"),
+                                "entries_seen": search.get("entries_seen"), "truncated": search.get("truncated")}
+    elif sub_state.get("data_fixer_format") == "missing":
+        out["missing_input"] = {"missing": None, "by": "data_fixer"}
+    searches = sub_state.get("missing_input_searches")
+    if searches:
+        out["input_searches"] = list(searches)
+    return out
 
 
 # ── linear router (not wired into the graph; see `route_after_review`) ─────
@@ -962,7 +1010,12 @@ def format_tail(
             [SystemMessage(_FORMATTER_SYS_TAIL), HumanMessage(raw)],
             config={"tags": ["format_tail"]},
         )
-        return {"new_tail": Plan(**dyn.model_dump())}
+        # The plan check of `format_plan`, on the replanned tail (whose last step is the
+        # plan's last step, the final report).
+        from cmbagent_lg.planning.agent_check import reassign_code_steps
+
+        tail, _ = reassign_code_steps(Plan(**dyn.model_dump()), ctx, label="format_tail")
+        return {"new_tail": tail}
     except Exception as e:  # noqa: BLE001 — a parse failure is a no-op, never a crash
         print(f"[format_tail] formatter failed — fail-safe (keep existing tail): {e}",
               file=sys.stderr, flush=True)

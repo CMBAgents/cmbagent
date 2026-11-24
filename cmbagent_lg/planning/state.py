@@ -18,5 +18,8 @@ class PlanState(TypedDict, total=False):
     current_review: Optional[Review]
     history: List[Tuple[Plan, Review]]
     round: int
+    # Researcher steps the plan check moved to the engineer, one record per move and round
+    # (`planning/agent_check.py`); the moved steps also carry `Step.reassigned_from`.
+    plan_reassignments: List[dict]
     # appended per node pass via @timed_node; concatenated by operator.add
     node_elapsed_s: Annotated[List[NodeTiming], operator.add]

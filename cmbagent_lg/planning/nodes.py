@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field, create_model
 
 from cmbagent_lg.context import PlanContext
 from cmbagent_lg.llms import chat_model
+from cmbagent_lg.planning.agent_check import reassign_code_steps
 from cmbagent_lg.planning.prompts import (
     planner_instructions,
     plan_reviewer_instructions,
@@ -186,7 +187,15 @@ def format_plan(state: PlanState, runtime: Runtime[PlanContext]) -> PlanState:
     )
     # Round-trip the DynPlan through dict into the static Plan so the rest of
     # the graph and external callers see a stable type.
-    return {"current_plan": Plan(**dyn.model_dump())}
+    plan = Plan(**dyn.model_dump())
+    # Researcher steps (other than the final report) that ask for code work go to the
+    # engineer; deterministic, no model call.
+    plan, moved = reassign_code_steps(plan, ctx, label="format_plan")
+    out: PlanState = {"current_plan": plan}
+    if moved:
+        out["plan_reassignments"] = list(state.get("plan_reassignments") or []) + [
+            {**r, "round": state.get("round")} for r in moved]
+    return out
 
 
 @timed_node("format_review")
