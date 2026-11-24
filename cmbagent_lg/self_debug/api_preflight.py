@@ -1793,6 +1793,31 @@ def _persist_bounce(state: DebugState, code: str, report: str, index: int) -> No
               file=sys.stderr, flush=True)
 
 
+def persist_engineer_report(state: DebugState, attempt: int, kind: str, report: str) -> None:
+    """Keep an API report the engineer is about to RECEIVE on disk, and say so on stderr.
+    Never raises.
+
+    Prompts are not stored in the run dir, so without this nothing records which report an
+    attempt was given. `kind` is "retry" (`api_introspect.retry_report`, built from the last
+    traceback) or "bounce" (`api_preflight_report`, the refused script's report); the file is
+    `codebase/step_{N}_attempt_{K}.{kind}.log`, K being the attempt that receives it. Same
+    pattern as `_persist_bounce`.
+    """
+    try:
+        n = state.get("step_number", 1) or 1
+        print(f"[api_report] step {n} attempt {attempt}: {kind} report injected "
+              f"({len(report)} chars)", file=sys.stderr, flush=True)
+        work_dir = state.get("work_dir")
+        if not work_dir:
+            return
+        codebase = Path(work_dir).expanduser() / "codebase"
+        codebase.mkdir(parents=True, exist_ok=True)
+        (codebase / f"step_{n}_attempt_{attempt}.{kind}.log").write_text(report)
+    except Exception as e:  # noqa: BLE001 — bookkeeping must never break the attempt
+        print(f"[api_report] could not persist the {kind} report (non-fatal): {e}",
+              file=sys.stderr, flush=True)
+
+
 def _import_everything(an: _Analysis, ledger: _ImportLedger, work_dir: Optional[str]) -> bool:
     """Import, through the budgeted ledger, EVERY module the script names — unguarded or
     guarded, by statement or by a literal `import_module("...")` — and say whether the class

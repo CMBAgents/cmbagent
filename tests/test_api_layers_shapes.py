@@ -336,3 +336,64 @@ def test_new_shapes_classify(lib):
     assert ai.classify_api_error("warning: Unrecognized parameter: x\n") is None
 
 
+# ── 4. every API report the engineer receives is logged and kept ─────────────
+
+
+def _engineer(ctx, wd, **state_kw):
+    captured = {}
+
+    class _FakeLLM:
+        def invoke(self, msgs, config=None):
+            captured["system"] = msgs[0].content
+            return types.SimpleNamespace(text="```python\nprint(1)\n```")
+
+    state = {
+        "step": Step(sub_task="parse", sub_task_agent="engineer", bullet_points=["x"]),
+        "step_number": 2,
+        "work_dir": str(wd),
+        "attempts": 1,
+        "current_code": EngineerResponse(python_code="import json\njson.load_all(f)\n",
+                                         code_explanation="x"),
+        "current_execution_verdict": ExecutionVerdict(status="failure", failure_kind="renamed_api",
+                                                      error_summary="AttributeError",
+                                                      fix_suggestion="check"),
+        "execution_stderr": "AttributeError: module 'json' has no attribute 'load_all'\n",
+        "execution_stdout": "",
+        "execution_returncode": 1,
+        "execution_timed_out": False,
+        "error_history": [],
+    }
+    state.update(state_kw)
+    saved = sd_nodes._proposer
+    sd_nodes._proposer = lambda _c: _FakeLLM()
+    try:
+        out = sd_nodes.engineer(state, types.SimpleNamespace(context=ctx))
+    finally:
+        sd_nodes._proposer = saved
+    return out, captured["system"]
+
+
+def test_engineer_keeps_every_api_report_it_receives(lib, capfd):
+    ctx = PlanContext(main_task="t", api_introspect_retry=True, max_n_attempts=3)
+    out, system = _engineer(ctx, lib.wd)
+    log = lib.wd / "codebase" / "step_2_attempt_2.retry.log"
+    assert out["attempts"] == 2 and log.exists() and "ABSENT: json.load_all" in log.read_text()
+    assert "ABSENT: json.load_all" in system
+    assert "step 2 attempt 2: retry report injected" in capfd.readouterr().err
+
+    out, system = _engineer(ctx, lib.wd, attempts=2, api_preflight_report="BOUNCE REPORT TEXT")
+    assert (lib.wd / "codebase" / "step_2_attempt_3.bounce.log").read_text() == "BOUNCE REPORT TEXT"
+    assert out["attempts"] == 3 and "BOUNCE REPORT TEXT" in system
+
+    # A silent retry says why, and writes nothing.
+    _engineer(ctx, lib.wd, attempts=1, execution_stderr="ValueError: bad\n")
+    assert "no retry report (no API-shaped error in the output)" in capfd.readouterr().err
+    # Persistence failing never breaks the attempt.
+    (lib.wd / "codebase").chmod(0o500)
+    try:
+        out, _ = _engineer(ctx, lib.wd, attempts=1)
+        assert out["attempts"] == 2
+    finally:
+        (lib.wd / "codebase").chmod(0o700)
+
+

@@ -35,6 +35,7 @@ from cmbagent_lg.prompt_utils import schema_field_brief
 from cmbagent_lg.self_debug.api_digest import digest_for_step as api_digest_for_step
 from cmbagent_lg.self_debug import attempt_manifest as _attempt_manifest
 from cmbagent_lg.self_debug import api_history as _api_history
+from cmbagent_lg.self_debug.api_preflight import persist_engineer_report as _persist_api_report
 from cmbagent_lg.self_debug.api_introspect import retry_report as api_retry_report
 from cmbagent_lg.self_debug.api_introspect import classify_api_error as _bypass_classify_api_error
 from cmbagent_lg.self_debug.api_introspect import module_shape_report as _bypass_module_shape_report
@@ -136,9 +137,18 @@ def engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         # Skipped when the pre-flight refused to run this code — the output in state is
         # then an EARLIER attempt's. Returns None unless `api_introspect_retry` is on.
         if api_preflight_report is None:
+            silent_why: list = []
             api_introspect_report = api_retry_report(
-                ctx, last_stderr, last_code, last_stdout, state.get("work_dir")
+                ctx, last_stderr, last_code, last_stdout, state.get("work_dir"),
+                reasons=silent_why,
             )
+            if api_introspect_report:
+                _persist_api_report(state, attempts, "retry", api_introspect_report)
+            elif silent_why and silent_why[-1] != "disabled" and (last_stderr or last_stdout):
+                print(f"[api_report] step {state.get('step_number', 1) or 1} attempt {attempts}: "
+                      f"no retry report ({silent_why[-1]})", file=sys.stderr, flush=True)
+        else:
+            _persist_api_report(state, attempts, "bounce", api_preflight_report)
 
     retry_block = render_retry_context(
         attempts=attempts,
@@ -276,7 +286,11 @@ def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSt
 #   {work_dir}/codebase/step_{N}.log             ← stdout+stderr of the latest run
 #   {work_dir}/codebase/step_{N}_failure_{I}.py  ← attempt I's code, kept on failure
 #   {work_dir}/codebase/step_{N}_failure_{I}.log ← attempt I's run log, kept on failure
-#   {work_dir}/data/                                  ← the conventional output dir
+#   {work_dir}/codebase/step_{N}_bounced_{B}.{py,log} ← the B-th script the API pre-flight
+#                                                       refused, and its report
+#   {work_dir}/codebase/step_{N}_attempt_{K}.{retry,bounce}.log ← the API report attempt K
+#                                                       was GIVEN (retry report / bounce report)
+#   {work_dir}/data/                                ← the conventional output dir
 #   {work_dir}/<anything else>                        ← outputs a step writes elsewhere
 #                                                       (answer.json, work/spectra.npz)
 #   {work_dir}/logs/step_{N}_execution_verdict.json   ← did the code RUN cleanly
