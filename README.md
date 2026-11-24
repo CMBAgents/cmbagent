@@ -179,7 +179,7 @@ The other nodes are checks that make no model call, except the intent gate in `p
 | `static_preflight` | Refuses a script that does not parse, prints nothing, or loads a bundled demo dataset instead of the provided data. | always on |
 | `api_preflight` | Checks every third-party name the script uses against the installed packages, and returns the real API to the engineer before running. | `enable_api_preflight` (on) |
 | `output_postcondition` | Sends the script back when a run finished without writing an output file that the step declared. | always on |
-| `missing_input` | Ends the step when a required input file does not exist, so that the engineer does not invent the data. | `safe_loading`, `enable_intent_gate` (on) |
+| `missing_input` | Ends the step when a required input file does not exist, so that the engineer does not invent the data. Before that, `data/` and every `input_roots` directory are searched for a file of the same name (or a close name next to the path the script used); a file found elsewhere makes the attempt an ordinary failure, and the next prompt names the locations. | `safe_loading`, `enable_intent_gate` (on) |
 
 The dashed nodes are optional. `data_fixer` (`enable_data_fixer`, off) inspects a data file that fails to load, down to its bytes or HDF5 tree, and gives the engineer loader guidance. `escalation` (`enable_escalation`, off) hands a missing package or a renamed API once to a Claude Agent SDK agent, with a budget of US$0.50. With `vlm_enabled=False`, a script that ran goes straight to `step_evaluator`.
 
@@ -224,6 +224,7 @@ All settings are fields of `PlanContext`, passed to every graph as `context=`. T
 | `vlm_model` | `gemini-3.1-pro-preview` | Vision model of the figure reviewer. |
 | `adaptive_reviewer_model`, `adaptive_planner_model` | `gemini-3.1-pro-preview`, `gemini-3.6-flash` | Models of the review and replanning between steps; the env variables `ADAPTIVE_REVIEWER_MODEL` / `ADAPTIVE_PLANNER_MODEL` still apply when these are unset. |
 | `max_n_attempts` | 3 | Attempts per step, shared by all retry paths. |
+| `reassign_researcher_code_steps` | `True` | A researcher step that needs code goes to the engineer: at planning, a step other than the last that asks to compute, load, read data files, run code or save results; at run time, once, when the researcher's verdict or report says the work needs code. |
 | `code_execution_timeout` | 120 | Seconds before a running script is stopped. |
 | `vlm_enabled` | `True` | Figure review in `self_debug`, and figures shown to the researcher. |
 | `researcher_mode` | `"react"` | `"react"` for the ReAct writer, `"plain"` for the single-call writer. |
@@ -241,7 +242,7 @@ A model name selects its provider: `gpt-*` and `o1`/`o3`/`o4` names go to OpenAI
 ```json
 {
   "qwen3.8-flash-next": {"base_url": "http://127.0.0.1:30000/v1", "key_file": "~/.config/llm/qwen.key"},
-  "kimi-k3": {"base_url": "https://llm.example.org/v1", "model": "moonshotai/Kimi-K3",
+  "kimi-k3": {"base_url": "https://llm.example.org/v1", "model": "moonshotai/Kimi-K3.1-Pro",
               "key_file": "~/.config/llm/endpoint.env", "key_var": "API_KEY", "max_tokens": 32000}
 }
 ```
@@ -255,6 +256,8 @@ Each entry needs `base_url`. The optional fields are:
 | `key_file`, `key_var` | A file holding the key: a bare key, or `NAME=value` lines, of which `key_var` names the one to use. Without either key setting the key is `EMPTY`. |
 | `max_tokens`, `timeout`, `temperature` | Request settings; `temperature` replaces the role's. |
 | `structured_output` | `"json_schema"` (default) or `"function_calling"`, for servers that reject JSON-schema response formats. |
+| `extra_body` | Request fields sent with every request of the endpoint, all roles, e.g. a gateway's `{"cache": {"no-cache": true, "no-store": true}}`. |
+| `thinking`, `structured_body`, `no_thinking` | Request fields for thinking models: per role, for structured calls, and for the retries (see `cmbagent_lg/llms.py`). Each is deep-merged over the previous one, in the order `extra_body` < `thinking[role]` < `structured_body` < `no_thinking`. |
 
 A listed model can fill any role, and one run can mix endpoints. The roles need a server that returns JSON-schema structured output, and, for the ReAct researcher, multi-turn tool calls. `python tests/check_endpoints.py` checks both, and plain chat, for every model in the registry. `formatter_model` defaults to Gemini, so a run without a Google key sets it to a listed model too.
 

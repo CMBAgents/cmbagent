@@ -411,7 +411,8 @@ researcher stay creative.
 
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `safe_loading` | `bool` | **`True`** | Mandatory anti-fabrication layer, zero extra model calls: data-integrity rules in the step evaluator, plus a terminal not-fulfilled when a required input file the script does not itself write is genuinely absent. |
+| `safe_loading` | `bool` | **`True`** | Mandatory anti-fabrication layer, zero extra model calls: data-integrity rules in the step evaluator, plus a terminal not-fulfilled when a required input file the script does not itself write is genuinely absent. "Absent" means also not found by a bounded search of `data/` and `input_roots` for the same basename, or a close name in the path's existing parent (`self_debug/input_search.py`); a hit is an ordinary retry with the locations in the engineer's prompt. |
+| `reassign_researcher_code_steps` | `bool` | **`True`** | Researcher steps that need code go to the engineer (`planning/agent_check.py`): after `format_plan` / `format_tail`, a researcher step other than the last that asks to compute, load, read data files, run code or persist results; at run time, once, when an unfulfilled researcher verdict or the report says the work needs code. Recorded as `reassigned` in the step outcome. Needs an `engineer` agent. |
 | `enable_preflight` | `bool` | **`True`** | Deterministic, no-LLM `preflight` node inspects every file in `work_dir/data/` before the first attempt and injects a factual FILE REPORT. |
 | `enable_intent_gate` | `bool` | **`True`** | Fires only when `preflight` finds `data/` empty: one cheap classifier call decides whether the step needs provided input or whether creating the data *is* the step. Fails open. |
 | `intent_gate_model` | `str \| None` | `None` | Falls back to `formatter_model` (formatter role). |
