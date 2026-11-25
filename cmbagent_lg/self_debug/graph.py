@@ -24,6 +24,7 @@ from cmbagent_lg.context import PlanContext
 from cmbagent_lg.self_debug.state import DebugState
 from cmbagent_lg.self_debug.nodes import (
     engineer,
+    route_after_engineer,
     format_engineer,
     executor,
     execution_evaluator,
@@ -81,7 +82,13 @@ graph = (
         {"preflight": "preflight", "engineer": "engineer"},
     )
     .add_edge("preflight", "engineer")
-    .add_edge("engineer", "format_engineer")
+    # An engineer call that timed out or got a 5xx (after its retry) fails its attempt through format_engineer;
+    # `_MAX_ENGINEER_MODEL_FAILURES` in a row end the step here.
+    .add_conditional_edges(
+        "engineer",
+        route_after_engineer,
+        {"format_engineer": "format_engineer", END: END},
+    )
     # Both pre-flights sit on the ONE edge where the code exists but has not yet run.
     # The static one (parse + prints-anything, always on, microseconds) goes first: a
     # refused script is a failed attempt and goes to the code gate as if it had crashed,

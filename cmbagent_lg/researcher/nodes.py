@@ -22,7 +22,7 @@ from langgraph.graph import END
 from langgraph.runtime import Runtime
 
 from cmbagent_lg.context import PlanContext
-from cmbagent_lg.llms import chat_model
+from cmbagent_lg.llms import chat_model, invoke_or_end as _invoke_or_end
 from cmbagent_lg.prompt_utils import flatten_content, schema_field_brief
 from cmbagent_lg.vlm import collect_images, with_images
 from cmbagent_lg.researcher import grounding as G
@@ -332,10 +332,10 @@ def researcher(state: ResearcherState, runtime: Runtime[PlanContext]) -> Researc
                 images,
             )
 
-    msg = _proposer(runtime.context).invoke(
+    msg = _invoke_or_end("researcher", lambda: _proposer(runtime.context).invoke(
         [SystemMessage(system), HumanMessage(content=user_content)],
         config={"tags": ["researcher"]},
-    )
+    ), label=f"researcher step {state.get('step_number', 1)} attempt {attempts}")
     report = flatten_content(msg.content).strip()
 
     n = state.get("step_number", 1)

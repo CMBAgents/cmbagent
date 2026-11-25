@@ -446,6 +446,7 @@ researcher stay creative.
 | Carryover compaction | Unbounded O(steps²) prompt growth, while keeping the compacted detail reachable on disk through the workspace manifest. |
 | `merge_plan` freezing | An adaptive re-plan rewriting, deleting or re-doing work that already completed. |
 | Artifact demotion | A failed or nudged attempt overwriting the canonical `codebase/step_N.py` / `reports/step_N.md`; those are renamed with the attempt number instead. |
+| Model timeouts and 5xx | One slow or failing server ending the run. A model call that times out or gets a 5xx (`llms.transient_model_errors`) is tried once more after `llms.TRANSIENT_RETRY_PAUSE_S` (30 s). In the engineer a second failure fails only the attempt, with a script that prints and exits with the reason, and two such failures in a row end the step with that reason (`logs/step_N_engineer_errors.json`, the outcome's `reason` and `model_failure`; not replanned). For the planner, plan reviewer and researcher a second failure ends the run with `llms.ModelCallFailed`, whose message says which call failed and why; a researcher step records it as its outcome's `reason`, so `analysis_status.json` reads `halted` with that reason. Authentication, unknown-model, rate-limit (429), quota and connection errors raise at once. |
 
 Two structural rules hold across the system. Every bounded loop is bounded **twice** — image review,
 API pre-flight bounces, the bypass nudge and the claim audit each have their own ceiling *and*

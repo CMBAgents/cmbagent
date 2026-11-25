@@ -30,7 +30,14 @@ from langgraph.graph import END
 from langgraph.runtime import Runtime
 
 from cmbagent_lg.context import PlanContext, effective_code_execution_timeout
-from cmbagent_lg.llms import answer_mode, answer_problem, chat_model, model_failure_types
+from cmbagent_lg.llms import (
+    answer_mode,
+    answer_problem,
+    chat_model,
+    invoke_with_transient_retry,
+    model_failure_types,
+    transient_model_errors,
+)
 from cmbagent_lg.prompt_utils import schema_field_brief
 from cmbagent_lg.self_debug.api_digest import digest_for_step as api_digest_for_step
 from cmbagent_lg.self_debug import attempt_manifest as _attempt_manifest
@@ -211,10 +218,20 @@ def engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         "extract the structured fields. Make sure your response covers:\n\n"
         + schema_field_brief(EngineerResponse)
     )
-    msg = _proposer(runtime.context).invoke(
-        [SystemMessage(system), HumanMessage(user)],
-        config={"tags": ["engineer"]},
-    )
+    n = state.get("step_number", 1) or 1
+    # A timeout or a 5xx is tried once more after a pause; a second one fails this attempt (or, the
+    # `_MAX_ENGINEER_MODEL_FAILURES`-th time in a row, the step) instead of ending the run. Any other
+    # error (a wrong key or model name, a rate limit or quota, a server that is gone) still raises.
+    try:
+        msg = invoke_with_transient_retry(
+            lambda: _proposer(runtime.context).invoke(
+                [SystemMessage(system), HumanMessage(user)],
+                config={"tags": ["engineer"]},
+            ),
+            label=f"engineer step {n} attempt {attempts}",
+        )
+    except transient_model_errors() as err:
+        return _engineer_model_failure(state, n, attempts, err)
     # Clearing the two reports is what makes them one-shot: leaving either set would
     # re-render it on every later retry and keep routing state that no longer applies.
     return {
@@ -222,7 +239,62 @@ def engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         "attempts": attempts,
         "api_preflight_report": None,
         "bypass_after_fault_report": None,
+        "engineer_model_error": None,
+        "engineer_model_failures": 0,
     }
+
+
+# Consecutive engineer model failures (a timeout or a 5xx, after the call's one retry) that end the step. Each one
+# before that fails only its attempt, with a script that exits with the reason.
+_MAX_ENGINEER_MODEL_FAILURES = 2
+
+
+def _engineer_model_failure(state: DebugState, n: int, attempts: int, err: BaseException) -> DebugState:
+    """The state update for an engineer call that timed out or got a 5xx twice: the attempt fails with the reason
+    (`format_engineer` turns `engineer_model_error` into a failing script), and the
+    `_MAX_ENGINEER_MODEL_FAILURES`-th failure in a row ends the step with a not-fulfilled verdict that says why
+    (`engineer_model_failed`; `route_after_engineer` goes to END). Each failure is appended to
+    `logs/step_N_engineer_errors.json`."""
+    consecutive = state.get("engineer_model_failures", 0) + 1
+    total = state.get("engineer_model_failures_total", 0) + 1
+    detail = f"{type(err).__name__}: {' '.join(str(err).split())[:300]}"
+    ended = consecutive >= _MAX_ENGINEER_MODEL_FAILURES
+    reason = (f"the engineer model call failed twice, after one retry ({detail}), so no code was written for "
+              f"attempt {attempts}")
+    print(f"[engineer] step {n} attempt {attempts}: MODEL CALL FAILED {consecutive} time(s) in a row ({detail}); "
+          + (f"the step fails after {consecutive} consecutive failures" if ended
+             else "this attempt fails with the reason"), file=sys.stderr, flush=True)
+    logs = _logs_dir(state)
+    if logs is not None:
+        try:
+            path = logs / f"step_{n}_engineer_errors.json"
+            records = json.loads(path.read_text()) if path.exists() else []
+            records.append({"attempt": attempts, "consecutive": consecutive, "error": detail,
+                            "step_failed": ended, "at": datetime.now(timezone.utc).isoformat()})
+            path.write_text(json.dumps(records, indent=2))
+        except Exception:  # noqa: BLE001 - the record must never break the step
+            pass
+    out: DebugState = {
+        "raw_engineer": "",
+        "attempts": attempts,
+        "api_preflight_report": None,
+        "bypass_after_fault_report": None,
+        "engineer_model_error": reason,
+        "engineer_model_failures": consecutive,
+        "engineer_model_failures_total": total,
+    }
+    if ended:
+        why = (f"the engineer model call failed {consecutive} times in a row (each after one retry); last error: "
+               f"{detail}")
+        out["engineer_model_failed"] = why
+        out["current_step_verdict"] = StepVerdict(fulfilled=False, unmet_requirements=[why], feedback=why)
+    return out
+
+
+def route_after_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> str:
+    """END when consecutive engineer model failures ended the step (`_engineer_model_failure`), else
+    format_engineer."""
+    return END if state.get("engineer_model_failed") else "format_engineer"
 
 
 def _input_search_note(state: DebugState, attempts: int) -> str:
@@ -273,6 +345,12 @@ def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSt
     ("contents are required")."""
     from cmbagent_lg.self_debug.code_extract import extract_engineer_response, normalise_code
 
+    model_error = state.get("engineer_model_error")
+    if model_error:
+        # The engineer's model call failed (a timeout or a 5xx, after its retry): fail the attempt with the reason.
+        return {"current_code": _failing_script(
+            model_error, "The engineer's model call failed, so no script was written; this attempt fails and is "
+                         "retried."), "engineer_model_error": None}
     raw = state.get("raw_engineer") or ""
     if not raw.strip():
         print("[format_engineer] the engineer returned an empty answer; this attempt fails", file=sys.stderr, flush=True)
@@ -322,10 +400,11 @@ def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSt
 
 
 def _failing_script(reason: str, explanation: str) -> EngineerResponse:
-    """A script that exits non-zero with `reason`, so the attempt is counted and retried like any failed run and the
-    engineer sees the reason in the next prompt's stderr."""
+    """A script that prints `reason` and exits non-zero with it, so the attempt is counted and retried like any failed
+    run and the engineer sees the reason in the next prompt's output. The print is what lets it past the static
+    pre-flight's never-prints check, which otherwise replaced the reason with its own message."""
     return EngineerResponse(
-        python_code='if __name__ == "__main__":\n    raise SystemExit(%r)\n' % reason,
+        python_code='if __name__ == "__main__":\n    print(%r)\n    raise SystemExit(%r)\n' % (reason, reason),
         code_explanation=explanation)
 
 
@@ -1645,6 +1724,7 @@ def route_after_step_evaluator(
 
 __all__ = [
     "engineer",
+    "route_after_engineer",
     "format_engineer",
     "executor",
     "execution_evaluator",

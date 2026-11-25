@@ -32,7 +32,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langgraph.runtime import Runtime
 
 from cmbagent_lg.context import PlanContext
-from cmbagent_lg.llms import chat_model
+from cmbagent_lg.llms import ModelCallFailed, chat_model, invoke_or_end
 from cmbagent_lg.prompt_utils import flatten_content
 from cmbagent_lg.researcher.nodes import (  # reuse plain path / fallback
     _proposer,
@@ -495,8 +495,16 @@ def react_researcher(
         n_llm_calls = 0
         ai: Optional[AIMessage] = None
 
+        # Each model turn gets one retry after a pause on a timeout or a 5xx; a second failure ends the run with
+        # a reason (`llms.ModelCallFailed`, re-raised past the fallback below), not the plain writer's same call.
+        label = f"researcher step {state.get('step_number', 1)} attempt {attempts}"
+
+        def _turn(model):
+            return invoke_or_end("researcher", lambda: model.invoke(
+                messages, config={"tags": ["react_researcher"]}), label=label)
+
         for _ in range(max_calls + 1):
-            ai = bound.invoke(messages, config={"tags": ["react_researcher"]})
+            ai = _turn(bound)
             n_llm_calls += 1
             messages.append(ai)
             tool_calls = getattr(ai, "tool_calls", None) or []
@@ -513,7 +521,7 @@ def react_researcher(
                     "read — for anything you could not source, say where it lives "
                     "rather than stating a value."
                 ))
-                ai = base.invoke(messages, config={"tags": ["react_researcher"]})
+                ai = _turn(base)
                 n_llm_calls += 1
                 break
             for tc in tool_calls:
@@ -530,7 +538,7 @@ def react_researcher(
                 "Now write the markdown report, as instructed above. Output only "
                 "the report body."
             ))
-            ai = base.invoke(messages, config={"tags": ["react_researcher"]})
+            ai = _turn(base)
             n_llm_calls += 1
             report = flatten_content(ai.content).strip()
         n = state.get("step_number", 1)
@@ -569,6 +577,8 @@ def react_researcher(
               f"{len(seen)} artifact(s) read", file=sys.stderr, flush=True)
         return {"attempts": attempts, "current_report": report, "report_path": report_path}
 
+    except ModelCallFailed:
+        raise
     except Exception as e:  # noqa: BLE001 — non-fatal: fall back to the plain node
         print(f"[react_researcher] non-fatal error ({e!r}) → falling back to plain "
               f"researcher", file=sys.stderr, flush=True)

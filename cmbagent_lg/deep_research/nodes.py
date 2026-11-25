@@ -31,7 +31,7 @@ from cmbagent_lg.deep_research.prompts import (
 from cmbagent_lg.deep_research.file_schema import schema_line
 from cmbagent_lg.deep_research.schemas import AdaptiveReview
 from cmbagent_lg.deep_research.state import DeepResearchState
-from cmbagent_lg.llms import chat_model
+from cmbagent_lg.llms import ModelCallFailed, chat_model
 from cmbagent_lg.persistence import save_analysis_status, save_deep_research_summary
 from cmbagent_lg.planning.nodes import _build_dynamic_plan_model, _formatter
 from cmbagent_lg.planning.schemas import Plan, Step
@@ -380,6 +380,49 @@ def run_step(
         "previous_steps_execution_summary": summary_block,
     }
     reassigned = None
+    try:
+        sub_state, step, plan, reassigned = _run_sub_graph(state, runtime, plan, step, n, invoke_input)
+    except ModelCallFailed as err:
+        # A model call that ends the run (the researcher's, after its one retry) ends it as a failed step whose
+        # reason says which call failed and why, so the status file and the caller read a reason, not a traceback.
+        print(f"[deep_research] step {n}: {err}", file=sys.stderr, flush=True)
+        outcome = {"step_number": n, "fulfilled": False, "reason": str(err), "model_failure": err.record()}
+        new_summaries = state.get("step_summaries", []) + [
+            f"### Step {n} ({step.sub_task_agent}): {step.sub_task}\n\n(not completed: {err})"]
+        new_outcomes = state.get("step_outcomes", []) + [outcome]
+        _checkpoint(state.get("work_dir"), plan, new_outcomes, new_summaries)
+        return {"step_summaries": new_summaries, "step_outcomes": new_outcomes, "step_index": n + 1}
+    if sub_state is None:
+        outcome = {
+            "step_number": n,
+            "fulfilled": False,
+            "reason": (
+                f"agent '{step.sub_task_agent}' not supported in v1 "
+                f"(only `engineer` and `researcher` steps are implemented)"
+            ),
+        }
+        # Append a placeholder summary too: `step_summaries` and `step_outcomes`
+        # must stay length-aligned, or the adaptive reviewer is fed a mismatched
+        # (summary, outcome) pair.
+        placeholder = (
+            f"### Step {n} ({step.sub_task_agent}): {step.sub_task}\n\n"
+            f"(not executed — agent '{step.sub_task_agent}' not supported)"
+        )
+        new_summaries = state.get("step_summaries", []) + [placeholder]
+        new_outcomes = state.get("step_outcomes", []) + [outcome]
+        _checkpoint(state.get("work_dir"), plan, new_outcomes, new_summaries)
+        return {
+            "step_summaries": new_summaries,
+            "step_outcomes": new_outcomes,
+            "step_index": n + 1,
+        }
+    return _step_result(state, runtime, plan, step, n, sub_state, reassigned)
+
+
+def _run_sub_graph(state, runtime, plan, step, n, invoke_input):
+    """Run the step's sub-graph: `(sub_state, step, plan, reassigned)`, with `sub_state` None for an agent that
+    is not supported. A researcher step whose run says it needs code is run once more by the engineer."""
+    reassigned = None
     if step.sub_task_agent == "engineer":
         sub_state = self_debug_graph.invoke(invoke_input, context=runtime.context)
     elif step.sub_task_agent == "researcher":
@@ -408,30 +451,12 @@ def run_step(
             plan = plan.model_copy(update={"sub_tasks": tasks})
             sub_state = self_debug_graph.invoke({**invoke_input, "step": step}, context=runtime.context)
     else:
-        outcome = {
-            "step_number": n,
-            "fulfilled": False,
-            "reason": (
-                f"agent '{step.sub_task_agent}' not supported in v1 "
-                f"(only `engineer` and `researcher` steps are implemented)"
-            ),
-        }
-        # Append a placeholder summary too: `step_summaries` and `step_outcomes`
-        # must stay length-aligned, or the adaptive reviewer is fed a mismatched
-        # (summary, outcome) pair.
-        placeholder = (
-            f"### Step {n} ({step.sub_task_agent}): {step.sub_task}\n\n"
-            f"(not executed — agent '{step.sub_task_agent}' not supported)"
-        )
-        new_summaries = state.get("step_summaries", []) + [placeholder]
-        new_outcomes = state.get("step_outcomes", []) + [outcome]
-        _checkpoint(state.get("work_dir"), plan, new_outcomes, new_summaries)
-        return {
-            "step_summaries": new_summaries,
-            "step_outcomes": new_outcomes,
-            "step_index": n + 1,
-        }
+        sub_state = None
+    return sub_state, step, plan, reassigned
 
+
+def _step_result(state, runtime, plan, step, n, sub_state, reassigned):
+    """The outcome, summary and checkpoint of a step whose sub-graph ran."""
     step_verdict = sub_state.get("current_step_verdict")
     fulfilled = bool(getattr(step_verdict, "fulfilled", False))
 
@@ -485,6 +510,9 @@ def run_step(
         "escalated": sub_state.get("escalated", False),
     }
     outcome.update(evaluator_outcome_fields(sub_state))
+    if sub_state.get("engineer_model_failures_total"):
+        # Engineer calls that timed out or got a 5xx after their retry (each failed its attempt).
+        outcome["engineer_model_errors"] = sub_state["engineer_model_failures_total"]
     outcome.update(_reassignment_and_input_fields(step, sub_state, reassigned))
     if substituted:
         # Reaches the run summary, the report (through the step summary above) and
@@ -516,7 +544,11 @@ def run_step(
         # Surface the most useful diagnostic.
         ev = sub_state.get("current_execution_verdict")
         sv = step_verdict
-        if claim_failed:
+        if sub_state.get("engineer_model_failed"):
+            # Consecutive engineer model failures ended the step: that, not an earlier verdict, is the reason.
+            outcome["reason"] = sub_state["engineer_model_failed"]
+            outcome["model_failure"] = {"role": "engineer", "reason": sub_state["engineer_model_failed"]}
+        elif claim_failed:
             audit = sub_state.get("current_claim_audit")
             hard = audit.hard() if audit is not None else []
             outcome["reason"] = (
@@ -744,6 +776,8 @@ def _step_exhausted(sub_state: dict, step: Step, ctx) -> bool:
     planning problem), and any non-engineer step (the channel is the engineer path's).
     """
     if sub_state.get("unfulfillable"):
+        return False
+    if sub_state.get("engineer_model_failed"):     # the model server failed, not the plan
         return False
     if sub_state.get("data_fixer_format") == "missing":
         return False

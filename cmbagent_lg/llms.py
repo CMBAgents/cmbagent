@@ -200,18 +200,82 @@ def _short(err, n=300) -> str:
     return ("%s: %s" % (type(err).__name__, " ".join(str(err).split())))[:n]
 
 
+def transient_model_errors():
+    """Errors of a model call worth one more try after a pause: the request timed out (openai / anthropic
+    APITimeoutError, an httpx read timeout from the Gemini client) or the server answered with a 5xx (openai /
+    anthropic InternalServerError, google-genai ServerError). Authentication, unknown model, bad request, rate-limit
+    (429) and quota errors, and a server that cannot be reached, are not: those are a wrong configuration or a
+    server that is gone, and they raise at once."""
+    types: list = []
+    for mod, names in (("openai", ("APITimeoutError", "InternalServerError")),
+                       ("anthropic", ("APITimeoutError", "InternalServerError")),
+                       ("google.genai.errors", ("ServerError",)),
+                       ("httpx", ("ReadTimeout",))):
+        try:
+            m = __import__(mod, fromlist=list(names))
+        except ImportError:  # pragma: no cover - optional provider
+            continue
+        types += [getattr(m, n) for n in names if isinstance(getattr(m, n, None), type)]
+    return tuple(types)
+
+
 def model_failure_types():
     """Errors of a model call that a graph node may absorb (fall back, judge again) rather than end the run on: an
-    unusable answer (`_structured_error_types`), a request that timed out, or a 5xx from the server. Authentication,
-    not-found, rate-limit and connection errors are not in it: those are a wrong configuration or a server that is
-    gone, and carrying on would score every later step as the model's failure."""
-    types = list(_structured_error_types())
+    unusable answer (`_structured_error_types`), a request that timed out, or a 5xx from the server
+    (`transient_model_errors`). Authentication, not-found, rate-limit and connection errors are not in it: those are
+    a wrong configuration or a server that is gone, and carrying on would score every later step as the model's
+    failure."""
+    return tuple(_structured_error_types()) + transient_model_errors()
+
+
+# Seconds between a model call that timed out or got a 5xx and its one retry (`invoke_with_transient_retry`).
+TRANSIENT_RETRY_PAUSE_S = 30.0
+
+
+class ModelCallFailed(RuntimeError):
+    """A model call of `role` that timed out or got a 5xx twice (`invoke_with_transient_retry`). Raised where the
+    failure ends the run (planner, plan reviewer, researcher), with a message that says which call failed and why;
+    `record()` is the same as a dict for a status file or a step outcome. The original error is `__cause__`."""
+
+    def __init__(self, role: str, err: BaseException):
+        self.role = role
+        self.error = _short(err)
+        super().__init__("the %s model call failed twice, after one retry (%s); the run ends here"
+                         % (role, self.error))
+
+    def record(self) -> dict:
+        return {"role": self.role, "error": self.error, "reason": str(self)}
+
+
+def invoke_with_transient_retry(call, label: str, pause_s: float | None = None):
+    """`call()`, tried once more after `pause_s` seconds (default `TRANSIENT_RETRY_PAUSE_S`) when it raised one of
+    `transient_model_errors`. A second such failure raises (the first is its __context__); any other error raises at
+    once. Both failures are logged under `label`."""
+    import time
+    pause = TRANSIENT_RETRY_PAUSE_S if pause_s is None else pause_s
     try:
-        from openai import APITimeoutError, InternalServerError
-        types += [APITimeoutError, InternalServerError]
-    except ImportError:  # pragma: no cover
-        pass
-    return tuple(types)
+        return call()
+    except transient_model_errors() as err:
+        print("[llms] %s: model call failed (%s); retrying once in %gs" % (label, _short(err), pause),
+              file=sys.stderr, flush=True)
+    time.sleep(pause)
+    try:
+        return call()
+    except transient_model_errors() as err:
+        print("[llms] %s: the retry failed too (%s)" % (label, _short(err)), file=sys.stderr, flush=True)
+        raise
+
+
+def invoke_or_end(role: str, call, label: str):
+    """`call()` with one retry after a pause on a timeout or a 5xx (`invoke_with_transient_retry`), for a call whose
+    failure ends the run (planner, plan reviewer, researcher): a second such failure raises `ModelCallFailed`, whose
+    message says which call failed and why. Any other error raises unchanged."""
+    try:
+        return invoke_with_transient_retry(call, label=label)
+    except transient_model_errors() as err:
+        failed = ModelCallFailed(role, err)
+        print("[%s] %s" % (role, failed), file=sys.stderr, flush=True)
+        raise failed from err
 
 
 def _tag(out, mode=None, problem=None):

@@ -253,6 +253,17 @@ class DebugState(TypedDict, total=False):
     execution_verdict_modes: List[str]
     step_verdict_modes: List[str]
 
+    # Engineer model failures (a timeout or a 5xx, after the call's one retry; `nodes._engineer_model_failure`):
+    # `engineer_model_error`          — the reason the current attempt's script exits with (one-shot, cleared by
+    #                                   format_engineer)
+    # `engineer_model_failures`       — consecutive failures for this step; a call that answers resets it
+    # `engineer_model_failures_total` — every failure for this step
+    # `engineer_model_failed`         — set when `_MAX_ENGINEER_MODEL_FAILURES` in a row ended the step: why
+    engineer_model_error: Optional[str]
+    engineer_model_failures: int
+    engineer_model_failures_total: int
+    engineer_model_failed: Optional[str]
+
     # Bookkeeping
     work_dir: Optional[str]
     # appended per node pass via @timed_node; concatenated by operator.add

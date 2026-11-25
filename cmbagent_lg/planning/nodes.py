@@ -23,7 +23,7 @@ from langgraph.runtime import Runtime
 from pydantic import BaseModel, Field, create_model
 
 from cmbagent_lg.context import PlanContext
-from cmbagent_lg.llms import chat_model
+from cmbagent_lg.llms import chat_model, invoke_or_end as _invoke_or_end
 from cmbagent_lg.planning.agent_check import reassign_code_steps
 from cmbagent_lg.planning.prompts import (
     planner_instructions,
@@ -132,10 +132,10 @@ def planner(state: PlanState, runtime: Runtime[PlanContext]) -> PlanState:
         "a downstream specialist will extract structured fields. Make sure every "
         "Step covers:\n\n" + schema_field_brief(Step)
     )
-    msg = _proposer(runtime.context).invoke(
+    msg = _invoke_or_end("planner", lambda: _proposer(runtime.context).invoke(
         [SystemMessage(system), HumanMessage(user)],
         config={"tags": ["planner"]},
-    )
+    ), label=f"planner round {round_n}")
     return {"raw_plan": msg.text, "round": round_n}
 
 
@@ -156,10 +156,10 @@ def plan_reviewer(state: PlanState, runtime: Runtime[PlanContext]) -> PlanState:
         "will extract structured fields. Be sure to cover:\n\n"
         + schema_field_brief(Review)
     )
-    msg = _critic(runtime.context).invoke(
+    msg = _invoke_or_end("plan reviewer", lambda: _critic(runtime.context).invoke(
         [SystemMessage(system), HumanMessage(user)],
         config={"tags": ["plan_reviewer"]},
-    )
+    ), label=f"plan reviewer round {state.get('round', 0)}")
     return {"raw_review": msg.text}
 
 
