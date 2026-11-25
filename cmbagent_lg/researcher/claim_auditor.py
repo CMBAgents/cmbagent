@@ -76,7 +76,7 @@ _CLASSIFIER_SYS = (
     "A deterministic index has already located this sentence's numbers, and found them "
     "ONLY in a file the run was GIVEN as input - not in anything the run computed. That "
     "is either fine or a fabrication, depending on what the sentence claims to be:\n"
-    "  * if it RESTATES the provided data (what the cohort contains, how many records "
+    "  * if it RESTATES the provided data (what the input contains, how many records "
     "of each kind, what a column ranges over), the numbers are correctly sourced and "
     "the sentence is a description;\n"
     "  * if it presents those numbers as a FINDING of this analysis, the analysis did "

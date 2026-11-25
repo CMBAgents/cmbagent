@@ -201,7 +201,7 @@ empty_input_dir_rule: |
       Decide which of these two cases the sub-task is, from its own wording:
         * The sub-task asks to LOAD / READ / ANALYSE data that was supposed to
           be PROVIDED (e.g. "load the signal in data/", "fit the provided
-          spectrum", "summarise the dataset in data/"). Then the required input
+          measurements", "summarise the dataset in data/"). Then the required input
           does not exist, and any data the run generated, simulated, sampled,
           or hardcoded and then analysed is FABRICATED — `fulfilled=false`, no
           matter how cleanly it ran or how plausible the printed numbers are.
@@ -251,12 +251,12 @@ infeasible_rules: |
       - keep listing it in `unmet_requirements` (it really was not satisfied), AND
       - repeat it VERBATIM in `infeasible_requirements`, AND
       - say in `infeasible_justification` WHAT is missing — name the absent
-        function/library ("no installed package implements a Fine-Gray
-        competing-risks regression: it does not exist in lifelines 0.30.3 or
-        scikit-survival 0.28.0, which provide Cox and Kaplan-Meier only") or the
-        absent data ("the cohort file has no treatment-arm column") — and name the
-        SUBSTITUTE the run used in its place ("cause-specific Cox models were
-        fitted per event type instead").
+        function/library ("no installed package implements <the requested
+        method>: it does not exist in <package> <version> or <package>
+        <version>, which provide only <method A> and <method B>") or the absent
+        data ("the input table has no <variable> column") — and name the
+        SUBSTITUTE the run used in its place ("<method A> was fitted for each
+        <group> instead").
     Use this ONLY for a genuine impossibility you can point at:
       - a method/model/API that no installed library provides (a missing PACKAGE is
         NOT this: it can be installed, so that is an ordinary unmet requirement);

@@ -11,7 +11,9 @@ questions of the source text alone, with `ast` and no model call:
      prints plausible numbers and reports results for the wrong cohort entirely; the
      step evaluator sees only stdout and cannot tell. Seen once on the breast-cancer
      fleet, and it is the one failure mode whose output is indistinguishable from
-     success;
+     success. The rule is generic: a few general-purpose libraries' example-data
+     modules by name, and any package's `datasets` / `sampledata` submodule called
+     without a file argument;
   3. does it PRINT anything? (`PlanContext.require_stdout`, default on.) The step
      evaluator judges from stdout and the data manifest only, and the engineer template
      already insists on printing every result — a script with no `print(` and no
@@ -48,6 +50,7 @@ before; a false positive would burn an attempt on correct code. Never raises.
 from __future__ import annotations
 
 import ast
+import re
 import sys
 from typing import Optional
 
@@ -176,13 +179,13 @@ def writes_stdout(code: str) -> bool:
 # stdout to give it away. No model call can catch that reliably, but the import/call
 # that loads a bundled dataset is plain in the source text.
 #
-# Module paths whose members can ONLY be bundled or auto-downloaded example data.
+# Module paths of general-purpose libraries whose members can ONLY be bundled or
+# auto-downloaded example data. Any other package's `datasets` / `sampledata` submodule is
+# caught by the generic rule below (`_DEMO_SEGMENTS`).
 _DEMO_MODULES = frozenset({
     "sklearn.datasets",
     "statsmodels.datasets",
     "statsmodels.api.datasets",
-    "lifelines.datasets",
-    "sksurv.datasets",
     "plotly.data",
     "plotly.express.data",
     "bokeh.sampledata",
@@ -195,14 +198,14 @@ _DEMO_CALLS = frozenset({
     "seaborn.load_dataset",
     "sns.load_dataset",            # the universal alias, even without the import
 })
-# Unqualified names that no engineer would give their own function, so a bare call is
-# evidence on its own (the usual case is caught through the import alias map).
-_DEMO_BARE_NAMES = frozenset({
-    "load_rossi", "load_waltons", "load_regression_dataset", "load_dd",
-    "load_kidney_transplant", "load_larynx", "load_lung", "load_panel_test",
-    "load_recur", "load_stanford_heart_transplants", "load_gbsg2", "load_whas500",
-    "load_veterans_lung_cancer", "load_flchain", "load_aids",
-})
+# The generic rule, for any package: a CALL of a member of a non-root `datasets` /
+# `sampledata` submodule (`<pkg>.datasets.load_x()`) whose arguments name no file. A loader
+# given a path (`mypkg.datasets.load_table("data/t.csv")`) reads real data and passes, and so
+# does a call whose argument is not a literal (it may be a path). Importing such a module, or
+# a member of it, is not by itself an offence here; a star import is followed to the bare
+# calls it makes possible.
+_DEMO_SEGMENTS = frozenset({"datasets", "sampledata"})
+_PATHLIKE = re.compile(r"[/\\]|\.[A-Za-z0-9]{1,8}$")
 # Members of a demo module that do NOT return bundled data: synthetic generators and
 # generic readers pointed at a real path. Prefixes, then exact names.
 _DEMO_ALLOWED_PREFIXES = {"sklearn.datasets": ("make_",)}
@@ -218,7 +221,7 @@ def demo_dataset_message(offender: str) -> str:
     return (
         f"[static check — not executed] This script loads a BUNDLED EXAMPLE dataset: "
         f"`{offender}`. That is library demo data, NOT this project's data, so every "
-        f"number it would print describes the wrong cohort — and the run would look "
+        f"number it would print describes the wrong data — and the run would look "
         f"completely clean. Read the project's OWN input files instead: list what is "
         f"in `data/` (and any input path the sub-task names), load those files, and "
         f"print the shape and the real column names you found before analysing them. "
@@ -273,6 +276,38 @@ def _demo_offence(dotted: str) -> Optional[str]:
     return None
 
 
+def _generic_demo_module(dotted: str) -> bool:
+    """Is a non-root segment of `dotted`, before its last one, a `_DEMO_SEGMENTS` name?"""
+    parts = dotted.split(".")
+    return any(p in _DEMO_SEGMENTS for p in parts[1:-1])
+
+
+def _names_no_file(call: ast.Call) -> bool:
+    """True when every argument of `call` is a literal that names no file (or there are none)."""
+    args = list(call.args) + [k.value for k in call.keywords]
+    for a in args:
+        if not isinstance(a, ast.Constant):
+            return False      # a variable, a Path(...), an f-string: may be a path
+        if isinstance(a.value, str) and _PATHLIKE.search(a.value):
+            return False
+    return True
+
+
+def _bound_names(tree: ast.AST) -> set:
+    """Names the script binds itself: functions, classes, assignments, imports, arguments."""
+    out = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            out.add(node.name)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            out.add(node.id)
+        elif isinstance(node, ast.arg):
+            out.add(node.arg)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            out.update((a.asname or a.name).split(".")[0] for a in node.names if a.name != "*")
+    return out
+
+
 def _dotted_name(node: ast.AST) -> Optional[str]:
     """`a.b.c` for a Name/Attribute chain, or None for anything else (a subscript, a
     call result, a literal) — those cannot be matched by name, so they are passed."""
@@ -307,6 +342,13 @@ def demo_dataset_offender(code: str) -> Optional[str]:
     except Exception:  # noqa: BLE001
         return None
     aliases = _import_aliases(tree)
+    # Modules star-imported from a demo module: a bare call the script does not bind itself
+    # is that module's member.
+    star = [n.module for n in ast.walk(tree)
+            if isinstance(n, ast.ImportFrom) and n.module and not n.level
+            and any(a.name == "*" for a in n.names)
+            and (n.module in _DEMO_MODULES or _generic_demo_module(n.module + ".x"))]
+    bound = _bound_names(tree) if star else set()
     for node in ast.walk(tree):
         # The import can BE the load (`import bokeh.sampledata.autompg`,
         # `from keras.datasets import mnist`).
@@ -326,12 +368,22 @@ def demo_dataset_offender(code: str) -> Optional[str]:
             dotted = _dotted_name(node.func)
             if dotted is None:
                 continue
-            if "." not in dotted and dotted in _DEMO_BARE_NAMES:
-                return dotted
-            hit = _demo_offence(_canonical(dotted, aliases))
+            if "." not in dotted and star and dotted not in bound and _names_no_file(node):
+                return f"{star[0]}.{dotted}"
+            canonical = _canonical(dotted, aliases)
+            hit = _demo_offence(canonical)
             if hit:
                 return hit
+            if (_generic_demo_module(canonical) and _names_no_file(node)
+                    and not _explicit_module(canonical)):
+                return canonical
     return None
+
+
+def _explicit_module(dotted: str) -> bool:
+    """Does a prefix of `dotted` name one of `_DEMO_MODULES`? Its own exemptions then decide."""
+    parts = dotted.split(".")
+    return any(".".join(parts[:i]) in _DEMO_MODULES for i in range(1, len(parts)))
 
 
 def _step_names_dataset(step, offender: str) -> bool:

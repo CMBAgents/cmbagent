@@ -764,7 +764,7 @@ def _render(cls, label, type_name, attr, max_names=60):
 def _resolve_dotted(path):
     """The object a dotted path names, or None — longest importable PREFIX, then getattr.
 
-    `anndata.AnnData` is not a module, so import_module fails on the whole path; the split
+    `pkg.Container` (a class) is not a module, so import_module fails on the whole path; the split
     between "module part" and "attribute part" is not knowable from the text and is found by
     trying. Anything that does not resolve returns None: the caller then says nothing.
     """
@@ -785,7 +785,7 @@ def _produced_class(obj):
     """The class a CALLABLE produces, when the environment PROVES it — else None.
 
     A class is its own answer. For a function the only evidence available without RUNNING it is
-    the return annotation. Measured: anndata.read_h5ad's annotation is the STRING "AnnData"
+    the return annotation. Under `from __future__ import annotations` it is a STRING ("Container")
     (PEP 563), so a bare identifier is resolved against the function's own module. Anything
     else is refused rather than guessed — measured: pandas.read_csv is annotated
     "DataFrame | TextFileReader", two different classes, so no absence could be proven from it.
@@ -817,7 +817,7 @@ def _synthesises_attributes(cls):
 
     Measured: pandas.DataFrame defines __getattr__ (column access), so `hasattr(DataFrame, x)`
     is False for names a real frame answers happily — flagging those would be a false positive.
-    anndata.AnnData defines neither hook and is judgeable.
+    A class that defines neither hook is judgeable.
     """
     for klass in getattr(cls, "__mro__", [cls]):
         if klass is object:      # every class inherits object's lookup; that is not synthesis

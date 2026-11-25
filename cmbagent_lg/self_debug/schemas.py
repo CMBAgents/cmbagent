@@ -277,7 +277,7 @@ class InputSourcedClaim(BaseModel):
 
     kind: Literal["description_of_provided_data", "asserted_result"] = Field(
         description="`description_of_provided_data` — the sentence RESTATES something "
-        "the run was given (the cohort's composition, the dataset's size, a column's "
+        "the run was given (the input's composition, the dataset's size, a column's "
         "range), and the numbers belong to that description. "
         "`asserted_result` — the sentence presents the numbers as a FINDING of this "
         "analysis (something explained, established, measured, compared or concluded), "
@@ -361,7 +361,7 @@ class IntentVerdict(BaseModel):
     needs_provided_input: bool = Field(
         description="True if the sub-task requires reading data that was "
         "supposed to be PROVIDED to the run (e.g. 'load the signal in data/', "
-        "'fit the provided spectrum', 'apply data/calib.csv'). False if the "
+        "'fit the provided measurements', 'apply data/calib.csv'). False if the "
         "script is meant to CREATE the data it works on (simulate, generate, "
         "sample, compute-and-write), or if it needs no input file at all."
     )

@@ -97,9 +97,13 @@ def no_subprocess(monkeypatch):
 @pytest.mark.parametrize("code,expected", [
     # The measured case, through the import.
     (ROSSI, "lifelines.datasets.load_rossi"),
-    # Bare call with no import in the snippet at all.
-    ("df = load_rossi()\nprint(df)\n", "load_rossi"),
-    ("print(load_waltons().head())\n", "load_waltons"),
+    # A bare call after a star import from a datasets module.
+    ("from lifelines.datasets import *\ndf = load_rossi()\nprint(df)\n", "lifelines.datasets.load_rossi"),
+    ("from sklearn.datasets import *\nprint(load_wine())\n", "sklearn.datasets.load_wine"),
+    # The generic rule: any package's datasets / sampledata submodule, called without a file argument.
+    ("import anypkg.datasets as ds\nprint(ds.load_example())\n", "anypkg.datasets.load_example"),
+    ("from anypkg.sub.sampledata import fetch_demo\nprint(fetch_demo('small'))\n",
+     "anypkg.sub.sampledata.fetch_demo"),
     # sklearn, every spelling.
     ("from sklearn.datasets import load_iris\nX = load_iris()\n",
      "sklearn.datasets.load_iris"),
@@ -151,6 +155,14 @@ def test_offenders_are_named(code, expected):
     "def load_data(p):\n    return open(p).read()\nprint(load_data('data/x.csv'))\n",
     # A similarly-named module that is not a demo module.
     "import mypkg.datasets\nprint(mypkg.datasets.load_cohort('data/c.parquet'))\n",
+    "from mypkg.datasets import load_table\np = 'data/t.csv'\nprint(load_table(p))\n",
+    "from mypkg.datasets import load_table\nprint(load_table(path='t.csv'))\n",
+    # A top-level package named `datasets` is not a submodule of one.
+    "import datasets\nprint(datasets.load_dataset('data/local_dir'))\n",
+    # A star import, but the script binds the name it calls itself.
+    "from anypkg.datasets import *\ndef load_mine():\n    return 1\nprint(load_mine())\n",
+    # The script's own function with a demo-looking name, and no import.
+    "def load_rossi():\n    return open('data/x.csv').read()\nprint(load_rossi())\n",
     # Unparseable code is the syntax check's business, never this one's.
     'x = "unterminated\nprint(x)\n',
     "",
