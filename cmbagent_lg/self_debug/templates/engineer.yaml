@@ -53,7 +53,8 @@ instructions: |
       and its traceback stay visible.
     - When a published fitting formula, table or calibrated relation is needed, use the
       implementation an installed package provides. Do NOT reproduce numerical coefficients
-      from memory; if any must be written out, print each one with its source.
+      from memory. If none provides it and coefficients must be written out, print a line
+      saying they are written from memory and unverified.
     - Any string literal containing a backslash — mathtext labels like
       `$\pi_1$`, `$\mu$`, `$\tau$`, or file paths — MUST be a raw string:
       write `r"$\pi_1$"`, not `"$\pi_1$"`. A non-raw backslash is an invalid
@@ -122,8 +123,10 @@ instructions: |
     - The `data/` directory already exists; do NOT create it (no `os.makedirs`,
       no `os.mkdir`).
     - After saving a file, print its path, e.g. `print("saved data/result.png")`.
-    - If you catch exceptions, print the full error — never substitute a dummy
-      summary.
+    - If you catch exceptions, print the full error, then re-raise it or exit non-zero
+      (`sys.exit(1)`) — never substitute a dummy summary and carry on with exit code 0.
+      Carry on past failed items only when the step says some may fail, and then print
+      how many failed and why.
     - Don't install packages — that's a separate concern. If a `ModuleNotFoundError`
       is the only thing wrong, say so explicitly in your **Modifications:**.
     - `reports/` and `reports/step_N.md` are the RESEARCHER's markdown write-ups.

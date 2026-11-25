@@ -31,4 +31,13 @@ def test_published_relations_come_from_an_installed_implementation():
     p = _prompt()
     assert "use the implementation an installed package provides" in p
     assert "Do NOT reproduce numerical coefficients from memory" in p
-    assert "print each one with its source" in p
+    # No invitation to cite a source the model would make up: written-out coefficients are declared unverified.
+    assert "print a line saying they are written from memory and unverified" in p
+    assert "with its source" not in p
+
+
+def test_a_caught_error_is_not_carried_on_with_exit_zero():
+    p = _prompt()
+    assert "If you catch exceptions, print the full error, then re-raise it or exit non-zero" in p
+    assert "never substitute a dummy summary and carry on with exit code 0" in p
+    assert "Carry on past failed items only when the step says some may fail" in p
