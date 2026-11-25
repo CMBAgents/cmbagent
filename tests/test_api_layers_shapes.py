@@ -699,3 +699,58 @@ def test_embedded_forms_stay_conservative(lib):
     hits = ai._all_matches("AttributeError: property 'ro' of 'Params' object has no setter\n",
                            embedded=True)
     assert len(hits) == 1
+
+
+# ── 7. an embedded hit is read only where the error that ended the script is ─────
+#
+# A repr anywhere in stderr used to be read: a handled warning that quoted another call's
+# TypeError pinned a signature report on a call the script made correctly.
+
+_QUOTING_WARNING = ("import statistics, sys\nprint(statistics.mean([1, 2, 3]))\n"
+                    "sys.stderr.write('warning: fallback used after '\n"
+                    "                 'TypeError(\"mean() got an unexpected keyword argument \\'foo\\'\")\\n')\n"
+                    "raise ValueError('the step failed for its own reason')\n")
+
+
+def test_a_quoted_error_in_a_warning_pins_nothing(lib):
+    code, err = _run(lib, _QUOTING_WARNING)
+    assert "TypeError(\"mean() got an unexpected keyword argument 'foo'\")" in err, err
+    assert "ValueError: the step failed" in err
+    why = []
+    assert _retry(lib, code, err, why) is None, why
+    # Only the traceback's own final line is read.
+    regions = ai._final_exception_regions(err)
+    assert [err[a:b].strip() for a, b in regions] == ["ValueError: the step failed for its own reason"]
+
+
+def test_an_embedded_keyword_the_script_never_passed_pins_nothing(lib):
+    # The repr IS on the final line, but the script never passes `foo` to mean().
+    code, err = _run(lib, "import statistics\nprint(statistics.mean([1, 2, 3]))\n"
+                          "raise RuntimeError('wrapped: TypeError(\"mean() got an unexpected keyword "
+                          "argument \\'foo\\'\")')\n")
+    why = []
+    assert _retry(lib, code, err, why) is None
+    assert any("not passed by the script" in w for w in why), why
+    assert not ai._script_passes_kw(code, "mean", "foo")
+    assert ai._script_passes_kw("import statistics\nstatistics.mean([1], foo=2)\n", "mean", "foo")
+    assert ai._script_passes_kw("P(foo=1)\n", "__init__", "foo", "P")
+
+
+def test_stdout_is_not_read_for_embedded_forms_when_stderr_has_a_traceback(lib):
+    ctx = PlanContext(main_task="t", api_introspect_retry=True)
+    code = "import apil_fx\np = apil_fx.make()\nraise ValueError('other')\n"
+    out = "note: AttributeError(\"property 'ro' of 'Params' object has no setter\")\n"
+    err = "Traceback (most recent call last):\n  File \"step_1.py\", line 3, in <module>\nValueError: other\n"
+    assert ai.retry_report(ctx, err, code, out, str(lib.wd)) is None
+    # Without a traceback on stderr the printed error is read, as before.
+    assert "READ-ONLY" in (ai.retry_report(ctx, "", code, out, str(lib.wd)) or "")
+
+
+def test_final_exception_regions_follow_each_chained_traceback():
+    err = ("warning: AttributeError('x')\nTraceback (most recent call last):\n  File \"a.py\", line 1\n"
+           "    p.ro = 3\nAttributeError: first\n  continued\n\nDuring handling of the above exception, "
+           "another exception occurred:\n\nTraceback (most recent call last):\n  File \"a.py\", line 4\n"
+           "RuntimeError: second\n")
+    got = [err[a:b] for a, b in ai._final_exception_regions(err)]
+    assert got == ["AttributeError: first\n  continued\n", "RuntimeError: second\n"], got
+    assert ai._final_exception_regions("no traceback here") is None

@@ -386,6 +386,13 @@ _ORIGINAL_KINDS = frozenset({"module", "instance", "signature_kw", "signature_ar
 #     at `_BARE_PATTERNS`;
 #   * on stdout (a printed `str(e)`), the property-setter message as well as `_BARE_PATTERNS`.
 #
+# Where they are read: in a stream that holds a traceback, only on each traceback's own final
+# exception line (with its continuation lines), the one place a wrapper's message lands; a
+# warning or log line elsewhere in stderr that merely quotes an exception is never read. A
+# stream with no traceback (a printed error, a SystemExit message) is read throughout, and
+# stdout only when stderr holds no traceback. An embedded unexpected-keyword hit must also name
+# a keyword the script passes, by name, to a call of that function (`_script_passes_kw`).
+#
 # Chained tracebacks ("The above exception was the direct cause of the following exception",
 # "During handling of the above exception, another exception occurred") keep every exception's
 # own line, so the anchored patterns see them; `_hit_segment` hands each hit the traceback it
@@ -407,12 +414,85 @@ def _unescape(msg: str) -> str:
     return msg
 
 
+_TB_HEADER = "Traceback (most recent call last):"
+_TB_JOINS = ("Traceback (most recent call last):", "During handling of the above exception",
+             "The above exception was the direct cause")
+
+
+def _has_traceback(text: str | None) -> bool:
+    return bool(text) and _TB_HEADER in text
+
+
+def _final_exception_regions(text: str) -> list | None:
+    """`[(start, end)]` of each traceback's final exception line in `text`, continuation lines
+    included (up to a blank line or the next traceback); None when `text` holds no traceback,
+    meaning the whole text may be read."""
+    if not _has_traceback(text):
+        return None
+    out = []
+    pos = 0
+    while True:
+        tb = text.find(_TB_HEADER, pos)
+        if tb < 0:
+            break
+        pos = tb + len(_TB_HEADER)
+        # The frames are indented; the exception line is the first one that is not.
+        i = text.find("\n", tb)
+        start = None
+        while i >= 0:
+            j = text.find("\n", i + 1)
+            line = text[i + 1:j if j >= 0 else len(text)]
+            if line.strip() and not line[:1].isspace():
+                start = i + 1
+                break
+            i = j
+        if start is None:
+            continue
+        end = start
+        while True:
+            j = text.find("\n", end)
+            stop = len(text) if j < 0 else j
+            line = text[end:stop]
+            if end > start and (not line.strip() or line.startswith(_TB_JOINS)):
+                break
+            end = stop + 1
+            if j < 0:
+                break
+        out.append((start, min(end, len(text))))
+        pos = max(pos, start)
+    return out
+
+
+def _script_passes_kw(code: str | None, func: str, kw: str, cls_name: str | None = None) -> bool:
+    """Does the script pass `kw=` by name to a call of `func` (of `cls_name` itself, for
+    `__init__`)? Matched on the called name; an alias or a `**mapping` does not count."""
+    if not code:
+        return False
+    try:
+        tree = ast.parse(code)
+    except (SyntaxError, ValueError):
+        return False
+    names = {cls_name} if func == "__init__" and cls_name else {func}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        f = node.func
+        name = f.attr if isinstance(f, ast.Attribute) else getattr(f, "id", None)
+        if name in names and any(k.arg == kw for k in node.keywords):
+            return True
+    return False
+
+
 def _embedded_matches(text: str, anchored: list, allow_bare: bool) -> list:
     """The `(start, kind, match)` hits of the embedded forms described above; `start` is where the
     form begins in `text`, `match` is taken on the canonical line it was read into. A form an
-    anchored hit already covers is skipped."""
+    anchored hit already covers is skipped, and so is one outside the regions
+    `_final_exception_regions` allows."""
     spans = [(m.start(), m.end()) for _s, _k, m in anchored]
     covered = lambda pos: any(a <= pos < b for a, b in spans)  # noqa: E731
+    regions = _final_exception_regions(text)
+    allowed = (lambda pos: True) if regions is None else (  # noqa: E731
+        lambda pos: any(a <= pos < b for a, b in regions))
     out, reprs = [], []
     pos = 0
     while True:   # a repr inside a repr's message is read too: search on from inside each one
@@ -420,7 +500,7 @@ def _embedded_matches(text: str, anchored: list, allow_bare: bool) -> list:
         if r is None:
             break
         pos = r.start() + 1
-        if covered(r.start()):
+        if covered(r.start()) or not allowed(r.start()):
             continue
         line = "%s: %s" % (r.group("exc"), _unescape(r.group("msg")))
         for kind, pat in _PATTERNS:
@@ -431,6 +511,8 @@ def _embedded_matches(text: str, anchored: list, allow_bare: bool) -> list:
     spans += reprs
     for ln in _EXC_LINE_RE.finditer(text):
         base = ln.start("msg")
+        if not allowed(ln.start()):
+            continue
         for kind, pat in _EMBEDDED_BARE:
             for m in pat.finditer(ln.group("msg")):
                 if not covered(base + m.start()):
@@ -438,7 +520,8 @@ def _embedded_matches(text: str, anchored: list, allow_bare: bool) -> list:
     if allow_bare:
         for kind, pat in _STDOUT_BARE_LATER:
             for m in pat.finditer(text):
-                if not covered(m.start()) and not any(s == m.start() for s, _k, _m in out):
+                if (not covered(m.start()) and allowed(m.start())
+                        and not any(s == m.start() for s, _k, _m in out)):
                     out.append((m.start(), kind, m))
     return out
 
@@ -456,15 +539,20 @@ def _hit_segment(text: str | None, start) -> str | None:
     return text[tb:] if end < 0 else text[tb:end + 1]
 
 
-def _all_matches(text: str | None, allow_bare: bool = False, embedded: bool = False) -> list:
+def _all_matches(text: str | None, allow_bare: bool = False, embedded: bool = False,
+                 marks: set | None = None) -> list:
     """Every recognised error in `text` as `(start, kind, match)`, in text order. `embedded` also
-    reads the library errors embedded in other text (see above); the retry report only."""
+    reads the library errors embedded in other text (see above); the retry report only. `marks`,
+    when given, receives `id(match)` of each embedded hit."""
     out = []
     for kind, pat in _PATTERNS + (_BARE_PATTERNS if allow_bare else ()):
         for m in pat.finditer(text or ""):
             out.append((m.start(), kind, m))
     if embedded and text:
-        out += _embedded_matches(text, list(out), allow_bare)
+        emb = _embedded_matches(text, list(out), allow_bare)
+        if marks is not None:
+            marks.update(id(m) for _s, _k, m in emb)
+        out += emb
     out.sort(key=lambda x: x[0])
     return out
 
@@ -2010,9 +2098,11 @@ def _script_imports(code: str, work_dir, apf):
     return modules, froms
 
 
-def _retry_body(kind: str, m: "re.Match", code, stderr, work_dir, apf, why: list):
+def _retry_body(kind: str, m: "re.Match", code, stderr, work_dir, apf, why: list,
+                embedded: bool = False):
     """`(report, steer)` for one recognised error, or None. Appends the reason to `why` when
-    silent."""
+    silent. `embedded`: the hit was read from text embedded in another message (see
+    `_embedded_matches`), so an unexpected keyword must be one the script itself passes."""
     if kind == "module":
         module, symbol = m.group("module"), m.group("symbol")
         if apf._workspace_root(module.split(".")[0], work_dir):
@@ -2067,6 +2157,10 @@ def _retry_body(kind: str, m: "re.Match", code, stderr, work_dir, apf, why: list
         cls_name, func = m.groupdict().get("cls"), m.group("func")
         if cls_name and cls_name in own_classes:
             why.append(f"class {cls_name} is defined by the script")
+            return None
+        if (embedded and kind == "signature_kw"
+                and not _script_passes_kw(code, func, m.group("kw"), cls_name)):
+            why.append(f"embedded {func}() keyword {m.group('kw')!r} is not passed by the script")
             return None
         base = {"already_failed": True}
         if kind == "signature_kw":
@@ -2201,7 +2295,8 @@ def retry_report(ctx, stderr: str | None, code: str | None = None,
     # error), and each hit is given the traceback it belongs to (`_hit_segment`).
     hits = []
     seen = set()
-    err_all = _all_matches(stderr, embedded=True)
+    marks: set = set()
+    err_all = _all_matches(stderr, embedded=True, marks=marks)
     picked = _pick(err_all)
     ordered = ([err_all[-1]] if err_all else []) + ([picked] if picked else []) + err_all[::-1]
     for start, kind, m in ordered:
@@ -2213,7 +2308,10 @@ def retry_report(ctx, stderr: str | None, code: str | None = None,
         if len(hits) >= _MAX_STDERR_HITS:
             break
     if not any(h[0][0] in _ORIGINAL_KINDS for h in hits):
-        out_hit = _pick(_all_matches(stdout, allow_bare=True, embedded=True))
+        # stdout's embedded forms only when stderr holds no traceback: with one, the error that
+        # ended the script is there, and a printed line on stdout is not it.
+        out_hit = _pick(_all_matches(stdout, allow_bare=True, embedded=not _has_traceback(stderr),
+                                     marks=marks))
         if out_hit is not None:
             hits.append(((out_hit[1], out_hit[2]), _hit_segment(stdout, out_hit[0])))
     if not hits:
@@ -2221,7 +2319,7 @@ def retry_report(ctx, stderr: str | None, code: str | None = None,
         return None
     for (kind, m), text in hits:
         try:
-            body = _retry_body(kind, m, code, text, work_dir, _apf, why)
+            body = _retry_body(kind, m, code, text, work_dir, _apf, why, embedded=id(m) in marks)
         except Exception as e:  # noqa: BLE001 — a retry aid must never break the step
             why.append(f"{kind}: {type(e).__name__}: {e}")
             body = None
