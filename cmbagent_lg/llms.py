@@ -439,17 +439,19 @@ def _role_key(role: str) -> str:
 
 
 @lru_cache(maxsize=None)
-def chat_model(model: str | None = None, role: str = "generator"):
+def chat_model(model: str | None = None, role: str = "generator", thinking_level: str | None = None):
     """Build a chat model for `role`, honoring a per-run `model` override.
 
-    Cached by `(model, role)` so repeated calls reuse the client. An unknown
-    role falls back to the `formatter` settings.
+    Cached by `(model, role, thinking_level)` so repeated calls reuse the client. An unknown
+    role falls back to the `formatter` settings. `thinking_level` replaces the role's Gemini
+    thinking level for this one client (Gemini 3+ only; other providers ignore it), e.g. the
+    image reviewer's "high" on the critic role, leaving every other critic call at "low".
     """
     model = model or _DEFAULT_MODEL
     role_key = _role_key(role)
     cfg = _ROLE_DEFAULTS[role_key]
     temperature = cfg.get("temperature")
-    thinking_level = cfg.get("thinking_level")
+    thinking_level = thinking_level or cfg.get("thinking_level")
     provider = _provider(model)
 
     if provider == "compat":

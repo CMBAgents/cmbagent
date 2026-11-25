@@ -222,6 +222,7 @@ All settings are fields of `PlanContext`, passed to every graph as `context=`. T
 | `num_rounds` | 2 | Plan review cycles. |
 | `planner_model`, `plan_reviewer_model`, `engineer_model`, `researcher_model`, `evaluator_model`, `formatter_model` | `gemini-3.1-flash-lite` | Model of each role. |
 | `vlm_model` | `gemini-3.1-pro-preview` | Vision model of the figure reviewer. |
+| `vlm_thinking_level` | `high` | Gemini thinking level of the figure reviewer (the other critic calls use `low`). |
 | `adaptive_reviewer_model`, `adaptive_planner_model` | `gemini-3.1-pro-preview`, `gemini-3.6-flash` | Models of the review and replanning between steps; the env variables `ADAPTIVE_REVIEWER_MODEL` / `ADAPTIVE_PLANNER_MODEL` still apply when these are unset. |
 | `max_n_attempts` | 3 | Attempts per step, shared by all retry paths. |
 | `reassign_researcher_code_steps` | `True` | A researcher step that needs code goes to the engineer: at planning, a step other than the last whose text asks, in an imperative clause, to compute, load data, read binary data files, run code or save results to a data file; at run time, once, when the researcher's report says it cannot execute code, or, on a step whose text asks for code work, when its verdict says the step needs code. The last step of a plan of several steps never moves. |

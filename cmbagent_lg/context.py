@@ -122,6 +122,11 @@ class PlanContext:
     vlm_max_images: int = 8
     # Model for the image_reviewer node (vision-capable). None → default model.
     vlm_model: str | None = None
+    # Gemini thinking level of the image_reviewer call only (Gemini 3+; other providers ignore
+    # it); the other critic calls keep the critic role's "low". None → the critic role's level.
+    # At "low" Gemini flagged 5 of 28 figures with a labelled defect, at "high" 15 of 28
+    # (image-review evaluation, 25 Nov 2026).
+    vlm_thinking_level: str | None = "high"
     # Image-review/revision cycles a step may go through before continuing
     # regardless. Mirrors old cmbagent's `max_vlm_review_attempts`.
     max_vlm_review_attempts: int = 2

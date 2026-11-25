@@ -370,6 +370,7 @@ researcher stay creative.
 | `vlm_enabled` | `bool` | **`True`** | Attach plots under `data/` to the report writers as image blocks, and route self_debug through `image_reviewer`. |
 | `vlm_max_images` | `int` | `8` | Cap on attached images. |
 | `vlm_model` | `str \| None` | `None` | Overrides both the `image_reviewer` model (default `gemini-3.1-pro-preview`) and the researcher's `view_image` model (default `gemini-3.6-flash`). Must be vision-capable. |
+| `vlm_thinking_level` | `str \| None` | `"high"` | Gemini thinking level of the `image_reviewer` call only (Gemini 3+; other providers ignore it). Every other critic call keeps the critic role's `"low"`; `None` → `"low"` here too. |
 | `max_vlm_review_attempts` | `int` | `2` | Image review/revision cycles per step. |
 
 ### self_debug and the engineer

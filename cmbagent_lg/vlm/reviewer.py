@@ -107,7 +107,9 @@ def image_reviewer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
         images,
         root=state.get("work_dir"),
     )
-    model = chat_model(ctx.vlm_model or _DEFAULT_REVIEW_MODEL, "critic")
+    # The critic role, with its own Gemini thinking level (`vlm_thinking_level`, "high" by default).
+    model = chat_model(ctx.vlm_model or _DEFAULT_REVIEW_MODEL, "critic",
+                       getattr(ctx, "vlm_thinking_level", None))
     review: ImageReview = model.with_structured_output(ImageReview).invoke(
         [SystemMessage(system), HumanMessage(content=user)],
         config={"tags": ["image_reviewer"]},
