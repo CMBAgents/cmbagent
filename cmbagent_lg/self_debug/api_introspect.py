@@ -370,14 +370,109 @@ _ORIGINAL_KINDS = frozenset({"module", "instance", "signature_kw", "signature_ar
                              "artist_kwarg"})
 
 
-def _all_matches(text: str | None, allow_bare: bool = False) -> list:
-    """Every recognised error in `text` as `(start, kind, match)`, in text order."""
+# ── library errors embedded in other text (the retry report only) ──────────────────────────
+#
+# A script that wraps a library call in `except Exception` and raises its own error keeps the
+# library's error only as TEXT inside the new message, and a script that prints the error it
+# caught leaves no exception line at all. Three generic Python forms are read back, each into
+# the canonical `Name: message` line the anchored patterns above already understand:
+#
+#   * an exception REPR anywhere in the text — `AttributeError("property 'x' of 'P' object has
+#     no setter")`, also with escaped quotes when it sits inside another repr. The class name is
+#     there, so every shape applies exactly as on a traceback's own last line;
+#   * the bare message of an unambiguous shape (`_EMBEDDED_BARE`) inside the MESSAGE of another
+#     exception's line — `RuntimeError: could not configure: property 'x' of 'P' object has no
+#     setter`. The call-shape and artist_kwarg messages are not among them, for the reason given
+#     at `_BARE_PATTERNS`;
+#   * on stdout (a printed `str(e)`), the property-setter message as well as `_BARE_PATTERNS`.
+#
+# Chained tracebacks ("The above exception was the direct cause of the following exception",
+# "During handling of the above exception, another exception occurred") keep every exception's
+# own line, so the anchored patterns see them; `_hit_segment` hands each hit the traceback it
+# belongs to, so a shape answered from the script frame reads the right one.
+# `classify_api_error` and its other readers (the observed-absence store, the bypass guard)
+# are unchanged: only `retry_report` asks for these forms.
+_EXC_NAME = r"(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*(?:Error|Exception)"
+_REPR_RE = re.compile(r"(?<![\w.])(?P<exc>" + _EXC_NAME + r")\((?P<esc>\\{0,2})(?P<q>[\"'])"
+                      r"(?P<msg>[^\n]*?)(?P=esc)(?P=q),?\)")
+_EXC_LINE_RE = re.compile(r"^[ \t]*(?:" + _EXC_NAME + r"): (?P<msg>[^\n]+)$", re.M)
+_EMBEDDED_BARE = _BARE_PATTERNS + (("property_setter", re.compile(_NO_SETTER)),)
+_STDOUT_BARE_LATER = (("property_setter", re.compile(_NO_SETTER)),)
+
+
+def _unescape(msg: str) -> str:
+    """The message of a repr, with the escaping of up to two repr levels undone."""
+    for _ in range(2):
+        msg = msg.replace("\\\\", "\x00").replace("\\'", "'").replace('\\"', '"').replace("\x00", "\\")
+    return msg
+
+
+def _embedded_matches(text: str, anchored: list, allow_bare: bool) -> list:
+    """The `(start, kind, match)` hits of the embedded forms described above; `start` is where the
+    form begins in `text`, `match` is taken on the canonical line it was read into. A form an
+    anchored hit already covers is skipped."""
+    spans = [(m.start(), m.end()) for _s, _k, m in anchored]
+    covered = lambda pos: any(a <= pos < b for a, b in spans)  # noqa: E731
+    out, reprs = [], []
+    pos = 0
+    while True:   # a repr inside a repr's message is read too: search on from inside each one
+        r = _REPR_RE.search(text, pos)
+        if r is None:
+            break
+        pos = r.start() + 1
+        if covered(r.start()):
+            continue
+        line = "%s: %s" % (r.group("exc"), _unescape(r.group("msg")))
+        for kind, pat in _PATTERNS:
+            m = pat.search(line)
+            if m is not None:
+                out.append((r.start(), kind, m))
+        reprs.append((r.start(), r.end()))
+    spans += reprs
+    for ln in _EXC_LINE_RE.finditer(text):
+        base = ln.start("msg")
+        for kind, pat in _EMBEDDED_BARE:
+            for m in pat.finditer(ln.group("msg")):
+                if not covered(base + m.start()):
+                    out.append((base + m.start(), kind, m))
+    if allow_bare:
+        for kind, pat in _STDOUT_BARE_LATER:
+            for m in pat.finditer(text):
+                if not covered(m.start()) and not any(s == m.start() for s, _k, _m in out):
+                    out.append((m.start(), kind, m))
+    return out
+
+
+def _hit_segment(text: str | None, start) -> str | None:
+    """The part of `text` a hit at `start` belongs to: from the last traceback header before it to
+    the end of its line, so a chained traceback's earlier exception is read with its own frames.
+    `text` unchanged when no traceback precedes the hit (a printed error) or `start` is None."""
+    if not text or start is None:
+        return text
+    tb = text.rfind("Traceback (most recent call last):", 0, start + 1)
+    if tb < 0:
+        return text
+    end = text.find("\n", start)
+    return text[tb:] if end < 0 else text[tb:end + 1]
+
+
+def _all_matches(text: str | None, allow_bare: bool = False, embedded: bool = False) -> list:
+    """Every recognised error in `text` as `(start, kind, match)`, in text order. `embedded` also
+    reads the library errors embedded in other text (see above); the retry report only."""
     out = []
     for kind, pat in _PATTERNS + (_BARE_PATTERNS if allow_bare else ()):
         for m in pat.finditer(text or ""):
             out.append((m.start(), kind, m))
+    if embedded and text:
+        out += _embedded_matches(text, list(out), allow_bare)
     out.sort(key=lambda x: x[0])
     return out
+
+
+def _pick(hits: list):
+    """The hit `_last_match` answers with: the last among `_ORIGINAL_KINDS`, else the last."""
+    orig = [h for h in hits if h[1] in _ORIGINAL_KINDS]
+    return (orig or hits or [None])[-1]
 
 
 def _last_match(text: str | None, allow_bare: bool = False) -> tuple[str, "re.Match"] | None:
@@ -386,9 +481,7 @@ def _last_match(text: str | None, allow_bare: bool = False) -> tuple[str, "re.Ma
     tuple shape) and `kwarg_error_qualifier`. A later kind never displaces an original one: in
     a chained traceback (`np.trapz` raising, the `except` branch then calling None) the original
     hit is the one every reader can act on."""
-    hits = _all_matches(text, allow_bare)
-    orig = [h for h in hits if h[1] in _ORIGINAL_KINDS]
-    best = (orig or hits or [None])[-1]
+    best = _pick(_all_matches(text, allow_bare))
     return (best[1], best[2]) if best is not None else None
 
 
@@ -2007,20 +2100,27 @@ def _retry_body(kind: str, m: "re.Match", code, stderr, work_dir, apf, why: list
                        f"the error, or takes **kwargs)")
             return None
         return report, (_STEER_CALL if kind == "signature_missing" else _STEER)
+    modules, froms = _script_imports(code, work_dir, apf)
+    if kind == "property_setter":
+        # Named by the message (type and attribute) and proven on the class the script's imports
+        # resolve, so no script frame is needed: a printed or wrapped error has none to offer.
+        if m.group("type") in own_classes:
+            why.append(f"class {m.group('type')} is defined by the script")
+            return None
+        spec = {"shape": kind, "type": m.group("type"), "attr": m.group("attr"),
+                "modules": modules, "froms": froms}
+        report = env_report(SHAPE_SNIPPET, spec, work_dir, lambda: introspect_shape_local(spec))
+        if not report:
+            why.append(f"{kind}: nothing resolved uniquely")
+            return None
+        return report, _STEER_CALL
     # Shapes that name no function: the failing script line names it instead.
     line, lib = _traceback_frames(stderr, code)
     if line is None:
         why.append("no script frame in the traceback")
         return None
     calls = apf.calls_on_line(code, line)
-    modules, froms = _script_imports(code, work_dir, apf)
-    if kind == "property_setter":
-        if m.group("type") in own_classes:
-            why.append(f"class {m.group('type')} is defined by the script")
-            return None
-        spec = {"shape": kind, "type": m.group("type"), "attr": m.group("attr"),
-                "modules": modules, "froms": froms}
-    elif kind in ("not_callable", "ctypes_arity"):
+    if kind in ("not_callable", "ctypes_arity"):
         # An attribute one of the script's own classes carries is not the library's to answer.
         attrs = sorted({c["attr"] for c in calls if c["attr"] and c["attr"] not in own_attrs})
         if not attrs:
@@ -2096,24 +2196,26 @@ def retry_report(ctx, stderr: str | None, code: str | None = None,
     # (they differ when a later kind follows an original one), then the other hits from last to
     # first, at most `_MAX_STDERR_HITS` in all. stdout (the caught-and-printed case) only when
     # stderr holds no original-kind hit, as before the later kinds existed.
+    # Both streams are also read for library errors embedded in other text (`_all_matches`'s
+    # `embedded`: an exception repr, a message inside another exception's message, a printed
+    # error), and each hit is given the traceback it belongs to (`_hit_segment`).
     hits = []
     seen = set()
-    err_all = _all_matches(stderr)
-    picked = _last_match(stderr)
-    ordered = ([err_all[-1]] if err_all else []) + (
-        [(None, picked[0], picked[1])] if picked else []) + err_all[::-1]
-    for _start, kind, m in ordered:
+    err_all = _all_matches(stderr, embedded=True)
+    picked = _pick(err_all)
+    ordered = ([err_all[-1]] if err_all else []) + ([picked] if picked else []) + err_all[::-1]
+    for start, kind, m in ordered:
         key = (kind, m.group(0))
         if key in seen:
             continue
         seen.add(key)
-        hits.append(((kind, m), stderr))
+        hits.append(((kind, m), _hit_segment(stderr, start)))
         if len(hits) >= _MAX_STDERR_HITS:
             break
     if not any(h[0][0] in _ORIGINAL_KINDS for h in hits):
-        out_hit = _last_match(stdout, allow_bare=True)
+        out_hit = _pick(_all_matches(stdout, allow_bare=True, embedded=True))
         if out_hit is not None:
-            hits.append((out_hit, stdout))
+            hits.append(((out_hit[1], out_hit[2]), _hit_segment(stdout, out_hit[0])))
     if not hits:
         why.append("no API-shaped error in the output")
         return None

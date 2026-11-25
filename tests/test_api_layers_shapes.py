@@ -576,3 +576,126 @@ def test_long_reports_are_cut_at_a_line():
     assert len(out) <= 1100 and out.endswith("more lines omitted]")
     assert all(l.startswith("line ") for l in out.splitlines()[:-1])
     assert ai._cap_report("short") == "short"
+
+
+# ── 6. library errors embedded in other text (b13-1 qwen r31) ────────────────
+#
+# The engineer wrapped each library call in `except Exception` and raised its own error, so the
+# library's error survived only inside the new message; other scripts print the caught error.
+# Each script really runs against the synthetic package.
+
+
+def _run_out(lib, code):
+    """Like `_run`, also returning stdout."""
+    script = lib.wd / "codebase" / "step_1.py"
+    script.write_text(code)
+    env = dict(os.environ, PYTHONPATH=str(lib.site))
+    proc = subprocess.run([sys.executable, str(script)], cwd=str(lib.wd), env=env,
+                          capture_output=True, text=True, timeout=60)
+    assert proc.returncode != 0, "the fixture script was meant to fail"
+    return code, proc.stderr, proc.stdout
+
+
+_WRAP = ("import apil_fx\np = apil_fx.make()\ntry:\n    p.ro = 3\nexcept Exception as e:\n"
+         "    raise RuntimeError(f\"failed to configure the model: {e%s}\")%s\n")
+
+
+def test_an_exception_repr_inside_another_message_is_read(lib):
+    code, err = _run(lib, _WRAP % ("!r", " from None"))
+    assert "RuntimeError: failed to configure the model: AttributeError(\"property 'ro'" in err, err
+    assert "AttributeError: property" not in err
+    assert ai.classify_api_error(err) is None            # the other readers are unchanged
+    rep = _retry(lib, code, err)
+    assert rep and "READ-ONLY: Params.ro is a property with NO SETTER" in rep, rep
+
+
+def test_a_message_inside_another_exceptions_message_is_read(lib):
+    code, err = _run(lib, _WRAP % ("", " from None"))
+    assert "RuntimeError: failed to configure the model: property 'ro' of 'Params'" in err, err
+    rep = _retry(lib, code, err)
+    assert rep and "READ-ONLY: Params.ro is a property with NO SETTER" in rep, rep
+
+
+def test_a_repr_inside_a_repr_is_read():
+    # Escaped quotes: the inner repr as it appears when the outer exception is itself printed
+    # as a repr. Only the matcher is exercised here.
+    inner = AttributeError("property 'ro' of 'Params' object has no setter")
+    text = "RuntimeError: %r\n" % RuntimeError(f"could not set: {inner!r}")
+    assert "\\'ro\\'" in text
+    # ...and with the inner quotes escaped instead (a double-quoted outer repr).
+    text2 = ('RuntimeError("could not set: AttributeError(\\"property \'ro\' of \'Params\' object has '
+             'no setter\\")")\n')
+    assert 'AttributeError(\\"property' in text2
+    for t in (text, text2):
+        hits = ai._all_matches(t, embedded=True)
+        assert [(k, m.group("type"), m.group("attr")) for _s, k, m in hits] == [
+            ("property_setter", "Params", "ro")], (t, hits)
+
+
+def test_chained_exceptions_are_read_with_their_own_traceback(lib):
+    for tail in (" from e", ""):          # "direct cause" and "during handling" chains
+        code, err = _run(lib, "import apil_fx\np = apil_fx.make()\ntry:\n    p.ro = 3\n"
+                              "except Exception as e:\n    raise RuntimeError('could not configure')"
+                              + tail + "\n")
+        assert ("The above exception was the direct cause" in err if tail
+                else "During handling of the above exception" in err), err
+        rep = _retry(lib, code, err)
+        assert rep and "READ-ONLY: Params.ro is a property with NO SETTER" in rep, rep
+    # The segment a hit is answered from is its own traceback, up to its line.
+    seg = ai._hit_segment(err, err.index("AttributeError: property"))
+    assert seg.startswith("Traceback") and seg.rstrip().endswith("has no setter")
+    assert "During handling" not in seg
+
+
+def test_errors_a_script_prints_are_read(lib):
+    ctx = PlanContext(main_task="t", api_introspect_retry=True)
+    # str(e) on stdout, no traceback, exit 1.
+    code, err, out = _run_out(lib, "import sys\nimport apil_fx\np = apil_fx.make()\ntry:\n    p.ro = 3\n"
+                                   "except Exception as e:\n    print('error:', e)\n    sys.exit(1)\n")
+    assert err == "" and "has no setter" in out
+    rep = ai.retry_report(ctx, err, code, out, str(lib.wd))
+    assert rep and "READ-ONLY: Params.ro is a property with NO SETTER" in rep, rep
+    # repr(e) printed to stderr, no traceback.
+    code, err, out = _run_out(lib, "import sys\nimport apil_fx\np = apil_fx.make()\ntry:\n    p.ro = 3\n"
+                                   "except Exception as e:\n    print('error:', repr(e), file=sys.stderr)\n"
+                                   "    sys.exit(1)\n")
+    assert "Traceback" not in err
+    rep = ai.retry_report(ctx, err, code, out, str(lib.wd))
+    assert rep and "READ-ONLY: Params.ro is a property with NO SETTER" in rep, rep
+    # A module error embedded in a wrapper's message keeps the module shape.
+    code, err = _run(lib, "import apil_fx\ntry:\n    f = apil_fx.gone_fn\nexcept Exception as e:\n"
+                          "    raise RuntimeError(f'setup failed: {e!r}') from None\n")
+    rep = _retry(lib, code, err)
+    assert rep and "apil_fx.gone_fn" in rep and "ABSENT" in rep, rep
+
+
+def test_embedded_forms_stay_conservative(lib):
+    why = []
+    # A property that HAS a setter in the installed class: the introspection disagrees, silent.
+    code = "import apil_fx\np = apil_fx.make()\n"
+    tb = "RuntimeError: wrapped: AttributeError(\"property 'flag' of 'Params' object has no setter\")\n"
+    assert _retry(lib, code, tb, why) is None and why, why
+    # The script's own class: never answered by a same-named library class.
+    code, err = _run(lib, "import apil_fx\nclass Params:\n    @property\n    def ro(self):\n        return 1\n"
+                          "try:\n    Params().ro = 2\nexcept Exception as e:\n"
+                          "    raise RuntimeError(f'{e!r}') from None\n")
+    assert _retry(lib, code, err) is None
+    # Not an exception class: a repr-looking call of something else.
+    assert ai._all_matches("Point(\"property 'ro' of 'Params' object has no setter\")\n",
+                           embedded=True) == []
+    # A bare message on a line that is not an exception line, on stderr: still anchored.
+    assert ai._all_matches("note: property 'ro' of 'Params' object has no setter\n",
+                           embedded=True) == []
+    # The call-shape messages stay out of the bare forms even inside another exception's line.
+    for msg in ("set_x() got an unexpected keyword argument 'c'",
+                "set_x() takes 2 positional arguments but 3 were given",
+                "Line2D.set() got an unexpected keyword argument 'dpi'"):
+        assert ai._all_matches(f"RuntimeError: wrapped: {msg}\n", embedded=True) == [], msg
+        # ...but a repr carries the class name, so the shape is provable as on a traceback.
+    assert [k for _s, k, _m in ai._all_matches(
+        "RuntimeError: wrapped: TypeError(\"set_x() got an unexpected keyword argument 'c'\")\n",
+        embedded=True)] == ["signature_kw"]
+    # An anchored hit is not counted twice by the embedded reader.
+    hits = ai._all_matches("AttributeError: property 'ro' of 'Params' object has no setter\n",
+                           embedded=True)
+    assert len(hits) == 1
