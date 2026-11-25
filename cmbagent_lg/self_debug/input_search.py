@@ -306,8 +306,8 @@ def summary_line(record: dict) -> str:
             f"({record.get('entries_seen', 0)} entries{bound}) and no close name")
 
 
-_NO_SUBSTITUTE = ("A file of the same name under another run, snapshot, redshift or resolution "
-                  "directory is a DIFFERENT input: do not substitute it. If no location corresponds "
+_NO_SUBSTITUTE = ("A file of the same name under a directory for another run, configuration or "
+                  "parameter value is a DIFFERENT input: do not substitute it. If no location corresponds "
                   "to the input the task names, report that the input is missing and exit with an "
                   "error. Do not create or fabricate the file.")
 

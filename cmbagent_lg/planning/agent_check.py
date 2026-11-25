@@ -28,10 +28,10 @@ from typing import List, Optional, Tuple
 
 # ── plan-time: what a step ASKS for ─────────────────────────────────────
 
-_DATA_NOUN = (r"(?:files?|data(?:sets?)?|catalog(?:ue)?s?|tables?|snapshots?|arrays?|spectra|"
+_DATA_NOUN = (r"(?:files?|data(?:sets?)?|catalog(?:ue)?s?|tables?|arrays?|"
               r"[\w./-]+\.(?:csv|tsv|txt|dat|hdf5|h5|fits|npy|npz|json|parquet|pkl|nc))")
 # Formats the researcher's `read_file` cannot parse (it reads text: CSV, JSON, logs, markdown);
-# "read the output files of step 2" or "read the tables in Schaye et al." is researcher work.
+# "read the output files of step 2" or "read the tables in a cited paper" is researcher work.
 _BINARY = (r"(?:\.(?:hdf5|h5|fits|npy|npz|parquet|pkl|pickle)\b|"
            r"\b(?:hdf5|fits|numpy|parquet|pickle|binary)\b)")
 # Where an imperative clause starts: the start of the text, after a sentence or clause mark, after

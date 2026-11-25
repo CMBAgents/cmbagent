@@ -118,7 +118,7 @@ def _report(module_name, symbol=None, max_names=60):
                 out.append(f"NOTE: '{symbol}' EXISTS as {anc_name}.{symbol} — import it from there.")
             # A package's submodules are not attributes until something imports them, so
             # `dir()` leaves out the very names a missing submodule is most often confused
-            # with (`colossus.lss.massfunctions` vs `mass_function`). List them from disk.
+            # with (`pkg.sub.fitfunctions` vs `fit_function`). List them from disk.
             subs = []
             try:
                 if hasattr(mod, "__path__"):
@@ -1114,7 +1114,7 @@ def _resolve_class(type_name, modules, froms):
 def _resolve_method(spec):
     """`(label, function, signature_without_self)` for `type.method`, or None.
 
-    The class name is CPython's own (`CAMBparams.set_cosmology() got an unexpected keyword
+    The class name is CPython's own (`ModelParams.set_values() got an unexpected keyword
     argument`); it names the class that DEFINES the method. The resolved method must agree:
     its `__qualname__` ends in `type.method`, so a same-named class or an override elsewhere
     in the hierarchy stays silent."""
