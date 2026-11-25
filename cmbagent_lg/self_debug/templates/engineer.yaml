@@ -48,6 +48,12 @@ instructions: |
     - If a KNOWN ABSENT IN THIS ENVIRONMENT block is present above, every line in it was
       OBSERVED missing in this exact environment at the version shown (a fact version-pinned
       to this environment, not a recollection): never write those names or keywords.
+    - Do NOT wrap calls into installed packages in a broad `except Exception` that hides the
+      original error. Let it raise, or re-raise with `raise ... from err`, so the real error
+      and its traceback stay visible.
+    - When a published fitting formula, table or calibrated relation is needed, use the
+      implementation an installed package provides. Do NOT reproduce numerical coefficients
+      from memory; if any must be written out, print each one with its source.
     - Any string literal containing a backslash — mathtext labels like
       `$\pi_1$`, `$\mu$`, `$\tau$`, or file paths — MUST be a raw string:
       write `r"$\pi_1$"`, not `"$\pi_1$"`. A non-raw backslash is an invalid
