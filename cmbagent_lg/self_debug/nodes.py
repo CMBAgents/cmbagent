@@ -280,6 +280,7 @@ def _engineer_model_failure(state: DebugState, n: int, attempts: int, err: BaseE
         "api_preflight_report": None,
         "bypass_after_fault_report": None,
         "engineer_model_error": reason,
+        "engineer_model_last_error": reason,
         "engineer_model_failures": consecutive,
         "engineer_model_failures_total": total,
     }

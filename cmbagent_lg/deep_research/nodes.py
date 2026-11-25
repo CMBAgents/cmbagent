@@ -544,10 +544,12 @@ def _step_result(state, runtime, plan, step, n, sub_state, reassigned):
         # Surface the most useful diagnostic.
         ev = sub_state.get("current_execution_verdict")
         sv = step_verdict
-        if sub_state.get("engineer_model_failed"):
-            # Consecutive engineer model failures ended the step: that, not an earlier verdict, is the reason.
-            outcome["reason"] = sub_state["engineer_model_failed"]
-            outcome["model_failure"] = {"role": "engineer", "reason": sub_state["engineer_model_failed"]}
+        model_reason = _engineer_model_reason(sub_state)
+        if model_reason:
+            # The engineer's model call failed on the step's last attempt (two in a row, or one on the attempt cap):
+            # that, not the evaluator's judgement of the stand-in script or an earlier verdict, is the reason.
+            outcome["reason"] = model_reason
+            outcome["model_failure"] = {"role": "engineer", "reason": model_reason}
         elif claim_failed:
             audit = sub_state.get("current_claim_audit")
             hard = audit.hard() if audit is not None else []
@@ -777,7 +779,7 @@ def _step_exhausted(sub_state: dict, step: Step, ctx) -> bool:
     """
     if sub_state.get("unfulfillable"):
         return False
-    if sub_state.get("engineer_model_failed"):     # the model server failed, not the plan
+    if _engineer_model_reason(sub_state):     # the model server failed, not the plan
         return False
     if sub_state.get("data_fixer_format") == "missing":
         return False
@@ -789,6 +791,17 @@ def _step_exhausted(sub_state: dict, step: Step, ctx) -> bool:
         return True
     max_n = getattr(ctx, "max_n_attempts", 3) if ctx is not None else 3
     return sub_state.get("attempts", 0) >= max_n
+
+
+def _engineer_model_reason(sub_state: dict) -> str | None:
+    """Why the step's last engineer attempt had no code because its model call failed, else None: the
+    consecutive failures that ended the step (`engineer_model_failed`), or a single failure on the last attempt
+    the cap allowed (`engineer_model_failures` still above 0: an answered call resets it)."""
+    if sub_state.get("engineer_model_failed"):
+        return sub_state["engineer_model_failed"]
+    if (sub_state.get("engineer_model_failures") or 0) > 0:
+        return sub_state.get("engineer_model_last_error") or "the engineer model call failed on the last attempt"
+    return None
 
 
 def _replannable_exhaustion(state: DeepResearchState, runtime) -> bool:

@@ -341,3 +341,21 @@ def test_the_researcher_retries_once_then_ends_the_run_with_a_reason(tmp_path, m
         node(state, _rt(ctx))
     # Two calls, not four: the react writer does not fall back to the plain writer's same call.
     assert m.calls == 2 and ei.value.role == "researcher"
+
+
+def test_a_failure_on_the_last_allowed_attempt_is_the_reason_and_is_not_replanned(tmp_path, monkeypatch):
+    # attempt 1 fails on its own, attempt 2 (the cap) has its call and retry time out: the attempt cap ends the
+    # step after one model failure, so `engineer_model_failed` is never set.
+    bad = "**Python Code:**\n```python\nif __name__ == \"__main__\":\n    raise SystemExit('no')\n```\n"
+    sub, n_calls = _run_graph(tmp_path, monkeypatch, [bad, _timeout(), _timeout()], max_attempts=2)
+    assert n_calls == 3 and sub["attempts"] == 2 and not sub.get("engineer_model_failed")
+    assert sub["engineer_model_failures"] == 1 and "APITimeoutError" in sub["engineer_model_last_error"]
+    from cmbagent_lg.deep_research import nodes as dr
+    ctx = PlanContext(main_task="t", max_n_attempts=2)
+    assert dr._step_exhausted(sub, _step(), ctx) is False
+    out, dr, _ctx = _run_step(tmp_path, monkeypatch, sub_state=sub)
+    o = out["step_outcomes"][-1]
+    assert o["fulfilled"] is False and not o.get("exhausted")
+    assert o["reason"] == sub["engineer_model_last_error"] and o["model_failure"]["role"] == "engineer"
+    # An answered call resets the count: a later ordinary failure on the cap is replanned as before.
+    assert dr._step_exhausted({**sub, "engineer_model_failures": 0}, _step(), ctx) is True

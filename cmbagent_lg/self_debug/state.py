@@ -258,8 +258,11 @@ class DebugState(TypedDict, total=False):
     #                                   format_engineer)
     # `engineer_model_failures`       — consecutive failures for this step; a call that answers resets it
     # `engineer_model_failures_total` — every failure for this step
+    # `engineer_model_last_error`     — the reason of the latest failure (kept; read when the step ends on the
+    #                                   attempt cap right after one)
     # `engineer_model_failed`         — set when `_MAX_ENGINEER_MODEL_FAILURES` in a row ended the step: why
     engineer_model_error: Optional[str]
+    engineer_model_last_error: Optional[str]
     engineer_model_failures: int
     engineer_model_failures_total: int
     engineer_model_failed: Optional[str]
