@@ -276,14 +276,26 @@ def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSt
     raw = state.get("raw_engineer") or ""
     if not raw.strip():
         print("[format_engineer] the engineer returned an empty answer; this attempt fails", file=sys.stderr, flush=True)
-        return {"current_code": EngineerResponse(
-            python_code='if __name__ == "__main__":\n    raise SystemExit("the engineer returned an empty answer: no code was written")\n',
-            code_explanation="The engineer returned an empty answer, so no script was written; this attempt fails and is retried.")}
+        return {"current_code": _failing_script(
+            "the engineer returned an empty answer: no code was written",
+            "The engineer returned an empty answer, so no script was written; this attempt fails and is retried.")}
     obj, how = extract_engineer_response(raw)
     if obj is not None:
         print(f"[format_engineer] script read from {how} ({obj.python_code.count(chr(10))} lines); "
               f"no formatter call", file=sys.stderr, flush=True)
         return {"current_code": obj}
+    cut = _cut_off_code_block(raw)
+    if cut:
+        # The answer stopped inside its code block (the output limit): the formatter cannot recover the missing end, and
+        # copying a ~20k-token fragment into JSON overflowed the formatter's own limit and ended the run (b12-3, rusty,
+        # 25 Nov 2026). Fail the attempt with a diagnosis the engineer can act on instead.
+        print(f"[format_engineer] the answer was cut off inside its code block ({cut} lines written); this attempt "
+              f"fails, no formatter call", file=sys.stderr, flush=True)
+        return {"current_code": _failing_script(
+            f"the engineer's answer was cut off at the output limit inside its code block after {cut} lines, so the "
+            "script is incomplete. Write a shorter, complete script: move long helper code into fewer functions, "
+            "drop commented-out alternatives and repeated checks, and keep the explanation brief",
+            "The answer ended before its code block closed (output limit); this attempt fails and is retried.")}
     print("[format_engineer] no usable fenced code block in the engineer's answer (none, blank, or cut off and not "
           "parsing); asking the formatter",
           file=sys.stderr, flush=True)
@@ -293,11 +305,36 @@ def format_engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSt
         "object. Preserve the Python code VERBATIM — do not reformat, lint, or "
         "alter it. The code block is the substantive content; do not summarize it."
     )
-    obj = structured.invoke(
-        [sys_prompt, HumanMessage(raw)],
-        config={"tags": ["format_engineer"]},
-    )
+    try:
+        obj = structured.invoke(
+            [sys_prompt, HumanMessage(raw)],
+            config={"tags": ["format_engineer"]},
+        )
+    except Exception as e:  # noqa: BLE001 - one unusable formatter answer must fail the attempt, not end the run
+        print(f"[format_engineer] the formatter could not turn the answer into a script ({type(e).__name__}: "
+              f"{str(e)[:200]}); this attempt fails", file=sys.stderr, flush=True)
+        return {"current_code": _failing_script(
+            "no runnable script could be read from the engineer's answer: it had no usable fenced python block and "
+            f"the formatter failed ({type(e).__name__}). Answer with the explanation, then **Python Code:** and one "
+            "complete fenced python block",
+            "No script could be extracted from the answer; this attempt fails and is retried.")}
     return {"current_code": obj.model_copy(update={"python_code": normalise_code(obj.python_code)})}
+
+
+def _failing_script(reason: str, explanation: str) -> EngineerResponse:
+    """A script that exits non-zero with `reason`, so the attempt is counted and retried like any failed run and the
+    engineer sees the reason in the next prompt's stderr."""
+    return EngineerResponse(
+        python_code='if __name__ == "__main__":\n    raise SystemExit(%r)\n' % reason,
+        code_explanation=explanation)
+
+
+def _cut_off_code_block(raw: str) -> int:
+    """Lines written inside an unclosed final ``` fence (the answer stopped inside its code block), else 0."""
+    fences = [i for i, line in enumerate(raw.splitlines()) if line.lstrip().startswith("```")]
+    if len(fences) % 2 == 0:
+        return 0
+    return len(raw.splitlines()) - fences[-1] - 1
 
 
 # ── on-disk layout ───────────────────────────────────────────────────────
