@@ -2,8 +2,8 @@
 
 One breast-cancer-fleet script fitted lifelines' Rossi recidivism demo
 (`lifelines.datasets.load_rossi()`) instead of the real cohort. It exited 0, printed
-plausible survival numbers, and the step evaluator — which sees only stdout and a file
-list — had nothing to object to. That is the one failure mode whose output is
+plausible survival numbers, and the step evaluator — which reads the code (head and tail),
+stdout and the file list — passed it on its plausible numbers. That is the one failure mode whose output is
 indistinguishable from success, so it has to be caught in the SOURCE, before the run.
 
 The check lives in `static_preflight` beside the syntax and prints-anything questions

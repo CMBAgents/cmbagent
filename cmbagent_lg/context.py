@@ -176,7 +176,8 @@ class PlanContext:
     # call): a script that does not parse is never executed — the SyntaxError
     # is handed to the evaluator/retry path directly. This flag adds the second
     # check: a script with no `print(` / `sys.stdout` write anywhere is rejected
-    # the same way, because the step evaluator sees ONLY stdout and rejects a
+    # the same way, because the step evaluator can confirm results only from what
+    # the script prints (it also reads the code, head and tail) and rejects a
     # silent run as unverifiable regardless. Measured on the qm9-joint fleet
     # (918 failed attempts): 47 silent scripts, 9 SyntaxErrors — each one a
     # subprocess run plus one or two evaluator calls spent on a foregone verdict.

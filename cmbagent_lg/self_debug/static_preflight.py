@@ -9,7 +9,8 @@ questions of the source text alone, with `ast` and no model call:
      (`PlanContext.reject_demo_datasets`, default on.) A script that fits
      `lifelines.datasets.load_rossi()` — the Rossi recidivism demo — runs cleanly,
      prints plausible numbers and reports results for the wrong cohort entirely; the
-     step evaluator sees only stdout and cannot tell. Seen once on the breast-cancer
+     step evaluator reads the code (head and tail) and stdout, and in that case
+     passed the step on its plausible numbers. Seen once on the breast-cancer
      fleet, and it is the one failure mode whose output is indistinguishable from
      success. The rule is generic: a few general-purpose libraries' example-data
      modules by name, and any package's `datasets` / `sampledata` submodule called
@@ -72,8 +73,9 @@ from cmbagent_lg.timing import timed_node
 STATIC_MARKER = "[static check"
 
 NO_STDOUT_MESSAGE = (
-    "[static check — not executed] The script never prints anything. The evaluator sees "
-    "ONLY stdout; every final numerical result must be printed (see PRINT YOUR RESULTS in "
+    "[static check — not executed] The script never prints anything. The evaluator reads "
+    "the code but can confirm results only from what the script prints; every final "
+    "numerical result must be printed (see PRINT YOUR RESULTS in "
     "your instructions). Add prints and resubmit, KEEPING every file the script "
     "already saves and the exact paths it saves them to -- printing is IN ADDITION "
     "to writing the step's declared output files, never instead of it."
