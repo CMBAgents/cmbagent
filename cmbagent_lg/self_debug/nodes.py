@@ -34,6 +34,7 @@ from cmbagent_lg.llms import (
     answer_mode,
     answer_problem,
     chat_model,
+    failure_phrase,
     invoke_with_transient_retry,
     model_failure_types,
     transient_model_errors,
@@ -259,7 +260,7 @@ def _engineer_model_failure(state: DebugState, n: int, attempts: int, err: BaseE
     total = state.get("engineer_model_failures_total", 0) + 1
     detail = f"{type(err).__name__}: {' '.join(str(err).split())[:300]}"
     ended = consecutive >= _MAX_ENGINEER_MODEL_FAILURES
-    reason = (f"the engineer model call failed twice, after one retry ({detail}), so no code was written for "
+    reason = (f"the engineer model call {failure_phrase(err)} ({detail}), so no code was written for "
               f"attempt {attempts}")
     print(f"[engineer] step {n} attempt {attempts}: MODEL CALL FAILED {consecutive} time(s) in a row ({detail}); "
           + (f"the step fails after {consecutive} consecutive failures" if ended
@@ -285,8 +286,8 @@ def _engineer_model_failure(state: DebugState, n: int, attempts: int, err: BaseE
         "engineer_model_failures_total": total,
     }
     if ended:
-        why = (f"the engineer model call failed {consecutive} times in a row (each after one retry); last error: "
-               f"{detail}")
+        why = (f"the engineer model call failed {consecutive} times in a row (each after its retry, or after its "
+               f"client's own resends); last error: {detail}")
         out["engineer_model_failed"] = why
         out["current_step_verdict"] = StepVerdict(fulfilled=False, unmet_requirements=[why], feedback=why)
     return out

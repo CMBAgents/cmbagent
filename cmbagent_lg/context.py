@@ -65,6 +65,10 @@ def _env_knob(name: str, default):
     return raw
 
 
+# The Gemini thinking levels `PlanContext.vlm_thinking_level` accepts (None: the critic role's level).
+VLM_THINKING_LEVELS = (None, "minimal", "low", "medium", "high")
+
+
 @dataclass
 class PlanContext:
     main_task: str
@@ -506,3 +510,10 @@ class PlanContext:
     # Model for that one classifier call. None → `formatter_model` (the cheap
     # structured-output role); it is a two-field yes/no judgement.
     intent_gate_model: str | None = None
+
+    def __post_init__(self):
+        # A typo here would otherwise surface only at the first image review, whose model call has no handler, and
+        # end the run there.
+        if self.vlm_thinking_level not in VLM_THINKING_LEVELS:
+            raise ValueError("PlanContext.vlm_thinking_level must be one of %s, got %r"
+                             % (", ".join(repr(v) for v in VLM_THINKING_LEVELS), self.vlm_thinking_level))

@@ -359,3 +359,68 @@ def test_a_failure_on_the_last_allowed_attempt_is_the_reason_and_is_not_replanne
     assert o["reason"] == sub["engineer_model_last_error"] and o["model_failure"]["role"] == "engineer"
     # An answered call resets the count: a later ordinary failure on the cap is replanned as before.
     assert dr._step_exhausted({**sub, "engineer_model_failures": 0}, _step(), ctx) is True
+
+
+# ── review fixes: the provider errors, the Gemini timeout, the elapsed cap, the thinking level ─────
+
+
+def test_anthropic_overloaded_and_gateway_errors_are_transient(_no_pause):
+    from anthropic._exceptions import (DeadlineExceededError, InternalServerError, OverloadedError,
+                                       RateLimitError, ServiceUnavailableError)
+    types_ = llms.transient_model_errors()
+    for cls, code in ((OverloadedError, 529), (ServiceUnavailableError, 503), (DeadlineExceededError, 504)):
+        assert not issubclass(cls, InternalServerError)       # why they are named
+        err = _status_error(cls, code)
+        assert isinstance(err, types_), cls
+        calls = []
+
+        def call():
+            calls.append(1)
+            if len(calls) == 1:
+                raise err
+            return "ok"
+
+        assert llms.invoke_with_transient_retry(call, "anthropic") == "ok" and len(calls) == 2
+    assert not issubclass(RateLimitError, types_)              # 429 still raises at once
+
+
+def test_gemini_has_a_request_timeout(monkeypatch):
+    monkeypatch.setenv("GOOGLE_API_KEY", "x")
+    llms.chat_model.cache_clear()
+    try:
+        m = llms.chat_model("gemini-3.1-flash-lite", "coder")
+        assert m.timeout == llms.GEMINI_TIMEOUT_S == 600.0
+    finally:
+        llms.chat_model.cache_clear()
+
+
+def test_a_call_that_failed_slowly_is_not_retried(monkeypatch, _no_pause, capsys):
+    clock = iter([0.0, llms.TRANSIENT_RETRY_MAX_ELAPSED_S + 5.0])
+    monkeypatch.setattr("time.monotonic", lambda: next(clock))
+    calls = []
+
+    def call():
+        calls.append(1)
+        raise _timeout()
+
+    with pytest.raises(type(_timeout())) as info:
+        llms.invoke_with_transient_retry(call, "slow call")
+    assert len(calls) == 1 and _no_pause == []
+    assert "no retry, its client already resent it" in capsys.readouterr().err
+    e = llms.ModelCallFailed("planner", info.value)
+    assert "failed after 905 s, with no retry (its client had already resent it)" in str(e), str(e)
+    # A quick failure is retried as before.
+    clock2 = iter([0.0, 1.0])
+    monkeypatch.setattr("time.monotonic", lambda: next(clock2))
+    calls.clear()
+    with pytest.raises(type(_timeout())) as info:
+        llms.invoke_with_transient_retry(call, "quick call")
+    assert len(calls) == 2
+    assert llms.failure_phrase(info.value) == "failed twice, after one retry"
+
+
+def test_vlm_thinking_level_is_validated():
+    for level in (None, "minimal", "low", "medium", "high"):
+        PlanContext(main_task="t", vlm_thinking_level=level)
+    with pytest.raises(ValueError, match="vlm_thinking_level"):
+        PlanContext(main_task="t", vlm_thinking_level="hihg")

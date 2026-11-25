@@ -203,12 +203,16 @@ def _short(err, n=300) -> str:
 def transient_model_errors():
     """Errors of a model call worth one more try after a pause: the request timed out (openai / anthropic
     APITimeoutError, an httpx read timeout from the Gemini client) or the server answered with a 5xx (openai /
-    anthropic InternalServerError, google-genai ServerError). Authentication, unknown model, bad request, rate-limit
-    (429) and quota errors, and a server that cannot be reached, are not: those are a wrong configuration or a
-    server that is gone, and they raise at once."""
+    anthropic InternalServerError; anthropic's 529 OverloadedError and the Vertex / Bedrock clients' 503
+    ServiceUnavailableError and 504 DeadlineExceededError, which are not InternalServerError subclasses;
+    google-genai ServerError). Authentication, unknown model, bad request, rate-limit (429) and quota errors, and a
+    server that cannot be reached, are not: those are a wrong configuration or a server that is gone, and they
+    raise at once."""
     types: list = []
     for mod, names in (("openai", ("APITimeoutError", "InternalServerError")),
                        ("anthropic", ("APITimeoutError", "InternalServerError")),
+                       ("anthropic._exceptions", ("OverloadedError", "ServiceUnavailableError",
+                                                  "DeadlineExceededError")),
                        ("google.genai.errors", ("ServerError",)),
                        ("httpx", ("ReadTimeout",))):
         try:
@@ -231,31 +235,62 @@ def model_failure_types():
 # Seconds between a model call that timed out or got a 5xx and its one retry (`invoke_with_transient_retry`).
 TRANSIENT_RETRY_PAUSE_S = 30.0
 
+# A call that ran this long before failing gets no retry of its own: the provider's client already resent it on
+# its timeouts and 5xx (openai and anthropic up to 3 tries of 600 s by default, google-genai up to 6), so a second
+# round would only double the time it takes to find a server that is not answering.
+TRANSIENT_RETRY_MAX_ELAPSED_S = 900.0
+
+# Request timeout of the Gemini client, in seconds. google-genai sets none, so a server that stops answering
+# would hang the call for ever; 600 s is the openai and anthropic SDKs' default.
+GEMINI_TIMEOUT_S = 600.0
+
+
+def failure_phrase(err: BaseException) -> str:
+    """How a call that raised `err` out of `invoke_with_transient_retry` failed: "failed twice, after one retry",
+    or, when the first call ran past the cap, "failed after N s, with no retry (its client had already resent it)"."""
+    elapsed = getattr(err, "model_call_unretried_after_s", None)
+    if elapsed is None:
+        return "failed twice, after one retry"
+    return "failed after %.0f s, with no retry (its client had already resent it)" % elapsed
+
 
 class ModelCallFailed(RuntimeError):
-    """A model call of `role` that timed out or got a 5xx twice (`invoke_with_transient_retry`). Raised where the
+    """A model call of `role` that timed out or got a 5xx, after its retry (`invoke_with_transient_retry`). Raised where the
     failure ends the run (planner, plan reviewer, researcher), with a message that says which call failed and why;
     `record()` is the same as a dict for a status file or a step outcome. The original error is `__cause__`."""
 
     def __init__(self, role: str, err: BaseException):
         self.role = role
         self.error = _short(err)
-        super().__init__("the %s model call failed twice, after one retry (%s); the run ends here"
-                         % (role, self.error))
+        super().__init__("the %s model call %s (%s); the run ends here" % (role, failure_phrase(err), self.error))
 
     def record(self) -> dict:
         return {"role": self.role, "error": self.error, "reason": str(self)}
 
 
-def invoke_with_transient_retry(call, label: str, pause_s: float | None = None):
+def invoke_with_transient_retry(call, label: str, pause_s: float | None = None,
+                                max_elapsed_s: float | None = None):
     """`call()`, tried once more after `pause_s` seconds (default `TRANSIENT_RETRY_PAUSE_S`) when it raised one of
-    `transient_model_errors`. A second such failure raises (the first is its __context__); any other error raises at
-    once. Both failures are logged under `label`."""
+    `transient_model_errors`, unless that first call ran longer than `max_elapsed_s` (default
+    `TRANSIENT_RETRY_MAX_ELAPSED_S`) before failing: its error then raises at once. The retry's error raises as it
+    is (the first one is logged, not chained); any other error raises at once. Every failure is logged under
+    `label`."""
     import time
     pause = TRANSIENT_RETRY_PAUSE_S if pause_s is None else pause_s
+    cap = TRANSIENT_RETRY_MAX_ELAPSED_S if max_elapsed_s is None else max_elapsed_s
+    t0 = time.monotonic()
     try:
         return call()
     except transient_model_errors() as err:
+        elapsed = time.monotonic() - t0
+        if elapsed > cap:
+            try:
+                err.model_call_unretried_after_s = elapsed     # read by `failure_phrase`
+            except AttributeError:  # pragma: no cover - an exception without a __dict__
+                pass
+            print("[llms] %s: model call failed after %.0fs (%s); no retry, its client already resent it"
+                  % (label, elapsed, _short(err)), file=sys.stderr, flush=True)
+            raise
         print("[llms] %s: model call failed (%s); retrying once in %gs" % (label, _short(err), pause),
               file=sys.stderr, flush=True)
     time.sleep(pause)
@@ -536,7 +571,7 @@ def chat_model(model: str | None = None, role: str = "generator", thinking_level
         return ChatAnthropic(**kw)
 
     # google (gemini-* and the default)
-    kw = {"model": model, "google_api_key": _google_api_key()}
+    kw = {"model": model, "google_api_key": _google_api_key(), "timeout": GEMINI_TIMEOUT_S}
     if temperature is not None:
         kw["temperature"] = temperature
     if thinking_level is not None and _gemini_supports_thinking_level(model):
