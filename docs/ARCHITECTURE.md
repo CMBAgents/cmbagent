@@ -24,7 +24,7 @@ across tasks.
 | `cli.py` | `cmbagent-lg-cost` — per-model and per-agent-tag cost/tokens/latency, read back from Langfuse. |
 | `ocr.py` | `ocr_pdf_to_dir` — Mistral OCR of a PDF to `document.md` + figures (optional dependency). |
 | `planning/` | `planner ↔ plan_reviewer` graph producing `Plan` / `Step` / `Review`. |
-| `self_debug/` | Engineer step execution: engineer → executor → two evaluator gates, plus preflight, API checks, escape hatches, remote-execution backend. Three deterministic no-model modules sit on that path: `output_postcondition.py` (a clean run that did not write an output the step declared is bounced before any evaluator), `data_infeasibility.py` (a code-gate failure that is a fact about the data — non-convergence, a singular design — is named and bounded instead of retried to the cap), and `infeasibility_check.py` (the step evaluator's "this is impossible here" claim is resolved against the installed environment and the run's own artifacts rather than believed). |
+| `self_debug/` | Engineer step execution: engineer → executor → two evaluator gates, plus preflight, API checks, escape hatches, remote-execution backend. Three deterministic no-model modules sit on that path: `output_postcondition.py` (a clean run that did not write an output the step declared, or that changed a file the step says to leave as it is, is bounced before any evaluator), `data_infeasibility.py` (a code-gate failure that is a fact about the data — non-convergence, a singular design — is named and bounded instead of retried to the cap), and `infeasibility_check.py` (the step evaluator's "this is impossible here" claim is resolved against the installed environment and the run's own artifacts rather than believed). |
 | `researcher/` | Researcher step execution: report writer → `step_evaluator` → `claim_auditor`. |
 | `deep_research/` | Orchestrator: run each step, optionally re-plan the tail, checkpoint. |
 | `vlm/` | Multimodal grounding — image discovery/encoding (`images.py`) and the `image_reviewer` node (`reviewer.py`). No graph of its own. |
@@ -103,6 +103,42 @@ START ─(route_start)┤        ▲                  │                       
   failed attempt. Conservative: save-shaped declarations only (an absent *input* is
   `safe_loading`'s terminal verdict, never a retry hint here), clear `data/...` paths only,
   clean runs only, and never under `CMBAGENT_LG_REMOTE_EXECUTOR` (the data is guest-side).
+  - *Reading the sub-task* (`read_step_paths`). Each sentence of the sub-task line and of
+    each bullet is read on its own. A path is **declared** when a save-type verb governs it
+    affirmatively and unconditionally; **protected** when a prohibition with a write-type
+    verb governs it ("Do not overwrite or delete `data/a.json`", "Do not read, validate,
+    write, re-save, or otherwise touch `data/a.json`, `data/c.json`", "save `data/b.json`
+    without modifying `data/a.json`", "leave `data/a.json` untouched"); and **unsure**,
+    which means neither, when a condition governs it ("If recomputation is needed, save
+    `data/b.json`", "do not overwrite `data/a.json` unless it is invalid") or a negation
+    precedes it in a shape the patterns do not parse ("Do not delete `data/a.json` and
+    write the summary to `data/b.json`": `data/b.json` is unsure). A path one sentence
+    declares and another protects is unsure. Unsure paths are logged once per step
+    (`[output_postcondition] step N: not sure whether ... → treated as neither`).
+  - *Protected files*. A clean run that modified a protected file that was on disk when
+    the attempt started (`change == "modified"` in the manifest) or deleted it
+    (`data_manifest_info["deleted"]`) is bounced with the path and the protecting sentence
+    named. Creating a protected path that did not exist is left to the step evaluator.
+  - *A file an earlier attempt saved*. A declared output this attempt did not write counts
+    as written when an earlier attempt of the same graph invoke of the step wrote it, that
+    attempt's script exited 0, and the file's signature is unchanged since
+    (`StepHistory.reusable`; `logs/step_N_history.json` records the exit status with each
+    write). So a script that follows "if the file already exists and validates, load it
+    and skip recomputation" on a retry is not asked to write it again. A file that was on
+    disk before the step began, one a failed attempt wrote, one changed since, and one a
+    previous run of the step wrote do not count.
+  - *Disagreement with the step evaluator* (`arbitrate_with_step_evaluator`, called by
+    `step_evaluator` on a rejection). When a rejected attempt wrote a declared path and the
+    verdict objects to that write (an unmet requirement that protects the path, or feedback
+    saying the run overwrote it against the sub-task), the path is dropped from the
+    declared set for the rest of the step (`output_postcondition_waived`); a protected path
+    the verdict wants written loses its protection the same way. The evaluator reads the
+    sentence and the post-condition pattern-matches it, so the evaluator's reading stands.
+    If an attempt had already been bounced over that path, the engineer's next prompt
+    carries both messages and says which one stands (`output_conflict_note`), and the log
+    has `[output_postcondition] conflict with the step evaluator on <path>: evaluator's
+    reading stands`. The attempts already used are not given back: a conflict first seen on
+    the last attempt still ends the step.
 - `data_infeasibility` (no node of its own, no model call): `execution_evaluator` also
   matches each code-gate failure against a small table of numerical-failure phrases
   (`ConvergenceError` / `delta contains nan`, a singular or rank-deficient design, perfect
@@ -386,7 +422,7 @@ researcher stay creative.
 | `max_unverified_infeasible_steps` | `int` | `2` | Steps one plan may pass on an infeasibility claim the engine could not check. A verified absence never counts. |
 | `require_stdout` | `bool` | **`True`** | `static_preflight` refuses a script with no `print`/`sys.stdout` write anywhere; the step evaluator sees only stdout. |
 | `reject_demo_datasets` | `bool` | **`True`** | `static_preflight` refuses a script that loads a bundled example dataset instead of the project's own files. `sklearn.datasets.make_*`, the generic directory readers, and a sub-task that names the dataset are exempt. |
-| `check_declared_outputs` | `bool` | **`True`** | `output_postcondition` bounces a clean run that did not write an output path the sub-task declared, before either evaluator is called. |
+| `check_declared_outputs` | `bool` | **`True`** | `output_postcondition` bounces a clean run that did not write an output path the sub-task declared, or that modified or deleted a path the sub-task says to leave as it is, before either evaluator is called. |
 
 ### researcher
 

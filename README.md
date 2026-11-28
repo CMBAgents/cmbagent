@@ -149,7 +149,7 @@ flowchart TD
     image_reviewer -->|accepted| step_evaluator["step_evaluator<br/>was the goal met?"]
     step_evaluator -->|"goal met, or no attempts left"| done(["end"])
     api_preflight -.->|missing API| retry
-    output_postcondition -.->|output missing| retry
+    output_postcondition -.->|output missing or protected file changed| retry
     execution_evaluator -.->|failed| retry
     image_reviewer -.->|revise a figure| retry
     step_evaluator -.->|goal missed| retry
@@ -178,7 +178,7 @@ The other nodes are checks that make no model call, except the intent gate in `p
 | `preflight` | Inspects the input files before the first attempt (delimiter, columns, HDF5 keys, dtypes) and gives the facts to the engineer. When no input file is found, one classifier call, the intent gate, decides whether the step needed input. | `enable_preflight`, `enable_intent_gate` (on) |
 | `static_preflight` | Refuses a script that does not parse, prints nothing, or loads a bundled demo dataset instead of the provided data. | always on |
 | `api_preflight` | Checks every third-party name the script uses against the installed packages, and returns the real API to the engineer before running. | `enable_api_preflight` (on) |
-| `output_postcondition` | Sends the script back when a run finished without writing an output file that the step declared. | always on |
+| `output_postcondition` | Sends the script back when a run finished without writing an output file that the step declared, or changed a file that the step says to leave as it is ("do not overwrite `data/a.json`"). A declared file that an earlier attempt of the same step saved counts while it is unchanged, provided that attempt exited 0. If the step evaluator's verdict contradicts this check about a file, the evaluator's reading is kept for the rest of the step and the engineer is shown both messages. | always on |
 | `missing_input` | Ends the step when a required input file does not exist, so that the engineer does not invent the data. Before that, `data/` and every `input_roots` directory are searched for a file of the same name (or a close name next to the path the script used). A file under directories the path named is the same input reached by a wrong path: the attempt is an ordinary failure, and the next prompt names the locations. A file of that name under another directory (another run or snapshot), or a close name, earns one such retry per file name; a close name that differs in its numbers (`snapshot_0078` for `snapshot_0077`) earns none. | `safe_loading`, `enable_intent_gate` (on) |
 
 The dashed nodes are optional. `data_fixer` (`enable_data_fixer`, off) inspects a data file that fails to load, down to its bytes or HDF5 tree, and gives the engineer loader guidance. `escalation` (`enable_escalation`, off) hands a missing package or a renamed API once to a Claude Agent SDK agent, with a budget of US$0.50. With `vlm_enabled=False`, a script that ran goes straight to `step_evaluator`.
