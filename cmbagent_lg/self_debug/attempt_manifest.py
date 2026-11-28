@@ -51,10 +51,18 @@ pre-existing ones:
                         by class against the walk (`"kind": "glob" | "directory"`), never
                         listed file by file.
 
-`data_manifest` itself keeps its meaning ("written or modified by THIS attempt"):
-`output_postcondition` still rejects a declared output only an earlier attempt wrote
-(see its docstring). Carried-over files are information for the evaluator, not proof
-that a declared output was freshly written.
+`data_manifest` itself keeps its meaning ("written or modified by THIS attempt").
+`output_postcondition` accepts a declared output this attempt did not write in one case
+only, read from the history and not from the shortened `carried_over` summary: an
+earlier attempt of the same graph invoke of the step wrote it, that attempt's script
+exited 0, and the file's signature is unchanged since (`StepHistory.reusable`). A file
+that was on disk before the step began, or that a failed attempt or a previous run of
+the step wrote, is never accepted (see its docstring).
+
+  `data_manifest_info["deleted"]`  files that were in this attempt's before-walk and are
+                        no longer on disk (at most `MAX_DELETED_LISTED`, the excess
+                        counted in `"deleted_more"`). Read by `output_postcondition`
+                        for a file the sub-task says not to delete.
 
 Only the evaluator's RENDERING is shortened (`MAX_RENDERED` entries, chosen so root
 files, stdout-named files, declared outputs and figures come first, the rest collapsed per
@@ -140,6 +148,8 @@ MAX_STDOUT_GROUPS = 10
 _GROUP_TRIES = 100
 # Carried-over files listed one by one; a longer set is summarised per directory.
 MAX_CARRIED_LISTED = 20
+# Files an attempt removed that `data_manifest_info["deleted"]` lists.
+MAX_DELETED_LISTED = 200
 # When summarised, at most this many stdout-named or root files are still listed.
 _MAX_CARRIED_KEPT = 10
 # Unique path-shaped candidates considered before choosing which to check.
@@ -319,6 +329,25 @@ def diff_snapshots(before: WalkResult, after: WalkResult, started_ns: int) -> Li
             continue
         out.append({"path": rel, "bytes": size, "modified": _iso(mtime_ns), "change": change})
     return out
+
+
+def deleted_paths(before: WalkResult, after: WalkResult, root,
+                  limit: int = MAX_DELETED_LISTED) -> Tuple[List[str], int]:
+    """`(paths, more)`: files in `before` that are gone after the attempt, sorted, at
+    most `limit` of them (`more` counts the rest). A file missing from `after` may only
+    have been missed by that walk (a cap, a directory that grew past the per-directory
+    cap), so each one is confirmed absent with `lexists` before it is listed."""
+    gone: List[str] = []
+    for rel in sorted(before.files):
+        if rel in after.files:
+            continue
+        try:
+            if os.path.lexists(os.path.join(str(root), rel)):
+                continue
+        except (OSError, ValueError):
+            continue
+        gone.append(rel)
+    return gone[:limit], max(0, len(gone) - limit)
 
 
 # ── stdout path checks ───────────────────────────────────────────────────────
@@ -603,6 +632,11 @@ def _file_sig(p) -> Optional[List[int]]:
     return [s.st_size, s.st_mtime_ns, s.st_ctime_ns, s.st_ino]
 
 
+# The signature of a file as it is now, in the walk's own form, for a consumer that
+# compares it with a recorded one (`StepHistory.reusable`).
+file_signature = _file_sig
+
+
 def _tag_order(a) -> Tuple[int, int]:
     """Sort key for an attempt tag: this run's attempts, then a previous run's, then
     unrecorded."""
@@ -620,9 +654,11 @@ def _tag_order(a) -> Tuple[int, int]:
 
 class StepHistory:
     """What the step knew before this attempt ran: its baseline and which attempt last
-    wrote each file (`writes`: path -> [run, attempt, signature or None]). `prior(path,
-    ...)` tells a file this attempt did NOT write apart: `(True, k)` written by attempt k
-    of this run of the step and unchanged since, `(True, "prev:k")` written by attempt k
+    wrote each file (`writes`: path -> [run, attempt, signature or None, clean], where
+    `clean` is True when the execution that wrote it exited 0 without timing out, False
+    when it did not, and absent or None in a file written before the field existed).
+    `prior(path, ...)` tells a file this attempt did NOT write apart: `(True, k)` written
+    by attempt k of this run of the step and unchanged since, `(True, "prev:k")` written by attempt k
     of a previous run of the step (before a restart) and unchanged since, `(True, None)`
     changed after the step began but by no recorded attempt (or changed after the
     recorded one wrote it), `(False, None)` on disk before the step began."""
@@ -639,7 +675,8 @@ class StepHistory:
                 self.writes[k] = [int(run), v, None]
             elif isinstance(v, (list, tuple)) and len(v) >= 2:
                 sig = v[2] if len(v) > 2 and isinstance(v[2], (list, tuple)) else None
-                self.writes[k] = [int(v[0]), int(v[1]), list(sig) if sig else None]
+                clean = v[3] if len(v) > 3 and isinstance(v[3], bool) else None
+                self.writes[k] = [int(v[0]), int(v[1]), list(sig) if sig else None, clean]
         self.attempt = int(attempt or 0)
         self.run = int(run or 1)
         self.path = Path(path) if path else None
@@ -705,10 +742,11 @@ class StepHistory:
         return True
 
     def record(self, manifest: Iterable[dict], after: Optional[WalkResult], root,
-               cap: Optional[int] = None) -> None:
+               cap: Optional[int] = None, clean: Optional[bool] = None) -> None:
         """After an attempt: each manifest path now belongs to this attempt (with its
-        signature, so a later change by something else is noticed); paths no longer on
-        disk are dropped. Bounded by `cap` (the walk's file cap): past it the oldest
+        signature, so a later change by something else is noticed, and with `clean`:
+        did this execution exit 0 without timing out); paths no longer on disk are
+        dropped. Bounded by `cap` (the walk's file cap): past it the oldest
         attempts' entries go first, and such a file then reads as "written earlier in
         this step" without a number (the baseline still tells it apart from a
         pre-existing one)."""
@@ -726,7 +764,8 @@ class StepHistory:
                 continue
             sig = list(walked[path]) if path in walked else _file_sig(where(path))
             self.writes.pop(path, None)
-            self.writes[path] = [self.run, self.attempt, sig]
+            self.writes[path] = [self.run, self.attempt, sig,
+                                 clean if isinstance(clean, bool) else None]
         for k in list(self.writes):
             if k in walked:
                 continue
@@ -745,6 +784,31 @@ class StepHistory:
 
     def tag(self, run: int, attempt: int):
         return attempt if run == self.run else f"prev:{attempt}"
+
+    def reusable(self, key: str, cur_sig) -> Optional[int]:
+        """The attempt whose copy of `key` may stand in for a write by the current
+        attempt, or None. All of: recorded for THIS run of the step (a previous run's
+        file, read after a restart, is not: the same record is what a stale earlier
+        run of the whole task leaves behind), written by an execution that exited 0
+        without timing out, and unchanged since (`cur_sig`, the file's signature now,
+        equals the recorded one; a missing signature on either side is a no). A file no
+        attempt wrote (on disk before the step began) has no record and is never
+        reusable."""
+        rec = self.writes.get(key)
+        if rec is None or rec[0] != self.run:
+            return None
+        if len(rec) < 4 or rec[3] is not True:
+            return None
+        if rec[2] is None or cur_sig is None or tuple(rec[2]) != tuple(cur_sig):
+            return None
+        return rec[1]
+
+    def writer(self, key: str) -> Optional[Tuple[object, Optional[bool]]]:
+        """`(attempt tag, clean)` of the recorded last writer of `key`, or None."""
+        rec = self.writes.get(key)
+        if rec is None:
+            return None
+        return self.tag(rec[0], rec[1]), (rec[3] if len(rec) > 3 else None)
 
     def prior(self, key: str, sig=None, change_ns: Optional[int] = None,
               cur_sig=None) -> Tuple[bool, object]:
@@ -1049,6 +1113,10 @@ def build(before: WalkResult, after: WalkResult, started_ns: int, stdout: str,
         c.pop("mtime_ns", None)
         c.pop("change_ns", None)
     reason = before.truncated or after.truncated
+    try:
+        deleted, deleted_more = deleted_paths(before, after, work_dir)
+    except Exception:  # noqa: BLE001 — bookkeeping must never cost the manifest
+        deleted, deleted_more = [], 0
     info = {
         "scope": "work_dir",
         "complete": reason is None,
@@ -1062,7 +1130,10 @@ def build(before: WalkResult, after: WalkResult, started_ns: int, stdout: str,
         "step_run": history.run if history is not None else None,
         "history": history is not None and not failed,
         "carried_over": carried,
+        "deleted": deleted,
     }
+    if deleted_more:
+        info["deleted_more"] = deleted_more
     if failed:
         info["history_error"] = failed
     return files, info
@@ -1549,5 +1620,6 @@ __all__ = [
     "under_unscanned_dir", "under_symlinked_dir", "render_for_evaluator", "image_paths",
     "other_workspace_files", "walk_limits", "freeze_baseline", "step_key",
     "history_path", "HISTORY_VERSION", "StepHistory", "expand_stdout_groups", "render_carried_over", "CARRIED_OVER_HEADER",
-    "MAX_CARRIED_LISTED", "MAX_STDOUT_GROUPS",
+    "MAX_CARRIED_LISTED", "MAX_STDOUT_GROUPS", "MAX_DELETED_LISTED", "deleted_paths",
+    "file_signature",
 ]

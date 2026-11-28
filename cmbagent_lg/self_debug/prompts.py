@@ -127,6 +127,7 @@ def render_retry_context(
     api_preflight_report: str | None = None,
     bypass_after_fault_report: str | None = None,
     input_search_note: str | None = None,
+    output_conflict_note: str | None = None,
 ) -> str:
     """Block injected into the engineer prompt on retries. Empty on first attempt.
 
@@ -164,6 +165,13 @@ def render_retry_context(
     # (`input_search`): the locations come from the file system, so they go first.
     if input_search_note:
         lines += [input_search_note, ""]
+
+    # The post-run check and the step evaluator gave opposite instructions about one
+    # file (`output_postcondition.arbitrate_with_step_evaluator`). Shown in every retry
+    # mode, before the previous attempt's outcome: the error history further down still
+    # lists the bounce this note retracts.
+    if output_conflict_note:
+        lines += [output_conflict_note, ""]
 
     if last_code:
         lines += [

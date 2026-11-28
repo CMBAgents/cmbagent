@@ -192,6 +192,10 @@ def engineer(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
         api_preflight_report=api_preflight_report,
         bypass_after_fault_report=bypass_after_fault_report,
         input_search_note=_input_search_note(state, attempts),
+        # Set once `output_postcondition` and the step evaluator have given opposite
+        # instructions about one file; kept for the rest of the step, because
+        # `error_history` keeps listing the bounce the note retracts.
+        output_conflict_note=state.get("output_conflict_note"),
     )
 
     system = engineer_instructions(
@@ -582,6 +586,7 @@ def _write_manifest_log(state: DebugState, n: int, step, manifest: list, info: d
                 "partial_dirs": info.get("partial_dirs", []),
                 "stdout_paths": info.get("stdout_paths", []),
                 "carried_over": info.get("carried_over"),
+                "deleted": info.get("deleted", []),
             },
             indent=2,
         )
@@ -808,7 +813,11 @@ def executor(state: DebugState, runtime: Runtime[PlanContext]) -> DebugState:
     }
     if history is not None:
         try:
-            history.record(manifest, tree_after, run_cwd if codebase is not None else None)
+            # `clean`: this execution exited 0 without timing out. `output_postcondition`
+            # accepts a declared output a LATER attempt of this step leaves unchanged only
+            # when the attempt that wrote it was clean.
+            history.record(manifest, tree_after, run_cwd if codebase is not None else None,
+                           clean=(returncode == 0 and not timed_out))
             out["step_history"] = history.save()
         except Exception as e:  # noqa: BLE001 — bookkeeping must never fail the attempt
             print(f"[executor] step history not saved (non-fatal): {e}", file=sys.stderr,
@@ -1318,6 +1327,23 @@ def step_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
             if canonical.exists():
                 canonical.rename(codebase / f"step_{n}_failure_{attempt}.{ext}")
 
+    # A rejection that contradicts `output_postcondition`'s reading of a file (it bounced
+    # an attempt for not writing a path this verdict says must not be written, or the
+    # reverse): the evaluator read the sentence, the post-condition pattern-matched it, so
+    # the path is dropped from the post-condition for the rest of the step and the
+    # engineer is told both messages and which one stands. `{}` on every ordinary path.
+    conflict_update: dict = {}
+    if not accepted and not failed_closed:
+        try:
+            from cmbagent_lg.self_debug.output_postcondition import (
+                arbitrate_with_step_evaluator,
+            )
+
+            conflict_update = arbitrate_with_step_evaluator(state, verdict, ctx)
+        except Exception as e:  # noqa: BLE001 — bookkeeping must never cost the verdict
+            print(f"[output_postcondition] conflict check skipped (non-fatal): {e}",
+                  file=sys.stderr, flush=True)
+
     if substituted:
         print(f"[step_evaluator] step {n}: {len(substituted)} requirement(s) declared "
               f"INFEASIBLE in this environment — accepting the step with the "
@@ -1335,6 +1361,7 @@ def step_evaluator(state: DebugState, runtime: Runtime[PlanContext]) -> DebugSta
         "step_evaluator_errors_total": errors_total,
         # One entry per attempt judged: which model attempt or fallback produced its verdict.
         "step_verdict_modes": list(state.get("step_verdict_modes") or []) + [mode],
+        **conflict_update,
     }
 
 

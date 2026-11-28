@@ -201,7 +201,9 @@ class PlanContext:
     # that file on disk, the attempt is bounced with the missing path named, instead of
     # spending the two evaluator calls it takes to discover the same thing. Only
     # SAVE-shaped declarations count, and only clear `data/...` paths; an absent INPUT is
-    # the `safe_loading` layer's business, never this one. Set False to disable.
+    # the `safe_loading` layer's business, never this one. The same node bounces a clean
+    # run that modified or deleted a path the sub-task says to leave as it is ("do not
+    # overwrite `data/a.json`"). Set False to disable both.
     check_declared_outputs: bool = True
     # The CODE gate's counterpart to `StepVerdict.infeasible_requirements` (see
     # `self_debug/data_infeasibility.py`, no model call): a failure whose traceback is a

@@ -8,8 +8,9 @@ this attempt" as "not processed" and rejected the step. These tests run the real
 executor twice with the graph state carried between the runs, as the self_debug graph
 does (a real subprocess, no model, no network), and pin down: carried over vs written vs
 pre-existing; stdout globs and directories counted by class; the evaluator wording; and
-that `output_postcondition` still rejects a declared output only an earlier attempt
-wrote.
+that `output_postcondition` accepts a declared output an earlier attempt of the step
+wrote only when that attempt exited 0 and the file is unchanged since (the other cases
+are in `test_output_postcondition_conflicts.py`).
 
 Run:
     python -m pytest -q tests/test_step_carryover.py
@@ -264,7 +265,10 @@ def test_no_carried_over_section_on_a_first_attempt_or_without_history(tmp_path)
     assert am.render_carried_over(None) == ""
 
 
-def test_the_postcondition_still_rejects_a_declared_output_only_an_earlier_attempt_wrote(tmp_path):
+def test_the_postcondition_accepts_a_declared_output_a_clean_earlier_attempt_wrote(tmp_path):
+    """A resumable second attempt that skips the declared file its first attempt saved is
+    not asked to write it again: attempt 1 exited 0 and the file is unchanged. Once
+    something else changes the file, the same skip is bounced."""
     from cmbagent_lg.self_debug.output_postcondition import output_postcondition
 
     step = _step("summarise", "save the summary table to data/summary.csv")
@@ -275,17 +279,24 @@ def test_the_postcondition_still_rejects_a_declared_output_only_an_earlier_attem
         open("data/summary.csv", "w").write("a,b")
         print("saved data/summary.csv")
     """)
-    second = run.attempt("""
+    skip = """
         import os
         assert os.path.exists("data/summary.csv")
         print("data/summary.csv already there, skipped")
-    """)
+    """
+    second = run.attempt(skip)
     assert "data/summary.csv" not in _paths(second)
     assert _checks(second)["data/summary.csv"]["status"] == "carried_over"
+    assert _history(tmp_path)["writes"]["data/summary.csv"][3] is True
+    state = dict(run.state, execution_returncode=0, execution_timed_out=False)
+    assert output_postcondition(state, _rt())["output_postcondition_rejected"] is None
+    # Changed after attempt 1 saved it, by no attempt: no longer attempt 1's file.
+    (tmp_path / "data" / "summary.csv").write_text("a,b,c")
+    run.attempt(skip)
     state = dict(run.state, execution_returncode=0, execution_timed_out=False)
     res = output_postcondition(state, _rt())
     assert res["output_postcondition_rejected"] == "missing_output"
-    assert "earlier attempt of this step saved" in res["execution_stderr"]
+    assert "changed after attempt 1 saved it" in res["execution_stderr"]
 
 
 def test_an_absolute_stdout_path_outside_the_run_dir_carries_over_by_attempt(

@@ -90,13 +90,35 @@ class DebugState(TypedDict, total=False):
     missing_input_searches: Optional[List[dict]]
 
     # output_postcondition — the deterministic check that the output artifacts the STEP
-    # DECLARED (paths under `data/` in its text) exist once the subprocess has returned
+    # DECLARED (paths under `data/` in its text) exist once the subprocess has returned,
+    # and that the files it says to leave alone were left alone
     # (`self_debug/output_postcondition.py`). `"missing_output"` when the run was
-    # otherwise clean but a declared file is not there; the node then rewrites the
-    # executor's result into a failure-shaped one and the ordinary code-gate retry path
-    # takes over. None on every pass through, so a bounce never leaks into a later
-    # attempt.
+    # otherwise clean but a declared file does not count as written,
+    # `"protected_modified"` when it modified or deleted a protected file, both joined by
+    # "+" when both; the node then rewrites the executor's result into a failure-shaped
+    # one and the ordinary code-gate retry path takes over. None on every pass through,
+    # so a bounce never leaks into a later attempt.
+    # `output_postcondition_bounces`      — one entry per bounce of this step:
+    #                                       {"attempt", "missing": [paths],
+    #                                       "changed": [[path, "modified" | "deleted"]]}.
+    # `output_postcondition_waived`       — {"declared": [paths], "protected": [paths]}
+    #                                       the check stops enforcing for the rest of the
+    #                                       step, after the step evaluator's verdict
+    #                                       contradicted its reading of them
+    #                                       (`arbitrate_with_step_evaluator`).
+    # `output_conflict_note`              — text for the engineer's retry prompt, set
+    #                                       when an attempt had been bounced over such a
+    #                                       path: both messages, and that the
+    #                                       evaluator's stands. Kept for the rest of the
+    #                                       step.
+    # `output_postcondition_unsure_logged`— True once the paths the text names
+    #                                       ambiguously have been logged for this step.
+    # All per-step: they reset with the rest on each sub-graph invoke.
     output_postcondition_rejected: Optional[str]
+    output_postcondition_bounces: Optional[List[dict]]
+    output_postcondition_waived: Optional[dict]
+    output_conflict_note: Optional[str]
+    output_postcondition_unsure_logged: Optional[bool]
 
     # infeasibility_check — the engine's own audit of a `StepVerdict` infeasibility
     # claim (`self_debug/infeasibility_check.py`), computed in `step_evaluator` where the
@@ -211,7 +233,8 @@ class DebugState(TypedDict, total=False):
     # attempt did not write is then only "not written by this attempt"), history_error
     # (the carry-over split failed; the rest stands), carried_over (files an earlier
     # attempt of this step wrote and this one left unchanged, already shortened for the
-    # prompt). None after a static refusal and on old checkpoints.
+    # prompt), deleted (files this attempt removed; deleted_more counts those past the
+    # listed ones). None after a static refusal and on old checkpoints.
     data_manifest_info: Optional[dict]
 
     # execution_evaluator — did the code RUN cleanly?

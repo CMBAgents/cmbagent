@@ -3,8 +3,10 @@ sharing one retry budget, plus opt-in escape hatches (`escalation`, `data_fixer`
 `image_reviewer`, `preflight`/`api_preflight`) and two always-on deterministic checks:
 `static_preflight` before the run (a script that does not parse, loads a bundled demo
 dataset, or never prints is a failed attempt without a run) and `output_postcondition`
-after it (a clean run that did not write an output path the step declared is bounced
-back to the engineer with no evaluator call at all).
+after it (a clean run that did not write an output path the step declared, or that
+changed a file the step says to leave as it is, is bounced back to the engineer with no
+evaluator call at all; when `step_evaluator` later contradicts that check about a path,
+its reading stands for the rest of the step).
 
 `missing_input` is the terminal data-safety node both halves of the anti-fabrication
 defence route to: the reactive `safe_loading` layer (default ON, no model call) on a
@@ -111,10 +113,10 @@ graph = (
         {"engineer": "engineer", "executor": "executor"},
     )
     # The post-condition sits on the one edge where the run is finished and nothing has
-    # judged it yet: a declared output the attempt did not write is a fact, so it writes
-    # its own verdict and goes straight back to the engineer — a bounce costs neither of
-    # the two evaluator calls it otherwise takes to surface, and does not depend on a
-    # model agreeing with a `stat()` call.
+    # judged it yet: a declared output the attempt did not write (or a protected file it
+    # changed) is a fact, so it writes its own verdict and goes straight back to the
+    # engineer — a bounce costs neither of the two evaluator calls it otherwise takes to
+    # surface, and does not depend on a model agreeing with a `stat()` call.
     .add_edge("executor", "output_postcondition")
     .add_conditional_edges(
         "output_postcondition",
